@@ -986,6 +986,19 @@ function clearDataStep() {
 function openVideo(name, youtubeId) {
   const modal = document.getElementById('modal');
   const box = document.getElementById('modalBox');
+  const q = encodeURIComponent(name + ' exercise');
+  const qAlt = encodeURIComponent(name + ' exercise alternatives');
+  const searchBtns = `
+    <div style="padding:10px 16px 8px;">
+      <div class="modal-btns" style="margin-bottom:6px;">
+        <a class="s-yt" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">▶ YouTube</a>
+        <a class="s-go" href="https://www.google.com/search?q=${q}&tbm=vid" target="_blank" rel="noopener">🔍 Google</a>
+      </div>
+      <div class="modal-btns">
+        <a class="s-yt" href="https://www.youtube.com/results?search_query=${qAlt}" target="_blank" rel="noopener">🔄 YT Alt</a>
+        <a class="s-go" href="https://www.google.com/search?q=${qAlt}" target="_blank" rel="noopener">🔄 Goo Alt</a>
+      </div>
+    </div>`;
   if (youtubeId) {
     box.innerHTML = `
       <div class="modal-header">
@@ -994,10 +1007,12 @@ function openVideo(name, youtubeId) {
       </div>
       <div class="video-wrap">
         <iframe src="https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+      </div>
+      ${searchBtns}
+      <div style="padding:0 16px 14px;">
+        <button onclick="removeYtLink('${name.replace(/'/g,"\\'")}')" style="width:100%;padding:8px;border-radius:10px;border:1px solid #d63031;background:transparent;color:#d63031;font-size:0.75rem;font-weight:600;cursor:pointer;">✕ Remove linked video</button>
       </div>`;
   } else {
-    const q = encodeURIComponent(name + ' exercise');
-    const qAlt = encodeURIComponent(name + ' exercise alternatives');
     box.innerHTML = `
       <div class="modal-header">
         <span class="ex-name">${name}</span>
@@ -1005,14 +1020,7 @@ function openVideo(name, youtubeId) {
       </div>
       <div class="modal-no-vid">
         <p>No video linked yet</p>
-        <div class="modal-btns">
-          <a class="s-yt" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">▶ YouTube</a>
-          <a class="s-go" href="https://www.google.com/search?q=${q}&tbm=vid" target="_blank" rel="noopener">🔍 Google</a>
-        </div>
-        <div class="modal-btns" style="margin-top:2px;">
-          <a class="s-yt" href="https://www.youtube.com/results?search_query=${qAlt}" target="_blank" rel="noopener">🔄 YT Alternatives</a>
-          <a class="s-go" href="https://www.google.com/search?q=${qAlt}" target="_blank" rel="noopener">🔄 Google Alternatives</a>
-        </div>
+        ${searchBtns}
         <div class="modal-link-input">
           <input id="ytInput" type="text" placeholder="Paste YouTube link or video ID..." onkeydown="if(event.key==='Enter')saveYtLink('${name.replace(/'/g,"\\'")}')"/>
           <button onclick="saveYtLink('${name.replace(/'/g,"\\'")}')">Save</button>
@@ -1021,6 +1029,13 @@ function openVideo(name, youtubeId) {
       </div>`;
   }
   modal.classList.add('open');
+}
+
+function removeYtLink(name) {
+  const links = JSON.parse(LS.getItem('ytLinks')||'{}');
+  delete links[name];
+  LS.setItem('ytLinks', JSON.stringify(links));
+  setTimeout(() => { closeModal(); switchTab(activeTab); }, 200);
 }
 
 function saveYtLink(name) {
