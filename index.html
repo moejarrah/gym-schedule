@@ -54,7 +54,6 @@
       display: flex; align-items: center; justify-content: center;
     }
     .header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.3px; color: var(--text); }
-    .header .sub { font-size: 0.7rem; color: var(--text-dim); margin-top: 2px; }
     .header .dm-btn {
       position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
       width: 34px; height: 34px; border-radius: 50%;
@@ -224,6 +223,7 @@
       font-size: 0.7rem; font-weight: 600; cursor: pointer;
       transition: all 0.2s; -webkit-appearance: none;
       display: flex; flex-direction: column; align-items: center; gap: 3px;
+      overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
     }
     .bottom-nav button.active { color: #e17055; }
     .bottom-nav button .nav-icon { font-size: 1.2rem; }
@@ -388,7 +388,6 @@
     body.dark .cal-cell.gym-cell { background: rgba(225,112,85,0.12); border-color: rgba(225,112,85,0.3); }
     body.dark .cal-cell.home-cell { background: rgba(0,184,148,0.12); border-color: rgba(0,184,148,0.3); }
     body.dark .cal-cell.both-cell { background: linear-gradient(135deg, rgba(225,112,85,0.12) 40%, rgba(0,184,148,0.12) 60%); border-color: rgba(225,112,85,0.25); }
-    body.dark .cal-comment-dot { background: #fdcb6e; }
   </style>
 </head>
 <body>
