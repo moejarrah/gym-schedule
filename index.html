@@ -485,6 +485,7 @@ const HOME_DAILY = [
   { name:'Dead bug', sets:'2 × 5-8' },
   { name:'Side plank', sets:'2 × 15-30 sec/side' },
   { name:'Bird dog', sets:'1-2 × 5-8/side' },
+  { name:'Modified curl-up', sets:'2 × 8-12' },
   { name:'Back-to-wall Y raise / wall angel', sets:'2 × 8-12' },
   { name:'Serratus wall slide', sets:'2 × 8-12' },
   { name:'Push-up plus', sets:'2 × 10-15' },
@@ -919,6 +920,9 @@ function renderRules() {
         </div>
         <input type="file" id="importFile" accept=".json" onchange="importData(event)" style="display:none"/>
         <div id="importMsg" style="font-size:0.72rem;margin-top:8px;text-align:center;"></div>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+          <button id="clearBtn" onclick="clearDataStep()" style="width:100%;padding:12px;border-radius:12px;border:none;background:#d63031;color:#fff;font-weight:700;font-size:0.82rem;cursor:pointer;">🗑 Clear All Data</button>
+        </div>
       </div>
     </div>`;
 }
@@ -961,6 +965,22 @@ function importData(e) {
   };
   reader.readAsText(file);
   e.target.value = '';
+}
+
+function clearDataStep() {
+  const btn = document.getElementById('clearBtn');
+  const step = parseInt(btn.dataset.step || '0');
+  if (step === 0) {
+    btn.textContent = '⚠️ Are you sure?';
+    btn.dataset.step = '1';
+  } else if (step === 1) {
+    btn.textContent = '⚠️ This cannot be undone!';
+    btn.style.background = '#b71c1c';
+    btn.dataset.step = '2';
+  } else {
+    LS.clear();
+    location.reload();
+  }
 }
 
 function openVideo(name, youtubeId) {
