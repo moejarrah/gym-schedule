@@ -1,4 +1,4 @@
-const CACHE = "gym-schedule-v2";
+const CACHE = "gym-schedule-v3";
 const FILES = ["/", "/index.html", "/sw.js", "/manifest.json"];
 
 self.addEventListener("install", e => {
