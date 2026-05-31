@@ -61,6 +61,13 @@
       font-size: 1rem; cursor: pointer; display: flex; align-items: center;
       justify-content: center; -webkit-appearance: none; padding: 0;
     }
+    .header .sh-btn {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      width: 34px; height: 34px; border-radius: 50%;
+      border: 1.5px solid var(--border-strong); background: var(--surface);
+      font-size: 0.9rem; cursor: pointer; display: flex; align-items: center;
+      justify-content: center; -webkit-appearance: none; padding: 0;
+    }
 
     /* day tabs */
     .day-tabs {
@@ -392,6 +399,7 @@
 </head>
 <body>
   <div class="header">
+    <button class="sh-btn" onclick="shareApp()">📤</button>
     <h1>Gym Schedule</h1>
     <button class="dm-btn" onclick="toggleDark()" id="dmBtn">🌙</button>
   </div>
@@ -441,6 +449,16 @@ function toggleDark() {
   applyDark(on);
 }
 if (LS.getItem('darkMode') === '1') applyDark(true);
+
+function shareApp() {
+  const url = location.href;
+  const text = 'Gym Schedule — open in Safari, tap Share → Add to Home Screen to install as an app 💪';
+  if (navigator.share) {
+    navigator.share({ title: 'Gym Schedule', text, url });
+  } else {
+    navigator.clipboard.writeText(text + ' ' + url).then(() => alert('Link copied! Send to a friend.'));
+  }
+}
 let activeDay = parseInt(LS.getItem('gymDay')) || 1;
 let activeTab = 'workout';
 let calYear, calMonth;
