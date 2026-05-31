@@ -65,7 +65,14 @@
       position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
       width: 34px; height: 34px; border-radius: 50%;
       border: 1.5px solid var(--border-strong); background: var(--surface);
-      font-size: 0.9rem; cursor: pointer; display: flex; align-items: center;
+      font-size: 1.1rem; cursor: pointer; display: flex; align-items: center;
+      justify-content: center; -webkit-appearance: none; padding: 0;
+    }
+    .header .sh-btn {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      width: 34px; height: 34px; border-radius: 50%;
+      border: 1.5px solid var(--border-strong); background: var(--surface);
+      font-size: 1.1rem; cursor: pointer; display: flex; align-items: center;
       justify-content: center; -webkit-appearance: none; padding: 0;
     }
 
@@ -399,7 +406,7 @@
 </head>
 <body>
   <div class="header">
-    <button class="sh-btn" onclick="shareApp()">📤</button>
+    <button class="sh-btn" onclick="shareApp()">↗</button>
     <h1>Gym Schedule</h1>
     <button class="dm-btn" onclick="toggleDark()" id="dmBtn">🌙</button>
   </div>
