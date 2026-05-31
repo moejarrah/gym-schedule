@@ -1,8 +1,9 @@
 {
   "name": "Gym Schedule",
   "short_name": "Gym",
-  "description": "3-month gym routine tracker with exercise videos",
-  "start_url": "/index.html",
+  "description": "Gym routine tracker with exercise videos",
+  "start_url": "./",
+  "scope": "/gym-schedule/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#f5f6fa",

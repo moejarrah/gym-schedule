@@ -1,5 +1,5 @@
-const CACHE = "gym-schedule-v3";
-const FILES = ["/", "/index.html", "/sw.js", "/manifest.json"];
+const CACHE = "gym-schedule-v4";
+const FILES = ["./", "./index.html", "./sw.js", "./manifest.json"];
 
 self.addEventListener("install", e => {
   self.skipWaiting();
