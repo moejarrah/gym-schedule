@@ -1,0 +1,14 @@
+{
+  "name": "Gym Schedule",
+  "short_name": "Gym",
+  "description": "3-month gym routine tracker with exercise videos",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f6fa",
+  "theme_color": "#ffffff",
+  "icons": [
+    { "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23ffffff' width='192' height='192' rx='36'/><text x='96' y='120' text-anchor='middle' font-size='80'>🏋️</text></svg>", "sizes": "192x192", "type": "image/svg+xml" },
+    { "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%23ffffff' width='512' height='512' rx='96'/><text x='256' y='330' text-anchor='middle' font-size='220'>🏋️</text></svg>", "sizes": "512x512", "type": "image/svg+xml" }
+  ]
+}

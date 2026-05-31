@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Gym Schedule"/>
+  <meta name="theme-color" content="#f5f6fa"/>
+  <title>Gym Schedule</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23fff' width='100' height='100' rx='20'/><text x='50' y='68' text-anchor='middle' font-size='48'>🏋️</text></svg>"/>
+
+  <style>
+    :root {
+      --bg: #f5f6fa;
+      --surface: #fff;
+      --text: #2d3436;
+      --text-dim: #636e72;
+      --border: #e8ecf1;
+      --border-strong: #dfe6e9;
+      --input-bg: #f5f6fa;
+      --nav-bg: rgba(255,255,255,0.95);
+      --modal-bg: rgba(0,0,0,0.75);
+      --sheet-shadow: 0 -6px 30px rgba(0,0,0,0.15);
+      --sheet-btn-bg: #2d3436;
+      --sheet-btn-text: #fff;
+    }
+    body.dark {
+      --bg: #0f0f1a;
+      --surface: #1a1a2e;
+      --text: #dfe6e9;
+      --text-dim: #7f8fa6;
+      --border: rgba(255,255,255,0.06);
+      --border-strong: rgba(255,255,255,0.1);
+      --input-bg: rgba(255,255,255,0.06);
+      --nav-bg: rgba(15,15,26,0.95);
+      --modal-bg: rgba(0,0,0,0.85);
+      --sheet-shadow: 0 -6px 30px rgba(0,0,0,0.5);
+      --sheet-btn-bg: #dfe6e9;
+      --sheet-btn-text: #1a1a2e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      height: 100%; overflow-x: hidden;
+      background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    body { display: flex; flex-direction: column; }
+
+    .header {
+      background: var(--surface); padding: 14px 16px 10px; text-align: center;
+      border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.3px; color: var(--text); }
+    .header .sub { font-size: 0.7rem; color: var(--text-dim); margin-top: 2px; }
+    .header .dm-btn {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      width: 34px; height: 34px; border-radius: 50%;
+      border: 1.5px solid var(--border-strong); background: var(--surface);
+      font-size: 1rem; cursor: pointer; display: flex; align-items: center;
+      justify-content: center; -webkit-appearance: none; padding: 0;
+    }
+
+    /* day tabs */
+    .day-tabs {
+      display: flex; gap: 6px; padding: 12px 12px 6px;
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; flex-shrink: 0; background: var(--bg);
+    }
+    .day-tabs::-webkit-scrollbar { display: none; }
+    .day-tab {
+      flex-shrink: 0; padding: 10px 16px; border-radius: 12px;
+      border: 1.5px solid var(--border-strong); background: var(--surface);
+      color: var(--text-dim); font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+      white-space: nowrap; -webkit-appearance: none;
+    }
+    .day-tab.active {
+      background: #e17055; border-color: #e17055;
+      color: #fff; box-shadow: 0 4px 15px rgba(225,112,85,0.25);
+    }
+    .day-tab.rest { opacity: 0.6; }
+    #dayTabs.hidden { display: none; }
+
+    .main-scroll {
+      flex: 1; overflow-y: auto; padding: 0 12px 80px;
+      -webkit-overflow-scrolling: touch; background: var(--bg);
+    }
+
+    .section-title {
+      font-size: 0.73rem; text-transform: uppercase; letter-spacing: 2px;
+      color: var(--text-dim); margin: 18px 0 8px; padding: 0 4px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-title .badge {
+      font-size: 0.62rem; padding: 3px 10px; border-radius: 20px;
+      font-weight: 700; letter-spacing: 1px;
+    }
+    .badge.gym { background: #e17055; color: #fff; }
+    .badge.home { background: #00b894; color: #fff; }
+
+    .ex-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 13px 14px; margin-bottom: 6px;
+      display: flex; align-items: center; gap: 12px;
+      cursor: pointer; transition: all 0.15s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .ex-card:active { background: var(--bg); transform: scale(0.985); }
+    .ex-card .ex-num {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--border-strong); color: var(--text-dim);
+      font-size: 0.65rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-right: -4px;
+    }
+    .ex-card .ex-icon {
+      font-size: 1.5rem; width: 44px; height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg); border-radius: 10px; flex-shrink: 0;
+      position: relative; overflow: hidden;
+    }
+    .ex-card .ex-figure {
+      width: 44px; height: 44px; flex-shrink: 0;
+      border-radius: 10px; background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .ex-card .ex-figure svg {
+      width: 38px; height: 38px;
+    }
+    .ex-card .ex-info { flex: 1; min-width: 0; }
+    .ex-card .ex-name {
+      font-size: 0.88rem; font-weight: 600; color: var(--text); line-height: 1.2; margin-bottom: 2px;
+    }
+    .ex-card .ex-sets { font-size: 0.72rem; color: var(--text-dim); }
+    .ex-card .ex-play {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: #e17055; border: none; color: #fff;
+      font-size: 0.8rem; display: flex; align-items: center;
+      justify-content: center; cursor: pointer; flex-shrink: 0;
+      opacity: 0.5; transition: opacity 0.2s;
+    }
+    .ex-card .ex-play:hover, .ex-card .ex-play:active { opacity: 1; }
+    .ex-card .ex-play.no-vid { background: var(--border-strong); }
+
+    .note-row {
+      font-size: 0.72rem; color: var(--text-dim); padding: 6px 4px;
+      font-style: italic; line-height: 1.4;
+    }
+
+    /* youtube modal */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: var(--modal-bg); z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+    .modal-box {
+      background: var(--surface); border-radius: 16px; width: 92vw; max-width: 480px;
+      overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .modal-header {
+      padding: 14px 16px; display: flex; align-items: center;
+      justify-content: space-between; border-bottom: 1px solid var(--border);
+    }
+    .modal-header .ex-name { font-weight: 700; font-size: 0.95rem; flex: 1; padding-right: 12px; color:var(--text); }
+    .modal-close {
+      width: 32px; height: 32px; border-radius: 50%; border: none;
+      background: var(--input-bg); color: var(--text-dim); font-size: 1.1rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .video-wrap { position: relative; padding-bottom: 56.25%; height: 0; background: #000; }
+    .video-wrap iframe {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;
+    }
+    .modal-no-vid {
+      padding: 24px 20px; text-align: center; color: var(--text-dim);
+    }
+    .modal-no-vid p { margin-bottom: 12px; font-size: 0.82rem; }
+    .modal-btns {
+      display: flex; gap: 8px; justify-content: center; margin-bottom: 16px;
+    }
+    .modal-btns a {
+      flex: 1; padding: 10px 8px; border-radius: 20px;
+      text-decoration: none; font-weight: 600; font-size: 0.78rem;
+      color: #fff; text-align: center;
+    }
+    .modal-btns .s-yt { background: #ff0000; }
+    .modal-btns .s-go { background: #4285f4; }
+    .modal-link-input {
+      display: flex; gap: 6px; padding: 0 4px;
+    }
+    .modal-link-input input {
+      flex: 1; padding: 10px 14px; border-radius: 12px;
+      border: 1.5px solid var(--border-strong); font-size: 0.8rem; color: var(--text);
+      background: var(--input-bg); -webkit-appearance: none;
+    }
+    .modal-link-input input:focus { outline: none; border-color: #e17055; }
+    .modal-link-input button {
+      padding: 10px 18px; border-radius: 12px; border: none;
+      background: #e17055; color: #fff; font-weight: 700; font-size: 0.8rem;
+      cursor: pointer; -webkit-appearance: none; white-space: nowrap;
+    }
+    .modal-link-input button:active { opacity: 0.85; }
+    .modal-saved {
+      font-size: 0.72rem; color: #00b894; margin-top: 8px; display: none;
+    }
+
+    /* bottom nav */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--nav-bg); border-top: 1px solid var(--border);
+      display: flex; padding: 6px 8px; gap: 4px;
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      justify-content: space-around; z-index: 10;
+    }
+    .bottom-nav button {
+      flex: 1; padding: 8px 6px; border-radius: 10px; border: none;
+      background: transparent; color: var(--text-dim);
+      font-size: 0.7rem; font-weight: 600; cursor: pointer;
+      transition: all 0.2s; -webkit-appearance: none;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+    }
+    .bottom-nav button.active { color: #e17055; }
+    .bottom-nav button .nav-icon { font-size: 1.2rem; }
+
+    /* rules */
+    .rules-wrap { padding-bottom: 20px; }
+    .rule-block {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .rule-block h3 {
+      font-size: 0.82rem; color: #e17055; margin-bottom: 6px;
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+    .rule-block p { font-size: 0.78rem; color: var(--text-dim); line-height: 1.5; }
+    .rule-block ul { font-size: 0.78rem; color: var(--text-dim); line-height: 1.6; padding-left: 18px; }
+
+    /* done button */
+    .done-btn {
+      display: block; margin: 18px auto; padding: 14px 40px;
+      border-radius: 30px; border: none;
+      background: #00b894; color: #fff; font-size: 1rem; font-weight: 700; letter-spacing: 0.5px;
+      cursor: pointer; box-shadow: 0 4px 16px rgba(0,184,148,0.25);
+      -webkit-appearance: none;
+    }
+    .done-btn:active { opacity: 0.85; transform: scale(0.97); }
+    .done-btn.undone { background: var(--border-strong); color: var(--text-dim); box-shadow: none; }
+
+    .progress-bar {
+      height: 4px; background: var(--border-strong); border-radius: 2px; margin: 8px 4px 0; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; background: #00b894; border-radius: 2px; transition: width 0.3s;
+    }
+    .progress-text {
+      font-size: 0.65rem; color: var(--text-dim); text-align: center; margin-top: 4px;
+    }
+
+    /* calendar */
+    .cal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 4px 12px;
+    }
+    .cal-header .month-label {
+      font-size: 1rem; font-weight: 700; color: var(--text);
+    }
+    .cal-header button {
+      width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--border-strong);
+      background: var(--surface); font-size: 1rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text); -webkit-appearance: none;
+    }
+    .cal-header button:active { background: var(--bg); }
+    .cal-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr);
+      gap: 3px; text-align: center;
+    }
+    .cal-dow {
+      font-size: 0.65rem; color: var(--text-dim); font-weight: 600;
+      padding: 6px 0; text-transform: uppercase;
+    }
+    .cal-cell {
+      min-height: 56px; border-radius: 10px; font-size: 0.72rem; font-weight: 600;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; background: var(--surface); border: 2px solid var(--border);
+      transition: all 0.15s; position: relative;
+      color: var(--text); padding: 2px 2px 3px; gap: 0;
+    }
+    .cal-cell:active { background: var(--bg); }
+    .cal-cell.empty { background: transparent; border-color: transparent; pointer-events: none; }
+    .cal-cell.today { border-color: #e17055; }
+    .cal-cell.gym-cell { background: #fef0ec; border-color: #f5c6b7; }
+    .cal-cell.home-cell { background: #e8f8f5; border-color: #a3e4d7; }
+    .cal-cell.both-cell { background: linear-gradient(135deg, #fef0ec 40%, #e8f8f5 60%); border-color: #f5c6b7; }
+    .cal-cell .cal-dots {
+      display: flex; gap: 4px;
+    }
+    .cal-cell .cal-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+    }
+    .cal-dot.gym { background: #e17055; }
+    .cal-dot.home { background: #00b894; }
+    .cal-cell .cal-comment-dot {
+      position: absolute; top: 3px; right: 3px;
+      width: 5px; height: 5px; border-radius: 50%;
+      background: #fdcb6e;
+    }
+    .cal-cell .cal-note {
+      font-size: 0.48rem; color: var(--text-dim); font-weight: 500;
+      line-height: 1.15; text-align: center; overflow: hidden;
+      max-width: 100%; padding: 0 1px;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow-wrap: break-word;
+    }
+    .cal-legend {
+      display: flex; gap: 16px; justify-content: center; padding: 12px 0; font-size: 0.72rem; color: var(--text-dim);
+    }
+    .cal-legend span { display: flex; align-items: center; gap: 5px; }
+    .cal-legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .cal-legend .dot.gym { background: #e17055; }
+    .cal-legend .dot.home { background: #00b894; }
+
+    .cal-summary {
+      display: flex; gap: 10px; padding: 10px 4px; justify-content: center;
+    }
+    .cal-sum-card {
+      flex: 1; background: var(--surface); border-radius: 12px; padding: 14px;
+      text-align: center; border: 1px solid var(--border);
+    }
+    .cal-sum-card .num {
+      font-size: 1.6rem; font-weight: 800;
+    }
+    .cal-sum-card .num.gym { color: #e17055; }
+    .cal-sum-card .num.home { color: #00b894; }
+    .cal-sum-card .label { font-size: 0.65rem; color: var(--text-dim); margin-top: 2px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .tab-content-wrap { padding-top: 4px; }
+
+    /* day edit sheet */
+    .day-backdrop {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.35); z-index: 80;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .day-backdrop.open { opacity: 1; pointer-events: auto; }
+    .day-sheet {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 81;
+      background: var(--surface); border-radius: 18px 18px 0 0;
+      padding: 20px 18px 28px;
+      box-shadow: var(--sheet-shadow);
+      transform: translateY(100%); transition: transform 0.3s ease;
+      max-height: 70vh; overflow-y: auto;
+    }
+    .day-sheet.open { transform: translateY(0); }
+    .day-sheet .ds-date {
+      font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 14px;
+    }
+    .day-sheet .ds-toggles {
+      display: flex; gap: 10px; margin-bottom: 14px;
+    }
+    .day-sheet .ds-toggles button {
+      flex: 1; padding: 12px; border-radius: 12px; border: 2px solid var(--border);
+      background: var(--surface); font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      transition: all 0.15s; -webkit-appearance: none; color: var(--text-dim);
+    }
+    .day-sheet .ds-toggles button.on-gym { background: #e17055; border-color: #e17055; color: #fff; }
+    .day-sheet .ds-toggles button.on-home { background: #00b894; border-color: #00b894; color: #fff; }
+    .day-sheet textarea {
+      width: 100%; padding: 12px 14px; border-radius: 12px;
+      border: 2px solid var(--border); font-size: 0.82rem; color: var(--text);
+      font-family: inherit; resize: vertical; min-height: 56px;
+      background: var(--input-bg); -webkit-appearance: none;
+    }
+    .day-sheet textarea:focus { outline: none; border-color: #e17055; }
+    .day-sheet .ds-close {
+      display: block; margin: 14px auto 0; padding: 12px 36px;
+      border-radius: 24px; border: none; background: var(--sheet-btn-bg); color: var(--sheet-btn-text);
+      font-size: 0.85rem; font-weight: 700; cursor: pointer; -webkit-appearance: none;
+    }
+
+    /* dark mode overrides for calendar cells */
+    body.dark .cal-cell.gym-cell { background: rgba(225,112,85,0.12); border-color: rgba(225,112,85,0.3); }
+    body.dark .cal-cell.home-cell { background: rgba(0,184,148,0.12); border-color: rgba(0,184,148,0.3); }
+    body.dark .cal-cell.both-cell { background: linear-gradient(135deg, rgba(225,112,85,0.12) 40%, rgba(0,184,148,0.12) 60%); border-color: rgba(225,112,85,0.25); }
+    body.dark .cal-comment-dot { background: #fdcb6e; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Gym Schedule</h1>
+    <div class="sub">3-Month Routine</div>
+    <button class="dm-btn" onclick="toggleDark()" id="dmBtn">🌙</button>
+  </div>
+
+  <div class="day-tabs" id="dayTabs"></div>
+  <div class="main-scroll" id="mainScroll"></div>
+
+  <div class="bottom-nav" id="bottomNav">
+    <button onclick="switchTab('workout')" id="btnWorkout" class="active"><span class="nav-icon">🏋️</span>Workout</button>
+    <button onclick="switchTab('home')" id="btnHome"><span class="nav-icon">🏠</span>Home Base</button>
+    <button onclick="switchTab('calendar')" id="btnCalendar"><span class="nav-icon">📅</span>Calendar</button>
+    <button onclick="switchTab('rules')" id="btnRules"><span class="nav-icon">📋</span>Rules</button>
+  </div>
+
+  <div class="modal-overlay" id="modal" onclick="closeModal(event)">
+    <div class="modal-box" id="modalBox" onclick="event.stopPropagation()"></div>
+  </div>
+
+  <div class="day-backdrop" id="dayBackdrop" onclick="closeDaySheet()"></div>
+  <div class="day-sheet" id="daySheet">
+    <div class="ds-date" id="dsDate"></div>
+    <div class="ds-toggles">
+      <button id="dsGym" onclick="dsToggle('gym')">🏋️ Gym</button>
+      <button id="dsHome" onclick="dsToggle('home')">🏠 Home Base</button>
+    </div>
+    <textarea id="dsComment" placeholder="Add note..." oninput="dsSaveComment()"></textarea>
+    <button class="ds-close" onclick="closeDaySheet()">Done</button>
+  </div>
+
+<script>
+const SV = 'sw.js';
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register(SV).catch(()=>{});
+}
+
+const LS = localStorage;
+
+// dark mode
+function applyDark(on) {
+  document.body.classList.toggle('dark', on);
+  document.getElementById('dmBtn').textContent = on ? '☀️' : '🌙';
+  document.querySelector('meta[name="theme-color"]').content = on ? '#0f0f1a' : '#f5f6fa';
+}
+function toggleDark() {
+  const on = !document.body.classList.contains('dark');
+  LS.setItem('darkMode', on ? '1' : '0');
+  applyDark(on);
+}
+if (LS.getItem('darkMode') === '1') applyDark(true);
+let activeDay = parseInt(LS.getItem('gymDay')) || 1;
+let activeTab = 'workout';
+let calYear, calMonth;
+
+function switchTab(tab) {
+  activeTab = tab;
+  ['btnWorkout','btnHome','btnCalendar','btnRules'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById('btn'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('active');
+  const tabs = document.getElementById('dayTabs');
+  if (tab === 'workout') { tabs.classList.remove('hidden'); renderTabs(); renderWorkout(); }
+  else if (tab === 'home') { tabs.classList.add('hidden'); renderHome(); }
+  else if (tab === 'calendar') { tabs.classList.add('hidden'); renderCalendar(); }
+  else if (tab === 'rules') { tabs.classList.add('hidden'); renderRules(); }
+  document.getElementById('mainScroll').scrollTop = 0;
+}
+
+function getIcon(name) {
+  const n = name.toLowerCase();
+  if (n.includes('press')||n.includes('push')) return '🏋️';
+  if (n.includes('pull')||n.includes('row')||n.includes('lat')) return '🦾';
+  if (n.includes('curl')) return '💪';
+  if (n.includes('squat')||n.includes('split')||n.includes('lunge')||n.includes('step')) return '🦵';
+  if (n.includes('deadlift')||n.includes('hinge')||n.includes('hip thrust')||n.includes('glute')) return '🏋️';
+  if (n.includes('plank')||n.includes('dead bug')||n.includes('bird dog')) return '🧘';
+  if (n.includes('calf')||n.includes('tibialis')) return '🦶';
+  if (n.includes('carry')||n.includes('walk')) return '🏃';
+  if (n.includes('rotation')||n.includes('pallof')||n.includes('core')) return '🎯';
+  if (n.includes('cat-cow')||n.includes('stretch')||n.includes('mobility')||n.includes('slide')) return '🤸';
+  if (n.includes('y raise')||n.includes('w raise')||n.includes('serratus')||n.includes('angel')) return '🙆';
+  if (n.includes('ankle')||n.includes('balance')||n.includes('inversion')||n.includes('eversion')) return '🦶';
+  if (n.includes('wrist')||n.includes('pronation')||n.includes('supination')||n.includes('deviation')) return '🤲';
+  if (n.includes('fly')||n.includes('pec')||n.includes('rear')) return '🦅';
+  if (n.includes('raise')||n.includes('scaption')||n.includes('lateral')) return '🙋';
+  if (n.includes('adductor')||n.includes('abduction')||n.includes('copenhagen')) return '🦿';
+  if (n.includes('leg curl')||n.includes('leg extension')) return '🦿';
+  return '🎯';
+}
+
+// ═══════════════ DATA ═══════════════
+
+const HOME_DAILY = [
+  { name:'Dead bug', sets:'2 × 5-8' },
+  { name:'Side plank', sets:'2 × 15-30 sec/side' },
+  { name:'Bird dog', sets:'1-2 × 5-8/side' },
+  { name:'Back-to-wall Y raise / wall angel', sets:'2 × 8-12' },
+  { name:'Serratus wall slide', sets:'2 × 8-12' },
+  { name:'Push-up plus', sets:'2 × 10-15' },
+  { name:'Prone W raise', sets:'2 × 10-15' },
+  { name:'Cat-cow', sets:'1 × 6-8' },
+  { name:'Knee-to-wall ankle rocks', sets:'2 × 8-12/side' },
+  { name:'Half-kneeling hip flexor stretch', sets:'1-2 × 20-30 sec/side' },
+  { name:'Active straight-leg raise', sets:'2 × 5-8/leg' },
+  { name:'90/90 hip switches', sets:'1-2 × 8-10 total' },
+  { name:'Supported deep squat hold', sets:'1-2 × 20-30 sec' },
+  { name:'Glute bridge', sets:'2 × 8-12' },
+];
+
+const HOME_EXTRA_REHAB = [
+  { name:'Ankle inversion', sets:'2 × 12-20/side' },
+  { name:'Ankle eversion', sets:'2 × 12-20/side' },
+  { name:'Single-leg balance', sets:'1-2 × 30-60 sec/side' },
+  { name:'Hip internal rotation', sets:'2 × 12-20/side' },
+  { name:'Hip external rotation', sets:'2 × 12-20/side' },
+];
+
+const HOME_LOADED = [
+  { name:'Goblet squat hold', sets:'2 × 20-30 sec' },
+  { name:'Supported Cossack squat', sets:'2 × 5-8/side' },
+  { name:'Slow Romanian deadlift (3 sec down)', sets:'2 × 6-8' },
+  { name:'Supported deep split squat', sets:'2 × 6-8/side' },
+  { name:'90/90 lean or loaded 90/90 hold', sets:'2 × 20-30 sec/side' },
+  { name:'Short-lever Copenhagen plank / adductor side plank', sets:'2 × 10-20 sec/side' },
+];
+
+const GYM_DAYS = {
+  'Day 1 - Push A': [
+    { name:'Low incline dumbbell press', sets:'3 × 8-12' },
+    { name:'Machine chest press', sets:'2 × 8-12' },
+    { name:'Scaption raise', sets:'2 × 12-20' },
+    { name:'Rope pushdown', sets:'2-3 × 10-15' },
+    { name:'Cable external rotation', sets:'2 × 15-20/side' },
+    { name:'Cable serratus punch', sets:'2 × 12-15/side' },
+  ],
+  'Day 2 - Pull A': [
+    { name:'Chest-supported row', sets:'3 × 8-12' },
+    { name:'Neutral-grip lat pulldown', sets:'3 × 8-12' },
+    { name:'Chest-supported rear-delt raise', sets:'2 × 12-20' },
+    { name:'Incline Y raise', sets:'2 × 10-15' },
+    { name:'Preacher curl', sets:'2-3 × 8-12' },
+    { name:'Wrist curl', sets:'2 × 12-20' },
+    { name:'Reverse wrist curl', sets:'2 × 12-20' },
+    { name:'Pallof press', sets:'2 × 10-15/side' },
+  ],
+  'Day 3 - Legs A': [
+    { name:'Hack squat', sets:'3 × 6-10' },
+    { name:'Supported Bulgarian split squat OR supported split squat', sets:'2-3 × 8-10/leg' },
+    { name:'Seated leg curl', sets:'2-3 × 10-15' },
+    { name:'Leg extension', sets:'2-3 × 10-15' },
+    { name:'Standing calf raise', sets:'3-4 × 8-15' },
+    { name:'Tibialis raise', sets:'2-3 × 12-20' },
+    { name:'Adductor machine', sets:'2-3 × 12-20' },
+    { name:'Ankle inversion', sets:'2 × 12-20/side' },
+    { name:'Ankle eversion', sets:'2 × 12-20/side' },
+    { name:'Single-leg balance', sets:'1-2 × 30-60 sec/side' },
+  ],
+  'Day 4 - Rest + Mobility': [],
+  'Day 5 - Push B': [
+    { name:'Machine overhead press', sets:'3 × 8-12' },
+    { name:'Flat dumbbell press OR machine chest press', sets:'2-3 × 8-12' },
+    { name:'Regular chest pec deck OR short-range cable fly', sets:'1-2 × 12-15' },
+    { name:'Scaption raise OR very light cable lateral raise', sets:'2 × 12-20' },
+    { name:'Rope pushdown', sets:'2-3 × 10-15' },
+    { name:'Cable external rotation', sets:'2 × 15-20/side' },
+  ],
+  'Day 6 - Pull B': [
+    { name:'Assisted neutral-grip pull-up OR neutral pulldown', sets:'3 × 6-10' },
+    { name:'One-arm cable row', sets:'3 × 8-12/side' },
+    { name:'Cable Y raise', sets:'2 × 12-15' },
+    { name:'Chest-supported rear-delt raise OR prone W raise', sets:'2 × 12-20' },
+    { name:'Bayesian curl', sets:'2-3 × 10-15/side' },
+    { name:'Hammer curl', sets:'2 × 10-15' },
+    { name:'Reverse curl', sets:'1-2 × 10-15' },
+    { name:'Suitcase carry', sets:'2-3 rounds/side' },
+    { name:'Cable pronation', sets:'1-2 × 12-20/side' },
+    { name:'Cable supination', sets:'1-2 × 12-20/side' },
+    { name:'Radial deviation', sets:'1-2 × 12-20/side' },
+    { name:'Ulnar deviation', sets:'1-2 × 12-20/side' },
+  ],
+  'Day 7 - Legs B OR Rest': [
+    { name:'Romanian deadlift', sets:'3 × 6-10' },
+    { name:'Hip thrust', sets:'3 × 8-12' },
+    { name:'Glute-biased step-up', sets:'2-3 × 8-12/leg' },
+    { name:'Lying leg curl', sets:'2-3 × 10-15' },
+    { name:'Back extension machine', sets:'2-3 × 8-15' },
+    { name:'Hip abduction machine', sets:'2-3 × 12-20' },
+    { name:'Seated calf raise', sets:'3-4 × 10-20' },
+    { name:'Standing cable hip flexion / cable psoas march', sets:'2 × 12-20/side' },
+    { name:'Hip internal rotation', sets:'2 × 12-20/side' },
+    { name:'Hip external rotation', sets:'2 × 12-20/side' },
+  ],
+};
+
+const DAY_KEYS = Object.keys(GYM_DAYS);
+const DAY_LABELS = [
+  'Day 1\nPush A', 'Day 2\nPull A', 'Day 3\nLegs A',
+  'Day 4\nRest', 'Day 5\nPush B', 'Day 6\nPull B',
+  'Day 7\nLegs B'
+];
+
+// ═══════════════ DAY TABS ═══════════════
+
+function renderTabs() {
+  const el = document.getElementById('dayTabs');
+  el.innerHTML = DAY_LABELS.map((l,i) => {
+    const cls = ['day-tab'];
+    if (i+1 === activeDay) cls.push('active');
+    if (i+1 === 4) cls.push('rest');
+    return `<button class="${cls.join(' ')}" onclick="setDay(${i+1})">${l.replace(/\n/g,'<br>')}</button>`;
+  }).join('');
+}
+
+function setDay(d) {
+  activeDay = d;
+  LS.setItem('gymDay', d);
+  renderTabs();
+  renderWorkout();
+}
+
+// ═══════════════ EXERCISE CARD ═══════════════
+
+function getYtId(ex) {
+  const links = JSON.parse(LS.getItem('ytLinks')||'{}');
+  return ex.youtubeId || links[ex.name] || '';
+}
+
+function exCard(ex, idx) {
+  const yid = getYtId(ex);
+  const hasVid = !!yid;
+  const fig = ex.figure || '';
+  const iconHtml = fig
+    ? `<div class="ex-figure">${fig}</div>`
+    : `<div class="ex-icon">${getIcon(ex.name)}</div>`;
+  return `
+    <div class="ex-card" onclick="openVideo('${ex.name.replace(/'/g,"\\'")}', '${yid}')">
+      <div class="ex-num">${idx}</div>
+      ${iconHtml}
+      <div class="ex-info">
+        <div class="ex-name">${ex.name}</div>
+        <div class="ex-sets">${ex.sets}</div>
+      </div>
+      <div class="ex-play ${hasVid?'':'no-vid'}">▶</div>
+    </div>`;
+}
+
+// ═══════════════ RENDER WORKOUT ═══════════════
+
+function renderWorkout() {
+  document.getElementById('dayTabs').classList.remove('hidden');
+  const key = DAY_KEYS[activeDay-1];
+  const gym = GYM_DAYS[key] || [];
+  let html = '';
+  const isRest = activeDay === 4, isDay7 = activeDay === 7;
+
+  const done = JSON.parse(LS.getItem('gymDone')||'[]');
+  html += `<div class="tab-content-wrap">`;
+  html += `<div class="progress-bar"><div class="progress-fill" style="width:${(done.length/7)*100}%"></div></div>`;
+  html += `<div class="progress-text">${done.length}/7 gym days completed this week</div>`;
+
+  if (gym.length > 0 && !isDay7) {
+    html += `<div class="section-title"><span class="badge gym">GYM</span> ${key}</div>`;
+    gym.forEach((e,i) => { html += exCard(e, i+1); });
+  }
+
+  if (isRest) {
+    html += `<div class="section-title"><span class="badge gym">GYM</span> REST DAY</div>`;
+    html += `<div class="note-row">Recovery day. See Home Base tab for mobility.</div>`;
+  }
+
+  if (isDay7) {
+    html += `<div class="section-title"><span class="badge gym">GYM</span> Legs B (optional)</div>`;
+    gym.forEach((e,i) => { html += exCard(e, i+1); });
+    html += `<div class="note-row">Month 1: skip if tired. Month 2-3: do if recovery is good.</div>`;
+  }
+
+  if (activeDay === 5) {
+    html += `<div class="note-row">⚠️ Pec deck/cable fly: no deep stretch, elbows/hands do not go far behind torso, stop if front shoulder/biceps area gets irritated.</div>`;
+  }
+
+  const doneToday = done.includes(activeDay);
+  html += `<button class="done-btn ${doneToday?'undone':''}" onclick="toggleGymDone(${activeDay})">${doneToday?'✓ Done — Tap to Undo':'Mark Gym Done ✓'}</button>`;
+  html += `</div>`;
+
+  document.getElementById('mainScroll').innerHTML = html;
+  renderTabs();
+}
+
+function toggleGymDone(d) {
+  let stored = JSON.parse(LS.getItem('gymDone')||'[]');
+  if (stored.includes(d)) stored = stored.filter(x => x !== d);
+  else stored.push(d);
+  LS.setItem('gymDone', JSON.stringify(stored));
+  renderWorkout();
+}
+
+// ═══════════════ RENDER HOME BASE ═══════════════
+
+function renderHome() {
+  document.getElementById('dayTabs').classList.add('hidden');
+  let html = `<div class="tab-content-wrap">`;
+
+  // Home done today button
+  const today = new Date().toISOString().slice(0,10);
+  const homeToday = JSON.parse(LS.getItem('homeDone')||'[]').includes(today);
+  html += `<button class="done-btn ${homeToday?'undone':''}" onclick="toggleHomeDone()">${homeToday?'✓ Home Base Done Today — Tap to Undo':'Mark Home Base Done Today ✓'}</button>`;
+
+  html += `<div class="section-title"><span class="badge home">HOME</span> Daily Base (5-7×/week · 10-20 min)</div>`;
+  HOME_DAILY.forEach((e,i) => { html += exCard(e, i+1); });
+
+  html += `<div class="section-title"><span class="badge home">HOME</span> Extra Rehab (2-3×/week)</div>`;
+  HOME_EXTRA_REHAB.forEach((e,i) => { html += exCard(e, i+1); });
+
+  html += `<div class="section-title"><span class="badge home">HOME</span> Loaded Mobility (2×/week · Day 4 & 7)</div>`;
+  HOME_LOADED.forEach((e,i) => { html += exCard(e, i+1); });
+
+  html += `</div>`;
+  document.getElementById('mainScroll').innerHTML = html;
+}
+
+function toggleHomeDone() {
+  const today = new Date().toISOString().slice(0,10);
+  let stored = JSON.parse(LS.getItem('homeDone')||'[]');
+  if (stored.includes(today)) stored = stored.filter(x => x !== today);
+  else stored.push(today);
+  LS.setItem('homeDone', JSON.stringify(stored));
+  renderHome();
+}
+
+// ═══════════════ CALENDAR ═══════════════
+
+function getCalData() {
+  return {
+    gym: JSON.parse(LS.getItem('gymCalendar')||'{}'),
+    home: JSON.parse(LS.getItem('homeCalendar')||'{}')
+  };
+}
+
+function renderCalendar() {
+  document.getElementById('dayTabs').classList.add('hidden');
+  const now = new Date();
+  if (!calYear) { calYear = now.getFullYear(); calMonth = now.getMonth(); }
+
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const dows = ['M','T','W','T','F','S','S'];
+
+  const firstDay = new Date(calYear, calMonth, 1);
+  const lastDay = new Date(calYear, calMonth+1, 0);
+  const daysInMonth = lastDay.getDate();
+  let startDow = firstDay.getDay() - 1;
+  if (startDow < 0) startDow = 6;
+
+  const data = getCalData();
+  const comments = JSON.parse(LS.getItem('calComments')||'{}');
+  const todayStr = now.toISOString().slice(0,10);
+
+  let html = `<div class="tab-content-wrap">`;
+
+  // summary cards
+  let gymCount = 0, homeCount = 0;
+  for (let d=1; d<=daysInMonth; d++) {
+    const key = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    if (data.gym[key]) gymCount++;
+    if (data.home[key]) homeCount++;
+  }
+  html += `<div class="cal-summary">
+    <div class="cal-sum-card"><div class="num gym">${gymCount}</div><div class="label">Gym Days</div></div>
+    <div class="cal-sum-card"><div class="num home">${homeCount}</div><div class="label">Home Base</div></div>
+  </div>`;
+
+  // month nav
+  html += `<div class="cal-header">
+    <button onclick="calNav(-1)">←</button>
+    <span class="month-label">${months[calMonth]} ${calYear}</span>
+    <button onclick="calNav(1)">→</button>
+  </div>`;
+
+  // dow headers
+  html += `<div class="cal-grid">`;
+  dows.forEach(d => { html += `<div class="cal-dow">${d}</div>`; });
+
+  // blanks
+  for (let i=0; i<startDow; i++) {
+    html += `<div class="cal-cell empty"></div>`;
+  }
+
+  // day cells
+  for (let d=1; d<=daysInMonth; d++) {
+    const key = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = key === todayStr;
+    const hasGym = !!data.gym[key];
+    const hasHome = !!data.home[key];
+    const hasComment = !!(comments[key]);
+    const commentText = comments[key] || '';
+    const escaped = commentText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const notePreview = escaped.length > 40 ? escaped.slice(0,40)+'…' : escaped;
+    const cls = ['cal-cell'];
+    if (isToday) cls.push('today');
+    if (hasGym && hasHome) cls.push('both-cell');
+    else if (hasGym) cls.push('gym-cell');
+    else if (hasHome) cls.push('home-cell');
+
+    let dots = '';
+    if (hasGym) dots += `<span class="cal-dot gym"></span>`;
+    if (hasHome) dots += `<span class="cal-dot home"></span>`;
+    const commentDot = hasComment ? `<span class="cal-comment-dot"></span>` : '';
+
+    html += `<div class="${cls.join(' ')}" onclick="toggleCalDay('${key}')">
+      ${commentDot}
+      <span>${d}</span>
+      <div class="cal-dots">${dots}</div>
+      ${notePreview ? `<div class="cal-note">${notePreview}</div>` : ''}
+    </div>`;
+  }
+  html += `</div>`;
+
+  html += `<div class="cal-legend">
+    <span><span class="dot gym"></span> Gym</span>
+    <span><span class="dot home"></span> Home Base</span>
+  </div>`;
+  html += `<div class="note-row" style="text-align:center;">Tap a day to add marks and notes</div>`;
+
+  html += `</div>`;
+  document.getElementById('mainScroll').innerHTML = html;
+}
+
+function calNav(dir) {
+  calMonth += dir;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+}
+
+function toggleCalDay(key) { openDaySheet(key); }
+
+function openDaySheet(key) {
+  const data = getCalData();
+  const comments = JSON.parse(LS.getItem('calComments')||'{}');
+  document.getElementById('dsDate').textContent = key;
+  const gBtn = document.getElementById('dsGym');
+  const hBtn = document.getElementById('dsHome');
+  gBtn.classList.toggle('on-gym', !!data.gym[key]);
+  hBtn.classList.toggle('on-home', !!data.home[key]);
+  document.getElementById('dsComment').value = comments[key] || '';
+  document.getElementById('daySheet').dataset.key = key;
+  document.getElementById('daySheet').classList.add('open');
+  document.getElementById('dayBackdrop').classList.add('open');
+}
+
+function closeDaySheet() {
+  document.getElementById('daySheet').classList.remove('open');
+  document.getElementById('dayBackdrop').classList.remove('open');
+  renderCalendar();
+}
+
+function dsToggle(type) {
+  const key = document.getElementById('daySheet').dataset.key;
+  const data = getCalData();
+  if (type === 'gym') data.gym[key] = !data.gym[key];
+  else data.home[key] = !data.home[key];
+  LS.setItem('gymCalendar', JSON.stringify(data.gym));
+  LS.setItem('homeCalendar', JSON.stringify(data.home));
+  const gBtn = document.getElementById('dsGym');
+  const hBtn = document.getElementById('dsHome');
+  gBtn.classList.toggle('on-gym', !!data.gym[key]);
+  hBtn.classList.toggle('on-home', !!data.home[key]);
+}
+
+function dsSaveComment() {
+  const key = document.getElementById('daySheet').dataset.key;
+  const comments = JSON.parse(LS.getItem('calComments')||'{}');
+  const val = document.getElementById('dsComment').value.trim();
+  if (val) comments[key] = val;
+  else delete comments[key];
+  LS.setItem('calComments', JSON.stringify(comments));
+}
+
+// ═══════════════ RULES ═══════════════
+
+function renderRules() {
+  document.getElementById('dayTabs').classList.add('hidden');
+  document.getElementById('mainScroll').innerHTML = `
+    <div class="rules-wrap tab-content-wrap">
+      <div class="rule-block">
+        <h3>Progression</h3>
+        <ul>
+          <li>Weeks 1-2: light weights, lower end of sets, 3-4 RIR</li>
+          <li>Weeks 3-6: add weight slowly, 2-3 RIR</li>
+          <li>Weeks 7-12: train normally but clean, 1-3 RIR</li>
+          <li>Add weight only if: no irritation during set, no worse pain later, no worse feeling next morning, form stays controlled</li>
+        </ul>
+      </div>
+      <div class="rule-block">
+        <h3>Paused for 3 Months</h3>
+        <ul>
+          <li>Reverse pec deck</li>
+          <li>Heavy normal lateral raises</li>
+          <li>Deep cable fly stretch</li>
+          <li>Reverse crunch</li>
+          <li>Jefferson curl</li>
+          <li>Dips</li>
+          <li>Behind-neck movements</li>
+        </ul>
+      </div>
+      <div class="rule-block">
+        <h3>Pain Rule</h3>
+        <ul>
+          <li>0-2/10 = okay</li>
+          <li>3/10 = reduce weight or range</li>
+          <li>Sharp/pinchy pain = stop exercise</li>
+          <li>Worse next day = did too much</li>
+        </ul>
+      </div>
+      <div class="rule-block">
+        <h3>Unilateral Rule</h3>
+        <p>Start with weaker side. Match reps with stronger side. Do not let stronger side do extra.</p>
+      </div>
+      <div class="rule-block">
+        <h3>Duplication Rule</h3>
+        <p>If ankle/hip rehab is done at the gym that day, home version = skip or 1 easy set. Wrist block = light, controlled, no failure.</p>
+      </div>
+      <div class="rule-block">
+        <h3>Backup Data</h3>
+        <p style="margin-bottom:10px;">Export your calendar marks, comments, and video links so you don't lose them.</p>
+        <div style="display:flex;gap:8px;">
+          <button onclick="exportData()" style="flex:1;padding:12px;border-radius:12px;border:none;background:#00b894;color:#fff;font-weight:700;font-size:0.82rem;cursor:pointer;">📤 Export</button>
+          <button onclick="document.getElementById('importFile').click()" style="flex:1;padding:12px;border-radius:12px;border:none;background:#0984e3;color:#fff;font-weight:700;font-size:0.82rem;cursor:pointer;">📥 Import</button>
+        </div>
+        <input type="file" id="importFile" accept=".json" onchange="importData(event)" style="display:none"/>
+        <div id="importMsg" style="font-size:0.72rem;margin-top:8px;text-align:center;"></div>
+      </div>
+    </div>`;
+}
+
+// ═══════════════ EXPORT / IMPORT ═══════════════
+
+function exportData() {
+  const keys = ['gymDone','homeDone','gymCalendar','homeCalendar','calComments','ytLinks','gymDay'];
+  const data = {};
+  keys.forEach(k => { data[k] = JSON.parse(LS.getItem(k)||'null'); });
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'gym-schedule-backup.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const data = JSON.parse(ev.target.result);
+      const keys = ['gymDone','homeDone','gymCalendar','homeCalendar','calComments','ytLinks','gymDay'];
+      let count = 0;
+      keys.forEach(k => {
+        if (data[k] !== undefined && data[k] !== null) {
+          LS.setItem(k, JSON.stringify(data[k]));
+          count++;
+        }
+      });
+      const msg = document.getElementById('importMsg');
+      if (msg) msg.innerHTML = '✓ Imported ' + count + ' data groups. <a href="javascript:location.reload()" style="color:#e17055;">Reload app</a>';
+    } catch(err) {
+      const msg = document.getElementById('importMsg');
+      if (msg) msg.innerHTML = '✗ Invalid file.';
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function openVideo(name, youtubeId) {
+  const modal = document.getElementById('modal');
+  const box = document.getElementById('modalBox');
+  if (youtubeId) {
+    box.innerHTML = `
+      <div class="modal-header">
+        <span class="ex-name">${name}</span>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="video-wrap">
+        <iframe src="https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+      </div>`;
+  } else {
+    const q = encodeURIComponent(name + ' exercise');
+    const qAlt = encodeURIComponent(name + ' exercise alternatives');
+    box.innerHTML = `
+      <div class="modal-header">
+        <span class="ex-name">${name}</span>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-no-vid">
+        <p>No video linked yet</p>
+        <div class="modal-btns">
+          <a class="s-yt" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">▶ YouTube</a>
+          <a class="s-go" href="https://www.google.com/search?q=${q}&tbm=vid" target="_blank" rel="noopener">🔍 Google</a>
+        </div>
+        <div class="modal-btns" style="margin-top:2px;">
+          <a class="s-yt" href="https://www.youtube.com/results?search_query=${qAlt}" target="_blank" rel="noopener">🔄 YT Alternatives</a>
+          <a class="s-go" href="https://www.google.com/search?q=${qAlt}" target="_blank" rel="noopener">🔄 Google Alternatives</a>
+        </div>
+        <div class="modal-link-input">
+          <input id="ytInput" type="text" placeholder="Paste YouTube link or video ID..." onkeydown="if(event.key==='Enter')saveYtLink('${name.replace(/'/g,"\\'")}')"/>
+          <button onclick="saveYtLink('${name.replace(/'/g,"\\'")}')">Save</button>
+        </div>
+        <div class="modal-saved" id="savedMsg">✓ Saved!</div>
+      </div>`;
+  }
+  modal.classList.add('open');
+}
+
+function saveYtLink(name) {
+  const input = document.getElementById('ytInput');
+  let val = input.value.trim();
+  if (!val) return;
+  const m = val.match(/(?:v=|\.be\/|embed\/|shorts\/)([a-zA-Z0-9_-]{11})/);
+  const id = m ? m[1] : (val.length === 11 ? val : null);
+  if (!id) { input.style.borderColor = '#e17055'; return; }
+  const links = JSON.parse(LS.getItem('ytLinks')||'{}');
+  links[name] = id;
+  LS.setItem('ytLinks', JSON.stringify(links));
+  const msg = document.getElementById('savedMsg');
+  if (msg) { msg.style.display = 'block'; }
+  setTimeout(() => { closeModal(); switchTab(activeTab); }, 600);
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal')) return;
+  document.getElementById('modal').classList.remove('open');
+  document.getElementById('modalBox').innerHTML = '';
+}
+
+// ═══════════════ INIT ═══════════════
+renderTabs();
+renderWorkout();
+</script>
+</body>
+</html>
