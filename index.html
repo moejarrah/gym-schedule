@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
   <meta name="apple-mobile-web-app-title" content="Gym Schedule"/>
@@ -155,6 +155,16 @@
     }
     .ex-card .ex-play:hover, .ex-card .ex-play:active { opacity: 1; }
     .ex-card .ex-play.no-vid { background: var(--border-strong); }
+    .ex-card .ex-info-btn {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: transparent; border: 1.5px solid var(--border-strong);
+      font-size: 1rem; display: flex; align-items: center;
+      justify-content: center; cursor: pointer; flex-shrink: 0;
+      transition: background-color 0.15s, border-color 0.15s; color: var(--text-dim);
+    }
+    .ex-card .ex-info-btn:hover, .ex-card .ex-info-btn:active {
+      background: var(--input-bg); border-color: var(--accent); color: var(--accent);
+    }
 
     .note-row {
       font-size: 0.72rem; color: var(--text-dim); padding: 6px 4px;
@@ -398,6 +408,86 @@
       outline-offset: 2px;
     }
 
+    .ex-notes-backdrop {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.35); z-index: 80;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .ex-notes-backdrop.open { opacity: 1; pointer-events: auto; }
+    .ex-notes-sheet {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 81;
+      background: var(--surface); border-radius: 18px 18px 0 0;
+      padding: 20px 18px 28px;
+      box-shadow: var(--sheet-shadow);
+      transform: translateY(100%); transition: transform 0.3s ease;
+      max-height: 75vh; overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+    .ex-notes-sheet.open { transform: translateY(0); }
+    .ex-notes-sheet .notes-handle {
+      width: 36px; height: 4px; border-radius: 2px;
+      background: var(--border-strong); margin: 0 auto 16px;
+    }
+    .ex-notes-sheet .notes-title {
+      font-size: 1.05rem; font-weight: 700; color: var(--text); margin-bottom: 4px;
+    }
+    .ex-notes-sheet .notes-sets {
+      font-size: 0.78rem; color: var(--text-dim); margin-bottom: 16px;
+    }
+    .ex-notes-sheet .notes-body {
+      font-size: 0.88rem; color: var(--text); line-height: 1.6;
+      white-space: pre-line;
+    }
+    .ex-notes-sheet .notes-empty {
+      text-align: center; color: var(--text-dim); padding: 24px 0;
+      font-size: 0.85rem;
+    }
+    .ex-notes-sheet .notes-close {
+      display: block; margin: 20px auto 0; padding: 12px 36px;
+      border-radius: 24px; border: none; background: var(--sheet-btn-bg); color: var(--sheet-btn-text);
+      font-size: 0.85rem; font-weight: 700; cursor: pointer; -webkit-appearance: none;
+      min-height: 44px;
+    }
+    .ex-notes-sheet .notes-input {
+      width: 100%; min-height: 180px; padding: 12px 14px; border-radius: 12px;
+      border: 2px solid var(--border); font-size: 0.85rem; color: var(--text);
+      font-family: inherit; resize: vertical; background: var(--input-bg);
+      -webkit-appearance: none; line-height: 1.5;
+    }
+    .ex-notes-sheet .notes-input:focus { outline: none; border-color: var(--accent); }
+    .ex-notes-sheet .notes-actions {
+      display: flex; gap: 8px; margin-top: 12px;
+    }
+    .ex-notes-sheet .notes-save-btn {
+      flex: 1; padding: 12px; border-radius: 12px; border: none;
+      background: var(--accent-green); color: #fff; font-size: 0.85rem;
+      font-weight: 700; cursor: pointer; min-height: 44px;
+    }
+    .ex-notes-sheet .notes-save-btn:active { opacity: 0.85; }
+    .ex-notes-sheet .notes-del-btn {
+      padding: 12px 20px; border-radius: 12px; border: 2px solid var(--danger);
+      background: transparent; color: var(--danger); font-size: 0.85rem;
+      font-weight: 700; cursor: pointer; min-height: 44px;
+    }
+    .ex-notes-sheet .notes-del-btn:active { opacity: 0.85; }
+    .ex-notes-sheet .notes-edit-btn {
+      display: inline-block; margin-top: 8px; padding: 6px 16px;
+      border-radius: 8px; border: 1.5px solid var(--border-strong);
+      background: transparent; color: var(--text-dim); font-size: 0.75rem;
+      font-weight: 600; cursor: pointer;
+    }
+    .ex-notes-sheet .notes-edit-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .ex-notes-sheet .notes-add-btn {
+      display: block; margin: 8px auto 0; padding: 12px 24px;
+      border-radius: 12px; border: 2px dashed var(--border-strong);
+      background: transparent; color: var(--text-dim); font-size: 0.85rem;
+      font-weight: 600; cursor: pointer; min-height: 44px;
+    }
+    .ex-notes-sheet .notes-add-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .ex-notes-sheet .notes-text {
+      font-size: 0.88rem; color: var(--text); line-height: 1.6;
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         animation-duration: 0.01ms !important;
@@ -440,6 +530,15 @@
     <button class="ds-close" onclick="closeDaySheet()">Done</button>
   </div>
 
+  <div class="ex-notes-backdrop" id="exNotesBackdrop" onclick="closeExNotes()"></div>
+  <div class="ex-notes-sheet" id="exNotesSheet">
+    <div class="notes-handle"></div>
+    <div class="notes-title" id="notesTitle"></div>
+    <div class="notes-sets" id="notesSets"></div>
+    <div class="notes-body" id="notesBody"></div>
+    <button class="notes-close" onclick="closeExNotes()">Close</button>
+  </div>
+
 <script>
 var SV = 'sw.js';
 if ('serviceWorker' in navigator) {
@@ -447,7 +546,7 @@ if ('serviceWorker' in navigator) {
 }
 
 var LS = localStorage;
-var APP_KEYS = ['gymDone','homeDone','gymCalendar','homeCalendar','calComments','ytLinks','gymDay','gymDoneByWeek'];
+var APP_KEYS = ['gymDone','homeDone','gymCalendar','homeCalendar','calComments','ytLinks','gymDay','gymDoneByWeek','exNotes'];
 
 function lsGet(key, fallback) {
   try {
@@ -548,6 +647,8 @@ var HOME_DAILY = [
   { name:'90/90 hip switches', sets:'1-2 \u00D7 8-10 total' },
   { name:'Supported deep squat hold', sets:'1-2 \u00D7 20-30 sec' },
   { name:'Glute bridge', sets:'2 \u00D7 8-12' },
+  { name:'Sitting in squat', sets:'1-2 \u00D7 20-30 sec' },
+  { name:'Quadruped back rotations', sets:'1-2 \u00D7 5-8/side' },
 ];
 
 var HOME_EXTRA_REHAB = [
@@ -732,6 +833,7 @@ function exCard(ex, idx, links) {
       '<div class="ex-name">' + esc(ex.name) + '</div>' +
       '<div class="ex-sets">' + esc(ex.sets) + '</div>' +
     '</div>' +
+    '<button class="ex-info-btn" data-note-name="' + esc(ex.name) + '" aria-label="How to do this exercise">\u2139</button>' +
     '<div class="ex-play ' + (hasVid ? '' : 'no-vid') + '" aria-label="' + (hasVid ? 'Play video' : 'No video') + '">\u25B6</div>' +
   '</div>';
 }
@@ -943,6 +1045,76 @@ function closeDaySheet() {
   renderCalendar();
 }
 
+function findExercise(name) {
+  var allExercises = HOME_DAILY.concat(HOME_EXTRA_REHAB, HOME_LOADED);
+  for (var i = 0; i < allExercises.length; i++) {
+    if (allExercises[i].name === name) return allExercises[i];
+  }
+  for (var k = 0; k < DAY_KEYS.length; k++) {
+    var dayExercises = GYM_DAYS[DAY_KEYS[k]];
+    for (var j = 0; j < dayExercises.length; j++) {
+      if (dayExercises[j].name === name) return dayExercises[j];
+    }
+  }
+  return null;
+}
+
+function openExNotes(name) {
+  var ex = findExercise(name);
+  var notes = lsGet('exNotes', {});
+  var saved = notes[name] || '';
+  document.getElementById('notesTitle').textContent = ex ? ex.name : name;
+  document.getElementById('notesSets').textContent = ex ? ex.sets : '';
+  var body = document.getElementById('notesBody');
+  if (saved) {
+    body.innerHTML = '<div class="notes-text">' + esc(saved).replace(/\n/g, '<br>') + '</div>' +
+      '<button class="notes-edit-btn" onclick="editExNotes(\'' + esc(name).replace(/'/g, "\\'") + '\')" aria-label="Edit notes">Edit</button>';
+  } else {
+    body.innerHTML = '<div class="notes-empty">No instructions yet.</div>' +
+      '<button class="notes-add-btn" onclick="editExNotes(\'' + esc(name).replace(/'/g, "\\'") + '\')" aria-label="Add notes">+ Add Instructions</button>';
+  }
+  document.getElementById('exNotesSheet').dataset.name = name;
+  document.getElementById('exNotesSheet').classList.add('open');
+  document.getElementById('exNotesBackdrop').classList.add('open');
+}
+
+function editExNotes(name) {
+  var notes = lsGet('exNotes', {});
+  var saved = notes[name] || '';
+  var body = document.getElementById('notesBody');
+  body.innerHTML = '<textarea class="notes-input" id="notesInput" placeholder="Write how to do this exercise...&#10;&#10;Setup: ...&#10;Execution: ...&#10;Focus: ...">' + esc(saved) + '</textarea>' +
+    '<div class="notes-actions">' +
+      '<button class="notes-save-btn" onclick="saveExNotes()">Save</button>' +
+      (saved ? '<button class="notes-del-btn" onclick="deleteExNotes()">Delete</button>' : '') +
+    '</div>';
+  var input = document.getElementById('notesInput');
+  if (input) input.focus();
+}
+
+function saveExNotes() {
+  var name = document.getElementById('exNotesSheet').dataset.name;
+  var input = document.getElementById('notesInput');
+  var val = input ? input.value.trim() : '';
+  var notes = lsGet('exNotes', {});
+  if (val) notes[name] = val;
+  else delete notes[name];
+  lsSet('exNotes', notes);
+  openExNotes(name);
+}
+
+function deleteExNotes() {
+  var name = document.getElementById('exNotesSheet').dataset.name;
+  var notes = lsGet('exNotes', {});
+  delete notes[name];
+  lsSet('exNotes', notes);
+  openExNotes(name);
+}
+
+function closeExNotes() {
+  document.getElementById('exNotesSheet').classList.remove('open');
+  document.getElementById('exNotesBackdrop').classList.remove('open');
+}
+
 function dsToggle(type) {
   var key = document.getElementById('daySheet').dataset.key;
   var data = getCalData();
@@ -1049,6 +1221,7 @@ function importData(e) {
         homeCalendar: function(v) { return v && typeof v === 'object' && !Array.isArray(v); },
         calComments: function(v) { return v && typeof v === 'object' && !Array.isArray(v); },
         ytLinks: function(v) { return v && typeof v === 'object' && !Array.isArray(v); },
+        exNotes: function(v) { return v && typeof v === 'object' && !Array.isArray(v); },
         gymDay: function(v) { return typeof v === 'number' || typeof v === 'string'; }
       };
       var count = 0;
@@ -1115,7 +1288,7 @@ function openVideo(name, youtubeId) {
       '</div>' +
       searchBtns +
       '<div style="padding:0 16px 14px;">' +
-        '<button class="modal-remove-btn" style="width:100%;padding:8px;border-radius:10px;border:1px solid var(--danger);background:transparent;color:var(--danger);font-size:0.75rem;font-weight:600;cursor:pointer;min-height:44px;">\u2715 Remove linked video</button>' +
+        '<button class="modal-remove-btn" onclick="removeYtLink()" style="width:100%;padding:8px;border-radius:10px;border:1px solid var(--danger);background:transparent;color:var(--danger);font-size:0.75rem;font-weight:600;cursor:pointer;min-height:44px;">\u2715 Remove linked video</button>' +
       '</div>';
   } else {
     box.innerHTML =
@@ -1128,7 +1301,7 @@ function openVideo(name, youtubeId) {
         searchBtns +
         '<div class="modal-link-input">' +
           '<input id="ytInput" type="text" placeholder="Paste YouTube link or video ID..." />' +
-          '<button class="modal-save-btn">Save</button>' +
+          '<button class="modal-save-btn" onclick="saveYtLink()">Save</button>' +
         '</div>' +
         '<div class="modal-saved" id="savedMsg">\u2713 Saved!</div>' +
       '</div>';
@@ -1184,24 +1357,19 @@ function switchTab(tab) {
 }
 
 document.addEventListener('click', function(e) {
+  var infoBtn = e.target.closest('.ex-info-btn');
+  if (infoBtn && infoBtn.dataset.noteName) {
+    openExNotes(infoBtn.dataset.noteName);
+    return;
+  }
   var card = e.target.closest('.ex-card');
-  if (card && card.dataset.name) {
+  if (card && card.dataset.name && !e.target.closest('.ex-play') && !e.target.closest('.ex-info-btn')) {
     openVideo(card.dataset.name, card.dataset.yid || '');
     return;
   }
   var cell = e.target.closest('.cal-cell:not(.empty)');
   if (cell && cell.dataset.date) {
     openDaySheet(cell.dataset.date);
-    return;
-  }
-  var removeBtn = e.target.closest('.modal-remove-btn');
-  if (removeBtn) {
-    removeYtLink();
-    return;
-  }
-  var saveBtn = e.target.closest('.modal-save-btn');
-  if (saveBtn) {
-    saveYtLink();
     return;
   }
 });
@@ -1227,6 +1395,9 @@ document.addEventListener('keydown', function(e) {
     }
     if (document.getElementById('daySheet').classList.contains('open')) {
       closeDaySheet();
+    }
+    if (document.getElementById('exNotesSheet').classList.contains('open')) {
+      closeExNotes();
     }
   }
   if (e.key === 'Enter' && e.target.id === 'ytInput') {

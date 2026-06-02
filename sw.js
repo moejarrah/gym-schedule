@@ -1,4 +1,4 @@
-var CACHE = "gym-schedule-v6";
+var CACHE = "gym-schedule-v7";
 var FILES = ["./", "./index.html", "./sw.js", "./manifest.json"];
 
 self.addEventListener("install", function(e) {
