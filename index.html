@@ -147,20 +147,22 @@
     }
     .ex-card .ex-sets { font-size: 0.72rem; color: var(--text-dim); }
     .ex-card .ex-play {
-      width: 44px; height: 44px; border-radius: 50%;
+      width: 32px; height: 32px; border-radius: 50%;
       background: var(--accent); border: none; color: #fff;
-      font-size: 0.8rem; display: flex; align-items: center;
+      font-size: 0.7rem; display: flex; align-items: center;
       justify-content: center; cursor: pointer; flex-shrink: 0;
       opacity: 0.5; transition: opacity 0.2s;
     }
     .ex-card .ex-play:hover, .ex-card .ex-play:active { opacity: 1; }
     .ex-card .ex-play.no-vid { background: var(--border-strong); }
     .ex-card .ex-info-btn {
-      width: 44px; height: 44px; border-radius: 50%;
+      width: 32px; height: 32px; border-radius: 50%;
       background: transparent; border: 1.5px solid var(--border-strong);
-      font-size: 1rem; display: flex; align-items: center;
+      font-size: 0.72rem; font-weight: 700; font-style: italic;
+      display: flex; align-items: center;
       justify-content: center; cursor: pointer; flex-shrink: 0;
       transition: background-color 0.15s, border-color 0.15s; color: var(--text-dim);
+      font-family: Georgia, 'Times New Roman', serif;
     }
     .ex-card .ex-info-btn:hover, .ex-card .ex-info-btn:active {
       background: var(--input-bg); border-color: var(--accent); color: var(--accent);
@@ -649,6 +651,8 @@ var HOME_DAILY = [
   { name:'Glute bridge', sets:'2 \u00D7 8-12' },
   { name:'Sitting in squat', sets:'1-2 \u00D7 20-30 sec' },
   { name:'Quadruped back rotations', sets:'1-2 \u00D7 5-8/side' },
+  { name:'Towel shoulder stretch', sets:'2 \u00D7 20-30 sec/side' },
+  { name:'Foam roller chest stretch with weights', sets:'1-2 \u00D7 20-30 sec' },
 ];
 
 var HOME_EXTRA_REHAB = [
@@ -788,6 +792,8 @@ function getIcon(name) {
   if (n.includes('calf')||n.includes('tibialis')) return '\uD83E\uDDB6';
   if (n.includes('carry')||n.includes('walk')) return '\uD83C\uDFC3';
   if (n.includes('rotation')||n.includes('pallof')||n.includes('core')) return '\uD83C\uDFAF';
+  if (n.includes('towel')||n.includes('shoulder stretch')||n.includes('apley')) return '\uD83E\uDDBE';
+  if (n.includes('foam roller')||n.includes('roller')||n.includes('chest stretch')) return '\uD83E\uDD85';
   if (n.includes('cat-cow')||n.includes('stretch')||n.includes('mobility')||n.includes('slide')) return '\uD83E\uDDD8';
   if (n.includes('y raise')||n.includes('w raise')||n.includes('serratus')||n.includes('angel')) return '\uD83D\uDE4F';
   if (n.includes('ankle')||n.includes('balance')||n.includes('inversion')||n.includes('eversion')) return '\uD83E\uDDB6';
@@ -833,7 +839,7 @@ function exCard(ex, idx, links) {
       '<div class="ex-name">' + esc(ex.name) + '</div>' +
       '<div class="ex-sets">' + esc(ex.sets) + '</div>' +
     '</div>' +
-    '<button class="ex-info-btn" data-note-name="' + esc(ex.name) + '" aria-label="How to do this exercise">\u2139</button>' +
+    '<button class="ex-info-btn" data-note-name="' + esc(ex.name) + '" aria-label="How to do this exercise">i</button>' +
     '<div class="ex-play ' + (hasVid ? '' : 'no-vid') + '" aria-label="' + (hasVid ? 'Play video' : 'No video') + '">\u25B6</div>' +
   '</div>';
 }
