@@ -1,37 +1,58 @@
-var CACHE = "gym-schedule-v7";
-var FILES = ["./", "./index.html", "./sw.js", "./manifest.json"];
+const CACHE = "gym-schedule-v10";
+const APP_SHELL = [
+  "./",
+  "./index.html",
+  "./styles.css",
+  "./data.js",
+  "./storage.js",
+  "./app.js",
+  "./manifest.json",
+  "./icons/app-icon.svg",
+  "./icons/app-icon-180.png",
+  "./icons/app-icon-192.png",
+  "./icons/app-icon-512.png",
+];
 
-self.addEventListener("install", function(e) {
+self.addEventListener("install", (event) => {
   self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then(function(c) { return c.addAll(FILES); }));
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL)));
 });
 
-self.addEventListener("activate", function(e) {
-  e.waitUntil(
-    caches.keys().then(function(keys) {
-      return Promise.all(keys.filter(function(k) { return k !== CACHE; }).map(function(k) { return caches.delete(k); }));
-    }).then(function() {
-      return self.clients.claim();
-    })
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))
+      .then(() => self.clients.claim()),
   );
 });
 
-self.addEventListener("fetch", function(e) {
-  if (e.request.method !== "GET") return;
-  var url = new URL(e.request.url);
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
-  e.respondWith(
-    caches.match(e.request).then(function(cached) {
-      var fetchPromise = fetch(e.request).then(function(res) {
-        if (res.ok) {
-          var clone = res.clone();
-          caches.open(CACHE).then(function(c) { c.put(e.request, clone); });
-        }
-        return res;
-      }).catch(function() {
-        return cached;
-      });
-      return cached || fetchPromise;
-    })
+
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            event.waitUntil(caches.open(CACHE).then((cache) => cache.put(event.request, copy)));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html"))),
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
+      if (response.ok) {
+        const copy = response.clone();
+        event.waitUntil(caches.open(CACHE).then((cache) => cache.put(event.request, copy)));
+      }
+      return response;
+    })),
   );
 });

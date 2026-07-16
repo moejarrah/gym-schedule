@@ -1,0 +1,8 @@
+{
+  "name": "gym-schedule",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check app.js && node --check data.js && node --check storage.js && node --check sw.js && node --test tests/*.test.mjs"
+  }
+}
