@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const MUSCLE_GROUPS = [
   "Chest",
@@ -206,6 +206,7 @@ function buildDefaults() {
           defaultPrescription: prescription,
           instructions: "",
           videoId: "",
+          alternativeExerciseIds: [],
         });
       }
       return {

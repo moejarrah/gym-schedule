@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f5f6fa">
+  <meta name="theme-color" content="#f4f5f3">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Gym Schedule">
@@ -17,12 +17,12 @@
   <div class="app-shell">
     <header class="topbar">
       <div class="topbar-title">
-        <p id="viewKicker">Gym Schedule</p>
-        <h1 id="viewTitle">Workout</h1>
+        <h1 id="viewTitle">Push A</h1>
+        <p id="viewMetaLine">Gym · 6 exercises · required</p>
       </div>
       <div class="topbar-actions">
-        <button class="icon-button" id="themeButton" type="button" aria-label="Use dark theme" title="Change theme">
-          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20.4 15.5A8.5 8.5 0 0 1 8.5 3.6 8.5 8.5 0 1 0 20.4 15.5Z"/></svg>
+        <button class="icon-button header-complete" id="headerCompleteButton" type="button" aria-label="Mark routine completed today" aria-pressed="false">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.6 2.6L16.5 9"/></svg>
         </button>
         <button class="icon-button" id="settingsButton" type="button" aria-label="Open settings" title="Open settings">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
@@ -39,15 +39,15 @@
       </button>
       <button type="button" data-view="routines">
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><path d="m3.5 6 1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2"/></svg>
-        <span>Routines</span>
+        <span>Program</span>
       </button>
       <button type="button" data-view="exercises">
         <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="9" cy="9" r="5"/><path d="m13 13 6 6M9 6v6M6 9h6"/></svg>
-        <span>Exercises</span>
+        <span>Library</span>
       </button>
       <button type="button" data-view="calendar">
         <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
-        <span>Calendar</span>
+        <span>Log</span>
       </button>
     </nav>
   </div>
@@ -63,13 +63,37 @@
       <label class="field">Default sets and reps<input id="exercisePrescription" name="prescription" autocomplete="off" placeholder="3 × 8-12" maxlength="60"></label>
       <fieldset class="field-group"><legend>Muscle groups</legend><div id="muscleOptions" class="check-grid"></div></fieldset>
       <label class="field">YouTube link or video ID<input id="exerciseVideo" name="video" inputmode="url" autocomplete="off" placeholder="Optional"></label>
-      <label class="field">Instructions<textarea id="exerciseInstructions" name="instructions" rows="5" placeholder="Setup, execution, and focus cues"></textarea></label>
+      <label class="field">Notes and cues<textarea id="exerciseInstructions" name="instructions" rows="5" placeholder="Setup, execution, and focus cues"></textarea></label>
+      <button class="selection-row" id="chooseAlternativesButton" type="button"><span><strong>Alternatives</strong><small id="alternativesCount">None linked</small></span><span aria-hidden="true">›</span></button>
       <p class="form-error" id="exerciseFormError" role="alert"></p>
       <footer class="dialog-actions">
         <button class="button secondary danger-text" id="deleteExerciseButton" type="button" hidden>Delete exercise</button>
+        <button class="button secondary" id="duplicateExerciseButton" type="button" hidden>Duplicate</button>
         <button class="button primary" id="saveExerciseButton" type="submit" value="save">Save exercise</button>
       </footer>
     </form>
+  </dialog>
+
+  <dialog id="muscleFilterDialog" class="sheet-dialog tall-dialog" aria-labelledby="muscleFilterDialogTitle">
+    <div class="dialog-form">
+      <header class="dialog-header">
+        <div><p class="dialog-kicker">Exercise library</p><h2 id="muscleFilterDialogTitle">Filter by muscle</h2></div>
+        <button class="icon-button" data-close-dialog="muscleFilterDialog" aria-label="Close muscle filter" type="button">×</button>
+      </header>
+      <div id="muscleFilterList" class="filter-option-list"></div>
+    </div>
+  </dialog>
+
+  <dialog id="alternativesDialog" class="sheet-dialog tall-dialog" aria-labelledby="alternativesDialogTitle">
+    <div class="dialog-form">
+      <header class="dialog-header">
+        <div><p class="dialog-kicker">Exercise library</p><h2 id="alternativesDialogTitle">Choose alternatives</h2></div>
+        <button class="icon-button" data-close-dialog="alternativesDialog" aria-label="Close alternatives" type="button">×</button>
+      </header>
+      <label class="field">Search<input id="alternativesSearch" type="search" autocomplete="off" placeholder="Name or muscle"></label>
+      <div id="alternativesList" class="picker-list"></div>
+      <footer class="dialog-actions"><button class="button primary full" id="saveAlternativesButton" type="button">Done</button></footer>
+    </div>
   </dialog>
 
   <dialog id="routineDialog" class="sheet-dialog" aria-labelledby="routineDialogTitle">
@@ -111,6 +135,11 @@
       </header>
       <input id="entryId" type="hidden">
       <label class="field">Sets and reps<input id="entryPrescription" maxlength="60" autocomplete="off"></label>
+      <div class="entry-editor-actions">
+        <button class="button secondary" id="moveEntryEarlierButton" type="button">Move earlier</button>
+        <button class="button secondary" id="moveEntryLaterButton" type="button">Move later</button>
+        <button class="button secondary danger-text" id="removeEntryButton" type="button">Remove from routine</button>
+      </div>
       <footer class="dialog-actions"><button class="button primary" type="submit" value="save">Save prescription</button></footer>
     </form>
   </dialog>
@@ -123,7 +152,7 @@
       </header>
       <p class="detail-prescription" id="detailPrescription"></p>
       <div class="tags" id="detailMuscles"></div>
-      <section class="detail-section"><h3>Instructions</h3><p id="detailInstructions"></p></section>
+      <section class="detail-section"><h3>Notes</h3><p id="detailInstructions"></p></section>
       <a class="button secondary centered-button" id="detailVideo" target="_blank" rel="noopener noreferrer" hidden>Open YouTube video</a>
     </div>
   </dialog>
@@ -135,10 +164,13 @@
   <dialog id="settingsDialog" class="sheet-dialog tall-dialog" aria-labelledby="settingsDialogTitle">
     <div class="dialog-form">
       <header class="dialog-header">
-        <div><p class="dialog-kicker">Gym Schedule</p><h2 id="settingsDialogTitle">Settings and rules</h2></div>
+        <div><p class="dialog-kicker">Gym Schedule</p><h2 id="settingsDialogTitle">Settings</h2></div>
         <button class="icon-button" data-close-dialog="settingsDialog" aria-label="Close settings" type="button">×</button>
       </header>
-      <section id="rulesContent" class="rules-list"></section>
+      <section class="settings-section">
+        <h3>Appearance</h3>
+        <button class="selection-row" id="settingsThemeButton" type="button"><span><strong>Theme</strong><small id="settingsThemeValue">Light</small></span><span aria-hidden="true">›</span></button>
+      </section>
       <section class="settings-section">
         <h3>App data</h3>
         <p>Export a copy, import a compatible file, or restore the starting routine.</p>
@@ -149,6 +181,10 @@
         </div>
         <input id="importFile" type="file" accept="application/json,.json" hidden>
       </section>
+      <details class="settings-rules">
+        <summary>Training rules</summary>
+        <section id="rulesContent" class="rules-list"></section>
+      </details>
     </div>
   </dialog>
 

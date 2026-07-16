@@ -6,6 +6,7 @@ import {
   STORAGE_KEY,
   createStore,
   localDateKey,
+  migrateState,
   moveItem,
   parseImportedState,
   removeExerciseFromState,
@@ -39,6 +40,29 @@ test("starting data is valid and all routine references resolve", () => {
   for (const routine of state.routines) {
     for (const entry of routine.entries) assert.equal(exerciseIds.has(entry.exerciseId), true);
   }
+});
+
+test("version 1 data migrates without losing routines or exercises", () => {
+  const current = createDefaultState();
+  const legacy = structuredClone(current);
+  legacy.version = 1;
+  legacy.exercises.forEach((exercise) => delete exercise.alternativeExerciseIds);
+  const migrated = migrateState(legacy);
+  assert.equal(migrated.version, current.version);
+  assert.deepEqual(migrated.routines, current.routines);
+  assert.equal(migrated.exercises.every((exercise) => Array.isArray(exercise.alternativeExerciseIds)), true);
+  assert.equal(validateState(migrated), true);
+});
+
+test("store upgrades version 1 data in place", () => {
+  const storage = new MemoryStorage();
+  const legacy = createDefaultState();
+  legacy.version = 1;
+  legacy.exercises.forEach((exercise) => delete exercise.alternativeExerciseIds);
+  storage.setItem(STORAGE_KEY, JSON.stringify(legacy));
+  const store = createStore(storage);
+  assert.equal(validateState(store.getState()), true);
+  assert.equal(JSON.parse(storage.getItem(STORAGE_KEY)).version, 2);
 });
 
 test("store persists valid edits", () => {
@@ -90,15 +114,30 @@ test("validation rejects malformed values that would break the UI", () => {
   const invalidDate = createDefaultState();
   invalidDate.sessions["2026-02-31"] = { routineIds: ["push-a"], note: "" };
   assert.equal(validateState(invalidDate), false);
+
+  const invalidAlternative = createDefaultState();
+  invalidAlternative.exercises[0].alternativeExerciseIds = ["missing"];
+  assert.equal(validateState(invalidAlternative), false);
+
+  const selfAlternative = createDefaultState();
+  selfAlternative.exercises[0].alternativeExerciseIds = [selfAlternative.exercises[0].id];
+  assert.equal(validateState(selfAlternative), false);
+
+  const duplicateAlternative = createDefaultState();
+  const alternativeId = duplicateAlternative.exercises[1].id;
+  duplicateAlternative.exercises[0].alternativeExerciseIds = [alternativeId, alternativeId];
+  assert.equal(validateState(duplicateAlternative), false);
 });
 
 test("deleting an exercise removes every routine reference", () => {
   const state = createDefaultState();
   const exerciseId = "rope-pushdown";
+  state.exercises[0].alternativeExerciseIds = [exerciseId];
   assert.ok(state.routines.some((routine) => routine.entries.some((entry) => entry.exerciseId === exerciseId)));
   const next = removeExerciseFromState(state, exerciseId);
   assert.equal(next.exercises.some((exercise) => exercise.id === exerciseId), false);
   assert.equal(next.routines.some((routine) => routine.entries.some((entry) => entry.exerciseId === exerciseId)), false);
+  assert.equal(next.exercises.some((exercise) => exercise.alternativeExerciseIds.includes(exerciseId)), false);
   assert.equal(validateState(next), true);
 });
 
@@ -136,4 +175,18 @@ test("imports are validated completely before replacement", () => {
     () => parseImportedState(JSON.stringify({ schemaVersion: 1, data: state })),
     /not compatible/i,
   );
+});
+
+test("version 1 backups import through migration", () => {
+  const legacy = createDefaultState();
+  legacy.version = 1;
+  legacy.exercises.forEach((exercise) => delete exercise.alternativeExerciseIds);
+  const imported = parseImportedState(JSON.stringify({ schemaVersion: 1, data: legacy }));
+  assert.equal(imported.version, 2);
+  assert.equal(validateState(imported), true);
+});
+
+test("all incompatible imports use one friendly error", () => {
+  assert.throws(() => parseImportedState("not json"), /not compatible/i);
+  assert.throws(() => parseImportedState(JSON.stringify({ version: 99 })), /not compatible/i);
 });

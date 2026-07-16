@@ -1,4 +1,4 @@
-const CACHE = "gym-schedule-v10";
+const CACHE = "gym-schedule-v14";
 const APP_SHELL = [
   "./",
   "./index.html",

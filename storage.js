@@ -30,8 +30,15 @@ export function validateState(value) {
     if (!Array.isArray(exercise.muscles) || !exercise.muscles.every((muscle) => typeof muscle === "string")) return false;
     if (typeof exercise.defaultPrescription !== "string") return false;
     if (typeof exercise.instructions !== "string" || typeof exercise.videoId !== "string") return false;
+    if (!Array.isArray(exercise.alternativeExerciseIds)) return false;
     if (exerciseIds.has(exercise.id)) return false;
     exerciseIds.add(exercise.id);
+  }
+
+  for (const exercise of value.exercises) {
+    const alternatives = exercise.alternativeExerciseIds;
+    if (!alternatives.every((id) => typeof id === "string" && exerciseIds.has(id) && id !== exercise.id)) return false;
+    if (new Set(alternatives).size !== alternatives.length) return false;
   }
 
   const routineIds = new Set();
@@ -65,6 +72,21 @@ export function validateState(value) {
   return true;
 }
 
+export function migrateState(value) {
+  if (!isRecord(value)) throw new Error("invalid state");
+  const next = clone(value);
+  if (next.version === 1) {
+    if (!Array.isArray(next.exercises)) throw new Error("invalid state");
+    next.exercises = next.exercises.map((exercise) => ({
+      ...exercise,
+      alternativeExerciseIds: [],
+    }));
+    next.version = 2;
+  }
+  if (next.version !== SCHEMA_VERSION) throw new Error("unsupported state version");
+  return next;
+}
+
 export function makeId(prefix = "item") {
   const uuid = globalThis.crypto?.randomUUID?.();
   if (uuid) return `${prefix}-${uuid}`;
@@ -93,7 +115,12 @@ export function toggleRoutineForDate(state, routineId, dateKey = localDateKey())
 
 export function removeExerciseFromState(state, exerciseId) {
   const next = clone(state);
-  next.exercises = next.exercises.filter((exercise) => exercise.id !== exerciseId);
+  next.exercises = next.exercises
+    .filter((exercise) => exercise.id !== exerciseId)
+    .map((exercise) => ({
+      ...exercise,
+      alternativeExerciseIds: exercise.alternativeExerciseIds.filter((id) => id !== exerciseId),
+    }));
   next.routines = next.routines.map((routine) => ({
     ...routine,
     entries: routine.entries.filter((entry) => entry.exerciseId !== exerciseId),
@@ -124,10 +151,14 @@ export function moveItem(items, index, direction) {
 }
 
 export function parseImportedState(text) {
-  const parsed = JSON.parse(text);
-  const candidate = parsed?.data || parsed;
-  if (!validateState(candidate)) throw new Error("This backup is not compatible with this version of the app.");
-  return clone(candidate);
+  try {
+    const parsed = JSON.parse(text);
+    const candidate = migrateState(parsed?.data || parsed);
+    if (!validateState(candidate)) throw new Error("invalid state");
+    return clone(candidate);
+  } catch (_) {
+    throw new Error("This backup is not compatible with this version of the app.");
+  }
 }
 
 export function createStore(storage) {
@@ -179,8 +210,16 @@ export function createStore(storage) {
     }
     try {
       const parsed = JSON.parse(raw);
-      if (!validateState(parsed)) throw new Error("invalid state");
-      state = clone(parsed);
+      const migrated = migrateState(parsed);
+      if (!validateState(migrated)) throw new Error("invalid state");
+      state = clone(migrated);
+      if (parsed.version !== migrated.version) {
+        try {
+          storage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+        } catch (_) {
+          lastError = "Your data was upgraded for this session, but the upgrade could not be saved on this device.";
+        }
+      }
       return getState();
     } catch (error) {
       try {
