@@ -1,12 +1,12 @@
-const CACHE = "gym-schedule-v14";
+const CACHE = "gym-schedule-v15";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css",
-  "./data.js",
-  "./storage.js",
-  "./app.js",
-  "./manifest.json",
+  "./styles.css?v=15",
+  "./data.js?v=15",
+  "./storage.js?v=15",
+  "./app.js?v=15",
+  "./manifest.json?v=15",
   "./icons/app-icon.svg",
   "./icons/app-icon-180.png",
   "./icons/app-icon-192.png",
@@ -33,7 +33,7 @@ self.addEventListener("fetch", (event) => {
 
   if (event.request.mode === "navigate") {
     event.respondWith(
-      fetch(event.request)
+      fetch(event.request, { cache: "no-store" })
         .then((response) => {
           if (response.ok) {
             const copy = response.clone();

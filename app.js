@@ -1,4 +1,4 @@
-import { MUSCLE_GROUPS, RULES } from "./data.js";
+import { MUSCLE_GROUPS, RULES } from "./data.js?v=15";
 import {
   createBackup,
   createStore,
@@ -9,7 +9,7 @@ import {
   removeExerciseFromState,
   removeRoutineFromState,
   toggleRoutineForDate,
-} from "./storage.js";
+} from "./storage.js?v=15";
 
 const store = createStore();
 const main = document.querySelector("#appMain");
@@ -880,10 +880,17 @@ window.addEventListener("storage", (event) => {
 
 if ("serviceWorker" in navigator) {
   const hadController = Boolean(navigator.serviceWorker.controller);
+  let refreshing = false;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (hadController) showToast("App update ready. Reopen the app when convenient.");
+    if (hadController && !refreshing) {
+      refreshing = true;
+      location.reload();
+    }
   });
-  navigator.serviceWorker.register("sw.js").catch(() => showToast("Offline mode could not be started."));
+  navigator.serviceWorker
+    .register("sw.js?v=15", { updateViaCache: "none" })
+    .then((registration) => registration.update())
+    .catch(() => showToast("Offline mode could not be started."));
 }
 
 applyTheme(store.getState().settings.theme || "light");
