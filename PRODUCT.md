@@ -23,6 +23,8 @@ Avoid social-fitness feeds, competitive streak pressure, dense analytics dashboa
 ## Design Principles
 
 - Put the current workout and next action first.
+- Keep navigation roles distinct: Workout is for following the selected routine and opening references; Program is for adding, editing, reordering, and removing routines and their entries; Library is for finding and maintaining master exercises.
+- Store primary targets separately from secondary involvement so muscle filters can distinguish direct work from incidental work.
 - Optimize for one-handed use between sets.
 - Preserve local workout history visibly and predictably.
 - Keep editing and recovery paths simple enough to trust.

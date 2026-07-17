@@ -31,6 +31,24 @@ class MemoryStorage {
   }
 }
 
+function version2State() {
+  const legacy = structuredClone(createDefaultState());
+  legacy.version = 2;
+  legacy.exercises = legacy.exercises.map((exercise) => {
+    const { primaryMuscles, secondaryMuscles, ...rest } = exercise;
+    return { ...rest, muscles: [...primaryMuscles, ...secondaryMuscles] };
+  });
+  legacy.routines.splice(3, 0, { id: "rest", name: "Rest", group: "gym", status: "rest", entries: [] });
+  return legacy;
+}
+
+function version1State() {
+  const legacy = version2State();
+  legacy.version = 1;
+  legacy.exercises.forEach((exercise) => delete exercise.alternativeExerciseIds);
+  return legacy;
+}
+
 test("starting data is valid and all routine references resolve", () => {
   const state = createDefaultState();
   assert.equal(validateState(state), true);
@@ -40,29 +58,53 @@ test("starting data is valid and all routine references resolve", () => {
   for (const routine of state.routines) {
     for (const entry of routine.entries) assert.equal(exerciseIds.has(entry.exerciseId), true);
   }
+  assert.equal(state.routines.some((routine) => routine.id === "rest" || routine.status === "rest"), false);
+  assert.equal(state.exercises.every((exercise) => Array.isArray(exercise.primaryMuscles) && Array.isArray(exercise.secondaryMuscles)), true);
 });
 
-test("version 1 data migrates without losing routines or exercises", () => {
+test("version 1 data migrates targets and removes the old Rest placeholder", () => {
   const current = createDefaultState();
-  const legacy = structuredClone(current);
-  legacy.version = 1;
-  legacy.exercises.forEach((exercise) => delete exercise.alternativeExerciseIds);
+  const legacy = version1State();
   const migrated = migrateState(legacy);
   assert.equal(migrated.version, current.version);
   assert.deepEqual(migrated.routines, current.routines);
   assert.equal(migrated.exercises.every((exercise) => Array.isArray(exercise.alternativeExerciseIds)), true);
+  assert.equal(migrated.exercises.every((exercise) => !Object.hasOwn(exercise, "muscles")), true);
+  assert.equal(validateState(migrated), true);
+});
+
+test("version 2 data migrates the first muscle as primary and the rest as secondary", () => {
+  const legacy = version2State();
+  const sourceMuscles = [...legacy.exercises[0].muscles];
+  const migrated = migrateState(legacy);
+  assert.deepEqual(migrated.exercises[0].primaryMuscles, sourceMuscles.slice(0, 1));
+  assert.deepEqual(migrated.exercises[0].secondaryMuscles, sourceMuscles.slice(1));
+  assert.equal(migrated.routines.some((routine) => routine.id === "rest"), false);
+  assert.equal(validateState(migrated), true);
+});
+
+test("version 2 migration preserves a customized former Rest routine", () => {
+  const legacy = version2State();
+  const rest = legacy.routines.find((routine) => routine.id === "rest");
+  rest.name = "Recovery mobility";
+  rest.entries.push({ id: "rest-entry-1", exerciseId: legacy.exercises[0].id, prescription: "1 × easy" });
+  legacy.sessions["2026-07-16"] = { routineIds: ["rest"], note: "Kept" };
+  const migrated = migrateState(legacy);
+  const preserved = migrated.routines.find((routine) => routine.id === "rest");
+  assert.equal(preserved.name, "Recovery mobility");
+  assert.equal(preserved.status, "optional");
+  assert.equal(preserved.entries.length, 1);
+  assert.deepEqual(migrated.sessions["2026-07-16"], { routineIds: ["rest"], note: "Kept" });
   assert.equal(validateState(migrated), true);
 });
 
 test("store upgrades version 1 data in place", () => {
   const storage = new MemoryStorage();
-  const legacy = createDefaultState();
-  legacy.version = 1;
-  legacy.exercises.forEach((exercise) => delete exercise.alternativeExerciseIds);
+  const legacy = version1State();
   storage.setItem(STORAGE_KEY, JSON.stringify(legacy));
   const store = createStore(storage);
   assert.equal(validateState(store.getState()), true);
-  assert.equal(JSON.parse(storage.getItem(STORAGE_KEY)).version, 2);
+  assert.equal(JSON.parse(storage.getItem(STORAGE_KEY)).version, 3);
 });
 
 test("store persists valid edits", () => {
@@ -100,8 +142,12 @@ test("storage read failures open defaults and surface the problem", () => {
 
 test("validation rejects malformed values that would break the UI", () => {
   const invalidMuscle = createDefaultState();
-  invalidMuscle.exercises[0].muscles = [42];
+  invalidMuscle.exercises[0].primaryMuscles = [42];
   assert.equal(validateState(invalidMuscle), false);
+
+  const overlappingTargets = createDefaultState();
+  overlappingTargets.exercises[0].secondaryMuscles = [...overlappingTargets.exercises[0].primaryMuscles];
+  assert.equal(validateState(overlappingTargets), false);
 
   const duplicateEntry = createDefaultState();
   duplicateEntry.routines[0].entries[1].id = duplicateEntry.routines[0].entries[0].id;
@@ -170,7 +216,7 @@ test("imports are validated completely before replacement", () => {
   const imported = parseImportedState(JSON.stringify({ schemaVersion: 1, data: state }));
   assert.deepEqual(imported, state);
 
-  state.exercises[0].muscles = [null];
+  state.exercises[0].primaryMuscles = [null];
   assert.throws(
     () => parseImportedState(JSON.stringify({ schemaVersion: 1, data: state })),
     /not compatible/i,
@@ -178,11 +224,9 @@ test("imports are validated completely before replacement", () => {
 });
 
 test("version 1 backups import through migration", () => {
-  const legacy = createDefaultState();
-  legacy.version = 1;
-  legacy.exercises.forEach((exercise) => delete exercise.alternativeExerciseIds);
+  const legacy = version1State();
   const imported = parseImportedState(JSON.stringify({ schemaVersion: 1, data: legacy }));
-  assert.equal(imported.version, 2);
+  assert.equal(imported.version, 3);
   assert.equal(validateState(imported), true);
 });
 

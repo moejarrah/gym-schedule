@@ -1,4 +1,4 @@
-import { SCHEMA_VERSION, createDefaultState } from "./data.js?v=15";
+import { SCHEMA_VERSION, createDefaultState } from "./data.js?v=16";
 
 export const STORAGE_KEY = "gymAppStateV1";
 
@@ -27,7 +27,11 @@ export function validateState(value) {
   for (const exercise of value.exercises) {
     if (!isRecord(exercise) || typeof exercise.id !== "string" || !exercise.id) return false;
     if (typeof exercise.name !== "string" || !exercise.name.trim()) return false;
-    if (!Array.isArray(exercise.muscles) || !exercise.muscles.every((muscle) => typeof muscle === "string")) return false;
+    if (!Array.isArray(exercise.primaryMuscles) || !exercise.primaryMuscles.every((muscle) => typeof muscle === "string")) return false;
+    if (!Array.isArray(exercise.secondaryMuscles) || !exercise.secondaryMuscles.every((muscle) => typeof muscle === "string")) return false;
+    if (new Set(exercise.primaryMuscles).size !== exercise.primaryMuscles.length) return false;
+    if (new Set(exercise.secondaryMuscles).size !== exercise.secondaryMuscles.length) return false;
+    if (exercise.primaryMuscles.some((muscle) => exercise.secondaryMuscles.includes(muscle))) return false;
     if (typeof exercise.defaultPrescription !== "string") return false;
     if (typeof exercise.instructions !== "string" || typeof exercise.videoId !== "string") return false;
     if (!Array.isArray(exercise.alternativeExerciseIds)) return false;
@@ -48,7 +52,7 @@ export function validateState(value) {
     if (typeof routine.name !== "string" || !routine.name.trim()) return false;
     if (!Array.isArray(routine.entries) || routineIds.has(routine.id)) return false;
     if (!["gym", "home"].includes(routine.group)) return false;
-    if (!["required", "optional", "rest"].includes(routine.status)) return false;
+    if (!["required", "optional"].includes(routine.status)) return false;
     routineIds.add(routine.id);
     for (const entry of routine.entries) {
       if (!isRecord(entry) || typeof entry.id !== "string" || !entry.id || entryIds.has(entry.id)) return false;
@@ -82,6 +86,32 @@ export function migrateState(value) {
       alternativeExerciseIds: [],
     }));
     next.version = 2;
+  }
+  if (next.version === 2) {
+    if (!Array.isArray(next.exercises) || !Array.isArray(next.routines) || !isRecord(next.sessions) || !isRecord(next.settings)) {
+      throw new Error("invalid state");
+    }
+    next.exercises = next.exercises.map((exercise) => {
+      const muscles = Array.isArray(exercise.muscles) ? exercise.muscles.filter((muscle) => typeof muscle === "string") : [];
+      const { muscles: _legacyMuscles, ...rest } = exercise;
+      return {
+        ...rest,
+        primaryMuscles: muscles.length ? [muscles[0]] : [],
+        secondaryMuscles: muscles.slice(1),
+      };
+    });
+    next.routines = next.routines
+      .filter((routine) => !(routine.id === "rest" && routine.name === "Rest" && routine.status === "rest" && Array.isArray(routine.entries) && routine.entries.length === 0))
+      .map((routine) => ({ ...routine, status: routine.status === "rest" ? "optional" : routine.status }));
+    const routineIds = new Set(next.routines.map((routine) => routine.id));
+    next.sessions = Object.fromEntries(Object.entries(next.sessions).flatMap(([dateKey, session]) => {
+      if (!isRecord(session)) return [];
+      const keptRoutineIds = Array.isArray(session.routineIds) ? session.routineIds.filter((id) => routineIds.has(id)) : [];
+      const note = typeof session.note === "string" ? session.note : "";
+      return keptRoutineIds.length || note ? [[dateKey, { routineIds: keptRoutineIds, note }]] : [];
+    }));
+    if (!routineIds.has(next.settings.activeRoutineId)) next.settings.activeRoutineId = next.routines[0]?.id || "";
+    next.version = 3;
   }
   if (next.version !== SCHEMA_VERSION) throw new Error("unsupported state version");
   return next;

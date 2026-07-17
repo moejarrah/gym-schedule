@@ -18,6 +18,8 @@ The starting routines remain intact as editable seed data. Per the owner's direc
 6. Added a monthly Calendar where each date can record completed routines and a note; the same records drive Workout, weekly, and monthly summaries.
 7. Reworked the interface around four bottom-nav destinations, 44 px controls, narrow-screen layouts, safe areas, native dialogs, zoom, visible focus, reduced motion, light/dark contrast, and non-color status text.
 8. Updated install/offline behavior with versioned caching, network-first navigation, static PNG install icons, schema-checked import/export/reset, explicit storage failures, and dependency-free tests.
+9. Repaired the iPhone interaction model: Workout opens compact exercise references, Program always exposes routine management, Library opens details before editing, and long views use a constrained touch-scroll area.
+10. Split exercise targeting into primary and secondary muscles with scoped filtering, removed the untouched Rest placeholder, and preserved customized legacy routines through the version 3 migration.
 
 ## Independent verification
 
@@ -35,7 +37,7 @@ Two verifier-agent passes were run after items 1-4 and 5-8. Their findings were 
 
 ## Validation completed
 
-- `npm run check`: 13 tests passed.
+- `npm run check`: 23 tests passed.
 - JavaScript and service-worker syntax checks passed.
 - Manifest parsing and install metadata checks passed.
 - All production shell assets returned HTTP 200 with suitable MIME types.

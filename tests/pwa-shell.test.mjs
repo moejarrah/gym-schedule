@@ -22,7 +22,7 @@ test("HTML keeps zoom enabled and uses external production assets", () => {
   const viewport = html.match(/<meta name="viewport" content="([^"]+)">/)?.[1] || "";
   assert.match(viewport, /viewport-fit=cover/);
   assert.doesNotMatch(viewport, /user-scalable=no|maximum-scale=1/);
-  assert.match(html, /<script type="module" src="app\.js\?v=15"><\/script>/);
+  assert.match(html, /<script type="module" src="app\.js\?v=16"><\/script>/);
   assert.match(html, /rel="apple-touch-icon"[^>]+app-icon-180\.png/);
   assert.doesNotMatch(html, /\sonclick=/);
 });
@@ -33,9 +33,9 @@ test("offline shell lists every production module and icon", () => {
     assert.match(worker, new RegExp(asset.replaceAll(".", "\\.")));
   }
   assert.match(worker, /event\.request\.mode === "navigate"/);
-  assert.match(worker, /gym-schedule-v15/);
-  assert.match(worker, /styles\.css\?v=15/);
-  assert.match(worker, /app\.js\?v=15/);
+  assert.match(worker, /gym-schedule-v16/);
+  assert.match(worker, /styles\.css\?v=16/);
+  assert.match(worker, /app\.js\?v=16/);
 });
 
 test("versioned browser assets stay in sync across the PWA shell", () => {
@@ -63,4 +63,24 @@ test("compact phone rows keep their explicit one-dimensional layout", () => {
   }
   assert.match(css, /\.row-main\s*\{[^}]*display:\s*grid;/);
   assert.match(css, /\[hidden\]\s*\{[^}]*display:\s*none\s*!important;/);
+});
+
+test("the iPhone shell constrains the app and leaves the main view scrollable", () => {
+  const css = read("styles.css");
+  assert.match(css, /\.app-shell\s*\{[^}]*height:\s*100dvh;/);
+  assert.match(css, /#appMain\s*\{[^}]*overflow-y:\s*auto;/);
+  assert.match(css, /#appMain\s*\{[^}]*-webkit-overflow-scrolling:\s*touch;/);
+});
+
+test("core exercise references and program controls remain reachable", () => {
+  const html = read("index.html");
+  const app = read("app.js");
+  for (const id of ["detailVideo", "detailAlternatives", "detailEditExercise", "exercisePrimaryMuscle", "secondaryMuscleOptions"]) {
+    assert.match(html, new RegExp(`id="${id}"`));
+  }
+  assert.match(app, /data-action="open-workout-exercise"/);
+  assert.match(app, /data-action="move-routine-up"/);
+  assert.match(app, /data-action="open-picker"/);
+  assert.match(app, /data-action="edit-entry"/);
+  assert.doesNotMatch(app, /toggle-program-edit/);
 });

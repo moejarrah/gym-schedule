@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export const MUSCLE_GROUPS = [
   "Chest",
@@ -67,13 +67,6 @@ const routineSeeds = [
       ["Ankle eversion", "2 × 12-20/side", ["Ankles", "Rehab"]],
       ["Single-leg balance", "1-2 × 30-60 sec/side", ["Ankles", "Core", "Rehab"]],
     ],
-  },
-  {
-    id: "rest",
-    name: "Rest",
-    group: "gym",
-    status: "rest",
-    exercises: [],
   },
   {
     id: "push-b",
@@ -199,10 +192,12 @@ function buildDefaults() {
     const entries = routine.exercises.map(([name, prescription, muscles], index) => {
       const exerciseId = slugify(name);
       if (!exerciseMap.has(exerciseId)) {
+        const [primaryMuscle, ...secondaryMuscles] = muscles;
         exerciseMap.set(exerciseId, {
           id: exerciseId,
           name,
-          muscles: [...muscles],
+          primaryMuscles: primaryMuscle ? [primaryMuscle] : [],
+          secondaryMuscles,
           defaultPrescription: prescription,
           instructions: "",
           videoId: "",

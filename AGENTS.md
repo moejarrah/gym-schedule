@@ -26,6 +26,7 @@
 ## Change discipline
 
 - Make the smallest complete change that solves the request. Avoid unrelated refactors, redesigns, formatting churn, and speculative features.
+- Before a redesign, inventory every existing user action and confirm each remains clearly reachable afterward. Visual simplification must not hide or remove behavior.
 - Preserve offline behavior, installability, light/dark themes, and current user data.
 - Do not broaden work into authentication or internet-facing security unless requested. Local data-loss prevention remains in scope.
 - Do not silently change workout meaning, progression rules, completion semantics, or calendar history.
@@ -50,6 +51,7 @@
 
 - Manually exercise every changed flow. For storage work, test save, reload, undo/delete, export, import, and migration from existing data as applicable.
 - For UI work, check 320 px width, the actual target phone when available, both themes, keyboard focus, and no content hidden behind fixed navigation or safe areas.
+- Runtime-check long-list scrolling plus every changed sheet/dialog at phone dimensions; static CSS inspection alone is not enough.
 - When cached production assets change, verify the service-worker update and offline fallback behavior.
 - If tests are added, prefer Node's built-in `node:test`; do not add a test framework without a demonstrated need.
 

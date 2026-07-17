@@ -8,10 +8,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Gym Schedule">
   <title>Gym Schedule</title>
-  <link rel="manifest" href="manifest.json?v=15">
+  <link rel="manifest" href="manifest.json?v=16">
   <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/app-icon-180.png">
-  <link rel="stylesheet" href="styles.css?v=15">
+  <link rel="stylesheet" href="styles.css?v=16">
 </head>
 <body>
   <div class="app-shell">
@@ -61,10 +61,17 @@
       <input type="hidden" id="exerciseId">
       <label class="field">Exercise name<input id="exerciseName" name="name" autocomplete="off" required maxlength="100"></label>
       <label class="field">Default sets and reps<input id="exercisePrescription" name="prescription" autocomplete="off" placeholder="3 × 8-12" maxlength="60"></label>
-      <fieldset class="field-group"><legend>Muscle groups</legend><div id="muscleOptions" class="check-grid"></div></fieldset>
-      <label class="field">YouTube link or video ID<input id="exerciseVideo" name="video" inputmode="url" autocomplete="off" placeholder="Optional"></label>
-      <label class="field">Notes and cues<textarea id="exerciseInstructions" name="instructions" rows="5" placeholder="Setup, execution, and focus cues"></textarea></label>
-      <button class="selection-row" id="chooseAlternativesButton" type="button"><span><strong>Alternatives</strong><small id="alternativesCount">None linked</small></span><span aria-hidden="true">›</span></button>
+      <fieldset class="editor-section">
+        <legend>Targets</legend>
+        <label class="field">Primary muscle<select id="exercisePrimaryMuscle" name="primaryMuscle"><option value="">Not set</option></select></label>
+        <fieldset class="field-group"><legend>Secondary involvement</legend><div id="secondaryMuscleOptions" class="check-grid"></div></fieldset>
+      </fieldset>
+      <fieldset class="editor-section">
+        <legend>Reference</legend>
+        <label class="field">YouTube link or video ID<input id="exerciseVideo" name="video" inputmode="url" autocomplete="off" placeholder="Optional"></label>
+        <label class="field">Notes and cues<textarea id="exerciseInstructions" name="instructions" rows="5" placeholder="Setup, execution, and focus cues"></textarea></label>
+        <button class="selection-row" id="chooseAlternativesButton" type="button"><span><strong>Alternatives</strong><small id="alternativesCount">None linked</small></span><span aria-hidden="true">›</span></button>
+      </fieldset>
       <p class="form-error" id="exerciseFormError" role="alert"></p>
       <footer class="dialog-actions">
         <button class="button secondary danger-text" id="deleteExerciseButton" type="button" hidden>Delete exercise</button>
@@ -80,7 +87,14 @@
         <div><p class="dialog-kicker">Exercise library</p><h2 id="muscleFilterDialogTitle">Filter by muscle</h2></div>
         <button class="icon-button" data-close-dialog="muscleFilterDialog" aria-label="Close muscle filter" type="button">×</button>
       </header>
+      <fieldset class="field-group"><legend>Match target</legend>
+        <div class="scope-options" id="muscleScopeOptions">
+          <button type="button" data-action="choose-muscle-scope" data-scope="primary">Primary only</button>
+          <button type="button" data-action="choose-muscle-scope" data-scope="all">Primary + secondary</button>
+        </div>
+      </fieldset>
       <div id="muscleFilterList" class="filter-option-list"></div>
+      <footer class="dialog-actions"><button class="button primary full" id="applyMuscleFilterButton" type="button">Apply filter</button></footer>
     </div>
   </dialog>
 
@@ -106,7 +120,7 @@
       <label class="field">Routine name<input id="routineName" required maxlength="50" autocomplete="off"></label>
       <div class="field-row">
         <label class="field">Location<select id="routineGroup"><option value="gym">Gym</option><option value="home">Home</option></select></label>
-        <label class="field">Status<select id="routineStatus"><option value="required">Required</option><option value="optional">Optional</option><option value="rest">Rest</option></select></label>
+        <label class="field">Status<select id="routineStatus"><option value="required">Required</option><option value="optional">Optional</option></select></label>
       </div>
       <p class="form-error" id="routineFormError" role="alert"></p>
       <footer class="dialog-actions">
@@ -130,11 +144,12 @@
   <dialog id="entryDialog" class="sheet-dialog" aria-labelledby="entryExerciseName">
     <form method="dialog" id="entryForm" class="dialog-form">
       <header class="dialog-header">
-        <div><p class="dialog-kicker">Routine prescription</p><h2 id="entryExerciseName">Edit exercise</h2></div>
+        <div><p class="dialog-kicker">This routine only</p><h2 id="entryExerciseName">Edit routine entry</h2></div>
         <button class="icon-button" value="cancel" aria-label="Close prescription editor" type="submit" formnovalidate>×</button>
       </header>
       <input id="entryId" type="hidden">
-      <label class="field">Sets and reps<input id="entryPrescription" maxlength="60" autocomplete="off"></label>
+      <p class="dialog-intro">Change its sets, reps, or position here. The master exercise stays unchanged.</p>
+      <label class="field">Sets and reps for this routine<input id="entryPrescription" maxlength="60" autocomplete="off"></label>
       <div class="entry-editor-actions">
         <button class="button secondary" id="moveEntryEarlierButton" type="button">Move earlier</button>
         <button class="button secondary" id="moveEntryLaterButton" type="button">Move later</button>
@@ -151,9 +166,14 @@
         <button class="icon-button" data-close-dialog="exerciseDetailDialog" aria-label="Close exercise details" type="button">×</button>
       </header>
       <p class="detail-prescription" id="detailPrescription"></p>
-      <div class="tags" id="detailMuscles"></div>
+      <section class="detail-section" id="detailTargetsSection"><h3>Targets</h3><div id="detailMuscles"></div></section>
       <section class="detail-section"><h3>Notes</h3><p id="detailInstructions"></p></section>
-      <a class="button secondary centered-button" id="detailVideo" target="_blank" rel="noopener noreferrer" hidden>Open YouTube video</a>
+      <section class="detail-section" id="detailAlternativesSection"><h3>Alternatives</h3><div id="detailAlternatives"></div></section>
+      <section class="detail-section"><h3>Video</h3><p class="muted-copy" id="detailVideoEmpty">No video linked.</p></section>
+      <div class="detail-sheet-actions">
+        <a class="button primary centered-button" id="detailVideo" target="_blank" rel="noopener noreferrer" hidden>Watch video</a>
+        <button class="button secondary" id="detailEditExercise" type="button">Edit exercise</button>
+      </div>
     </div>
   </dialog>
 
@@ -200,6 +220,6 @@
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="app.js?v=15"></script>
+  <script type="module" src="app.js?v=16"></script>
 </body>
 </html>

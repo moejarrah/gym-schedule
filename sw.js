@@ -1,12 +1,12 @@
-const CACHE = "gym-schedule-v15";
+const CACHE = "gym-schedule-v16";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=15",
-  "./data.js?v=15",
-  "./storage.js?v=15",
-  "./app.js?v=15",
-  "./manifest.json?v=15",
+  "./styles.css?v=16",
+  "./data.js?v=16",
+  "./storage.js?v=16",
+  "./app.js?v=16",
+  "./manifest.json?v=16",
   "./icons/app-icon.svg",
   "./icons/app-icon-180.png",
   "./icons/app-icon-192.png",
