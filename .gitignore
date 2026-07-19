@@ -1,0 +1,8 @@
+# Local UI-tool state
+.impeccable/
+
+# Generated runtime output
+artifacts/test-results/
+
+# Local historical archives
+artifacts/legacy/*.zip

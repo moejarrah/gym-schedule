@@ -26,7 +26,7 @@ test("HTML keeps zoom enabled and uses external production assets", () => {
   const viewport = html.match(/<meta name="viewport" content="([^"]+)">/)?.[1] || "";
   assert.match(viewport, /viewport-fit=cover/);
   assert.doesNotMatch(viewport, /user-scalable=no|maximum-scale=1/);
-  assert.match(html, /<script type="module" src="app\.js\?v=22"><\/script>/);
+  assert.match(html, /<script type="module" src="app\.js\?v=23"><\/script>/);
   assert.match(html, /rel="apple-touch-icon"[^>]+app-icon-180\.png/);
   assert.doesNotMatch(html, /\sonclick=/);
 });
@@ -37,9 +37,9 @@ test("offline shell lists every production module and icon", () => {
     assert.match(worker, new RegExp(asset.replaceAll(".", "\\.")));
   }
   assert.match(worker, /event\.request\.mode === "navigate"/);
-  assert.match(worker, /gym-schedule-v22/);
-  assert.match(worker, /styles\.css\?v=22/);
-  assert.match(worker, /app\.js\?v=22/);
+  assert.match(worker, /gym-schedule-v23/);
+  assert.match(worker, /styles\.css\?v=23/);
+  assert.match(worker, /app\.js\?v=23/);
 });
 
 test("activation removes only stale caches owned by the gym app", async () => {
@@ -149,6 +149,9 @@ test("core exercise references and program controls remain reachable", () => {
   assert.match(app, /data-action="move-routine-up"/);
   assert.match(app, /data-action="open-picker"/);
   assert.match(app, /data-action="edit-entry"/);
+  assert.match(app, /ENTRY_HOLD_DELAY/);
+  assert.match(app, /reorderRoutineEntry/);
+  assert.match(app, /touchmove/);
   assert.doesNotMatch(app, /toggle-program-edit/);
 });
 

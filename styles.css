@@ -604,6 +604,7 @@ textarea::placeholder {
 
 .program-list {
   display: grid;
+  position: relative;
 }
 
 .program-row {
@@ -618,16 +619,58 @@ textarea::placeholder {
   align-items: center;
   gap: 8px;
   text-align: left;
+  cursor: pointer;
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 
-button.program-row:active {
+button.program-row:active:not(.is-dragging) {
   background: var(--surface-muted);
 }
 
-.edit-hint {
-  color: var(--gym-strong);
-  font-size: 0.72rem;
-  font-weight: 700;
+.drag-hint {
+  width: 28px;
+  height: 44px;
+  flex: 0 0 28px;
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+}
+
+.drag-hint svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.8;
+}
+
+.program-row.is-dragging {
+  position: fixed;
+  z-index: 80;
+  margin: 0;
+  padding-inline: 8px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 4px 8px rgb(15 23 18 / 24%);
+  cursor: grabbing;
+  pointer-events: none;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.program-row-placeholder {
+  min-height: 58px;
+  border-bottom: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--gym-soft);
+}
+
+body.entry-drag-active {
+  cursor: grabbing;
+  user-select: none;
 }
 
 .add-row-button {

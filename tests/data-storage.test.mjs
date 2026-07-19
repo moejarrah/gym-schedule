@@ -10,6 +10,7 @@ import {
   migrateState,
   moveItem,
   moveRoutineEntry,
+  reorderRoutineEntry,
   parseImportedState,
   removeExerciseFromState,
   removeRoutineFromState,
@@ -341,6 +342,33 @@ test("a failed atomic entry move leaves stored state unchanged", () => {
   storage.failWrites = true;
   const result = store.replace(moved);
   assert.equal(result.ok, false);
+  assert.deepEqual(store.getState(), before);
+});
+
+test("a routine entry can move directly to any valid position", () => {
+  const state = createDefaultState();
+  const routine = state.routines[0];
+  const entry = routine.entries[0];
+  const next = reorderRoutineEntry(state, routine.id, entry.id, routine.entries.length - 1);
+
+  assert.equal(next.routines[0].entries.at(-1).id, entry.id);
+  assert.deepEqual(next.routines[0].entries.slice(0, -1).map((item) => item.id), routine.entries.slice(1).map((item) => item.id));
+  assert.notDeepEqual(next, state);
+  assert.equal(validateState(next), true);
+
+  assert.deepEqual(reorderRoutineEntry(state, routine.id, entry.id, -1), state);
+  assert.deepEqual(reorderRoutineEntry(state, routine.id, entry.id, routine.entries.length), state);
+});
+
+test("a failed direct reorder leaves the stored routine unchanged", () => {
+  const storage = new MemoryStorage();
+  const store = createStore(storage);
+  const before = store.getState();
+  const routine = before.routines[0];
+  const moved = reorderRoutineEntry(before, routine.id, routine.entries[0].id, routine.entries.length - 1);
+
+  storage.failWrites = true;
+  assert.equal(store.replace(moved).ok, false);
   assert.deepEqual(store.getState(), before);
 });
 

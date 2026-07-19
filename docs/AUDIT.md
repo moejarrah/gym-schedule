@@ -21,6 +21,7 @@ Status values: `Open`, `Planned`, `In progress`, `Repo verified`, `Device verifi
 | 9 | `DATA-002` | P2 | Separate muscles from descriptive categories | Active owner-selected library expansion. |
 | 10 | `DATA-003` | Deferred | Make corrupt-data recovery usable | Current data is disposable, so added recovery UI is not justified yet. |
 | 11 | `DX-001` | Deferred | Reconsider browser automation | Add tooling only after repeated runtime regressions demonstrate the need. |
+| 12 | `UI-004` | P1 | Hold and drag routine exercises | Replaces a slow phone editing path with direct manipulation while retaining the fallback. |
 
 ## PWA-001 — Isolate service-worker cache cleanup
 
@@ -43,6 +44,18 @@ Status values: `Open`, `Planned`, `In progress`, `Repo verified`, `Device verifi
 - **Acceptance:** Moving an entry never loses the prescription currently visible in the editor; the reorder and prescription persist after reload.
 - **Implemented:** Added a focused `moveRoutineEntry` state operation, used it for both movement controls, and kept master-exercise data outside the mutation.
 - **Verified:** Earlier/later, boundary, missing-ID, reload persistence, master isolation, and failed-write paths passed; `npm run check` passed 26/26; version references, manifest, syntax, HTTP assets, and phone-sized render smoke checks passed; fresh verifier reported the production patch clean. Physical iPhone interaction remains pending.
+
+## UI-004 — Hold and drag routine exercises
+
+- **Status:** Repo verified
+- **Priority:** P1
+- **Type:** Phone interaction / routine editing
+- **Evidence:** Reordering previously required opening an entry editor and moving only one position per tap.
+- **Impact:** Rebuilding a routine order was unnecessarily slow and indirect on a phone.
+- **Acceptance:** In Program, a normal tap still opens the routine-entry editor; holding a row visibly lifts it; dragging changes its destination and auto-scrolls near the list edges; releasing saves the exact new order; ordinary vertical scrolling remains available; cancel and failed saves do not corrupt order; earlier/later buttons remain as a non-drag fallback.
+- **Scope:** Routine entries only. Routine-tab ordering, Library ordering, storage shape, and master exercise data are unchanged.
+- **Implemented:** Added a dependency-free touch/mouse hold gesture, lifted-row and destination states, arbitrary-position reorder operation, click suppression after a drag, cancel cleanup, edge auto-scroll, and an understated grip cue. Version 23 updates the offline shell.
+- **Verified:** Direct first-to-last ordering, invalid destinations, persistence failure rollback, syntax, manifest, synchronized version-23 assets, served source, and `git diff --check` pass; `npm run check` passes 40/40. A fresh read-only verifier independently found the touch/scroll split, tap suppression, arbitrary index mapping, failure rollback, cancellation cleanup, fallback controls, and cache synchronization clean. Physical iPhone feel remains pending.
 
 ## UI-003 — Make failures visible inside modal dialogs
 

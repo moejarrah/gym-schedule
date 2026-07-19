@@ -1,4 +1,4 @@
-import { EXERCISE_CATEGORIES, MUSCLE_GROUPS, SCHEMA_VERSION, createDefaultState } from "./data.js?v=22";
+import { EXERCISE_CATEGORIES, MUSCLE_GROUPS, SCHEMA_VERSION, createDefaultState } from "./data.js?v=23";
 
 export const STORAGE_KEY = "gymAppStateV1";
 
@@ -217,6 +217,16 @@ export function moveRoutineEntry(state, routineId, entryId, direction, prescript
   if (!routine || index < 0) return next;
   routine.entries[index].prescription = prescription;
   routine.entries = moveItem(routine.entries, index, direction);
+  return next;
+}
+
+export function reorderRoutineEntry(state, routineId, entryId, targetIndex) {
+  const next = clone(state);
+  const routine = next.routines.find((item) => item.id === routineId);
+  const sourceIndex = routine?.entries.findIndex((entry) => entry.id === entryId) ?? -1;
+  if (!routine || sourceIndex < 0 || !Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= routine.entries.length) return next;
+  const [entry] = routine.entries.splice(sourceIndex, 1);
+  routine.entries.splice(targetIndex, 0, entry);
   return next;
 }
 

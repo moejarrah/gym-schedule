@@ -1,4 +1,4 @@
-import { EXERCISE_CATEGORIES, MUSCLE_GROUPS, RULES } from "./data.js?v=22";
+import { EXERCISE_CATEGORIES, MUSCLE_GROUPS, RULES } from "./data.js?v=23";
 import {
   createBackup,
   createStore,
@@ -6,11 +6,12 @@ import {
   makeId,
   moveItem,
   moveRoutineEntry,
+  reorderRoutineEntry,
   parseImportedState,
   removeExerciseFromState,
   removeRoutineFromState,
   toggleRoutineForDate,
-} from "./storage.js?v=22";
+} from "./storage.js?v=23";
 
 const store = createStore();
 const main = document.querySelector("#appMain");
@@ -32,6 +33,11 @@ let alternativesQuery = "";
 let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let toastTimer;
 let confirmResolver;
+let entryDrag = null;
+let suppressEntryClickUntil = 0;
+
+const ENTRY_HOLD_DELAY = 340;
+const ENTRY_HOLD_TOLERANCE = 10;
 
 function escapeHtml(value = "") {
   return String(value)
@@ -406,9 +412,129 @@ function renderRoutineEntries(state, routine) {
     const exercise = exerciseById(state, entry.exerciseId);
     const content = `<span class="row-number">${index + 1}</span>
       <span class="row-main"><span class="row-title">${escapeHtml(exercise?.name || "Missing exercise")}</span><span class="row-meta">${escapeHtml(entry.prescription || exercise?.defaultPrescription || "No prescription")}</span></span>
-      <span class="edit-hint">Manage</span><span class="workout-chevron" aria-hidden="true">${chevronIcon("right")}</span>`;
-    return `<button class="program-row" type="button" data-action="edit-entry" data-id="${escapeHtml(entry.id)}" aria-label="Manage ${escapeHtml(exercise?.name || "exercise")} in this routine">${content}</button>`;
+      <span class="drag-hint" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h8"/></svg></span>`;
+    return `<button class="program-row" type="button" data-action="edit-entry" data-id="${escapeHtml(entry.id)}" aria-label="${escapeHtml(exercise?.name || "Exercise")}. Tap to edit. Hold and drag to reorder.">${content}</button>`;
   }).join("")}</div>`;
+}
+
+function entryDragPoint(event) {
+  if (event.type.startsWith("touch")) {
+    const touches = [...Array.from(event.touches), ...Array.from(event.changedTouches)];
+    return touches.find((touch) => touch.identifier === entryDrag?.pointerId) || null;
+  }
+  return { clientX: event.clientX, clientY: event.clientY };
+}
+
+function updateEntryDropTarget(clientY) {
+  if (!entryDrag?.active) return;
+  const rows = [...entryDrag.list.querySelectorAll(".program-row")];
+  const before = rows.find((row) => {
+    const rect = row.getBoundingClientRect();
+    return clientY < rect.top + rect.height / 2;
+  });
+  if (before) entryDrag.list.insertBefore(entryDrag.placeholder, before);
+  else entryDrag.list.append(entryDrag.placeholder);
+}
+
+function runEntryDragAutoScroll() {
+  if (!entryDrag?.active) return;
+  const bounds = main.getBoundingClientRect();
+  const edge = 56;
+  const distanceFromTop = entryDrag.clientY - bounds.top;
+  const distanceFromBottom = bounds.bottom - entryDrag.clientY;
+  let amount = 0;
+  if (distanceFromTop < edge) amount = -Math.ceil((edge - Math.max(0, distanceFromTop)) / 5);
+  else if (distanceFromBottom < edge) amount = Math.ceil((edge - Math.max(0, distanceFromBottom)) / 5);
+  if (amount) {
+    main.scrollTop += amount;
+    updateEntryDropTarget(entryDrag.clientY);
+  }
+  entryDrag.autoScrollFrame = requestAnimationFrame(runEntryDragAutoScroll);
+}
+
+function activateEntryDrag() {
+  if (!entryDrag) return;
+  if (!entryDrag.row.isConnected || !entryDrag.list || currentView !== "routines") {
+    entryDrag = null;
+    return;
+  }
+  const bounds = entryDrag.row.getBoundingClientRect();
+  const placeholder = document.createElement("div");
+  placeholder.className = "program-row-placeholder";
+  placeholder.style.height = `${bounds.height}px`;
+  entryDrag.row.before(placeholder);
+  entryDrag.placeholder = placeholder;
+  entryDrag.active = true;
+  entryDrag.row.classList.add("is-dragging");
+  entryDrag.row.style.left = `${bounds.left}px`;
+  entryDrag.row.style.top = `${bounds.top}px`;
+  entryDrag.row.style.width = `${bounds.width}px`;
+  entryDrag.row.style.height = `${bounds.height}px`;
+  document.body.append(entryDrag.row);
+  document.body.classList.add("entry-drag-active");
+  entryDrag.autoScrollFrame = requestAnimationFrame(runEntryDragAutoScroll);
+}
+
+function startEntryDrag(row, clientX, clientY, pointerId) {
+  if (entryDrag || !row) return;
+  entryDrag = {
+    row,
+    list: row.closest(".program-list"),
+    entryId: row.dataset.id,
+    pointerId,
+    startX: clientX,
+    startY: clientY,
+    clientY,
+    active: false,
+    placeholder: null,
+    autoScrollFrame: 0,
+  };
+  entryDrag.timer = window.setTimeout(activateEntryDrag, ENTRY_HOLD_DELAY);
+}
+
+function moveEntryDrag(event) {
+  if (!entryDrag) return;
+  const point = entryDragPoint(event);
+  if (!point) return;
+  const distance = Math.hypot(point.clientX - entryDrag.startX, point.clientY - entryDrag.startY);
+  if (!entryDrag.active && distance > ENTRY_HOLD_TOLERANCE) {
+    clearTimeout(entryDrag.timer);
+    entryDrag = null;
+    return;
+  }
+  if (!entryDrag.active) return;
+  event.preventDefault();
+  entryDrag.clientY = point.clientY;
+  entryDrag.row.style.transform = `translate3d(0, ${point.clientY - entryDrag.startY}px, 0) scale(1.015)`;
+  updateEntryDropTarget(point.clientY);
+}
+
+function finishEntryDrag(savePosition) {
+  if (!entryDrag) return;
+  clearTimeout(entryDrag.timer);
+  const drag = entryDrag;
+  entryDrag = null;
+  if (!drag.active) return;
+
+  cancelAnimationFrame(drag.autoScrollFrame);
+  const targetIndex = [...drag.list.children].indexOf(drag.placeholder);
+  drag.placeholder.replaceWith(drag.row);
+  drag.row.classList.remove("is-dragging");
+  drag.row.removeAttribute("style");
+  document.body.classList.remove("entry-drag-active");
+  suppressEntryClickUntil = performance.now() + 600;
+
+  if (!savePosition) {
+    render();
+    return;
+  }
+  const state = store.getState();
+  const routine = getActiveRoutine(state);
+  const sourceIndex = routine?.entries.findIndex((entry) => entry.id === drag.entryId) ?? -1;
+  if (!routine || sourceIndex === targetIndex) return;
+  const result = store.replace(reorderRoutineEntry(state, routine.id, drag.entryId, targetIndex));
+  saveResult(result, "Exercise moved.");
+  render();
 }
 
 function openExerciseEditor(exerciseId = "", duplicate = false) {
@@ -813,7 +939,10 @@ main.addEventListener("click", (event) => {
   else if (action === "select-routine") selectRoutine(id);
   else if (action === "move-routine-up") moveRoutine(id, -1);
   else if (action === "move-routine-down") moveRoutine(id, 1);
-  else if (action === "edit-entry") openEntryEditor(id);
+  else if (action === "edit-entry") {
+    if (performance.now() < suppressEntryClickUntil) return;
+    openEntryEditor(id);
+  }
   else if (action === "open-picker") openPicker();
   else if (action === "open-workout-exercise") openExerciseDetails(id, button.dataset.prescription || "");
   else if (action === "view-alternative") openExerciseDetails(id);
@@ -821,6 +950,40 @@ main.addEventListener("click", (event) => {
   else if (action === "previous-month") changeCalendarMonth(-1);
   else if (action === "next-month") changeCalendarMonth(1);
   else if (action === "open-day") openDayEditor(button.dataset.date);
+});
+
+main.addEventListener("touchstart", (event) => {
+  if (event.touches.length !== 1) return;
+  const row = event.target.closest('.program-row[data-action="edit-entry"]');
+  if (!row) return;
+  const touch = event.touches[0];
+  startEntryDrag(row, touch.clientX, touch.clientY, touch.identifier);
+}, { passive: true });
+
+window.addEventListener("touchmove", moveEntryDrag, { passive: false });
+window.addEventListener("touchend", (event) => {
+  if (!entryDrag || !Array.from(event.changedTouches).some((touch) => touch.identifier === entryDrag.pointerId)) return;
+  if (entryDrag.active) event.preventDefault();
+  finishEntryDrag(true);
+}, { passive: false });
+window.addEventListener("touchcancel", () => finishEntryDrag(false));
+
+main.addEventListener("pointerdown", (event) => {
+  if (event.pointerType !== "mouse" || event.button !== 0) return;
+  const row = event.target.closest('.program-row[data-action="edit-entry"]');
+  if (row) startEntryDrag(row, event.clientX, event.clientY, event.pointerId);
+});
+window.addEventListener("pointermove", (event) => {
+  if (event.pointerType === "mouse" && event.pointerId === entryDrag?.pointerId) moveEntryDrag(event);
+});
+window.addEventListener("pointerup", (event) => {
+  if (event.pointerType === "mouse" && event.pointerId === entryDrag?.pointerId) finishEntryDrag(true);
+});
+window.addEventListener("pointercancel", (event) => {
+  if (event.pointerId === entryDrag?.pointerId) finishEntryDrag(false);
+});
+document.addEventListener("contextmenu", (event) => {
+  if (entryDrag?.active && event.target.closest(".program-row")) event.preventDefault();
 });
 
 main.addEventListener("input", (event) => {
@@ -978,7 +1141,7 @@ if ("serviceWorker" in navigator) {
     }
   });
   navigator.serviceWorker
-    .register("sw.js?v=22", { updateViaCache: "none" })
+    .register("sw.js?v=23", { updateViaCache: "none" })
     .then((registration) => registration.update())
     .catch(() => showToast("Offline mode could not be started."));
 }

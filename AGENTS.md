@@ -2,10 +2,10 @@
 
 ## Start here
 
-- Read `HANDOFF_STATUS.md` before meaningful work. It is the current truth after interruptions or context loss.
-- Read the relevant open items in `AUDIT.md`. It is the active backlog, not an automatic instruction to fix everything.
-- Read `PRODUCT.md` before changing behavior, navigation, wording, or UI. Its user-action contract must remain reachable.
-- Follow `WORKFLOW.md` for multi-file, storage-sensitive, redesign, release, or otherwise non-trivial work.
+- Read `docs/HANDOFF_STATUS.md` before meaningful work. It is the current truth after interruptions or context loss.
+- Read the relevant open items in `docs/AUDIT.md`. It is the active backlog, not an automatic instruction to fix everything.
+- Read `docs/PRODUCT.md` before changing behavior, navigation, wording, or UI. Its user-action contract must remain reachable.
+- Follow `docs/WORKFLOW.md` for multi-file, storage-sensitive, redesign, release, or otherwise non-trivial work.
 - The newest user request controls scope. Do not revive older ideas unless they remain recorded as open work.
 
 ## Product
@@ -20,7 +20,7 @@
 - Stay with vanilla HTML, CSS, and JavaScript. Do not add a framework, bundler, backend, account system, database, analytics, cloud sync, or production dependency unless the user explicitly asks.
 - Prefer a direct change over a new abstraction. Extract a helper or module only when it removes real duplication, isolates stateful logic, or makes testing materially easier.
 - If code is split, use a few plain CSS/JavaScript modules that run directly in the browser. Do not introduce a package manager solely for organization.
-- `_preview.html`, `_template-*.html`, `svg/`, and `gym-app.zip` are references or artifacts, not production sources. Do not edit, deploy, or delete them unless asked.
+- `tools/`, `references/`, and `artifacts/` are development aids or local artifacts, not production sources. Do not deploy them as app assets.
 
 ## Data rules
 
@@ -35,12 +35,12 @@
 
 - Work on one narrow slice at a time. State its goal, acceptance criteria, and meaningful exclusions before editing.
 - Make the smallest complete change that solves the slice. Avoid unrelated refactors, redesigns, formatting churn, speculative edge cases, new dependencies, and optional abstractions.
-- Before a redesign, map every affected action in `PRODUCT.md` from its old path to a clear new path. Visual simplification must not hide or remove behavior.
+- Before a redesign, map every affected action in `docs/PRODUCT.md` from its old path to a clear new path. Visual simplification must not hide or remove behavior.
 - Preserve offline behavior, installability, light/dark themes, current data, workout meaning, completion semantics, and calendar history.
 - Do not broaden work into authentication or internet-facing security unless requested. Local data-loss prevention remains in scope.
 - Do not prioritize theoretical service-worker lifecycle cases that require the owner to deploy while actively editing. Defer them unless the owner reproduces the problem or explicitly requests that behavior.
 - Ask before adding a production dependency or changing the architecture boundary.
-- Put worthwhile out-of-scope ideas in `AUDIT.md`; do not silently add them to the active patch.
+- Put worthwhile out-of-scope ideas in `docs/AUDIT.md`; do not silently add them to the active patch.
 
 ## Phone UI
 
@@ -51,7 +51,7 @@
 
 ## Validation
 
-- Serve locally with `npm run preview` and test from `http://127.0.0.1:4173/`. `_preview.html` is the local iPhone-shaped interactive preview.
+- Serve locally with `npm run preview` and test from `http://127.0.0.1:4173/`. `tools/iphone-preview.html` is the local iPhone-shaped interactive preview.
 - After JavaScript or manifest changes, run:
 
   ```bash
@@ -69,7 +69,7 @@
 
 - Use subagents only for concrete, bounded, independent exploration or verification when requested or when the task genuinely benefits. Prefer read-only assignments.
 - Do not let multiple agents edit overlapping files. The main agent owns scope, decisions, integration, final checks, and status docs.
-- Verifiers report only correctness, regression, data-loss, accessibility, and unmet-requirement issues. Optional polish belongs in `AUDIT.md`.
+- Verifiers report only correctness, regression, data-loss, accessibility, and unmet-requirement issues. Optional polish belongs in `docs/AUDIT.md`.
 
 ## Definition of done
 
@@ -80,5 +80,5 @@
 ## Maintaining these instructions
 
 - Keep this file short, practical, and stable. Add a rule only for a recurring mistake, non-obvious repository constraint, or exact verification command.
-- Put product meaning in `PRODUCT.md`, work procedure in `WORKFLOW.md`, current state in `HANDOFF_STATUS.md`, and open work in `AUDIT.md`.
+- Put product meaning in `docs/PRODUCT.md`, work procedure in `docs/WORKFLOW.md`, current state in `docs/HANDOFF_STATUS.md`, and open work in `docs/AUDIT.md`.
 - Remove stale rules. Do not duplicate rules already enforced mechanically.

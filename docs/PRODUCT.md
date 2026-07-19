@@ -43,7 +43,7 @@ Every redesign or navigation change must keep these actions clearly reachable. B
 - Reorder routines.
 - Search the library and add an exercise to the selected routine.
 - Open a routine entry to change only that entry's prescription.
-- Move a routine entry earlier or later.
+- Hold and drag a routine entry to any position; earlier/later controls remain available as a non-drag fallback.
 - Remove an entry from the routine without deleting its master exercise.
 
 ### Library

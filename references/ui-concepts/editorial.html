@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Template B — Operational (iPhone)</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #fbf9fa;
+    --surface: rgba(255, 255, 255, 0.96);
+    --surface-str: #ffffff;
+    --surface-mt: #f5f3f5;
+    --text: #1b1b1d;
+    --mt: #44474c;
+    --mt-2: #75777d;
+    --border: #c4c6cd;
+    --border-str: #75777d;
+    --shadow: rgba(48, 62, 81, 0.14);
+    --accent: #1f1d1c;
+    --accent-str: #3a3a3d;
+    --accent-ctr: #ffffff;
+    --accent-bg: rgba(31, 29, 28, 0.08);
+    --gym: #c2410c;       --gym-bg: #ffedd5;  --gym-bd: #fdba74;
+    --home: #0f766e;      --home-bg: #ccfbf1; --home-bd: #5eead4;
+    --rest: #6b7280;      --rest-bg: #f3f4f6; --rest-bd: #d1d5db;
+    --warn: #b45309;      --warn-bg: #fef3c7;
+    --success: #059669; --success-bg: #dcfce7;
+    --warning: #d97706;
+    --danger: #dc2626;  --danger-bg: #fee2e2;
+    --neutral: #64748b; --neutral-bg: #e2e8f0;
+    --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace;
+    --t-fast: 120ms; --t-med: 180ms; --t-ease: cubic-bezier(0.2, 0, 0, 1);
+  }
+  body.dark {
+    --bg: #0e0d0b;
+    --surface: rgba(24, 24, 22, 0.96);
+    --surface-str: #1c1b18;
+    --surface-mt: #25241f;
+    --text: #f2ede4;
+    --mt: #b6ad9d;
+    --mt-2: #7a7363;
+    --border: #3a352c;
+    --border-str: #5a544a;
+    --accent: #f2ede4;
+    --accent-bg: rgba(242, 237, 228, 0.08);
+    --gym-bg: rgba(194, 65, 12, 0.18);  --gym-bd: rgba(194, 65, 12, 0.4);
+    --home-bg: rgba(15, 118, 110, 0.18); --home-bd: rgba(15, 118, 110, 0.4);
+    --rest-bg: rgba(107, 114, 128, 0.18); --rest-bd: rgba(107, 114, 128, 0.4);
+    --warn-bg: rgba(180, 83, 9, 0.18);
+    --success-bg: rgba(5, 150, 105, 0.18);
+    --warning-bg: rgba(217, 119, 6, 0.18);
+    --danger-bg: rgba(220, 38, 38, 0.18);
+    --neutral-bg: rgba(100, 116, 139, 0.18);
+  }
+  * { -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    max-width: 430px; margin: 0 auto;
+    min-height: 100dvh;
+    display: flex; flex-direction: column;
+    background: var(--bg);
+  }
+
+  /* ===== TOPBAR ===== */
+  .topbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 10px;
+    background: var(--surface-str);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar .icn {
+    width: 28px; height: 28px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface-mt);
+    color: var(--mt);
+    display: grid; place-items: center;
+    cursor: pointer;
+    font: 500 10px/1 var(--mono);
+  }
+  .topbar .icn:active { background: var(--accent-bg); color: var(--text); }
+  .topbar .title {
+    flex: 1;
+    display: flex; align-items: baseline; gap: 8px;
+    padding: 0 4px;
+  }
+  .topbar .title h1 {
+    font: 700 14px/1 -apple-system, sans-serif;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .topbar .title .sub {
+    font: 600 10px/1 var(--mono);
+    color: var(--mt-2);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* ===== TABS — horizontal scroll, active is bottom border ===== */
+  .tabs {
+    display: flex;
+    background: var(--surface-str);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs button {
+    flex-shrink: 0;
+    border: 0; background: transparent;
+    color: var(--mt);
+    font: 700 11px/1 var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 12px 14px 10px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color var(--t-fast) var(--t-ease), border-color var(--t-fast) var(--t-ease);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .tabs button .pill {
+    display: inline-grid; place-items: center;
+    min-width: 18px; height: 18px; padding: 0 5px;
+    border-radius: 9px;
+    background: var(--surface-mt);
+    color: var(--mt-2);
+    font: 700 9px/1 var(--mono);
+  }
+  .tabs button.is-on { color: var(--text); border-bottom-color: var(--accent); }
+  .tabs button.is-on .pill { background: var(--accent); color: var(--accent-ctr); }
+
+  /* ===== MAIN ===== */
+  .main {
+    flex: 1;
+    padding: 12px 12px calc(96px + env(safe-area-inset-bottom, 0px));
+    display: grid; gap: 12px;
+  }
+
+  /* Panel */
+  .panel {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-mt);
+  }
+  .panel-head h2 {
+    font: 800 11px/1 var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .panel-head .meta {
+    font: 700 10px/1 var(--mono);
+    color: var(--mt);
+    font-variant-numeric: tabular-nums;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .panel-body { padding: 0; }
+
+  /* Tag */
+  .tag {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 1px 5px;
+    font: 800 9px/1.2 var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-radius: 2px;
+    border: 1px solid;
+  }
+  .tag.is-gym { background: var(--gym-bg); color: var(--gym); border-color: var(--gym-bd); }
+  .tag.is-home { background: var(--home-bg); color: var(--home); border-color: var(--home-bd); }
+  .tag.is-rest { background: var(--rest-bg); color: var(--mt); border-color: var(--rest-bd); }
+
+  /* ===== EXERCISE LIST — denser, table-like ===== */
+  .ex-list { display: grid; }
+
+  .ex {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border-top: 1px solid var(--border);
+    background: var(--surface-str);
+    cursor: pointer;
+    transition: background var(--t-fast) var(--t-ease);
+  }
+  .ex:first-child { border-top: 0; }
+  .ex:active { background: var(--surface-mt); }
+  .ex.is-done { background: var(--surface-mt); }
+  .ex.is-done .ex-name { color: var(--mt); text-decoration: line-through; text-decoration-color: var(--mt-2); }
+  .ex .num {
+    font: 700 11px/1 var(--mono);
+    color: var(--mt-2);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .ex .body { min-width: 0; }
+  .ex .ex-name {
+    font: 600 13px/1.25 -apple-system, sans-serif;
+    color: var(--text);
+    margin-bottom: 2px;
+    letter-spacing: -0.005em;
+  }
+  .ex .meta {
+    display: flex; align-items: center; gap: 5px;
+    font: 700 10px/1 var(--mono);
+    color: var(--mt);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .ex .meta .sep { color: var(--border-str); }
+  .ex .meta .sets b { color: var(--text); font-weight: 800; }
+  .ex .acts {
+    display: flex; align-items: center; gap: 4px;
+  }
+  .ex .acts button {
+    width: 28px; height: 28px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--surface-mt);
+    color: var(--mt);
+    cursor: pointer;
+    display: grid; place-items: center;
+    transition: background var(--t-fast) var(--t-ease), color var(--t-fast) var(--t-ease);
+  }
+  .ex .acts button.is-on { background: var(--accent); color: var(--accent-ctr); border-color: var(--accent); }
+  .ex .acts button.is-off { opacity: 0.45; }
+  .ex .acts .info {
+    font: 700 14px/1 Georgia, "Times New Roman", serif;
+    font-style: italic;
+    color: var(--text);
+  }
+  .ex .acts .info:active { background: var(--accent-bg); color: var(--text); border-color: var(--border-str); }
+  .ex .acts button:active { transform: scale(0.92); }
+  .ex .acts svg { width: 11px; height: 11px; }
+
+  /* ===== STATUS GRID (calendar legend pattern) ===== */
+  .stat-strip {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    border-bottom: 1px solid var(--border);
+  }
+  .ss {
+    padding: 10px 12px;
+    border-right: 1px solid var(--border);
+  }
+  .ss:last-child { border-right: 0; }
+  .ss .l {
+    font: 800 9px/1 var(--mono);
+    color: var(--mt-2);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .ss .v {
+    margin-top: 4px;
+    font: 800 22px/1 var(--mono);
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .ss .u { font-size: 11px; color: var(--mt); font-weight: 700; margin-left: 2px; }
+  .ss .delta {
+    margin-top: 4px;
+    font: 700 10px/1 var(--mono);
+    color: var(--mt-2);
+    text-transform: uppercase;
+  }
+  .ss .delta.is-up { color: var(--success); }
+  .ss .delta.is-dn { color: var(--danger); }
+  .ss.is-gym .v { color: var(--gym); }
+  .ss.is-home .v { color: var(--home); }
+
+  /* ===== TODAY BANNER — contextual "what to do" strip ===== */
+  .today {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: var(--surface-str);
+    border-bottom: 1px solid var(--border);
+  }
+  .today .glyph {
+    width: 32px; height: 32px;
+    border-radius: 3px;
+    background: var(--home-bg);
+    border: 1px solid var(--home-bd);
+    color: var(--home);
+    display: grid; place-items: center;
+    font: 800 14px/1 var(--mono);
+  }
+  .today .body { flex: 1; }
+  .today .body .h {
+    font: 700 12px/1.2 -apple-system, sans-serif;
+    color: var(--text);
+  }
+  .today .body .s {
+    font: 600 10px/1 var(--mono);
+    color: var(--mt);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+  }
+  .today .mark {
+    flex-shrink: 0;
+    min-height: 30px; padding: 0 10px;
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    background: var(--accent);
+    color: var(--accent-ctr);
+    font: 800 10px/1 var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+  }
+  .today .mark.is-on { background: var(--surface-mt); color: var(--text); border-color: var(--border); }
+  .today .mark:active { transform: scale(0.96); }
+
+  /* ===== NOTE ===== */
+  .note {
+    margin: 0 12px 10px;
+    padding: 8px 10px;
+    background: var(--warn-bg);
+    border: 1px solid var(--warn);
+    border-radius: 3px;
+    font: 500 11px/1.4 -apple-system, sans-serif;
+    color: var(--text);
+  }
+  .note b { font-weight: 800; }
+
+  /* ===== BOTTOM NAV ===== */
+  .nav {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 430px;
+    background: var(--surface-str);
+    border-top: 1px solid var(--border);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    z-index: 30;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .nav button {
+    border: 0; background: transparent;
+    color: var(--mt-2);
+    font: 700 9px/1 var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 10px 0 8px;
+    cursor: pointer;
+    transition: color var(--t-fast) var(--t-ease);
+    border-top: 2px solid transparent;
+  }
+  .nav button.is-on { color: var(--text); border-top-color: var(--accent); }
+  .nav button .ic {
+    display: block; margin: 0 auto 4px;
+    width: 16px; height: 16px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <button class="icn" aria-label="Back">‹</button>
+    <div class="title">
+      <h1>Home Base</h1>
+      <span class="sub">Mon · W24</span>
+    </div>
+    <button class="icn" aria-label="More">⋯</button>
+  </header>
+
+  <!-- SECTION TABS WITHIN HOME BASE -->
+  <nav class="tabs" aria-label="Home Base sections">
+    <button class="is-on">Daily <span class="pill">5-7×</span></button>
+    <button>Rehab <span class="pill">2-3×</span></button>
+    <button>Loaded <span class="pill">2×</span></button>
+  </nav>
+
+  <main class="main">
+
+    <!-- TODAY BANNER -->
+    <section class="panel">
+      <div class="today">
+        <div class="glyph">✓</div>
+        <div class="body">
+          <div class="h">Mark Home Base done for today</div>
+          <div class="s">3 of 4 days this week</div>
+        </div>
+        <button class="mark">Mark</button>
+      </div>
+    </section>
+
+    <!-- DAILY KPI STRIP -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>This week</h2>
+        <span class="meta">5 / 7 done</span>
+      </div>
+      <div class="stat-strip">
+        <div class="ss is-home"><div class="l">Streak</div><div class="v">12<span class="u">d</span></div><div class="delta is-up">↑ 2 vs last</div></div>
+        <div class="ss"><div class="l">Total</div><div class="v">38<span class="u">m</span></div><div class="delta">avg / day</div></div>
+        <div class="ss"><div class="l">Skipped</div><div class="v">2</div><div class="delta is-dn">→ last 7d</div></div>
+      </div>
+    </section>
+
+    <!-- DAILY BASE PANEL -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2><span class="tag is-home">Home</span> Daily base</h2>
+        <span class="meta">5-7× · 10-20 min</span>
+      </div>
+      <div class="ex-list">
+
+        <div class="ex is-done">
+          <span class="num">01</span>
+          <div class="body">
+            <div class="ex-name">Dead bug</div>
+            <div class="meta"><span class="sets"><b>2</b> × 5-8</span><span class="sep">·</span><span>Core</span></div>
+          </div>
+          <div class="acts">
+            <button class="info" aria-label="Notes">i</button>
+            <button class="is-on" aria-label="Play">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex is-done">
+          <span class="num">02</span>
+          <div class="body">
+            <div class="ex-name">Side plank with hip abduction</div>
+            <div class="meta"><span class="sets"><b>2</b> × 15-30s/side</span><span class="sep">·</span><span>Core</span></div>
+          </div>
+          <div class="acts">
+            <button class="info">i</button>
+            <button class="is-on">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex is-done">
+          <span class="num">03</span>
+          <div class="body">
+            <div class="ex-name">Bird dog</div>
+            <div class="meta"><span class="sets"><b>1-2</b> × 5-8/side</span><span class="sep">·</span><span>Core</span></div>
+          </div>
+          <div class="acts">
+            <button class="info">i</button>
+            <button class="is-on">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex">
+          <span class="num">04</span>
+          <div class="body">
+            <div class="ex-name">Modified curl-up</div>
+            <div class="meta"><span class="sets"><b>2</b> × 8-12</span><span class="sep">·</span><span>Core</span></div>
+          </div>
+          <div class="acts">
+            <button class="info">i</button>
+            <button class="is-on">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex">
+          <span class="num">05</span>
+          <div class="body">
+            <div class="ex-name">Back-to-wall Y raise / wall angel</div>
+            <div class="meta"><span class="sets"><b>2</b> × 8-12</span><span class="sep">·</span><span>Shoulders</span></div>
+          </div>
+          <div class="acts">
+            <button class="info">i</button>
+            <button class="is-on">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex">
+          <span class="num">06</span>
+          <div class="body">
+            <div class="ex-name">Serratus wall slide</div>
+            <div class="meta"><span class="sets"><b>2</b> × 8-12</span><span class="sep">·</span><span>Serratus</span></div>
+          </div>
+          <div class="acts">
+            <button class="info">i</button>
+            <button class="is-on">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex">
+          <span class="num">07</span>
+          <div class="body">
+            <div class="ex-name">Push-up plus</div>
+            <div class="meta"><span class="sets"><b>2</b> × 10-15</span><span class="sep">·</span><span>Chest</span></div>
+          </div>
+          <div class="acts">
+            <button class="info">i</button>
+            <button class="is-off">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 5l14 14"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex">
+          <span class="num">08</span>
+          <div class="body">
+            <div class="ex-name">Prone W raise</div>
+            <div class="meta"><span class="sets"><b>2</b> × 10-15</span><span class="sep">·</span><span>Shoulders</span></div>
+          </div>
+          <div class="acts">
+            <button class="info">i</button>
+            <button class="is-on">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex">
+          <span class="num">09</span>
+          <div class="body">
+            <div class="ex-name">Clamshell / side-lying hip abduction</div>
+            <div class="meta"><span class="sets"><b>2</b> × 10-15/side</span><span class="sep">·</span><span>Hips</span></div>
+          </div>
+          <div class="acts">
+            <button class="info">i</button>
+            <button class="is-on">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex">
+          <span class="num">10</span>
+          <div class="body">
+            <div class="ex-name">Cat-cow</div>
+            <div class="meta"><span class="sets"><b>1</b> × 6-8</span><span class="sep">·</span><span>Spine</span></div>
+          </div>
+          <div class="acts">
+            <button class="info">i</button>
+            <button class="is-on">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex">
+          <span class="num">11</span>
+          <div class="body">
+            <div class="ex-name">Knee-to-wall ankle rocks</div>
+            <div class="meta"><span class="sets"><b>2</b> × 8-12/side</span><span class="sep">·</span><span>Ankle</span></div>
+          </div>
+          <div class="acts">
+            <button class="info">i</button>
+            <button class="is-on">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex">
+          <span class="num">12</span>
+          <div class="body">
+            <div class="ex-name">Half-kneeling hip flexor stretch</div>
+            <div class="meta"><span class="sets"><b>1-2</b> × 20-30s/side</span><span class="sep">·</span><span>Hip</span></div>
+          </div>
+          <div class="acts">
+            <button class="info">i</button>
+            <button class="is-on">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex">
+          <span class="num">13</span>
+          <div class="body">
+            <div class="ex-name">Active straight-leg raise</div>
+            <div class="meta"><span class="sets"><b>2</b> × 5-8/leg</span><span class="sep">·</span><span>Hip</span></div>
+          </div>
+          <div class="acts">
+            <button class="info">i</button>
+            <button class="is-on">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex">
+          <span class="num">14</span>
+          <div class="body">
+            <div class="ex-name">90/90 hip switches</div>
+            <div class="meta"><span class="sets"><b>1-2</b> × 8-10 total</span><span class="sep">·</span><span>Hip</span></div>
+          </div>
+          <div class="acts">
+            <button class="info">i</button>
+            <button class="is-on">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex">
+          <span class="num">15</span>
+          <div class="body">
+            <div class="ex-name">Hip hinge</div>
+            <div class="meta"><span class="sets"><b>2</b> × 8-12</span><span class="sep">·</span><span>Posterior</span></div>
+          </div>
+          <div class="acts">
+            <button class="info">i</button>
+            <button class="is-on">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex">
+          <span class="num">16</span>
+          <div class="body">
+            <div class="ex-name">Supported deep squat hold</div>
+            <div class="meta"><span class="sets"><b>1-2</b> × 20-30s</span><span class="sep">·</span><span>Ankle</span></div>
+          </div>
+          <div class="acts">
+            <button class="info">i</button>
+            <button class="is-on">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex">
+          <span class="num">17</span>
+          <div class="body">
+            <div class="ex-name">Glute bridge</div>
+            <div class="meta"><span class="sets"><b>2</b> × 8-12</span><span class="sep">·</span><span>Posterior</span></div>
+          </div>
+          <div class="acts">
+            <button class="info">i</button>
+            <button class="is-on">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex">
+          <span class="num">18</span>
+          <div class="body">
+            <div class="ex-name">Sitting in squat</div>
+            <div class="meta"><span class="sets"><b>1-2</b> × 20-30s</span><span class="sep">·</span><span>Ankle</span></div>
+          </div>
+          <div class="acts">
+            <button class="info">i</button>
+            <button class="is-on">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex">
+          <span class="num">19</span>
+          <div class="body">
+            <div class="ex-name">Quadruped back rotations</div>
+            <div class="meta"><span class="sets"><b>1-2</b> × 5-8/side</span><span class="sep">·</span><span>Thoracic</span></div>
+          </div>
+          <div class="acts">
+            <button class="info">i</button>
+            <button class="is-on">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex">
+          <span class="num">20</span>
+          <div class="body">
+            <div class="ex-name">Towel shoulder stretch</div>
+            <div class="meta"><span class="sets"><b>2</b> × 20-30s/side</span><span class="sep">·</span><span>Shoulder</span></div>
+          </div>
+          <div class="acts">
+            <button class="info">i</button>
+            <button class="is-on">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex">
+          <span class="num">21</span>
+          <div class="body">
+            <div class="ex-name">Foam roller chest stretch with weights</div>
+            <div class="meta"><span class="sets"><b>1-2</b> × 20-30s</span><span class="sep">·</span><span>Chest</span></div>
+          </div>
+          <div class="acts">
+            <button class="info">i</button>
+            <button class="is-on">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <nav class="nav">
+    <button>
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a2 2 0 01-2 2h-4v-7h-6v7H5a2 2 0 01-2-2v-9z"/></svg>
+      Workout
+    </button>
+    <button class="is-on">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12h16M12 4v16"/></svg>
+      Home
+    </button>
+    <button>
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="1"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+      Calendar
+    </button>
+    <button>
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Rules
+    </button>
+  </nav>
+</div>
+</body>
+</html>
