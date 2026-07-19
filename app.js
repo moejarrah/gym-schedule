@@ -1,15 +1,16 @@
-import { MUSCLE_GROUPS, RULES } from "./data.js?v=17";
+import { MUSCLE_GROUPS, RULES } from "./data.js?v=18";
 import {
   createBackup,
   createStore,
   localDateKey,
   makeId,
   moveItem,
+  moveRoutineEntry,
   parseImportedState,
   removeExerciseFromState,
   removeRoutineFromState,
   toggleRoutineForDate,
-} from "./storage.js?v=17";
+} from "./storage.js?v=18";
 
 const store = createStore();
 const main = document.querySelector("#appMain");
@@ -563,12 +564,12 @@ function moveRoutine(id, direction) {
 
 function moveEntry(id, direction) {
   const activeId = store.getState().settings.activeRoutineId;
-  const result = store.update((state) => {
-    const routine = state.routines.find((item) => item.id === activeId);
-    const index = routine?.entries.findIndex((entry) => entry.id === id) ?? -1;
-    if (routine) routine.entries = moveItem(routine.entries, index, direction);
-  });
-  if (saveResult(result)) render();
+  const prescription = document.querySelector("#entryPrescription").value.trim();
+  const result = store.replace(moveRoutineEntry(store.getState(), activeId, id, direction, prescription));
+  if (!saveResult(result, "Exercise moved.")) return false;
+  document.querySelector("#entryDialog").close();
+  render();
+  return true;
 }
 
 async function removeEntry(id) {
@@ -878,12 +879,10 @@ document.querySelector("#entryForm").addEventListener("submit", (event) => {
 
 document.querySelector("#moveEntryEarlierButton").addEventListener("click", () => {
   const id = document.querySelector("#entryId").value;
-  document.querySelector("#entryDialog").close();
   moveEntry(id, -1);
 });
 document.querySelector("#moveEntryLaterButton").addEventListener("click", () => {
   const id = document.querySelector("#entryId").value;
-  document.querySelector("#entryDialog").close();
   moveEntry(id, 1);
 });
 document.querySelector("#removeEntryButton").addEventListener("click", () => removeEntry(document.querySelector("#entryId").value));
@@ -932,7 +931,7 @@ if ("serviceWorker" in navigator) {
     }
   });
   navigator.serviceWorker
-    .register("sw.js?v=17", { updateViaCache: "none" })
+    .register("sw.js?v=18", { updateViaCache: "none" })
     .then((registration) => registration.update())
     .catch(() => showToast("Offline mode could not be started."));
 }

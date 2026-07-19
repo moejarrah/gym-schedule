@@ -23,7 +23,7 @@ test("HTML keeps zoom enabled and uses external production assets", () => {
   const viewport = html.match(/<meta name="viewport" content="([^"]+)">/)?.[1] || "";
   assert.match(viewport, /viewport-fit=cover/);
   assert.doesNotMatch(viewport, /user-scalable=no|maximum-scale=1/);
-  assert.match(html, /<script type="module" src="app\.js\?v=17"><\/script>/);
+  assert.match(html, /<script type="module" src="app\.js\?v=18"><\/script>/);
   assert.match(html, /rel="apple-touch-icon"[^>]+app-icon-180\.png/);
   assert.doesNotMatch(html, /\sonclick=/);
 });
@@ -34,9 +34,9 @@ test("offline shell lists every production module and icon", () => {
     assert.match(worker, new RegExp(asset.replaceAll(".", "\\.")));
   }
   assert.match(worker, /event\.request\.mode === "navigate"/);
-  assert.match(worker, /gym-schedule-v17/);
-  assert.match(worker, /styles\.css\?v=17/);
-  assert.match(worker, /app\.js\?v=17/);
+  assert.match(worker, /gym-schedule-v18/);
+  assert.match(worker, /styles\.css\?v=18/);
+  assert.match(worker, /app\.js\?v=18/);
 });
 
 test("activation removes only stale caches owned by the gym app", async () => {

@@ -8,6 +8,7 @@ import {
   localDateKey,
   migrateState,
   moveItem,
+  moveRoutineEntry,
   parseImportedState,
   removeExerciseFromState,
   removeRoutineFromState,
@@ -190,6 +191,45 @@ test("deleting an exercise removes every routine reference", () => {
 test("moveItem reorders within bounds and ignores invalid moves", () => {
   assert.deepEqual(moveItem(["a", "b", "c"], 1, -1), ["b", "a", "c"]);
   assert.deepEqual(moveItem(["a", "b", "c"], 0, -1), ["a", "b", "c"]);
+});
+
+test("moving a routine entry saves its prescription and position together", () => {
+  const storage = new MemoryStorage();
+  const store = createStore(storage);
+  const state = store.getState();
+  const routine = state.routines[0];
+  const entry = routine.entries[1];
+  const previousEntryId = routine.entries[0].id;
+  const master = state.exercises.find((exercise) => exercise.id === entry.exerciseId);
+  const masterPrescription = master.defaultPrescription;
+
+  const next = moveRoutineEntry(state, routine.id, entry.id, -1, "4 × 6-8");
+  assert.equal(next.routines[0].entries[0].id, entry.id);
+  assert.equal(next.routines[0].entries[0].prescription, "4 × 6-8");
+  assert.equal(next.routines[0].entries[1].id, previousEntryId);
+  assert.equal(next.exercises.find((exercise) => exercise.id === entry.exerciseId).defaultPrescription, masterPrescription);
+  assert.notDeepEqual(next, state);
+  assert.equal(validateState(next), true);
+
+  assert.equal(store.replace(next).ok, true);
+  const reloaded = createStore(storage).getState();
+  assert.equal(reloaded.routines[0].entries[0].id, entry.id);
+  assert.equal(reloaded.routines[0].entries[0].prescription, "4 × 6-8");
+  assert.equal(reloaded.exercises.find((exercise) => exercise.id === entry.exerciseId).defaultPrescription, masterPrescription);
+});
+
+test("a failed atomic entry move leaves stored state unchanged", () => {
+  const storage = new MemoryStorage();
+  const store = createStore(storage);
+  const before = store.getState();
+  const routine = before.routines[0];
+  const entry = routine.entries[1];
+  const moved = moveRoutineEntry(before, routine.id, entry.id, -1, "5 × 5");
+
+  storage.failWrites = true;
+  const result = store.replace(moved);
+  assert.equal(result.ok, false);
+  assert.deepEqual(store.getState(), before);
 });
 
 test("completion toggles use one date session and remain reversible", () => {

@@ -1,4 +1,4 @@
-import { SCHEMA_VERSION, createDefaultState } from "./data.js?v=17";
+import { SCHEMA_VERSION, createDefaultState } from "./data.js?v=18";
 
 export const STORAGE_KEY = "gymAppStateV1";
 
@@ -177,6 +177,16 @@ export function moveItem(items, index, direction) {
   if (index < 0 || target < 0 || index >= items.length || target >= items.length) return [...items];
   const next = [...items];
   [next[index], next[target]] = [next[target], next[index]];
+  return next;
+}
+
+export function moveRoutineEntry(state, routineId, entryId, direction, prescription) {
+  const next = clone(state);
+  const routine = next.routines.find((item) => item.id === routineId);
+  const index = routine?.entries.findIndex((entry) => entry.id === entryId) ?? -1;
+  if (!routine || index < 0) return next;
+  routine.entries[index].prescription = prescription;
+  routine.entries = moveItem(routine.entries, index, direction);
   return next;
 }
 

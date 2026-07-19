@@ -35,14 +35,14 @@ Status values: `Open`, `Planned`, `In progress`, `Repo verified`, `Device verifi
 
 ## UI-002 — Preserve prescription edits when moving a routine entry
 
-- **Status:** Open
+- **Status:** Repo verified
 - **Priority:** P1
 - **Type:** Editing correctness
-- **Evidence:** The entry dialog saves prescription text only through `saveEntry()`. `Move earlier` and `Move later` close the dialog and call `moveEntry()` without persisting the current input.
-- **Impact:** Typing a new prescription and then moving the exercise silently discards the typed change while still reporting a successful reorder.
+- **Evidence:** Version 18 now saves the edited routine-entry prescription and new position through one validated storage write. The dialog closes and renders only after that write succeeds.
+- **Impact:** The previous silent prescription-loss path is removed; a failed write leaves the dialog and typed draft intact.
 - **Acceptance:** Moving an entry never loses the prescription currently visible in the editor; the reorder and prescription persist after reload.
-- **Smallest fix:** Save the current prescription and reorder in one storage update, or keep the dialog open and make the unsaved state unmistakable. Prefer the single atomic update.
-- **Verify:** Move earlier/later with edited text, boundary buttons, reload persistence, storage-write failure, and unchanged master-exercise prescription.
+- **Implemented:** Added a focused `moveRoutineEntry` state operation, used it for both movement controls, and kept master-exercise data outside the mutation.
+- **Verified:** Earlier/later, boundary, missing-ID, reload persistence, master isolation, and failed-write paths passed; `npm run check` passed 26/26; version references, manifest, syntax, HTTP assets, and phone-sized render smoke checks passed; fresh verifier reported the production patch clean. Physical iPhone interaction remains pending.
 
 ## UI-003 — Make failures visible inside modal dialogs
 
