@@ -27,14 +27,14 @@ This file is the short current truth for resuming work. Replace stale details in
 
 - **Goal:** finish `UI-001` acceptance of live version 24 on the target iPhone.
 - **Acceptance:** the remaining Safari and standalone checklist below passes without hidden actions, scrolling failures, unsafe areas, or mixed master/routine editing.
-- **Out of scope:** new features, another redesign, deferred PWA lifecycle work, or speculative tooling.
+- **Out of scope:** new features, another redesign, rejected PWA lifecycle work, or speculative tooling.
 - **Status:** `UI-004` hold-and-drag ordering and its text-selection fix are device verified and released. The broader device checklist remains pending.
 
 ## Current repository state
 
 - `UI-003`, `DATA-001`, `CSS-001`, and `DATA-002` are implemented, verified, committed, and published.
 - The strict one-primary model is active; there is no legacy target-review state or special UI/filter branch.
-- Exercise categories remain the deliberately small owner vocabulary: `Mobility`, `Rehab`, and `Full Body`; speculative categories are deferred.
+- Exercise categories remain the deliberately small owner vocabulary: `Mobility`, `Rehab`, and `Full Body`; no additional categories are planned.
 - The repository organization is committed and published on `main`.
 - Repository documents now live in `docs/`; `AGENTS.md` and `README.md` remain at the root for immediate discovery.
 - `tools/iphone-preview.html` is the local interactive iPhone-shaped preview and is intentionally not a production source.
@@ -62,4 +62,4 @@ Before more UI redesign, check both Safari and the installed PWA on the iPhone:
 
 ## Next safest action
 
-Continue the remaining version-24 iPhone checklist above. Turn only reproduced failures into narrow backlog items; do not start `PWA-002` or `PWA-003` automatically.
+Continue the remaining version-24 iPhone checklist above. Record only reproduced failures as narrow issues. `PWA-002` and `PWA-003` were rejected and must not be revived automatically.

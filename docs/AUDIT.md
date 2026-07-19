@@ -1,22 +1,18 @@
-# Active Improvement Backlog
+# Current Issues and Decisions
 
 Updated: 2026-07-20
 
-This is the single ordered backlog for confirmed code and device findings. It is not permission to fix everything at once. Select one issue, record it as the active slice in `HANDOFF_STATUS.md`, implement only its acceptance criteria, verify it, then move to the next issue.
+This file tracks confirmed code and device findings plus explicit not-planned boundaries. It is not permission to fix everything at once. Select one current issue, record it as the active slice in `HANDOFF_STATUS.md`, implement only its acceptance criteria, verify it, then stop.
 
 `Repo verified` sections remain only until physical device acceptance. Do not reimplement them; the Current decisions table controls what happens next.
 
-Status values: `Open`, `Planned`, `In progress`, `Repo verified`, `Device verified`, `Deferred`.
+Status values: `Open`, `Planned`, `In progress`, `Repo verified`, `Device verified`.
 
 ## Current decisions
 
 | Order | ID | State | Summary | Why here |
 | ---: | --- | --- | --- | --- |
 | 1 | `UI-001` | Device acceptance | Exercise the remaining iPhone checklist | This remains the gate before another broad redesign. |
-| 2 | `PWA-002` | Deferred | Avoid update reloads during unsaved edits | The owner controls deployments and does not want this complexity. |
-| 3 | `PWA-003` | Deferred | Stop false offline-startup errors | Implement only if the owner reproduces and cares about it. |
-| 4 | `DATA-003` | Deferred | Make corrupt-data recovery usable | Revisit only when stored history becomes valuable. |
-| 5 | `DX-001` | Deferred | Reconsider browser automation | Add tooling only after repeated runtime regressions justify it. |
 
 ## PWA-001 — Isolate service-worker cache cleanup
 
@@ -62,30 +58,6 @@ Status values: `Open`, `Planned`, `In progress`, `Repo verified`, `Device verifi
 - **Implemented:** Kept the array-shaped schema, added a trivial valid version 3-to-4 bump, required the primary selector, enforced supported non-overlapping secondary targets, and kept the existing primary-versus-combined filter behavior without a legacy UI branch. The owner explicitly confirmed that invalid old phone data is disposable.
 - **Verified:** Executable coverage passes for valid and invalid version-3 handling, empty, multiple, unknown, duplicate and overlapping targets, add, normal edit, duplicate, missing-primary blocking, filtering, save, reload, export, and import. `npm run check` passed 36/36; manifest, version synchronization, phone-sized shell, and diff checks passed; fresh re-verification confirmed the simplified production code is clean. Physical iPhone interaction remains pending.
 
-## PWA-002 — Do not reload over unsaved edits during an update
-
-- **Status:** Deferred
-- **Priority:** P2
-- **Type:** Update lifecycle / draft safety
-- **Evidence:** A service-worker `controllerchange` immediately reloads when an older worker controlled the page. Activation can finish while a form or day note is open.
-- **Impact:** Unsaved editor text can disappear during an otherwise successful update.
-- **Acceptance:** An update never silently reloads over a dirty form. A clean idle screen may reload automatically, or the app may offer a concise `Update ready` action.
-- **Smallest fix:** Track whether an editor has unsaved input and defer reload only in that case. Avoid a general draft-persistence system.
-- **Verify:** Clean-screen update, dirty exercise/routine/entry/day forms, cancel/save followed by update, and stale-version recovery.
-- **Decision:** Do not implement for this personal app. The owner controls deployments and can close the app before publishing.
-
-## PWA-003 — Distinguish registration failure from update-check failure
-
-- **Status:** Deferred
-- **Priority:** P2
-- **Type:** Offline feedback
-- **Evidence:** Service-worker registration and `registration.update()` share one catch that says `Offline mode could not be started.`
-- **Impact:** When an existing worker already supports offline use but a network update check fails, the app can falsely claim offline mode failed.
-- **Acceptance:** Registration failure remains visible; a failed update check does not claim offline support is unavailable.
-- **Smallest fix:** Separate the registration and update error paths. Keep update-check failure silent unless there is an actionable state.
-- **Verify:** First registration failure, existing-worker offline launch, failed update check, successful update, and offline reload.
-- **Decision:** Do not implement unless the owner actually encounters the misleading message and wants it changed.
-
 ## UI-001 — Accept the repaired app on the target iPhone
 
 - **Status:** Repo verified
@@ -119,28 +91,12 @@ Status values: `Open`, `Planned`, `In progress`, `Repo verified`, `Device verifi
 - **Implemented:** Schema 5 keeps 13 practical anatomical target buckets and moves the three descriptive values into explicit exercise categories. Versions 1–4 migrate through the same extraction path. The editor, details, library rows, Library/Program/alternatives search, and compact filter sheet now treat categories independently; one optional category combines with the existing muscle filter using AND.
 - **Verified:** Exact default and migrated inventories remain 17 `Mobility`, 20 `Rehab`, and 1 `Full Body`; no accepted target contains a category. Add/edit/duplicate, reload, export/import, primary-versus-combined muscle scope, category-only and combined filters, all three search surfaces, light/dark rendering, 320 × 700 and 393 × 852 dialogs/lists, long scrolling, and v22 offline reload passed. `npm run check` passes 38/38; a fresh verifier independently reported the final slice clean. Physical iPhone interaction remains pending.
 
-## DATA-003 — Make corrupt-data recovery usable from the phone
-
-- **Status:** Deferred
-- **Priority:** P3
-- **Type:** Local recovery
-- **Evidence:** Invalid stored data is copied to a timestamped recovery key before defaults open, but the app provides no way to discover, export, or restore that key from an iPhone. Repeated failed loads may create duplicate recovery copies.
-- **Impact:** Recovery exists technically but is developer-only. Current owner data is disposable, so this is not urgent.
-- **Acceptance:** If history becomes valuable, retain one clearly named recovery copy and provide a narrow export/restore path with visible status.
-- **Next action:** Do nothing until the owner considers stored history valuable enough to justify recovery UI.
-
-## DX-001 — Decide whether browser automation is worth adding
-
-- **Status:** Deferred
-- **Priority:** P3
-- **Type:** Development tooling
-- **Evidence:** Current tests cover data, migrations, shell/version invariants, and core control presence, but static checks cannot prove scrolling or Safari/standalone interactions.
-- **Impact:** Runtime UI checks remain manual. Adding a browser stack now would increase setup and maintenance for a small dependency-free app.
-- **Acceptance:** Add dev-only automation only after the same runtime regression class recurs and the owner approves the tooling tradeoff.
-- **Next action:** Keep focused manual preview and physical-device gates.
-
 ## Deliberately not planned
 
+- No `PWA-002` draft/update lifecycle guard.
+- No `PWA-003` update-check error branch.
+- No `DATA-003` phone recovery interface.
+- No `DX-001` browser-automation dependency.
 - No framework, bundler, backend, database, account system, cloud sync, analytics, or production dependency.
 - No broad `app.js` rewrite. Its roughly 1,150 lines remain coherent and mostly consist of small named functions.
 - No IndexedDB or state library. JSON cloning and localStorage are proportionate for the current dataset.
