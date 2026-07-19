@@ -1,52 +1,36 @@
-# Gym App Review
+# Active Improvement Backlog
 
-Review updated: 2026-07-17
+This file contains only open or deferred work. It is not permission to start every item. The active slice is chosen with the owner and recorded in `HANDOFF_STATUS.md`.
 
-## Current result
+Status values: `Open`, `Planned`, `In progress`, `Repo verified`, `Device verified`, `Deferred`.
 
-The app now has a small, build-free architecture suitable for a private iPhone PWA. It uses plain HTML, CSS, and JavaScript modules, one validated local data model, and no runtime dependencies, backend, account, or sync layer.
+## UI-001 — Accept version 16 on the target iPhone
 
-The starting routines remain intact as editable seed data. Per the owner's direction, the older prototype's phone data is intentionally not migrated; the new schema starts under its own storage key.
+- **Status:** Repo verified
+- **Priority:** P0 before more UI redesign
+- **Evidence:** Automated checks and local review passed, and version 16 restored the paths the owner reported missing. Safari and installed-PWA behavior have not been confirmed after those repairs.
+- **Risk:** Scrolling, safe areas, dialogs, cached assets, or feature discovery may differ on iOS 17.x from the desktop preview.
+- **Acceptance:** On iPhone 15 Pro, both Safari and Add-to-Home-Screen modes receive the version 16 UI/assets; all four tabs and sheets scroll and render safely; and the owner can complete every action in `PRODUCT.md` without mixed master-exercise/routine-entry editing. The two modes may hold different local data.
+- **Next action:** Owner runs the short device checklist in `HANDOFF_STATUS.md` and reports screenshots or exact failures. Turn each failed action into one narrow issue.
 
-## Completed work
+## DATA-001 — Require one primary muscle for every exercise
 
-1. Replaced name-keyed and parallel storage with one versioned state model using stable exercise, routine, and routine-entry IDs.
-2. Split the production app into `index.html`, `styles.css`, `data.js`, `storage.js`, and `app.js` without adding a framework or build step.
-3. Added an exercise library with add, edit, duplicate, delete, search, muscle filters, instructions, prescriptions, and optional YouTube IDs.
-4. Added editable routines with add, rename, location/status, delete, reorder, exercise assignment, exercise reorder/removal, and per-routine prescriptions.
-5. Added the phone-first Workout view with routine selection, exercise details, today completion, and a weekly summary derived from session records.
-6. Added a monthly Calendar where each date can record completed routines and a note; the same records drive Workout, weekly, and monthly summaries.
-7. Reworked the interface around four bottom-nav destinations, 44 px controls, narrow-screen layouts, safe areas, native dialogs, zoom, visible focus, reduced motion, light/dark contrast, and non-color status text.
-8. Updated install/offline behavior with versioned caching, network-first navigation, static PNG install icons, schema-checked import/export/reset, explicit storage failures, and dependency-free tests.
-9. Repaired the iPhone interaction model: Workout opens compact exercise references, Program always exposes routine management, Library opens details before editing, and long views use a constrained touch-scroll area.
-10. Split exercise targeting into primary and secondary muscles with scoped filtering, removed the untouched Rest placeholder, and preserved customized legacy routines through the version 3 migration.
+- **Status:** Open
+- **Priority:** P1
+- **Evidence:** `PRODUCT.md` defines one dominant target, but the editor offers `Not set`, saving can produce an empty `primaryMuscles` array, and validation currently accepts it.
+- **Risk:** `Primary only` filtering can omit uncategorized exercises and weaken the intended distinction between direct targeting and secondary involvement.
+- **Acceptance:** New and edited exercises require exactly one primary muscle; secondary choices exclude it; existing empty-primary records are handled without data loss; imports and migrations remain compatible.
+- **Next action:** Plan a storage-sensitive slice covering editor validation, state validation/migration behavior, import compatibility, and focused tests before changing production code.
 
-## Independent verification
+## DX-001 — Decide whether browser automation is worth adding
 
-Two verifier-agent passes were run after items 1-4 and 5-8. Their findings were fixed and rechecked. Important corrections included:
+- **Status:** Deferred
+- **Priority:** P2
+- **Evidence:** Current tests cover state and static shell invariants but cannot prove actual scrolling, dialog interaction, or Safari-versus-standalone rendering.
+- **Risk:** UI regressions depend heavily on manual checks. Adding tooling now could overengineer a small build-free app.
+- **Acceptance:** Add dev-only automation only if the same class of runtime regression recurs and the owner approves the tooling tradeoff.
+- **Next action:** Keep manual runtime and device gates. Revisit only after demonstrated repeated need.
 
-- moving routine actions below exercise names at narrow widths;
-- rejecting malformed imports that could crash filters;
-- recovering when local storage reads throw;
-- confirming routine-entry removal;
-- replacing incomplete ARIA tab semantics;
-- resetting reused confirmation-dialog state;
-- preserving historical completions when a routine is later marked Rest;
-- explicitly naming every dialog for assistive technology;
-- adding opaque 180, 192, and 512 px PNG install icons.
+## Adding an item
 
-## Validation completed
-
-- `npm run check`: 23 tests passed.
-- JavaScript and service-worker syntax checks passed.
-- Manifest parsing and install metadata checks passed.
-- All production shell assets returned HTTP 200 with suitable MIME types.
-- Import rejection, failed reads/writes, reference cleanup, ordering, completion toggle/undo, and routine-history cleanup are covered by tests.
-- Static HTML checks found unique IDs, labelled controls, and eight resolvably named dialogs.
-- Icon dimensions and opacity were verified.
-- Light/dark token contrast checked at 4.8:1 or better for reviewed text pairs.
-- `git diff --check` passed.
-
-## Remaining device-only check
-
-The environment's headless Firefox graphics layer could not produce a screenshot, and a physical iPhone was not available. Before relying on the installed app day to day, do one short Safari/standalone pass on the target phone: install the icon, open every bottom tab, edit and delete a test exercise/routine, mark and unmark today, edit a calendar date, switch themes, relaunch offline, and confirm no content sits under the notch or home indicator.
+Use a stable ID and include `Status`, `Priority`, `Evidence`, `Risk`, observable `Acceptance`, and one `Next action`. Keep optional polish out of the current patch. Remove completed entries after device acceptance; durable product truth belongs in `PRODUCT.md`, not here.
