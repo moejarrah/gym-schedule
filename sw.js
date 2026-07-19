@@ -1,13 +1,13 @@
 const CACHE_PREFIX = "gym-schedule-";
-const CACHE = "gym-schedule-v23";
+const CACHE = "gym-schedule-v24";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=23",
-  "./data.js?v=23",
-  "./storage.js?v=23",
-  "./app.js?v=23",
-  "./manifest.json?v=23",
+  "./styles.css?v=24",
+  "./data.js?v=24",
+  "./storage.js?v=24",
+  "./app.js?v=24",
+  "./manifest.json?v=24",
   "./icons/app-icon.svg",
   "./icons/app-icon-180.png",
   "./icons/app-icon-192.png",

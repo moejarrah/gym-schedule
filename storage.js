@@ -1,4 +1,4 @@
-import { EXERCISE_CATEGORIES, MUSCLE_GROUPS, SCHEMA_VERSION, createDefaultState } from "./data.js?v=23";
+import { EXERCISE_CATEGORIES, MUSCLE_GROUPS, SCHEMA_VERSION, createDefaultState } from "./data.js?v=24";
 
 export const STORAGE_KEY = "gymAppStateV1";
 

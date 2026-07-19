@@ -1,4 +1,4 @@
-import { EXERCISE_CATEGORIES, MUSCLE_GROUPS, RULES } from "./data.js?v=23";
+import { EXERCISE_CATEGORIES, MUSCLE_GROUPS, RULES } from "./data.js?v=24";
 import {
   createBackup,
   createStore,
@@ -11,7 +11,7 @@ import {
   removeExerciseFromState,
   removeRoutineFromState,
   toggleRoutineForDate,
-} from "./storage.js?v=23";
+} from "./storage.js?v=24";
 
 const store = createStore();
 const main = document.querySelector("#appMain");
@@ -465,6 +465,7 @@ function activateEntryDrag() {
   entryDrag.row.before(placeholder);
   entryDrag.placeholder = placeholder;
   entryDrag.active = true;
+  window.getSelection()?.removeAllRanges();
   entryDrag.row.classList.add("is-dragging");
   entryDrag.row.style.left = `${bounds.left}px`;
   entryDrag.row.style.top = `${bounds.top}px`;
@@ -960,6 +961,10 @@ main.addEventListener("touchstart", (event) => {
   startEntryDrag(row, touch.clientX, touch.clientY, touch.identifier);
 }, { passive: true });
 
+main.addEventListener("selectstart", (event) => {
+  if (event.target.closest?.(".program-row")) event.preventDefault();
+});
+
 window.addEventListener("touchmove", moveEntryDrag, { passive: false });
 window.addEventListener("touchend", (event) => {
   if (!entryDrag || !Array.from(event.changedTouches).some((touch) => touch.identifier === entryDrag.pointerId)) return;
@@ -1141,7 +1146,7 @@ if ("serviceWorker" in navigator) {
     }
   });
   navigator.serviceWorker
-    .register("sw.js?v=23", { updateViaCache: "none" })
+    .register("sw.js?v=24", { updateViaCache: "none" })
     .then((registration) => registration.update())
     .catch(() => showToast("Offline mode could not be started."));
 }

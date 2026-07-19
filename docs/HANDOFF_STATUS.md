@@ -7,10 +7,9 @@ This file is the short current truth for resuming work. Replace stale details in
 ## Deployed baseline
 
 - **Branch:** `main`; use the latest `git log -1` entry as the exact revision.
-- **Service-worker cache:** `gym-schedule-v18`.
-- **Committed candidate:** `gym-schedule-v22` contains repo-verified `UI-003`, `DATA-001`, `CSS-001`, and `DATA-002`; it has not been pushed or deployed.
-- **Working candidate:** `gym-schedule-v23` adds direct hold-and-drag routine-entry reordering and remains uncommitted.
-- **Stored-data schema:** deployed version 3 under `gymAppStateV1`; the committed candidate is version 5 with migrations from versions 1–4.
+- **Service-worker cache:** version 24 is published from `main`.
+- **Current candidate:** version 24 contains the verified data/UI slices, repository organization, direct hold-and-drag routine ordering, and the iOS text-selection fix.
+- **Stored-data schema:** version 5 under `gymAppStateV1`, with migrations from versions 1–4.
 - **Architecture:** build-free vanilla HTML, CSS, and JavaScript; no production dependencies or backend.
 - **Target device:** iPhone 15 Pro, iOS 17.x, Safari and Add to Home Screen.
 
@@ -27,9 +26,9 @@ This file is the short current truth for resuming work. Replace stale details in
 ## Active slice
 
 - **Goal:** reorder exercises directly in Program with an iPhone-friendly hold-and-drag gesture.
-- **Acceptance:** tap still edits; hold visibly lifts; drag selects any position and edge-scrolls; release persists; ordinary scrolling, cancel, and failed-save behavior remain safe; fallback buttons remain available.
+- **Acceptance:** tap still edits; hold visibly lifts without selecting text; drag selects any position and edge-scrolls; release persists; ordinary scrolling, cancel, and failed-save behavior remain safe; fallback buttons remain available.
 - **Out of scope:** routine-tab drag ordering, Library ordering, a drag dependency, storage migration, or broader Program redesign.
-- **Status:** Repo verified; physical iPhone interaction is pending.
+- **Status:** Version 23 drag behavior is device verified except for its reproduced text-selection defect. Version 24 fixes that defect and is repo verified; device recheck is pending.
 
 ## Work in progress
 
@@ -37,11 +36,11 @@ This file is the short current truth for resuming work. Replace stale details in
 - `DATA-001` is complete and repo verified. The strict one-primary contract and trivial valid version-3 bump remain; no legacy target-review state or special UI/filter branch exists.
 - `CSS-001` is complete and repo verified. It removed 283 physical stylesheet lines representing 28 dead component/state class names plus one modifier that existed only inside dead compound selectors; no live selector was renamed or restyled.
 - `DATA-002` is complete. Its chosen minimal vocabulary is the three categories already present in owner data: `Mobility`, `Rehab`, and `Full Body`; broader speculative categories are deferred.
-- The verified app slices are grouped in one local commit; it has not been pushed or deployed.
+- The verified app slices and repository organization are committed and published on `main`.
 - Repository documents now live in `docs/`; `AGENTS.md` and `README.md` remain at the root for immediate discovery.
 - `tools/iphone-preview.html` is the local interactive iPhone-shaped preview and is intentionally not a production source.
 - Design concepts live under `references/`; local archives and generated test output live under ignored `artifacts/` subfolders.
-- `UI-004` version 23 adds direct routine-entry drag reordering without changing stored-data shape. The organization changes and version 23 work are both uncommitted.
+- `UI-004` version 24 keeps the working version-23 drag behavior and adds explicit iOS text-selection suppression without changing stored-data shape.
 
 ## Last repository validation
 
@@ -52,6 +51,7 @@ This file is the short current truth for resuming work. Replace stale details in
 - After repository organization, all 38 checks still pass, the manifest parses, `git diff --check` passes, and the relocated iPhone preview loads the app from its new path with live reload connected.
 - Version 23 passes 40 tests, including arbitrary-position reorder boundaries and failed-write rollback; manifest parsing, synchronized offline assets, served version-23 source, and `git diff --check` pass.
 - A fresh read-only verifier found the touch/scroll split, tap suppression, arbitrary index mapping, failure rollback, cancellation cleanup, fallback controls, and cache synchronization clean. Local automation cannot prove iOS long-press arbitration or edge-scroll feel, so physical iPhone verification remains required.
+- The owner confirmed version 23 drag ordering works on the target iPhone and reported simultaneous text highlighting. Version 24 adds WebKit-prefixed descendant selection suppression, a `selectstart` guard, and selection clearing on lift; all 40 checks and version synchronization pass.
 
 ## Owner/device verification pending
 
@@ -66,4 +66,4 @@ Before more UI redesign, check both Safari and the installed PWA on the iPhone:
 
 ## Next safest action
 
-Let the owner test hold-and-drag locally on the target iPhone. Commit and deploy only when requested. `PWA-002` and `PWA-003` remain explicitly deferred; do not start either automatically.
+Let the owner reopen version 24 and confirm hold-and-drag no longer highlights text. `PWA-002` and `PWA-003` remain explicitly deferred; do not start either automatically.

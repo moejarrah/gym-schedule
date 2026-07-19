@@ -607,6 +607,12 @@ textarea::placeholder {
   position: relative;
 }
 
+.program-row,
+.program-row * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 .program-row {
   width: 100%;
   min-height: 58px;
@@ -621,7 +627,6 @@ textarea::placeholder {
   text-align: left;
   cursor: pointer;
   -webkit-touch-callout: none;
-  user-select: none;
 }
 
 button.program-row:active:not(.is-dragging) {
@@ -670,6 +675,7 @@ button.program-row:active:not(.is-dragging) {
 
 body.entry-drag-active {
   cursor: grabbing;
+  -webkit-user-select: none;
   user-select: none;
 }
 
