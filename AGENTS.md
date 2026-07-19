@@ -3,7 +3,7 @@
 ## Start here
 
 - Read `docs/HANDOFF_STATUS.md` before meaningful work. It is the current truth after interruptions or context loss.
-- Read the relevant current item in `docs/AUDIT.md`. It contains device-pending work and explicit not-planned boundaries, not automatic permission to fix everything.
+- Read `docs/AUDIT.md` only when it contains a current owner-confirmed issue; an empty file means there is no queued work.
 - Read `docs/PRODUCT.md` before changing behavior, navigation, wording, or UI. Its user-action contract must remain reachable.
 - Follow `docs/WORKFLOW.md` for multi-file, storage-sensitive, redesign, release, or otherwise non-trivial work.
 - The newest user request controls scope. Do not revive older ideas unless they remain recorded as open work.
@@ -40,7 +40,7 @@
 - Do not broaden work into authentication or internet-facing security unless requested. Local data-loss prevention remains in scope.
 - Do not prioritize theoretical service-worker lifecycle cases that require the owner to deploy while actively editing. Defer them unless the owner reproduces the problem or explicitly requests that behavior.
 - Ask before adding a production dependency or changing the architecture boundary.
-- Put only confirmed issues the owner wants tracked in `docs/AUDIT.md`; do not preserve rejected ideas as future work.
+- Put only reproducible issues the owner asks to track in `docs/AUDIT.md`; do not preserve rejected ideas or completed history there.
 
 ## Phone UI
 
