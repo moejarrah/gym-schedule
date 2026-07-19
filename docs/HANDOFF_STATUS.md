@@ -30,13 +30,12 @@ This file is the short current truth for resuming work. Replace stale details in
 - **Out of scope:** routine-tab drag ordering, Library ordering, a drag dependency, storage migration, or broader Program redesign.
 - **Status:** Version 23 drag behavior is device verified except for its reproduced text-selection defect. Version 24 fixes that defect and is repo verified; device recheck is pending.
 
-## Work in progress
+## Current repository state
 
-- `UI-003` is complete and repo verified in the worktree.
-- `DATA-001` is complete and repo verified. The strict one-primary contract and trivial valid version-3 bump remain; no legacy target-review state or special UI/filter branch exists.
-- `CSS-001` is complete and repo verified. It removed 283 physical stylesheet lines representing 28 dead component/state class names plus one modifier that existed only inside dead compound selectors; no live selector was renamed or restyled.
-- `DATA-002` is complete. Its chosen minimal vocabulary is the three categories already present in owner data: `Mobility`, `Rehab`, and `Full Body`; broader speculative categories are deferred.
-- The verified app slices and repository organization are committed and published on `main`.
+- `UI-003`, `DATA-001`, `CSS-001`, and `DATA-002` are implemented, verified, committed, and published.
+- The strict one-primary model is active; there is no legacy target-review state or special UI/filter branch.
+- Exercise categories remain the deliberately small owner vocabulary: `Mobility`, `Rehab`, and `Full Body`; speculative categories are deferred.
+- The repository organization is committed and published on `main`.
 - Repository documents now live in `docs/`; `AGENTS.md` and `README.md` remain at the root for immediate discovery.
 - `tools/iphone-preview.html` is the local interactive iPhone-shaped preview and is intentionally not a production source.
 - Design concepts live under `references/`; local archives and generated test output live under ignored `artifacts/` subfolders.
@@ -44,14 +43,11 @@ This file is the short current truth for resuming work. Replace stale details in
 
 ## Last repository validation
 
-- The committed version 22/schema 5 candidate passes 38 tests covering exact category migration from versions 1–4, strict category/target validation, add/edit/duplicate behavior, combined filter semantics, import/export/reload, active-dialog routing, atomic entry movement, cache isolation, and the removed CSS inventory.
-- Manifest parsing, JavaScript/service-worker syntax, synchronized shell references, and `git diff --check` passed.
-- Phone-sized runtime flows passed for category add/edit/detail/reload, category-only and muscle-plus-category filtering, Library/Program/alternatives search, long-list and dialog scrolling, light/dark themes, 320 × 700 and 393 × 852 rendering, and v22 offline reload.
-- A fresh verifier independently rechecked the schema, migrations, exact category inventory, validation, editor/detail/search/filter paths, v22 synchronization, tests, and status documents and reported `DATA-002` clean. Physical iPhone interaction remains pending.
-- After repository organization, all 38 checks still pass, the manifest parses, `git diff --check` passes, and the relocated iPhone preview loads the app from its new path with live reload connected.
-- Version 23 passes 40 tests, including arbitrary-position reorder boundaries and failed-write rollback; manifest parsing, synchronized offline assets, served version-23 source, and `git diff --check` pass.
-- A fresh read-only verifier found the touch/scroll split, tap suppression, arbitrary index mapping, failure rollback, cancellation cleanup, fallback controls, and cache synchronization clean. Local automation cannot prove iOS long-press arbitration or edge-scroll feel, so physical iPhone verification remains required.
-- The owner confirmed version 23 drag ordering works on the target iPhone and reported simultaneous text highlighting. Version 24 adds WebKit-prefixed descendant selection suppression, a `selectstart` guard, and selection clearing on lift; all 40 checks and version synchronization pass.
+- Version 24 passes all 40 tests, manifest parsing, JavaScript/service-worker syntax, synchronized offline assets, served-source checks, and `git diff --check`.
+- Coverage includes migrations from versions 1–4, strict muscle/category validation, import/export/reload, atomic routine-entry ordering, failed-write rollback, active-dialog errors, cache isolation, and production-shell invariants.
+- The relocated iPhone preview loads the app with live refresh. Earlier runtime checks passed at 320 × 700 and 393 × 852 in both themes with long lists and dialogs.
+- A fresh verifier found the drag touch/scroll split, tap suppression, arbitrary index mapping, rollback, cancellation, fallback controls, and cache synchronization clean.
+- The owner confirmed version-23 drag ordering on the target iPhone and reported simultaneous text highlighting. Version 24 adds WebKit selection suppression, a `selectstart` guard, and selection clearing on lift; device confirmation of that fix remains pending.
 
 ## Owner/device verification pending
 
@@ -62,7 +58,7 @@ Before more UI redesign, check both Safari and the installed PWA on the iPhone:
 3. Add/edit/reorder/delete a test routine. In Program, tap an entry to edit it, scroll the list normally, then hold-drag an entry from first to last and back; confirm the order survives relaunch. Also check the earlier/later fallback and remove one entry.
 4. Add/edit an exercise and confirm a primary muscle is required, categories are separate, `Primary only` differs from `Primary + secondary`, and a muscle plus category filter combines correctly.
 5. Mark/unmark today, edit a Log date and note, switch both themes, relaunch, and test offline.
-6. After the grouped changes are committed and deployed, confirm Safari and standalone both receive the new UI/assets and render correctly with nothing under the notch, home indicator, or bottom navigation. Their locally stored routines and history may differ because iOS can keep separate storage containers.
+6. Confirm Safari and standalone both received version 24 and render correctly with nothing under the notch, home indicator, or bottom navigation. Their locally stored routines and history may differ because iOS can keep separate storage containers.
 
 ## Next safest action
 

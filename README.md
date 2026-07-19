@@ -2,6 +2,14 @@
 
 A build-free, local-first workout PWA designed for personal use on iPhone.
 
+## Taking over
+
+1. Read `AGENTS.md` for repository rules and boundaries.
+2. Read `docs/HANDOFF_STATUS.md` for the deployed version, active slice, verification state, and next action.
+3. Use `docs/PRODUCT.md` for behavior and `docs/AUDIT.md` only for the relevant current or deferred item.
+
+The live app is published from `main` at `https://moejarrah.github.io/gym-schedule/`.
+
 ## Repository layout
 
 - Root HTML, CSS, and JavaScript files are the deployable app.

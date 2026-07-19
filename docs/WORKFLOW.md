@@ -62,7 +62,7 @@ Do not call phone UI complete before device verification. Do not publish a non-t
 Update only the truth that changed:
 
 - `HANDOFF_STATUS.md`: current commit/cache/schema, active slice, WIP, evidence, device status, and next safest action.
-- `AUDIT.md`: open/deferred items only.
+- `AUDIT.md`: device-pending and deferred items only; repo-verified slices remain until device acceptance.
 - `PRODUCT.md`: only durable product behavior or action changes.
 - `AGENTS.md`: only recurring mistakes or repository-wide constraints.
 

@@ -3,7 +3,7 @@
 ## Start here
 
 - Read `docs/HANDOFF_STATUS.md` before meaningful work. It is the current truth after interruptions or context loss.
-- Read the relevant open items in `docs/AUDIT.md`. It is the active backlog, not an automatic instruction to fix everything.
+- Read the relevant current item in `docs/AUDIT.md`. It includes device-pending and deferred work, not automatic permission to fix everything.
 - Read `docs/PRODUCT.md` before changing behavior, navigation, wording, or UI. Its user-action contract must remain reachable.
 - Follow `docs/WORKFLOW.md` for multi-file, storage-sensitive, redesign, release, or otherwise non-trivial work.
 - The newest user request controls scope. Do not revive older ideas unless they remain recorded as open work.

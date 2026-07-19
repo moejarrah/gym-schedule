@@ -4,24 +4,20 @@ Updated: 2026-07-20
 
 This is the single ordered backlog for confirmed code and device findings. It is not permission to fix everything at once. Select one issue, record it as the active slice in `HANDOFF_STATUS.md`, implement only its acceptance criteria, verify it, then move to the next issue.
 
+`Repo verified` sections remain only until physical device acceptance. Do not reimplement them; the Current decisions table controls what happens next.
+
 Status values: `Open`, `Planned`, `In progress`, `Repo verified`, `Device verified`, `Deferred`.
 
-## Recommended order
+## Current decisions
 
-| Order | ID | Priority | Summary | Why here |
+| Order | ID | State | Summary | Why here |
 | ---: | --- | --- | --- | --- |
-| 1 | `PWA-001` | P1 | Isolate gym-app caches | Small correctness fix that protects other PWAs on the same origin. |
-| 2 | `UI-002` | P1 | Preserve prescription edits when reordering | Direct user-data loss in a normal editing flow. |
-| 3 | `UI-003` | P1 | Show failures inside open dialogs | Failed actions can currently appear to do nothing. |
-| 4 | `DATA-001` | P1 | Enforce one valid primary muscle | Completes the dominant-versus-secondary model; requires careful compatibility handling. |
-| 5 | `UI-001` | P0 gate | Accept the repaired version on iPhone | Physical Safari/standalone verification before another redesign. |
-| 6 | `CSS-001` | P2 | Remove confirmed dead CSS | Makes later UI work safer after current behavior is accepted. |
-| 7 | `PWA-002` | Deferred | Avoid update reloads during unsaved edits | The owner controls deployments and will not deploy while editing. |
-| 8 | `PWA-003` | Deferred | Stop false offline-startup errors | Rare cosmetic update-check wording is not worth product complexity. |
-| 9 | `DATA-002` | P2 | Separate muscles from descriptive categories | Active owner-selected library expansion. |
-| 10 | `DATA-003` | Deferred | Make corrupt-data recovery usable | Current data is disposable, so added recovery UI is not justified yet. |
-| 11 | `DX-001` | Deferred | Reconsider browser automation | Add tooling only after repeated runtime regressions demonstrate the need. |
-| 12 | `UI-004` | P1 | Hold and drag routine exercises | Replaces a slow phone editing path with direct manipulation while retaining the fallback. |
+| 1 | `UI-004` | Device recheck | Confirm version-24 drag selection fix | The gesture works on iPhone; confirm text no longer highlights. |
+| 2 | `UI-001` | Device acceptance | Exercise the complete iPhone checklist | This remains the gate before another broad redesign. |
+| 3 | `PWA-002` | Deferred | Avoid update reloads during unsaved edits | The owner controls deployments and does not want this complexity. |
+| 4 | `PWA-003` | Deferred | Stop false offline-startup errors | Implement only if the owner reproduces and cares about it. |
+| 5 | `DATA-003` | Deferred | Make corrupt-data recovery usable | Revisit only when stored history becomes valuable. |
+| 6 | `DX-001` | Deferred | Reconsider browser automation | Add tooling only after repeated runtime regressions justify it. |
 
 ## PWA-001 — Isolate service-worker cache cleanup
 
@@ -113,7 +109,7 @@ Status values: `Open`, `Planned`, `In progress`, `Repo verified`, `Device verifi
 - **Evidence:** Automated checks, local HTTP checks, and 320 × 700 / 393 × 852 headless rendering pass. Safari and installed-PWA behavior have not been confirmed after the version 16 repairs.
 - **Impact:** Scrolling, safe areas, dialogs, keyboard behavior, cached assets, or feature discovery may still differ on iPhone 15 Pro running iOS 17.x.
 - **Acceptance:** Safari and Add-to-Home-Screen modes receive the repaired UI/assets; all tabs and sheets scroll and render safely; and the owner can complete every action in `PRODUCT.md` without mixed master-exercise/routine-entry editing. The modes may contain different local data.
-- **Next action:** After the verified worktree is committed and deployed, run the device checklist in `HANDOFF_STATUS.md` and turn each exact failure into one narrow issue.
+- **Next action:** Run the device checklist in `HANDOFF_STATUS.md` against live version 24 and turn each exact failure into one narrow issue.
 
 ## CSS-001 — Remove confirmed unused legacy styles
 
@@ -131,7 +127,7 @@ Status values: `Open`, `Planned`, `In progress`, `Repo verified`, `Device verifi
 - **Status:** Repo verified
 - **Priority:** P2 when category expansion begins
 - **Type:** Product model
-- **Evidence:** `Mobility`, `Rehab`, and `Full Body` currently share `MUSCLE_GROUPS` with anatomical targets and can appear as primary or secondary muscles.
+- **Evidence:** Before version 22, `Mobility`, `Rehab`, and `Full Body` shared `MUSCLE_GROUPS` with anatomical targets and could appear as primary or secondary muscles.
 - **Impact:** Muscle filtering mixes what an exercise targets with what kind of exercise it is, which will become confusing as categories expand.
 - **Acceptance:** Anatomical primary/secondary targets and descriptive categories have distinct meanings and filters without losing existing labels.
 - **Decision:** Use one optional multi-value `categories` field. Start with the three meanings already present in owner data: `Mobility`, `Rehab`, and `Full Body`. Do not invent or auto-assign broader categories such as Strength, Cardio, or Balance until the owner actually needs them.
@@ -161,7 +157,7 @@ Status values: `Open`, `Planned`, `In progress`, `Repo verified`, `Device verifi
 ## Deliberately not planned
 
 - No framework, bundler, backend, database, account system, cloud sync, analytics, or production dependency.
-- No broad `app.js` rewrite. Its roughly 942 lines remain coherent and mostly consist of small named functions.
+- No broad `app.js` rewrite. Its roughly 1,150 lines remain coherent and mostly consist of small named functions.
 - No IndexedDB or state library. JSON cloning and localStorage are proportionate for the current dataset.
 - No immutable history redesign unless the owner later wants deleted or renamed routines preserved as historical snapshots.
 - No generic notification system, draft autosave framework, or large design system to solve these localized issues.
