@@ -1,4 +1,4 @@
-import { SCHEMA_VERSION, createDefaultState } from "./data.js?v=18";
+import { EXERCISE_CATEGORIES, MUSCLE_GROUPS, SCHEMA_VERSION, createDefaultState } from "./data.js?v=22";
 
 export const STORAGE_KEY = "gymAppStateV1";
 
@@ -18,6 +18,15 @@ function isDateKey(value) {
   return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
 }
 
+const supportedMuscles = new Set(MUSCLE_GROUPS);
+const supportedCategories = new Set(EXERCISE_CATEGORIES);
+
+function hasValidExerciseTargets(exercise) {
+  if (!Array.isArray(exercise.primaryMuscles) || exercise.primaryMuscles.length !== 1) return false;
+  if (!supportedMuscles.has(exercise.primaryMuscles[0]) || !Array.isArray(exercise.secondaryMuscles)) return false;
+  return exercise.secondaryMuscles.every((muscle) => supportedMuscles.has(muscle) && muscle !== exercise.primaryMuscles[0]);
+}
+
 export function validateState(value) {
   if (!isRecord(value) || value.version !== SCHEMA_VERSION) return false;
   if (!Array.isArray(value.exercises) || !Array.isArray(value.routines)) return false;
@@ -32,6 +41,9 @@ export function validateState(value) {
     if (new Set(exercise.primaryMuscles).size !== exercise.primaryMuscles.length) return false;
     if (new Set(exercise.secondaryMuscles).size !== exercise.secondaryMuscles.length) return false;
     if (exercise.primaryMuscles.some((muscle) => exercise.secondaryMuscles.includes(muscle))) return false;
+    if (!hasValidExerciseTargets(exercise)) return false;
+    if (!Array.isArray(exercise.categories) || !exercise.categories.every((category) => supportedCategories.has(category))) return false;
+    if (new Set(exercise.categories).size !== exercise.categories.length) return false;
     if (typeof exercise.defaultPrescription !== "string") return false;
     if (typeof exercise.instructions !== "string" || typeof exercise.videoId !== "string") return false;
     if (!Array.isArray(exercise.alternativeExerciseIds)) return false;
@@ -112,6 +124,24 @@ export function migrateState(value) {
     }));
     if (!routineIds.has(next.settings.activeRoutineId)) next.settings.activeRoutineId = next.routines[0]?.id || "";
     next.version = 3;
+  }
+  if (next.version === 3) {
+    next.version = 4;
+  }
+  if (next.version === 4) {
+    if (!Array.isArray(next.exercises)) throw new Error("invalid state");
+    next.exercises = next.exercises.map((exercise) => {
+      const primaryMuscles = Array.isArray(exercise.primaryMuscles) ? exercise.primaryMuscles : [];
+      const secondaryMuscles = Array.isArray(exercise.secondaryMuscles) ? exercise.secondaryMuscles : [];
+      const categories = [...new Set([...primaryMuscles, ...secondaryMuscles].filter((value) => supportedCategories.has(value)))];
+      return {
+        ...exercise,
+        primaryMuscles: primaryMuscles.filter((value) => !supportedCategories.has(value)),
+        secondaryMuscles: secondaryMuscles.filter((value) => !supportedCategories.has(value)),
+        categories,
+      };
+    });
+    next.version = 5;
   }
   if (next.version !== SCHEMA_VERSION) throw new Error("unsupported state version");
   return next;

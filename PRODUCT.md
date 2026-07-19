@@ -48,11 +48,11 @@ Every redesign or navigation change must keep these actions clearly reachable. B
 
 ### Library
 
-- Browse and search reusable master exercises by name or muscle.
-- Filter by muscle using either `Primary only` or `Primary + secondary` involvement.
+- Browse and search reusable master exercises by name, muscle, or category.
+- Filter by muscle using either `Primary only` or `Primary + secondary` involvement, and optionally combine it with one category.
 - Open exercise details before editing.
 - Add, edit, duplicate, and delete a master exercise.
-- Maintain name, default prescription, one primary muscle, secondary involvement, notes/cues, optional YouTube reference, and linked alternatives.
+- Maintain name, default prescription, one primary muscle, secondary involvement, optional categories, notes/cues, optional YouTube reference, and linked alternatives.
 - Deleting a master exercise clearly warns that its routine entries will also be removed.
 
 ### Log
@@ -72,11 +72,12 @@ Every redesign or navigation change must keep these actions clearly reachable. B
 
 ## Data meaning
 
-- A master exercise owns its name, default prescription, primary/secondary targets, notes, video, and alternatives.
+- A master exercise owns its name, default prescription, primary/secondary targets, optional categories, notes, video, and alternatives.
 - A routine entry references a master exercise and may override only the prescription for that routine.
 - A routine owns its name, location, status, order, and ordered entries.
 - A dated session owns completed routine IDs and one optional note. Weekly and calendar summaries are derived from sessions.
 - Primary muscle means the intended target. Secondary involvement means the muscle participates but is not the exercise's main target.
+- Categories describe exercise purpose or scope without pretending to be muscles. The current supported categories are `Mobility`, `Rehab`, and `Full Body`.
 - `Rest` is not a routine placeholder. A day without a recorded workout is simply a day without a completion.
 
 ## Design and accessibility principles

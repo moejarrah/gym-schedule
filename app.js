@@ -1,4 +1,4 @@
-import { MUSCLE_GROUPS, RULES } from "./data.js?v=18";
+import { EXERCISE_CATEGORIES, MUSCLE_GROUPS, RULES } from "./data.js?v=22";
 import {
   createBackup,
   createStore,
@@ -10,7 +10,7 @@ import {
   removeExerciseFromState,
   removeRoutineFromState,
   toggleRoutineForDate,
-} from "./storage.js?v=18";
+} from "./storage.js?v=22";
 
 const store = createStore();
 const main = document.querySelector("#appMain");
@@ -23,7 +23,7 @@ let currentView = "workout";
 let exerciseQuery = "";
 let exerciseMuscle = "All";
 let exerciseMuscleScope = "primary";
-let filterDraftMuscle = "All";
+let exerciseCategory = "All";
 let filterDraftScope = "primary";
 let pickerQuery = "";
 let pendingAlternativeIds = [];
@@ -49,11 +49,36 @@ function showToast(message) {
   toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
 }
 
+function activeDialogError() {
+  const openDialogs = [...document.querySelectorAll("dialog[open]")];
+  for (let index = openDialogs.length - 1; index >= 0; index -= 1) {
+    const error = openDialogs[index].querySelector("[data-dialog-error]");
+    if (error) return error;
+  }
+  return null;
+}
+
+function showActionError(message) {
+  const error = activeDialogError();
+  if (!error) {
+    showToast(message);
+    return;
+  }
+  error.textContent = message;
+  error.scrollIntoView({ block: "nearest" });
+}
+
+function clearActionError() {
+  const error = activeDialogError();
+  if (error) error.textContent = "";
+}
+
 function saveResult(result, successMessage) {
   if (!result.ok) {
-    showToast(result.error || "Changes could not be saved.");
+    showActionError(result.error || "Changes could not be saved.");
     return false;
   }
+  clearActionError();
   if (successMessage) showToast(successMessage);
   return true;
 }
@@ -81,10 +106,18 @@ function exerciseTargets(exercise) {
   return [...(exercise?.primaryMuscles || []), ...(exercise?.secondaryMuscles || [])];
 }
 
+function exerciseSearchTerms(exercise) {
+  return [...exerciseTargets(exercise), ...(exercise?.categories || [])];
+}
+
 function targetSummary(exercise) {
   const primary = exercise?.primaryMuscles?.join(" / ") || "No primary target";
   const secondary = exercise?.secondaryMuscles?.join(" / ");
   return secondary ? `${primary} · Also ${secondary}` : primary;
+}
+
+function classificationSummary(exercise) {
+  return [targetSummary(exercise), ...(exercise?.categories || [])].join(" · ");
 }
 
 function editIcon() {
@@ -221,6 +254,9 @@ function openExerciseDetails(exerciseId, prescription = "") {
   const secondary = exercise.secondaryMuscles || [];
   muscleList.innerHTML = `${primary.length ? `<p><strong>Primary</strong> ${primary.map(escapeHtml).join(" · ")}</p>` : ""}${secondary.length ? `<p><strong>Secondary</strong> ${secondary.map(escapeHtml).join(" · ")}</p>` : ""}`;
   document.querySelector("#detailTargetsSection").hidden = !primary.length && !secondary.length;
+  const categories = exercise.categories || [];
+  document.querySelector("#detailCategories").textContent = categories.join(" · ");
+  document.querySelector("#detailCategoriesSection").hidden = !categories.length;
   const instructions = document.querySelector("#detailInstructions");
   instructions.textContent = exercise.instructions || "No notes added yet.";
   instructions.classList.toggle("muted-copy", !exercise.instructions);
@@ -258,6 +294,7 @@ function openDayEditor(dateKey) {
         <div class="day-routines">${routines.length ? routines.map((routine) => `<label class="check-option"><input type="checkbox" name="routine" value="${escapeHtml(routine.id)}" ${session.routineIds.includes(routine.id) ? "checked" : ""}><span><strong>${escapeHtml(routine.name)}</strong><small>${escapeHtml(routine.group)}</small></span></label>`).join("") : `<p class="muted-copy">Add a routine before logging a completion.</p>`}</div>
       </fieldset>
       <label class="field">Note<textarea id="dayNote" rows="4" maxlength="500" placeholder="Optional note">${escapeHtml(session.note)}</textarea></label>
+      <p class="form-error" id="dayFormError" role="alert" data-dialog-error></p>
       <div class="dialog-actions"><button class="button primary" type="submit">Save day</button></div>
     </form>`;
   document.querySelector("#dayDialog").showModal();
@@ -277,9 +314,10 @@ function saveDay(form) {
 }
 
 function renderExercises(state) {
-  const filterLabel = exerciseMuscle === "All"
-    ? "Filter"
-    : `${exerciseMuscle} · ${exerciseMuscleScope === "primary" ? "Primary" : "Any"}`;
+  const activeFilters = [];
+  if (exerciseMuscle !== "All") activeFilters.push(`${exerciseMuscle} · ${exerciseMuscleScope === "primary" ? "Primary" : "Any"}`);
+  if (exerciseCategory !== "All") activeFilters.push(exerciseCategory);
+  const filterLabel = activeFilters.length ? activeFilters.join(" + ") : "Filter";
   main.innerHTML = `<section class="page">
     <div class="compact-toolbar library-toolbar">
       <span class="result-count" id="exerciseResultCount"></span>
@@ -287,18 +325,19 @@ function renderExercises(state) {
     </div>
     <div class="library-controls">
       <label class="search-field"><span class="visually-hidden">Search exercises</span><input id="exerciseSearch" type="search" value="${escapeHtml(exerciseQuery)}" autocomplete="off" placeholder="Search exercises"></label>
-      <button class="button secondary filter-button" type="button" data-action="open-muscle-filter" aria-label="Filter exercises by muscle, currently ${escapeHtml(filterLabel)}">${escapeHtml(filterLabel)}</button>
+      <button class="button secondary filter-button" type="button" data-action="open-exercise-filter" aria-label="Filter exercises, currently ${escapeHtml(filterLabel)}">${escapeHtml(filterLabel)}</button>
     </div>
     <div id="exerciseList"></div>
   </section>`;
   renderExerciseRows(state);
 }
 
-function filteredExercises(state, query = exerciseQuery, muscle = exerciseMuscle) {
+function filteredExercises(state, query = exerciseQuery, muscle = exerciseMuscle, category = exerciseCategory) {
   const needle = query.trim().toLowerCase();
   return state.exercises
     .filter((exercise) => muscle === "All" || (exerciseMuscleScope === "primary" ? exercise.primaryMuscles : exerciseTargets(exercise)).includes(muscle))
-    .filter((exercise) => !needle || exercise.name.toLowerCase().includes(needle) || exerciseTargets(exercise).some((item) => item.toLowerCase().includes(needle)))
+    .filter((exercise) => category === "All" || exercise.categories.includes(category))
+    .filter((exercise) => !needle || exercise.name.toLowerCase().includes(needle) || exerciseSearchTerms(exercise).some((item) => item.toLowerCase().includes(needle)))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -308,26 +347,29 @@ function renderExerciseRows(state) {
   const exercises = filteredExercises(state);
   if (!exercises.length) {
     document.querySelector("#exerciseResultCount").textContent = "0 results";
-    target.innerHTML = `<div class="empty-state compact-empty"><h3>No matching exercises</h3><p>Change the search or muscle filter, or add a new exercise.</p><button class="button primary" type="button" data-action="new-exercise">Add exercise</button></div>`;
+    target.innerHTML = `<div class="empty-state compact-empty"><h3>No matching exercises</h3><p>Change the search or filters, or add a new exercise.</p><button class="button primary" type="button" data-action="new-exercise">Add exercise</button></div>`;
     return;
   }
   document.querySelector("#exerciseResultCount").textContent = `${exercises.length} ${exercises.length === 1 ? "result" : "results"}`;
   target.innerHTML = `<div class="library-list">${exercises.map((exercise) => `
     <button class="library-row" type="button" data-action="view-exercise" data-id="${escapeHtml(exercise.id)}" aria-label="View ${escapeHtml(exercise.name)} details">
-      <span class="row-main"><span class="row-title">${escapeHtml(exercise.name)}</span><span class="row-meta">${escapeHtml(exercise.defaultPrescription || "No prescription")} · ${escapeHtml(targetSummary(exercise))}</span></span>
+      <span class="row-main"><span class="row-title">${escapeHtml(exercise.name)}</span><span class="row-meta">${escapeHtml(exercise.defaultPrescription || "No prescription")} · ${escapeHtml(classificationSummary(exercise))}</span></span>
       <span class="workout-chevron" aria-hidden="true">${chevronIcon("right")}</span>
     </button>`).join("")}</div>`;
 }
 
-function openMuscleFilter() {
-  filterDraftMuscle = exerciseMuscle;
+function openExerciseFilter() {
   filterDraftScope = exerciseMuscleScope;
+  const muscleSelect = document.querySelector("#muscleFilterSelect");
+  muscleSelect.innerHTML = ["All", ...MUSCLE_GROUPS].map((muscle) => `<option value="${escapeHtml(muscle)}">${escapeHtml(muscle === "All" ? "All muscles" : muscle)}</option>`).join("");
+  muscleSelect.value = exerciseMuscle;
+  const categorySelect = document.querySelector("#categoryFilterSelect");
+  categorySelect.innerHTML = ["All", ...EXERCISE_CATEGORIES].map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category === "All" ? "All categories" : category)}</option>`).join("");
+  categorySelect.value = exerciseCategory;
   document.querySelectorAll('#muscleScopeOptions [data-scope]').forEach((button) => {
     button.setAttribute("aria-pressed", String(button.dataset.scope === filterDraftScope));
   });
-  document.querySelector("#muscleFilterList").innerHTML = ["All", ...MUSCLE_GROUPS].map((muscle) => `
-    <button class="filter-option" type="button" data-action="choose-muscle-filter" data-muscle="${escapeHtml(muscle)}" aria-pressed="${muscle === filterDraftMuscle}"><span>${escapeHtml(muscle === "All" ? "All muscles" : muscle)}</span>${muscle === filterDraftMuscle ? `<span data-filter-check aria-hidden="true">✓</span>` : ""}</button>`).join("");
-  document.querySelector("#muscleFilterDialog").showModal();
+  document.querySelector("#exerciseFilterDialog").showModal();
 }
 
 function renderRoutines(state) {
@@ -385,10 +427,12 @@ function openExerciseEditor(exerciseId = "", duplicate = false) {
   pendingAlternativeIds = [...(source?.alternativeExerciseIds || [])];
   updateAlternativesCount();
   const primarySelect = document.querySelector("#exercisePrimaryMuscle");
-  primarySelect.innerHTML = `<option value="">Not set</option>${MUSCLE_GROUPS.map((muscle) => `<option value="${escapeHtml(muscle)}">${escapeHtml(muscle)}</option>`).join("")}`;
+  primarySelect.innerHTML = `<option value="" disabled>Choose primary muscle</option>${MUSCLE_GROUPS.map((muscle) => `<option value="${escapeHtml(muscle)}">${escapeHtml(muscle)}</option>`).join("")}`;
   primarySelect.value = source?.primaryMuscles?.[0] || "";
   document.querySelector("#secondaryMuscleOptions").innerHTML = MUSCLE_GROUPS.map((muscle) => `
     <label class="check-option"><input type="checkbox" name="secondaryMuscles" value="${escapeHtml(muscle)}" ${source?.secondaryMuscles?.includes(muscle) ? "checked" : ""} ${primarySelect.value === muscle ? "disabled" : ""}>${escapeHtml(muscle)}</label>`).join("");
+  document.querySelector("#exerciseCategoryOptions").innerHTML = EXERCISE_CATEGORIES.map((category) => `
+    <label class="check-option"><input type="checkbox" name="exerciseCategories" value="${escapeHtml(category)}" ${source?.categories?.includes(category) ? "checked" : ""}>${escapeHtml(category)}</label>`).join("");
   document.querySelector("#exerciseDialog").showModal();
   requestAnimationFrame(() => document.querySelector("#exerciseName").focus());
 }
@@ -413,10 +457,10 @@ function renderAlternativesList() {
   const needle = alternativesQuery.trim().toLowerCase();
   const exercises = state.exercises
     .filter((exercise) => exercise.id !== editingId)
-    .filter((exercise) => !needle || exercise.name.toLowerCase().includes(needle) || exerciseTargets(exercise).some((muscle) => muscle.toLowerCase().includes(needle)))
+    .filter((exercise) => !needle || exercise.name.toLowerCase().includes(needle) || exerciseSearchTerms(exercise).some((term) => term.toLowerCase().includes(needle)))
     .sort((a, b) => a.name.localeCompare(b.name));
   document.querySelector("#alternativesList").innerHTML = exercises.length ? exercises.map((exercise) => `
-    <label class="check-option alternative-option"><input type="checkbox" value="${escapeHtml(exercise.id)}" ${alternativeDraftIds.includes(exercise.id) ? "checked" : ""}><span><strong>${escapeHtml(exercise.name)}</strong><small>${escapeHtml(targetSummary(exercise))}</small></span></label>`).join("") : `<p class="muted-copy">No matching exercises.</p>`;
+    <label class="check-option alternative-option"><input type="checkbox" value="${escapeHtml(exercise.id)}" ${alternativeDraftIds.includes(exercise.id) ? "checked" : ""}><span><strong>${escapeHtml(exercise.name)}</strong><small>${escapeHtml(classificationSummary(exercise))}</small></span></label>`).join("") : `<p class="muted-copy">No matching exercises.</p>`;
 }
 
 function youtubeId(value) {
@@ -430,6 +474,7 @@ function saveExercise() {
   const state = store.getState();
   const id = document.querySelector("#exerciseId").value;
   const name = document.querySelector("#exerciseName").value.trim();
+  const primaryMuscle = document.querySelector("#exercisePrimaryMuscle").value;
   const videoId = youtubeId(document.querySelector("#exerciseVideo").value);
   const error = document.querySelector("#exerciseFormError");
   if (!name) {
@@ -441,6 +486,10 @@ function saveExercise() {
     error.textContent = "An exercise with this name already exists.";
     return false;
   }
+  if (!MUSCLE_GROUPS.includes(primaryMuscle)) {
+    error.textContent = "Choose one primary muscle.";
+    return false;
+  }
   if (videoId === null) {
     error.textContent = "Paste a YouTube link or its 11-character video ID.";
     return false;
@@ -448,8 +497,9 @@ function saveExercise() {
   const exercise = {
     id: id || makeId("exercise"),
     name,
-    primaryMuscles: document.querySelector("#exercisePrimaryMuscle").value ? [document.querySelector("#exercisePrimaryMuscle").value] : [],
-    secondaryMuscles: [...document.querySelectorAll('#secondaryMuscleOptions input:checked')].map((input) => input.value).filter((muscle) => muscle !== document.querySelector("#exercisePrimaryMuscle").value),
+    primaryMuscles: [primaryMuscle],
+    secondaryMuscles: [...document.querySelectorAll('#secondaryMuscleOptions input:checked')].map((input) => input.value).filter((muscle) => muscle !== primaryMuscle),
+    categories: [...document.querySelectorAll('#exerciseCategoryOptions input:checked')].map((input) => input.value),
     defaultPrescription: document.querySelector("#exercisePrescription").value.trim(),
     videoId,
     instructions: document.querySelector("#exerciseInstructions").value.trim(),
@@ -604,6 +654,7 @@ function openEntryEditor(id) {
   document.querySelector("#entryId").value = entry.id;
   document.querySelector("#entryExerciseName").textContent = exercise.name;
   document.querySelector("#entryPrescription").value = entry.prescription || exercise.defaultPrescription || "";
+  document.querySelector("#entryFormError").textContent = "";
   const index = routine.entries.indexOf(entry);
   document.querySelector("#moveEntryEarlierButton").disabled = index === 0;
   document.querySelector("#moveEntryLaterButton").disabled = index === routine.entries.length - 1;
@@ -629,6 +680,7 @@ function saveEntry() {
 function openPicker() {
   pickerQuery = "";
   document.querySelector("#pickerSearch").value = "";
+  document.querySelector("#pickerFormError").textContent = "";
   renderPickerList();
   document.querySelector("#pickerDialog").showModal();
   requestAnimationFrame(() => document.querySelector("#pickerSearch").focus());
@@ -640,7 +692,7 @@ function renderPickerList() {
   const existing = new Set(routine?.entries.map((entry) => entry.exerciseId));
   const needle = pickerQuery.trim().toLowerCase();
   const exercises = state.exercises
-    .filter((exercise) => !needle || exercise.name.toLowerCase().includes(needle) || exerciseTargets(exercise).some((muscle) => muscle.toLowerCase().includes(needle)))
+    .filter((exercise) => !needle || exercise.name.toLowerCase().includes(needle) || exerciseSearchTerms(exercise).some((term) => term.toLowerCase().includes(needle)))
     .sort((a, b) => a.name.localeCompare(b.name));
   const target = document.querySelector("#pickerList");
   target.innerHTML = exercises.length ? exercises.map((exercise) => `
@@ -685,21 +737,27 @@ function toggleTheme() {
 }
 
 function openSettings() {
+  document.querySelector("#settingsFormError").textContent = "";
   document.querySelector("#rulesContent").innerHTML = RULES.map(([title, items]) => `
     <section class="rule-section"><h3>${escapeHtml(title)}</h3><ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>`).join("");
   document.querySelector("#settingsDialog").showModal();
 }
 
 function exportData() {
-  const blob = new Blob([JSON.stringify(createBackup(store.getState()), null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `gym-schedule-${new Date().toISOString().slice(0, 10)}.json`;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  try {
+    const blob = new Blob([JSON.stringify(createBackup(store.getState()), null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `gym-schedule-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    clearActionError();
+  } catch (_) {
+    showActionError("App data could not be exported.");
+  }
 }
 
 async function importData(file) {
@@ -713,7 +771,7 @@ async function importData(file) {
       render();
     }
   } catch (error) {
-    showToast(error.message || "This file could not be imported.");
+    showActionError(error.message || "This file could not be imported.");
   }
 }
 
@@ -749,7 +807,7 @@ main.addEventListener("click", (event) => {
   const { action, id } = button.dataset;
   if (action === "new-exercise") openExerciseEditor();
   else if (action === "view-exercise") openExerciseDetails(id);
-  else if (action === "open-muscle-filter") openMuscleFilter();
+  else if (action === "open-exercise-filter") openExerciseFilter();
   else if (action === "new-routine") openRoutineEditor();
   else if (action === "edit-routine") openRoutineEditor(id);
   else if (action === "select-routine") selectRoutine(id);
@@ -776,22 +834,11 @@ document.querySelector("#pickerList").addEventListener("click", (event) => {
   if (button) pickExercise(button.dataset.id);
 });
 
-document.querySelector("#muscleFilterList").addEventListener("click", (event) => {
-  const button = event.target.closest('[data-action="choose-muscle-filter"]');
-  if (!button) return;
-  filterDraftMuscle = button.dataset.muscle;
-  document.querySelectorAll('#muscleFilterList [data-muscle]').forEach((option) => {
-    option.setAttribute("aria-pressed", String(option === button));
-    const check = option.querySelector('[data-filter-check]');
-    if (check) check.remove();
-    if (option === button) option.insertAdjacentHTML("beforeend", '<span data-filter-check aria-hidden="true">✓</span>');
-  });
-});
-
-document.querySelector("#applyMuscleFilterButton").addEventListener("click", () => {
-  exerciseMuscle = filterDraftMuscle;
+document.querySelector("#applyExerciseFilterButton").addEventListener("click", () => {
+  exerciseMuscle = document.querySelector("#muscleFilterSelect").value;
   exerciseMuscleScope = filterDraftScope;
-  document.querySelector("#muscleFilterDialog").close();
+  exerciseCategory = document.querySelector("#categoryFilterSelect").value;
+  document.querySelector("#exerciseFilterDialog").close();
   renderExercises(store.getState());
 });
 
@@ -931,7 +978,7 @@ if ("serviceWorker" in navigator) {
     }
   });
   navigator.serviceWorker
-    .register("sw.js?v=18", { updateViaCache: "none" })
+    .register("sw.js?v=22", { updateViaCache: "none" })
     .then((registration) => registration.update())
     .catch(() => showToast("Offline mode could not be started."));
 }

@@ -38,6 +38,7 @@
 - Before a redesign, map every affected action in `PRODUCT.md` from its old path to a clear new path. Visual simplification must not hide or remove behavior.
 - Preserve offline behavior, installability, light/dark themes, current data, workout meaning, completion semantics, and calendar history.
 - Do not broaden work into authentication or internet-facing security unless requested. Local data-loss prevention remains in scope.
+- Do not prioritize theoretical service-worker lifecycle cases that require the owner to deploy while actively editing. Defer them unless the owner reproduces the problem or explicitly requests that behavior.
 - Ask before adding a production dependency or changing the architecture boundary.
 - Put worthwhile out-of-scope ideas in `AUDIT.md`; do not silently add them to the active patch.
 
