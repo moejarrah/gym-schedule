@@ -12,12 +12,11 @@ Status values: `Open`, `Planned`, `In progress`, `Repo verified`, `Device verifi
 
 | Order | ID | State | Summary | Why here |
 | ---: | --- | --- | --- | --- |
-| 1 | `UI-004` | Device recheck | Confirm version-24 drag selection fix | The gesture works on iPhone; confirm text no longer highlights. |
-| 2 | `UI-001` | Device acceptance | Exercise the complete iPhone checklist | This remains the gate before another broad redesign. |
-| 3 | `PWA-002` | Deferred | Avoid update reloads during unsaved edits | The owner controls deployments and does not want this complexity. |
-| 4 | `PWA-003` | Deferred | Stop false offline-startup errors | Implement only if the owner reproduces and cares about it. |
-| 5 | `DATA-003` | Deferred | Make corrupt-data recovery usable | Revisit only when stored history becomes valuable. |
-| 6 | `DX-001` | Deferred | Reconsider browser automation | Add tooling only after repeated runtime regressions justify it. |
+| 1 | `UI-001` | Device acceptance | Exercise the remaining iPhone checklist | This remains the gate before another broad redesign. |
+| 2 | `PWA-002` | Deferred | Avoid update reloads during unsaved edits | The owner controls deployments and does not want this complexity. |
+| 3 | `PWA-003` | Deferred | Stop false offline-startup errors | Implement only if the owner reproduces and cares about it. |
+| 4 | `DATA-003` | Deferred | Make corrupt-data recovery usable | Revisit only when stored history becomes valuable. |
+| 5 | `DX-001` | Deferred | Reconsider browser automation | Add tooling only after repeated runtime regressions justify it. |
 
 ## PWA-001 — Isolate service-worker cache cleanup
 
@@ -40,20 +39,6 @@ Status values: `Open`, `Planned`, `In progress`, `Repo verified`, `Device verifi
 - **Acceptance:** Moving an entry never loses the prescription currently visible in the editor; the reorder and prescription persist after reload.
 - **Implemented:** Added a focused `moveRoutineEntry` state operation, used it for both movement controls, and kept master-exercise data outside the mutation.
 - **Verified:** Earlier/later, boundary, missing-ID, reload persistence, master isolation, and failed-write paths passed; `npm run check` passed 26/26; version references, manifest, syntax, HTTP assets, and phone-sized render smoke checks passed; fresh verifier reported the production patch clean. Physical iPhone interaction remains pending.
-
-## UI-004 — Hold and drag routine exercises
-
-- **Status:** Repo verified
-- **Priority:** P1
-- **Type:** Phone interaction / routine editing
-- **Evidence:** Reordering previously required opening an entry editor and moving only one position per tap.
-- **Impact:** Rebuilding a routine order was unnecessarily slow and indirect on a phone.
-- **Acceptance:** In Program, a normal tap still opens the routine-entry editor; holding a row visibly lifts it; dragging changes its destination and auto-scrolls near the list edges; releasing saves the exact new order; ordinary vertical scrolling remains available; cancel and failed saves do not corrupt order; earlier/later buttons remain as a non-drag fallback.
-- **Scope:** Routine entries only. Routine-tab ordering, Library ordering, storage shape, and master exercise data are unchanged.
-- **Implemented:** Added a dependency-free touch/mouse hold gesture, lifted-row and destination states, arbitrary-position reorder operation, click suppression after a drag, cancel cleanup, edge auto-scroll, and an understated grip cue. Version 23 updates the offline shell.
-- **Device finding:** Version 23 drag ordering works in the installed iPhone app, but native text selection can still highlight row text during the hold.
-- **Selection fix:** Version 24 applies WebKit and standard selection suppression to the row and all descendants, cancels `selectstart`, and clears any partial selection when the row lifts.
-- **Verified:** Direct first-to-last ordering, invalid destinations, persistence failure rollback, selection guards, syntax, manifest, synchronized version-24 assets, served source, and `git diff --check` pass; `npm run check` passes 40/40. The earlier verifier found the touch/scroll split, tap suppression, arbitrary index mapping, failure rollback, cancellation cleanup, fallback controls, and cache synchronization clean. Physical iPhone confirmation of the version-24 selection fix remains pending.
 
 ## UI-003 — Make failures visible inside modal dialogs
 
