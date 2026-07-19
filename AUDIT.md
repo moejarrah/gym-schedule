@@ -24,14 +24,14 @@ Status values: `Open`, `Planned`, `In progress`, `Repo verified`, `Device verifi
 
 ## PWA-001 — Isolate service-worker cache cleanup
 
-- **Status:** Open
+- **Status:** Repo verified
 - **Priority:** P1
 - **Type:** Correctness / offline isolation
-- **Evidence:** `sw.js` activation deletes every Cache Storage key except `gym-schedule-v16`. Cache Storage is shared across the entire `moejarrah.github.io` origin, not isolated by GitHub Pages path.
+- **Evidence:** Version 17 now filters activation cleanup by the `gym-schedule-` prefix. A focused test executes the real activation handler and confirms that only a stale gym cache is deleted while the current gym, BMI, and unrelated caches survive.
 - **Impact:** Updating the gym app can delete another PWA's offline cache, and another app can similarly disrupt this one.
 - **Acceptance:** Activation deletes only obsolete keys owned by the gym app; unrelated cache names remain untouched; the current gym cache and offline fallback continue working.
-- **Smallest fix:** Introduce a `gym-schedule-` cache prefix, filter deletion by that prefix, and add one focused test proving unrelated caches are preserved.
-- **Verify:** `npm run check`, service-worker syntax, cache-version test, local update from the prior cache, and offline reload.
+- **Implemented:** Added the `gym-schedule-` ownership prefix, bumped the synchronized shell/cache to version 17, and added executable activation regression coverage.
+- **Verified:** Focused activation test passed; `npm run check` passed 24/24; manifest and diff checks passed; Firefox rendered the cached app with its local server stopped; fresh verifier reported clean. Physical iPhone update remains pending.
 
 ## UI-002 — Preserve prescription edits when moving a routine entry
 

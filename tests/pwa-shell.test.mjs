@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
+import { runInNewContext } from "node:vm";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
@@ -22,7 +23,7 @@ test("HTML keeps zoom enabled and uses external production assets", () => {
   const viewport = html.match(/<meta name="viewport" content="([^"]+)">/)?.[1] || "";
   assert.match(viewport, /viewport-fit=cover/);
   assert.doesNotMatch(viewport, /user-scalable=no|maximum-scale=1/);
-  assert.match(html, /<script type="module" src="app\.js\?v=16"><\/script>/);
+  assert.match(html, /<script type="module" src="app\.js\?v=17"><\/script>/);
   assert.match(html, /rel="apple-touch-icon"[^>]+app-icon-180\.png/);
   assert.doesNotMatch(html, /\sonclick=/);
 });
@@ -33,9 +34,35 @@ test("offline shell lists every production module and icon", () => {
     assert.match(worker, new RegExp(asset.replaceAll(".", "\\.")));
   }
   assert.match(worker, /event\.request\.mode === "navigate"/);
-  assert.match(worker, /gym-schedule-v16/);
-  assert.match(worker, /styles\.css\?v=16/);
-  assert.match(worker, /app\.js\?v=16/);
+  assert.match(worker, /gym-schedule-v17/);
+  assert.match(worker, /styles\.css\?v=17/);
+  assert.match(worker, /app\.js\?v=17/);
+});
+
+test("activation removes only stale caches owned by the gym app", async () => {
+  const worker = read("sw.js");
+  const current = worker.match(/const CACHE = "([^"]+)"/)?.[1];
+  assert.ok(current);
+  const handlers = {};
+  const deleted = [];
+  let claimed = false;
+  runInNewContext(worker, {
+    caches: {
+      keys: async () => [current, "gym-schedule-v15", "bmi-rewrite-v8", "another-app-cache"],
+      delete: async (key) => { deleted.push(key); },
+    },
+    self: {
+      addEventListener: (type, handler) => { handlers[type] = handler; },
+      skipWaiting: () => {},
+      clients: { claim: async () => { claimed = true; } },
+    },
+  });
+
+  let completion;
+  handlers.activate({ waitUntil: (promise) => { completion = promise; } });
+  await completion;
+  assert.deepEqual(deleted, ["gym-schedule-v15"]);
+  assert.equal(claimed, true);
 });
 
 test("versioned browser assets stay in sync across the PWA shell", () => {

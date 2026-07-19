@@ -1,4 +1,4 @@
-import { MUSCLE_GROUPS, RULES } from "./data.js?v=16";
+import { MUSCLE_GROUPS, RULES } from "./data.js?v=17";
 import {
   createBackup,
   createStore,
@@ -9,7 +9,7 @@ import {
   removeExerciseFromState,
   removeRoutineFromState,
   toggleRoutineForDate,
-} from "./storage.js?v=16";
+} from "./storage.js?v=17";
 
 const store = createStore();
 const main = document.querySelector("#appMain");
@@ -932,7 +932,7 @@ if ("serviceWorker" in navigator) {
     }
   });
   navigator.serviceWorker
-    .register("sw.js?v=16", { updateViaCache: "none" })
+    .register("sw.js?v=17", { updateViaCache: "none" })
     .then((registration) => registration.update())
     .catch(() => showToast("Offline mode could not be started."));
 }

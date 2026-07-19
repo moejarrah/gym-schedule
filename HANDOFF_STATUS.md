@@ -6,8 +6,8 @@ This file is the short current truth for resuming work. Replace stale details in
 
 ## Deployed baseline
 
-- **Branch/commit:** `main` at `64ae64a` (`Restore workout flows and mobile scrolling`), matching `origin/main` before this documentation update.
-- **Service-worker cache:** `gym-schedule-v16`.
+- **Branch:** `main`; use the latest `git log -1` entry as the exact revision.
+- **Service-worker cache:** `gym-schedule-v17`.
 - **Stored-data schema:** version 3 under `gymAppStateV1`, with migrations from versions 1 and 2.
 - **Architecture:** build-free vanilla HTML, CSS, and JavaScript; no production dependencies or backend.
 - **Target device:** iPhone 15 Pro, iOS 17.x, Safari and Add to Home Screen.
@@ -23,22 +23,24 @@ This file is the short current truth for resuming work. Replace stale details in
 
 ## Active slice
 
-- **Goal:** consolidate the full engineering audit into one ordered, actionable backlog.
-- **Acceptance:** every confirmed bug, device gate, cleanup item, and deliberately deferred idea has evidence, impact, acceptance criteria, and a smallest sensible next action; no production behavior changes.
-- **Out of scope:** implementing fixes, changing UI or data, adding dependencies, and publishing a new PWA cache.
+- **Goal:** complete `PWA-001` by isolating service-worker cache cleanup to gym-owned caches.
+- **Acceptance:** an update removes obsolete `gym-schedule-*` caches while preserving unrelated caches; the current app shell and offline fallback still work; focused and full checks pass.
+- **Out of scope:** update-reload behavior, offline error wording, UI, data, dependencies, and every other backlog item.
 - **Status:** Repo verified.
+- **Remaining:** Physical iPhone update confirmation.
 
 ## Work in progress
 
-- Production app files are unchanged in this slice.
+- `PWA-001` changes only gym-owned cache cleanup, synchronized version references, and focused tests. UI and stored-data behavior are unchanged.
 - `_preview.html` is a local, untracked interactive iPhone-shaped preview and is intentionally not a production source.
 - Other untracked templates, screenshots, archives, and references belong to the owner and must remain untouched unless requested.
 
 ## Last repository validation
 
-- Version 16 previously passed `npm run check` with 23 tests covering JavaScript/service-worker syntax, stored-data behavior and migrations, manifest/icon references, versioned shell references, narrow-layout selectors, viewport configuration, and presence of core feature controls.
-- The version 16 repair received an independent code verifier pass.
-- Those checks do not establish HTTP MIME behavior, a full accessibility audit, or physical iPhone behavior.
+- Version 17 passed `npm run check` with 24 tests, including an executable service-worker activation test proving unrelated caches survive.
+- Manifest parsing, JavaScript/service-worker syntax, synchronized shell references, HTTP asset/MIME checks, and `git diff --check` passed.
+- Firefox rendered the app from the version 17 service-worker cache with the local server stopped.
+- A fresh verifier independently reported `PWA-001` clean. These checks do not establish physical iPhone update behavior.
 
 ## Owner/device verification pending
 
@@ -49,8 +51,8 @@ Before more UI redesign, check both Safari and the installed PWA on the iPhone:
 3. Add/edit/reorder/delete a test routine and add/edit/reorder/remove one routine entry.
 4. Search Library and compare `Primary only` with `Primary + secondary` muscle filtering.
 5. Mark/unmark today, edit a Log date and note, switch both themes, relaunch, and test offline.
-6. Confirm Safari and standalone both receive the version 16 UI/assets and render correctly with nothing under the notch, home indicator, or bottom navigation. Their locally stored routines and history may differ because iOS can keep separate storage containers.
+6. Confirm Safari and standalone both receive the version 17 UI/assets and render correctly with nothing under the notch, home indicator, or bottom navigation. Their locally stored routines and history may differ because iOS can keep separate storage containers.
 
 ## Next safest action
 
-Select `PWA-001` from `AUDIT.md` as the first implementation slice, then proceed through the recorded order one issue at a time. Do not start an issue until the owner chooses it.
+Wait for the owner to choose `UI-002` (preserve prescription edits while reordering) as the next implementation slice. Do not start it automatically.

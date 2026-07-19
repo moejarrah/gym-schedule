@@ -1,12 +1,13 @@
-const CACHE = "gym-schedule-v16";
+const CACHE_PREFIX = "gym-schedule-";
+const CACHE = "gym-schedule-v17";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=16",
-  "./data.js?v=16",
-  "./storage.js?v=16",
-  "./app.js?v=16",
-  "./manifest.json?v=16",
+  "./styles.css?v=17",
+  "./data.js?v=17",
+  "./storage.js?v=17",
+  "./app.js?v=17",
+  "./manifest.json?v=17",
   "./icons/app-icon.svg",
   "./icons/app-icon-180.png",
   "./icons/app-icon-192.png",
@@ -21,7 +22,11 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))
+      .then((keys) => Promise.all(
+        keys
+          .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE)
+          .map((key) => caches.delete(key)),
+      ))
       .then(() => self.clients.claim()),
   );
 });

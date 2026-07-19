@@ -1,4 +1,4 @@
-import { SCHEMA_VERSION, createDefaultState } from "./data.js?v=16";
+import { SCHEMA_VERSION, createDefaultState } from "./data.js?v=17";
 
 export const STORAGE_KEY = "gymAppStateV1";
 
