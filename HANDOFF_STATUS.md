@@ -23,9 +23,9 @@ This file is the short current truth for resuming work. Replace stale details in
 
 ## Active slice
 
-- **Goal:** install a concise, professional workflow and recovery method for future work.
-- **Acceptance:** stable instructions, durable product actions, current status, open backlog, resume procedure, and phone/release gates have one clear owner document each; no production behavior changes.
-- **Out of scope:** UI fixes, new features, data changes, dependencies, and publishing a new PWA cache.
+- **Goal:** consolidate the full engineering audit into one ordered, actionable backlog.
+- **Acceptance:** every confirmed bug, device gate, cleanup item, and deliberately deferred idea has evidence, impact, acceptance criteria, and a smallest sensible next action; no production behavior changes.
+- **Out of scope:** implementing fixes, changing UI or data, adding dependencies, and publishing a new PWA cache.
 - **Status:** Repo verified.
 
 ## Work in progress
@@ -53,4 +53,4 @@ Before more UI redesign, check both Safari and the installed PWA on the iPhone:
 
 ## Next safest action
 
-Wait for the owner's iPhone observations. Convert each confirmed failure into one issue and address one narrow slice at a time; do not begin another broad redesign from inference. `DATA-001` is the first known product gap, but it should not start until the owner chooses it as the active slice.
+Select `PWA-001` from `AUDIT.md` as the first implementation slice, then proceed through the recorded order one issue at a time. Do not start an issue until the owner chooses it.
