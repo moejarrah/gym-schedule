@@ -8,10 +8,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Gym Schedule">
   <title>Gym Schedule</title>
-  <link rel="manifest" href="manifest.json?v=24">
+  <link rel="manifest" href="manifest.json?v=28">
   <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/app-icon-180.png">
-  <link rel="stylesheet" href="styles.css?v=24">
+  <link rel="stylesheet" href="styles.css?v=28">
 </head>
 <body>
   <div class="app-shell">
@@ -62,19 +62,19 @@
       <label class="field">Exercise name<input id="exerciseName" name="name" autocomplete="off" required maxlength="100"></label>
       <label class="field">Default sets and reps<input id="exercisePrescription" name="prescription" autocomplete="off" placeholder="3 × 8-12" maxlength="60"></label>
       <fieldset class="editor-section">
-        <legend>Muscles</legend>
-        <label class="field">Primary muscle<select id="exercisePrimaryMuscle" name="primaryMuscle" required><option value="" disabled>Choose primary muscle</option></select></label>
-        <fieldset class="field-group"><legend>Secondary involvement</legend><div id="secondaryMuscleOptions" class="check-grid"></div></fieldset>
-      </fieldset>
-      <fieldset class="editor-section">
-        <legend>Categories</legend>
-        <div id="exerciseCategoryOptions" class="check-grid"></div>
+        <legend>Essential classification</legend>
+        <label class="field">Dominant target<select id="exercisePrimaryTarget1" required><option value="" disabled>Choose dominant target</option></select></label>
+        <label class="field">Second primary target<select id="exercisePrimaryTarget2"><option value="">No second primary target</option></select></label>
+        <fieldset class="field-group"><legend>Secondary involvement</legend><div id="secondaryTargetOptions" class="check-grid"></div></fieldset>
+        <label class="field">Movement<select id="exerciseMovement" required><option value="" disabled>Choose movement</option></select></label>
+        <fieldset class="field-group"><legend>Equipment</legend><div id="exerciseEquipmentOptions" class="check-grid"></div></fieldset>
+        <label class="field">Purpose<select id="exercisePurpose" required><option value="" disabled>Choose purpose</option></select></label>
       </fieldset>
       <fieldset class="editor-section">
         <legend>Reference</legend>
         <label class="field">YouTube link or video ID<input id="exerciseVideo" name="video" inputmode="url" autocomplete="off" placeholder="Optional"></label>
         <label class="field">Notes and cues<textarea id="exerciseInstructions" name="instructions" rows="5" placeholder="Setup, execution, and focus cues"></textarea></label>
-        <button class="selection-row" id="chooseAlternativesButton" type="button"><span><strong>Alternatives</strong><small id="alternativesCount">None linked</small></span><span aria-hidden="true">›</span></button>
+        <button class="selection-row" id="chooseAlternativesButton" type="button"><span><strong>Related exercises</strong><small id="alternativesCount">None linked</small></span><span aria-hidden="true">›</span></button>
       </fieldset>
       <p class="form-error" id="exerciseFormError" role="alert" data-dialog-error></p>
       <footer class="dialog-actions">
@@ -91,14 +91,14 @@
         <div><p class="dialog-kicker">Exercise library</p><h2 id="exerciseFilterDialogTitle">Filter exercises</h2></div>
         <button class="icon-button" data-close-dialog="exerciseFilterDialog" aria-label="Close exercise filter" type="button">×</button>
       </header>
-      <label class="field">Muscle<select id="muscleFilterSelect"></select></label>
-      <fieldset class="field-group"><legend>Match muscle</legend>
+      <label class="field">Target<select id="targetFilterSelect"></select></label>
+      <fieldset class="field-group"><legend>Match target</legend>
         <div class="scope-options" id="muscleScopeOptions">
           <button type="button" data-action="choose-muscle-scope" data-scope="primary">Primary only</button>
           <button type="button" data-action="choose-muscle-scope" data-scope="all">Primary + secondary</button>
         </div>
       </fieldset>
-      <label class="field">Category<select id="categoryFilterSelect"></select></label>
+      <label class="field">Purpose<select id="purposeFilterSelect"></select></label>
       <footer class="dialog-actions"><button class="button primary full" id="applyExerciseFilterButton" type="button">Apply filter</button></footer>
     </div>
   </dialog>
@@ -106,13 +106,47 @@
   <dialog id="alternativesDialog" class="sheet-dialog tall-dialog" aria-labelledby="alternativesDialogTitle">
     <div class="dialog-form">
       <header class="dialog-header">
-        <div><p class="dialog-kicker">Exercise library</p><h2 id="alternativesDialogTitle">Choose alternatives</h2></div>
-        <button class="icon-button" data-close-dialog="alternativesDialog" aria-label="Close alternatives" type="button">×</button>
+        <div><p class="dialog-kicker">Exercise library</p><h2 id="alternativesDialogTitle">Choose related exercises</h2></div>
+        <button class="icon-button" data-close-dialog="alternativesDialog" aria-label="Close related exercises" type="button">×</button>
       </header>
-      <label class="field">Search<input id="alternativesSearch" type="search" autocomplete="off" placeholder="Name, muscle, or category"></label>
+      <label class="field">Search<input id="alternativesSearch" type="search" autocomplete="off" placeholder="Name, target, or movement"></label>
       <div id="alternativesList" class="picker-list"></div>
       <footer class="dialog-actions"><button class="button primary full" id="saveAlternativesButton" type="button">Done</button></footer>
     </div>
+  </dialog>
+
+  <dialog id="programsDialog" class="sheet-dialog" aria-labelledby="programsDialogTitle">
+    <div class="dialog-form">
+      <header class="dialog-header">
+        <div><p class="dialog-kicker">Training blocks</p><h2 id="programsDialogTitle">Programs</h2></div>
+        <button class="icon-button" data-close-dialog="programsDialog" aria-label="Close programs" type="button">×</button>
+      </header>
+      <div id="programsList" class="programs-list"></div>
+      <p class="form-error" id="programsFormError" role="alert" data-dialog-error></p>
+      <footer class="dialog-actions"><button class="button primary full" id="newProgramButton" type="button">Add program</button></footer>
+    </div>
+  </dialog>
+
+  <dialog id="programDialog" class="sheet-dialog" aria-labelledby="programDialogTitle">
+    <form method="dialog" id="programForm" class="dialog-form">
+      <header class="dialog-header">
+        <div><p class="dialog-kicker">Training block</p><h2 id="programDialogTitle">Add program</h2></div>
+        <button class="icon-button" value="cancel" aria-label="Close program editor" type="submit" formnovalidate>×</button>
+      </header>
+      <input id="programId" type="hidden">
+      <label class="field">Program name<input id="programName" required maxlength="60" autocomplete="off"></label>
+      <div id="programCreateFields">
+        <label class="field">Start with<select id="programStartMode"><option value="empty">Empty program</option><option value="duplicate">Duplicate a program</option></select></label>
+        <label class="field" id="programDuplicateSourceField">Duplicate from<select id="programDuplicateSource"></select></label>
+        <p class="dialog-intro">Duplicating copies routines and prescriptions. Exercises remain linked to the shared Library.</p>
+      </div>
+      <div class="stacked-actions" id="programEditActions" hidden>
+        <button class="button secondary" id="duplicateProgramButton" type="button">Duplicate program</button>
+        <button class="button secondary danger-text" id="deleteProgramButton" type="button">Delete program</button>
+      </div>
+      <p class="form-error" id="programFormError" role="alert" data-dialog-error></p>
+      <footer class="dialog-actions"><button class="button primary full" id="programSaveButton" type="submit" value="save">Create program</button></footer>
+    </form>
   </dialog>
 
   <dialog id="routineDialog" class="sheet-dialog" aria-labelledby="routineDialogTitle">
@@ -174,9 +208,9 @@
       </header>
       <p class="detail-prescription" id="detailPrescription"></p>
       <section class="detail-section" id="detailTargetsSection"><h3>Muscles</h3><div id="detailMuscles"></div></section>
-      <section class="detail-section" id="detailCategoriesSection"><h3>Categories</h3><p id="detailCategories"></p></section>
+      <section class="detail-section" id="detailCategoriesSection"><h3>Classification</h3><p id="detailCategories"></p></section>
       <section class="detail-section"><h3>Notes</h3><p id="detailInstructions"></p></section>
-      <section class="detail-section" id="detailAlternativesSection"><h3>Alternatives</h3><div id="detailAlternatives"></div></section>
+      <section class="detail-section" id="detailAlternativesSection"><h3>Related exercises</h3><div id="detailAlternatives"></div></section>
       <section class="detail-section"><h3>Video</h3><p class="muted-copy" id="detailVideoEmpty">No video linked.</p></section>
       <div class="detail-sheet-actions">
         <a class="button primary centered-button" id="detailVideo" target="_blank" rel="noopener noreferrer" hidden>Watch video</a>
@@ -229,6 +263,6 @@
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="app.js?v=24"></script>
+  <script type="module" src="app.js?v=28"></script>
 </body>
 </html>

@@ -545,6 +545,83 @@ textarea::placeholder {
   border-bottom: 1px solid var(--border);
 }
 
+.program-switcher {
+  min-height: 56px;
+  margin-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border-strong);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.program-switcher.empty {
+  justify-content: space-between;
+}
+
+.program-switcher.empty > div {
+  min-width: 0;
+  display: grid;
+}
+
+.program-switcher.empty span,
+.program-select > span:first-child {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 650;
+}
+
+.program-switcher.empty strong {
+  font-size: 0.9rem;
+}
+
+.program-select {
+  min-width: 0;
+  min-height: 54px;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  align-content: center;
+  text-align: left;
+  cursor: pointer;
+}
+
+.program-select > span:first-child,
+.program-select strong {
+  min-width: 0;
+  grid-column: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.program-select strong {
+  font-size: 0.96rem;
+  line-height: 1.25;
+}
+
+.program-select-chevron {
+  width: 28px;
+  height: 44px;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+}
+
+.program-select-chevron svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
 .compact-toolbar {
   min-height: 44px;
   margin-bottom: 2px;
@@ -706,6 +783,66 @@ body.entry-drag-active {
   margin: calc(var(--space-2) * -1) 0 0;
   color: var(--text-muted);
   font-size: 0.82rem;
+}
+
+#programCreateFields,
+.programs-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.programs-list {
+  gap: 0;
+}
+
+.program-choice-row {
+  min-width: 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+}
+
+.program-choice {
+  min-width: 0;
+  min-height: 58px;
+  padding: 7px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: left;
+}
+
+.program-choice > span:last-child {
+  min-width: 0;
+  display: grid;
+}
+
+.program-choice strong,
+.program-choice small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.program-choice strong {
+  font-size: 0.9rem;
+}
+
+.program-choice small {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.program-active-mark {
+  width: 24px;
+  flex: 0 0 24px;
+  color: var(--gym-strong);
+  font-weight: 800;
+  text-align: center;
 }
 
 .editor-section {

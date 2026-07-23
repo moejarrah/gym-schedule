@@ -1,17 +1,31 @@
-import { EXERCISE_CATEGORIES, MUSCLE_GROUPS, RULES } from "./data.js?v=24";
 import {
+  EXERCISE_EQUIPMENT,
+  EXERCISE_PURPOSES,
+  EXERCISE_TARGETS,
+  MOVEMENT_PATTERNS,
+  RULES,
+  classificationLabel,
+} from "./data.js?v=28";
+import {
+  addRoutineToProgram,
   createBackup,
+  createProgramInState,
   createStore,
+  duplicateProgramInState,
   localDateKey,
   makeId,
-  moveItem,
   moveRoutineEntry,
+  reorderRoutineInProgram,
   reorderRoutineEntry,
   parseImportedState,
   removeExerciseFromState,
+  removeProgramFromState,
   removeRoutineFromState,
+  renameProgramInState,
+  setActiveProgramInState,
+  setRelatedExercisesInState,
   toggleRoutineForDate,
-} from "./storage.js?v=24";
+} from "./storage.js?v=28";
 
 const store = createStore();
 const main = document.querySelector("#appMain");
@@ -22,14 +36,15 @@ const toast = document.querySelector("#toast");
 
 let currentView = "workout";
 let exerciseQuery = "";
-let exerciseMuscle = "All";
-let exerciseMuscleScope = "primary";
-let exerciseCategory = "All";
+let exerciseTarget = "All";
+let exerciseTargetScope = "primary";
+let exercisePurpose = "All";
 let filterDraftScope = "primary";
 let pickerQuery = "";
-let pendingAlternativeIds = [];
-let alternativeDraftIds = [];
+let pendingRelatedExercises = [];
+let relatedDraftExercises = [];
 let alternativesQuery = "";
+let exerciseEditorSourceId = "";
 let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let toastTimer;
 let confirmResolver;
@@ -89,18 +104,50 @@ function saveResult(result, successMessage) {
   return true;
 }
 
+function getActiveProgram(state = store.getState()) {
+  return state.programs.find((program) => program.id === state.settings.activeProgramId) || null;
+}
+
+function getProgramRoutines(state, program = getActiveProgram(state)) {
+  if (!program) return [];
+  const routineById = new Map(state.routines.map((routine) => [routine.id, routine]));
+  return program.routineIds.map((id) => routineById.get(id)).filter(Boolean);
+}
+
+function getRoutineProgram(state, routineId) {
+  return state.programs.find((program) => program.routineIds.includes(routineId)) || null;
+}
+
 function getActiveRoutine(state = store.getState()) {
-  return state.routines.find((routine) => routine.id === state.settings.activeRoutineId) || state.routines[0] || null;
+  return getProgramRoutines(state).find((routine) => routine.id === state.settings.activeRoutineId) || null;
 }
 
 function routineTabs(state, selectedId) {
-  if (!state.routines.length) return "";
+  const routines = getProgramRoutines(state, getActiveProgram(state));
+  if (!routines.length) return "";
   return `<div class="routine-tabs" aria-label="Choose a routine">
-    ${state.routines.map((routine) => `
+    ${routines.map((routine) => `
       <button class="routine-tab ${routine.group === "home" ? "home" : ""}" type="button"
         aria-label="${escapeHtml(routine.name)}, ${routine.group === "home" ? "Home" : "Gym"}" aria-pressed="${routine.id === selectedId}" data-action="select-routine" data-id="${escapeHtml(routine.id)}">
         <span class="routine-dot" aria-hidden="true"></span>${escapeHtml(routine.name)}
       </button>`).join("")}
+  </div>`;
+}
+
+function programSwitcher(state) {
+  const program = getActiveProgram(state);
+  if (!program) {
+    return `<div class="program-switcher empty">
+      <div><span>Active program</span><strong>No program</strong></div>
+    </div>`;
+  }
+  return `<div class="program-switcher">
+    <button class="program-select" type="button" data-action="open-programs" aria-label="Choose active program, currently ${escapeHtml(program.name)}">
+      <span>Active program</span>
+      <strong>${escapeHtml(program.name)}</strong>
+      <span class="program-select-chevron" aria-hidden="true">${chevronIcon("down")}</span>
+    </button>
+    <button class="mini-button" type="button" data-action="edit-program" data-id="${escapeHtml(program.id)}" aria-label="Edit ${escapeHtml(program.name)}">${editIcon()}</button>
   </div>`;
 }
 
@@ -109,21 +156,29 @@ function exerciseById(state, id) {
 }
 
 function exerciseTargets(exercise) {
-  return [...(exercise?.primaryMuscles || []), ...(exercise?.secondaryMuscles || [])];
+  return [...(exercise?.primaryTargets || []), ...(exercise?.secondaryTargets || [])];
 }
 
 function exerciseSearchTerms(exercise) {
-  return [...exerciseTargets(exercise), ...(exercise?.categories || [])];
+  return [
+    ...exerciseTargets(exercise),
+    exercise?.movementPattern,
+    ...(exercise?.equipment || []),
+    exercise?.purpose,
+    exercise?.style,
+    exercise?.laterality,
+    ...(exercise?.emphases || []),
+  ].filter(Boolean).map(classificationLabel);
 }
 
 function targetSummary(exercise) {
-  const primary = exercise?.primaryMuscles?.join(" / ") || "No primary target";
-  const secondary = exercise?.secondaryMuscles?.join(" / ");
+  const primary = exercise?.primaryTargets?.map(classificationLabel).join(" / ") || "Needs classification";
+  const secondary = exercise?.secondaryTargets?.map(classificationLabel).join(" / ");
   return secondary ? `${primary} · Also ${secondary}` : primary;
 }
 
 function classificationSummary(exercise) {
-  return [targetSummary(exercise), ...(exercise?.categories || [])].join(" · ");
+  return [targetSummary(exercise), classificationLabel(exercise?.movementPattern), classificationLabel(exercise?.purpose)].filter(Boolean).join(" · ");
 }
 
 function editIcon() {
@@ -163,15 +218,17 @@ function render() {
 }
 
 function updateHeader(state) {
+  const program = getActiveProgram(state);
   const routine = getActiveRoutine(state);
+  const programRoutineCount = program?.routineIds.length || 0;
   const todayCompleted = Boolean(routine && state.sessions[localDateKey()]?.routineIds.includes(routine.id));
   const labels = {
-    routines: ["Program", `${state.routines.length} ${state.routines.length === 1 ? "routine" : "routines"}`],
+    routines: ["Program", program ? `Manage ${programRoutineCount} ${programRoutineCount === 1 ? "routine" : "routines"}` : "No program selected"],
     exercises: ["Library", `${state.exercises.length} ${state.exercises.length === 1 ? "exercise" : "exercises"}`],
     calendar: ["Log", "Tap a day to edit"],
   };
   const [title, meta] = currentView === "workout"
-    ? [routine?.name || "Workout", routine ? `${routine.group === "home" ? "Home" : "Gym"} · ${routine.entries.length} ${routine.entries.length === 1 ? "exercise" : "exercises"} · ${routine.status}` : "No routine selected"]
+    ? [routine?.name || "Workout", routine ? `${routine.group === "home" ? "Home" : "Gym"} · ${routine.entries.length} ${routine.entries.length === 1 ? "exercise" : "exercises"} · ${routine.status}` : program ? `${program.name} · No routine selected` : "No program selected"]
     : labels[currentView];
   viewTitle.textContent = title;
   viewMetaLine.textContent = meta;
@@ -191,10 +248,12 @@ function dateFromKey(key) {
 }
 
 function renderWorkout(state) {
+  const program = getActiveProgram(state);
   const routine = getActiveRoutine(state);
   main.innerHTML = `<section class="page">
+    ${programSwitcher(state)}
     ${routineTabs(state, routine?.id)}
-    ${routine ? `
+    ${!program ? `<div class="empty-state"><h3>No programs yet</h3><p>Add a program to organize your workout days.</p><button class="button primary" type="button" data-action="new-program">Add program</button></div>` : routine ? `
       <div class="workout-section-heading">
         <h2>Exercises</h2>
         <button class="text-button" type="button" data-view-link="routines">Manage program</button>
@@ -208,8 +267,8 @@ function renderWorkout(state) {
             <span class="workout-chevron" aria-hidden="true">${chevronIcon("right")}</span>
           </button>
         </article>`;
-      }).join("")}</div>` : `<div class="empty-state compact-empty"><h3>No exercises yet</h3><p>Open Program to add exercises.</p></div>`}
-    ` : `<div class="empty-state"><h3>No routines yet</h3><p>Create a routine, then add exercises from your library.</p><button class="button primary" type="button" data-action="new-routine">Add routine</button></div>`}
+      }).join("")}</div>` : `<div class="empty-state compact-empty"><h3>No exercises yet</h3><p>Open Program to add exercises.</p><button class="button secondary" type="button" data-view-link="routines">Manage program</button></div>`}
+    ` : `<div class="empty-state"><h3>No routines yet</h3><p>Add the first workout day to ${escapeHtml(program.name)} in Program.</p><button class="button primary" type="button" data-view-link="routines">Manage program</button></div>`}
   </section>`;
 }
 
@@ -256,21 +315,33 @@ function openExerciseDetails(exerciseId, prescription = "") {
   document.querySelector("#detailExerciseName").textContent = exercise.name;
   document.querySelector("#detailPrescription").textContent = prescription || exercise.defaultPrescription || "No prescription";
   const muscleList = document.querySelector("#detailMuscles");
-  const primary = exercise.primaryMuscles || [];
-  const secondary = exercise.secondaryMuscles || [];
-  muscleList.innerHTML = `${primary.length ? `<p><strong>Primary</strong> ${primary.map(escapeHtml).join(" · ")}</p>` : ""}${secondary.length ? `<p><strong>Secondary</strong> ${secondary.map(escapeHtml).join(" · ")}</p>` : ""}`;
+  const primary = exercise.primaryTargets || [];
+  const secondary = exercise.secondaryTargets || [];
+  muscleList.innerHTML = `${primary.length ? `<p><strong>Primary</strong> ${primary.map(classificationLabel).map(escapeHtml).join(" · ")}</p>` : ""}${secondary.length ? `<p><strong>Secondary</strong> ${secondary.map(classificationLabel).map(escapeHtml).join(" · ")}</p>` : ""}`;
   document.querySelector("#detailTargetsSection").hidden = !primary.length && !secondary.length;
-  const categories = exercise.categories || [];
-  document.querySelector("#detailCategories").textContent = categories.join(" · ");
-  document.querySelector("#detailCategoriesSection").hidden = !categories.length;
+  const classification = [
+    exercise.movementPattern,
+    ...(exercise.equipment || []),
+    exercise.purpose,
+    exercise.style,
+    exercise.laterality,
+    exercise.support,
+    ...(exercise.emphases || []),
+    exercise.typicalChallenge,
+  ].filter(Boolean);
+  document.querySelector("#detailCategories").textContent = classification.map(classificationLabel).join(" · ");
+  document.querySelector("#detailCategoriesSection").hidden = !classification.length;
   const instructions = document.querySelector("#detailInstructions");
   instructions.textContent = exercise.instructions || "No notes added yet.";
   instructions.classList.toggle("muted-copy", !exercise.instructions);
-  const alternatives = (exercise.alternativeExerciseIds || []).map((id) => exerciseById(state, id)).filter(Boolean);
+  const alternatives = (exercise.relatedExercises || []).map((related) => ({
+    ...related,
+    exercise: exerciseById(state, related.exerciseId),
+  })).filter((related) => related.exercise);
   const alternativesTarget = document.querySelector("#detailAlternatives");
   alternativesTarget.innerHTML = alternatives.length
-    ? `<div class="alternative-links">${alternatives.map((alternative) => `<button type="button" data-action="view-alternative" data-id="${escapeHtml(alternative.id)}">${escapeHtml(alternative.name)}<span aria-hidden="true">›</span></button>`).join("")}</div>`
-    : `<p class="muted-copy">No alternatives linked.</p>`;
+    ? `<div class="alternative-links">${alternatives.map((related) => `<button type="button" data-action="view-alternative" data-id="${escapeHtml(related.exercise.id)}"><span>${escapeHtml(related.exercise.name)}<small>${escapeHtml(related.relation === "similar" ? "Alternative" : related.relation === "easier" ? "Easier" : "Harder")}</small></span><span aria-hidden="true">›</span></button>`).join("")}</div>`
+    : `<p class="muted-copy">No related exercises linked.</p>`;
   const video = document.querySelector("#detailVideo");
   video.hidden = !exercise.videoId;
   document.querySelector("#detailVideoEmpty").hidden = Boolean(exercise.videoId);
@@ -297,7 +368,10 @@ function openDayEditor(dateKey) {
     </header>
     <form id="dayForm" class="day-form" data-date="${dateKey}">
       <fieldset class="field-group"><legend>Completed routines</legend>
-        <div class="day-routines">${routines.length ? routines.map((routine) => `<label class="check-option"><input type="checkbox" name="routine" value="${escapeHtml(routine.id)}" ${session.routineIds.includes(routine.id) ? "checked" : ""}><span><strong>${escapeHtml(routine.name)}</strong><small>${escapeHtml(routine.group)}</small></span></label>`).join("") : `<p class="muted-copy">Add a routine before logging a completion.</p>`}</div>
+        <div class="day-routines">${routines.length ? routines.map((routine) => {
+          const program = getRoutineProgram(state, routine.id);
+          return `<label class="check-option"><input type="checkbox" name="routine" value="${escapeHtml(routine.id)}" ${session.routineIds.includes(routine.id) ? "checked" : ""}><span><strong>${escapeHtml(routine.name)}</strong><small>${escapeHtml(program?.name || "Program")} · ${escapeHtml(routine.group)}</small></span></label>`;
+        }).join("") : `<p class="muted-copy">Add a routine before logging a completion.</p>`}</div>
       </fieldset>
       <label class="field">Note<textarea id="dayNote" rows="4" maxlength="500" placeholder="Optional note">${escapeHtml(session.note)}</textarea></label>
       <p class="form-error" id="dayFormError" role="alert" data-dialog-error></p>
@@ -321,8 +395,8 @@ function saveDay(form) {
 
 function renderExercises(state) {
   const activeFilters = [];
-  if (exerciseMuscle !== "All") activeFilters.push(`${exerciseMuscle} · ${exerciseMuscleScope === "primary" ? "Primary" : "Any"}`);
-  if (exerciseCategory !== "All") activeFilters.push(exerciseCategory);
+  if (exerciseTarget !== "All") activeFilters.push(`${classificationLabel(exerciseTarget)} · ${exerciseTargetScope === "primary" ? "Primary" : "Any"}`);
+  if (exercisePurpose !== "All") activeFilters.push(classificationLabel(exercisePurpose));
   const filterLabel = activeFilters.length ? activeFilters.join(" + ") : "Filter";
   main.innerHTML = `<section class="page">
     <div class="compact-toolbar library-toolbar">
@@ -338,11 +412,11 @@ function renderExercises(state) {
   renderExerciseRows(state);
 }
 
-function filteredExercises(state, query = exerciseQuery, muscle = exerciseMuscle, category = exerciseCategory) {
+function filteredExercises(state, query = exerciseQuery, target = exerciseTarget, purpose = exercisePurpose) {
   const needle = query.trim().toLowerCase();
   return state.exercises
-    .filter((exercise) => muscle === "All" || (exerciseMuscleScope === "primary" ? exercise.primaryMuscles : exerciseTargets(exercise)).includes(muscle))
-    .filter((exercise) => category === "All" || exercise.categories.includes(category))
+    .filter((exercise) => target === "All" || (exerciseTargetScope === "primary" ? exercise.primaryTargets : exerciseTargets(exercise)).includes(target))
+    .filter((exercise) => purpose === "All" || exercise.purpose === purpose)
     .filter((exercise) => !needle || exercise.name.toLowerCase().includes(needle) || exerciseSearchTerms(exercise).some((item) => item.toLowerCase().includes(needle)))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -365,13 +439,13 @@ function renderExerciseRows(state) {
 }
 
 function openExerciseFilter() {
-  filterDraftScope = exerciseMuscleScope;
-  const muscleSelect = document.querySelector("#muscleFilterSelect");
-  muscleSelect.innerHTML = ["All", ...MUSCLE_GROUPS].map((muscle) => `<option value="${escapeHtml(muscle)}">${escapeHtml(muscle === "All" ? "All muscles" : muscle)}</option>`).join("");
-  muscleSelect.value = exerciseMuscle;
-  const categorySelect = document.querySelector("#categoryFilterSelect");
-  categorySelect.innerHTML = ["All", ...EXERCISE_CATEGORIES].map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category === "All" ? "All categories" : category)}</option>`).join("");
-  categorySelect.value = exerciseCategory;
+  filterDraftScope = exerciseTargetScope;
+  const targetSelect = document.querySelector("#targetFilterSelect");
+  targetSelect.innerHTML = `<option value="All">All targets</option>${EXERCISE_TARGETS.map((target) => `<option value="${escapeHtml(target.id)}">${escapeHtml(target.label)}</option>`).join("")}`;
+  targetSelect.value = exerciseTarget;
+  const purposeSelect = document.querySelector("#purposeFilterSelect");
+  purposeSelect.innerHTML = `<option value="All">All purposes</option>${EXERCISE_PURPOSES.map((purpose) => `<option value="${escapeHtml(purpose.id)}">${escapeHtml(purpose.label)}</option>`).join("")}`;
+  purposeSelect.value = exercisePurpose;
   document.querySelectorAll('#muscleScopeOptions [data-scope]').forEach((button) => {
     button.setAttribute("aria-pressed", String(button.dataset.scope === filterDraftScope));
   });
@@ -379,28 +453,31 @@ function openExerciseFilter() {
 }
 
 function renderRoutines(state) {
+  const program = getActiveProgram(state);
+  const routines = getProgramRoutines(state, program);
   const routine = getActiveRoutine(state);
   main.innerHTML = `<section class="page">
-    <div class="compact-toolbar">
+    ${programSwitcher(state)}
+    ${program ? `<div class="compact-toolbar">
       <span class="toolbar-label">Manage routines</span>
       <button class="button primary compact-button" type="button" data-action="new-routine">Add routine</button>
-    </div>
+    </div>` : ""}
     ${routineTabs(state, routine?.id)}
-    ${routine ? `
+    ${!program ? `<div class="empty-state"><h3>No programs yet</h3><p>Create a program, then add its workout days.</p><button class="button primary" type="button" data-action="new-program">Add program</button></div>` : routine ? `
       <div class="program-heading">
         <div>
           <h2>${escapeHtml(routine.name)}</h2>
           <p>${routine.group === "home" ? "Home" : "Gym"} · ${routine.status} · ${routine.entries.length} ${routine.entries.length === 1 ? "exercise" : "exercises"}</p>
         </div>
         <div class="row-actions">
-          <button class="mini-button" type="button" data-action="move-routine-up" data-id="${escapeHtml(routine.id)}" aria-label="Move routine earlier" ${state.routines.indexOf(routine) === 0 ? "disabled" : ""}>${upIcon()}</button>
-          <button class="mini-button" type="button" data-action="move-routine-down" data-id="${escapeHtml(routine.id)}" aria-label="Move routine later" ${state.routines.indexOf(routine) === state.routines.length - 1 ? "disabled" : ""}>${downIcon()}</button>
+          <button class="mini-button" type="button" data-action="move-routine-up" data-id="${escapeHtml(routine.id)}" aria-label="Move routine earlier" ${routines.indexOf(routine) === 0 ? "disabled" : ""}>${upIcon()}</button>
+          <button class="mini-button" type="button" data-action="move-routine-down" data-id="${escapeHtml(routine.id)}" aria-label="Move routine later" ${routines.indexOf(routine) === routines.length - 1 ? "disabled" : ""}>${downIcon()}</button>
           <button class="mini-button" type="button" data-action="edit-routine" data-id="${escapeHtml(routine.id)}" aria-label="Edit ${escapeHtml(routine.name)}">${editIcon()}</button>
         </div>
       </div>
       ${renderRoutineEntries(state, routine)}
       <button class="add-row-button" type="button" data-action="open-picker">+ Add exercise</button>
-    ` : `<div class="list-panel"><div class="empty-state"><h3>No routines yet</h3><p>Add your first routine, then fill it from the exercise library.</p><button class="button primary" type="button" data-action="new-routine">Add routine</button></div></div>`}
+    ` : `<div class="empty-state"><h3>No routines yet</h3><p>Add the first workout day to ${escapeHtml(program.name)}. Exercises will come from the shared Library.</p><button class="button primary" type="button" data-action="new-routine">Add routine</button></div>`}
   </section>`;
 }
 
@@ -614,6 +691,7 @@ function openExerciseEditor(exerciseId = "", duplicate = false) {
   const state = store.getState();
   const source = exerciseId ? exerciseById(state, exerciseId) : null;
   const editing = source && !duplicate;
+  exerciseEditorSourceId = source?.id || "";
   document.querySelector("#exerciseDialogTitle").textContent = editing ? "Edit exercise" : duplicate ? "Duplicate exercise" : "Add exercise";
   document.querySelector("#exerciseId").value = editing ? source.id : "";
   document.querySelector("#exerciseName").value = source ? `${source.name}${duplicate ? " copy" : ""}` : "";
@@ -623,27 +701,51 @@ function openExerciseEditor(exerciseId = "", duplicate = false) {
   document.querySelector("#exerciseFormError").textContent = "";
   document.querySelector("#deleteExerciseButton").hidden = !editing;
   document.querySelector("#duplicateExerciseButton").hidden = !editing;
-  pendingAlternativeIds = [...(source?.alternativeExerciseIds || [])];
+  pendingRelatedExercises = (source?.relatedExercises || []).map((related) => ({ ...related }));
   updateAlternativesCount();
-  const primarySelect = document.querySelector("#exercisePrimaryMuscle");
-  primarySelect.innerHTML = `<option value="" disabled>Choose primary muscle</option>${MUSCLE_GROUPS.map((muscle) => `<option value="${escapeHtml(muscle)}">${escapeHtml(muscle)}</option>`).join("")}`;
-  primarySelect.value = source?.primaryMuscles?.[0] || "";
-  document.querySelector("#secondaryMuscleOptions").innerHTML = MUSCLE_GROUPS.map((muscle) => `
-    <label class="check-option"><input type="checkbox" name="secondaryMuscles" value="${escapeHtml(muscle)}" ${source?.secondaryMuscles?.includes(muscle) ? "checked" : ""} ${primarySelect.value === muscle ? "disabled" : ""}>${escapeHtml(muscle)}</label>`).join("");
-  document.querySelector("#exerciseCategoryOptions").innerHTML = EXERCISE_CATEGORIES.map((category) => `
-    <label class="check-option"><input type="checkbox" name="exerciseCategories" value="${escapeHtml(category)}" ${source?.categories?.includes(category) ? "checked" : ""}>${escapeHtml(category)}</label>`).join("");
+  const targetOptions = EXERCISE_TARGETS.map((target) => `<option value="${escapeHtml(target.id)}">${escapeHtml(target.label)}</option>`).join("");
+  const primaryTarget1 = document.querySelector("#exercisePrimaryTarget1");
+  const primaryTarget2 = document.querySelector("#exercisePrimaryTarget2");
+  primaryTarget1.innerHTML = `<option value="" disabled>Choose dominant target</option>${targetOptions}`;
+  primaryTarget2.innerHTML = `<option value="">No second primary target</option>${targetOptions}`;
+  primaryTarget1.value = source?.primaryTargets?.[0] || "";
+  primaryTarget2.value = source?.primaryTargets?.[1] || "";
+  document.querySelector("#secondaryTargetOptions").innerHTML = EXERCISE_TARGETS.map((target) => `
+    <label class="check-option"><input type="checkbox" name="secondaryTargets" value="${escapeHtml(target.id)}" ${source?.secondaryTargets?.includes(target.id) ? "checked" : ""}>${escapeHtml(target.label)}</label>`).join("");
+  const movement = document.querySelector("#exerciseMovement");
+  movement.innerHTML = `<option value="" disabled>Choose movement</option>${MOVEMENT_PATTERNS.map((value) => `<option value="${escapeHtml(value.id)}">${escapeHtml(value.label)}</option>`).join("")}`;
+  movement.value = source?.movementPattern || "";
+  const purpose = document.querySelector("#exercisePurpose");
+  purpose.innerHTML = `<option value="" disabled>Choose purpose</option>${EXERCISE_PURPOSES.map((value) => `<option value="${escapeHtml(value.id)}">${escapeHtml(value.label)}</option>`).join("")}`;
+  purpose.value = source?.purpose || "";
+  document.querySelector("#exerciseEquipmentOptions").innerHTML = EXERCISE_EQUIPMENT.map((value) => `
+    <label class="check-option"><input type="checkbox" name="exerciseEquipment" value="${escapeHtml(value.id)}" ${source?.equipment?.includes(value.id) ? "checked" : ""}>${escapeHtml(value.label)}</label>`).join("");
+  syncExerciseTargetOptions();
   document.querySelector("#exerciseDialog").showModal();
   requestAnimationFrame(() => document.querySelector("#exerciseName").focus());
 }
 
+function syncExerciseTargetOptions() {
+  const primaryTarget1 = document.querySelector("#exercisePrimaryTarget1");
+  const primaryTarget2 = document.querySelector("#exercisePrimaryTarget2");
+  if (primaryTarget1.value && primaryTarget1.value === primaryTarget2.value) primaryTarget2.value = "";
+  const selected = new Set([primaryTarget1.value, primaryTarget2.value].filter(Boolean));
+  for (const option of primaryTarget1.options) option.disabled = Boolean(option.value && option.value === primaryTarget2.value);
+  for (const option of primaryTarget2.options) option.disabled = Boolean(option.value && option.value === primaryTarget1.value);
+  document.querySelectorAll('#secondaryTargetOptions input').forEach((input) => {
+    if (selected.has(input.value)) input.checked = false;
+    input.disabled = selected.has(input.value);
+  });
+}
+
 function updateAlternativesCount() {
-  const count = pendingAlternativeIds.length;
+  const count = pendingRelatedExercises.length;
   document.querySelector("#alternativesCount").textContent = count ? `${count} linked` : "None linked";
 }
 
 function openAlternativesPicker() {
   alternativesQuery = "";
-  alternativeDraftIds = [...pendingAlternativeIds];
+  relatedDraftExercises = pendingRelatedExercises.map((related) => ({ ...related }));
   document.querySelector("#alternativesSearch").value = "";
   renderAlternativesList();
   document.querySelector("#alternativesDialog").showModal();
@@ -659,7 +761,7 @@ function renderAlternativesList() {
     .filter((exercise) => !needle || exercise.name.toLowerCase().includes(needle) || exerciseSearchTerms(exercise).some((term) => term.toLowerCase().includes(needle)))
     .sort((a, b) => a.name.localeCompare(b.name));
   document.querySelector("#alternativesList").innerHTML = exercises.length ? exercises.map((exercise) => `
-    <label class="check-option alternative-option"><input type="checkbox" value="${escapeHtml(exercise.id)}" ${alternativeDraftIds.includes(exercise.id) ? "checked" : ""}><span><strong>${escapeHtml(exercise.name)}</strong><small>${escapeHtml(classificationSummary(exercise))}</small></span></label>`).join("") : `<p class="muted-copy">No matching exercises.</p>`;
+    <label class="check-option alternative-option"><input type="checkbox" value="${escapeHtml(exercise.id)}" ${relatedDraftExercises.some((related) => related.exerciseId === exercise.id) ? "checked" : ""}><span><strong>${escapeHtml(exercise.name)}</strong><small>${escapeHtml(classificationSummary(exercise))}</small></span></label>`).join("") : `<p class="muted-copy">No matching exercises.</p>`;
 }
 
 function youtubeId(value) {
@@ -672,8 +774,15 @@ function youtubeId(value) {
 function saveExercise() {
   const state = store.getState();
   const id = document.querySelector("#exerciseId").value;
+  const source = state.exercises.find((exercise) => exercise.id === (id || exerciseEditorSourceId));
   const name = document.querySelector("#exerciseName").value.trim();
-  const primaryMuscle = document.querySelector("#exercisePrimaryMuscle").value;
+  const primaryTargets = [
+    document.querySelector("#exercisePrimaryTarget1").value,
+    document.querySelector("#exercisePrimaryTarget2").value,
+  ].filter(Boolean);
+  const movementPattern = document.querySelector("#exerciseMovement").value;
+  const purpose = document.querySelector("#exercisePurpose").value;
+  const equipment = [...document.querySelectorAll('#exerciseEquipmentOptions input:checked')].map((input) => input.value);
   const videoId = youtubeId(document.querySelector("#exerciseVideo").value);
   const error = document.querySelector("#exerciseFormError");
   if (!name) {
@@ -685,28 +794,58 @@ function saveExercise() {
     error.textContent = "An exercise with this name already exists.";
     return false;
   }
-  if (!MUSCLE_GROUPS.includes(primaryMuscle)) {
-    error.textContent = "Choose one primary muscle.";
+  if (!primaryTargets.length || primaryTargets.some((target) => !EXERCISE_TARGETS.some((option) => option.id === target))) {
+    error.textContent = "Choose a dominant target.";
+    return false;
+  }
+  if (!MOVEMENT_PATTERNS.some((option) => option.id === movementPattern)) {
+    error.textContent = "Choose a movement.";
+    return false;
+  }
+  if (!equipment.length || equipment.some((value) => !EXERCISE_EQUIPMENT.some((option) => option.id === value))) {
+    error.textContent = "Choose at least one equipment option.";
+    return false;
+  }
+  if (!EXERCISE_PURPOSES.some((option) => option.id === purpose)) {
+    error.textContent = "Choose a purpose.";
     return false;
   }
   if (videoId === null) {
     error.textContent = "Paste a YouTube link or its 11-character video ID.";
     return false;
   }
+  const exerciseId = id || makeId("exercise");
   const exercise = {
-    id: id || makeId("exercise"),
+    ...(source || {
+      style: "",
+      laterality: "",
+      support: "",
+      emphases: [],
+      typicalChallenge: "",
+      relatedExercises: [],
+    }),
+    id: exerciseId,
     name,
-    primaryMuscles: [primaryMuscle],
-    secondaryMuscles: [...document.querySelectorAll('#secondaryMuscleOptions input:checked')].map((input) => input.value).filter((muscle) => muscle !== primaryMuscle),
-    categories: [...document.querySelectorAll('#exerciseCategoryOptions input:checked')].map((input) => input.value),
+    primaryTargets,
+    secondaryTargets: [...document.querySelectorAll('#secondaryTargetOptions input:checked')].map((input) => input.value).filter((target) => !primaryTargets.includes(target)),
+    movementPattern,
+    equipment,
+    purpose,
     defaultPrescription: document.querySelector("#exercisePrescription").value.trim(),
     videoId,
     instructions: document.querySelector("#exerciseInstructions").value.trim(),
-    alternativeExerciseIds: [...new Set(pendingAlternativeIds)].filter((alternativeId) => alternativeId !== id && state.exercises.some((item) => item.id === alternativeId)),
   };
   const result = store.update((next) => {
     if (id) next.exercises = next.exercises.map((item) => item.id === id ? exercise : item);
     else next.exercises.push(exercise);
+    return setRelatedExercisesInState(
+      next,
+      exerciseId,
+      pendingRelatedExercises.filter((related) => (
+        related.exerciseId !== exerciseId
+        && next.exercises.some((item) => item.id === related.exerciseId)
+      )),
+    );
   });
   if (!saveResult(result, id ? "Exercise updated." : "Exercise added.")) return false;
   document.querySelector("#exerciseDialog").close();
@@ -731,8 +870,138 @@ async function deleteExercise(id) {
   }
 }
 
+function renderProgramsList() {
+  const state = store.getState();
+  const target = document.querySelector("#programsList");
+  target.innerHTML = state.programs.length ? state.programs.map((program) => {
+    const active = program.id === state.settings.activeProgramId;
+    const routineCount = program.routineIds.length;
+    return `<div class="program-choice-row">
+      <button class="program-choice" type="button" data-action="select-program" data-id="${escapeHtml(program.id)}" aria-pressed="${active}">
+        <span class="program-active-mark" aria-hidden="true">${active ? "✓" : ""}</span>
+        <span><strong>${escapeHtml(program.name)}</strong><small>${routineCount} ${routineCount === 1 ? "routine" : "routines"}${active ? " · Active" : ""}</small></span>
+      </button>
+      <button class="mini-button" type="button" data-action="edit-program" data-id="${escapeHtml(program.id)}" aria-label="Edit ${escapeHtml(program.name)}">${editIcon()}</button>
+    </div>`;
+  }).join("") : `<div class="empty-state compact-empty"><h3>No programs yet</h3><p>Add one to organize your workout days.</p></div>`;
+}
+
+function openPrograms() {
+  renderProgramsList();
+  document.querySelector("#programsFormError").textContent = "";
+  document.querySelector("#programsDialog").showModal();
+}
+
+function syncProgramStartMode() {
+  const mode = document.querySelector("#programStartMode").value;
+  const sourceField = document.querySelector("#programDuplicateSourceField");
+  const source = document.querySelector("#programDuplicateSource");
+  sourceField.hidden = mode !== "duplicate";
+  source.disabled = mode !== "duplicate";
+}
+
+function openProgramEditor(id = "", duplicateSourceId = "") {
+  const state = store.getState();
+  const program = id ? state.programs.find((item) => item.id === id) : null;
+  const duplicateSource = duplicateSourceId ? state.programs.find((item) => item.id === duplicateSourceId) : null;
+  if (id && !program) return;
+
+  const programsDialog = document.querySelector("#programsDialog");
+  if (programsDialog.open) programsDialog.close();
+  const programDialog = document.querySelector("#programDialog");
+  if (programDialog.open) programDialog.close();
+
+  const sourceSelect = document.querySelector("#programDuplicateSource");
+  sourceSelect.innerHTML = state.programs.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("");
+  const duplicateOption = document.querySelector('#programStartMode option[value="duplicate"]');
+  duplicateOption.disabled = !state.programs.length;
+
+  document.querySelector("#programDialogTitle").textContent = program ? "Edit program" : "Add program";
+  document.querySelector("#programId").value = program?.id || "";
+  document.querySelector("#programName").value = program?.name || (duplicateSource ? `${duplicateSource.name} copy` : "");
+  document.querySelector("#programCreateFields").hidden = Boolean(program);
+  document.querySelector("#programEditActions").hidden = !program;
+  document.querySelector("#programSaveButton").textContent = program ? "Save changes" : "Create program";
+  document.querySelector("#programFormError").textContent = "";
+  document.querySelector("#programStartMode").value = duplicateSource ? "duplicate" : "empty";
+  if (state.programs.length) sourceSelect.value = duplicateSource?.id || state.settings.activeProgramId || state.programs[0].id;
+  syncProgramStartMode();
+  programDialog.showModal();
+  requestAnimationFrame(() => document.querySelector("#programName").focus());
+}
+
+function saveProgram() {
+  const state = store.getState();
+  const id = document.querySelector("#programId").value;
+  const name = document.querySelector("#programName").value.trim();
+  const error = document.querySelector("#programFormError");
+  if (!name) {
+    error.textContent = "Enter a program name.";
+    return false;
+  }
+  const duplicateName = state.programs.find((program) => program.id !== id && program.name.toLowerCase() === name.toLowerCase());
+  if (duplicateName) {
+    error.textContent = "A program with this name already exists.";
+    return false;
+  }
+
+  let next;
+  if (id) {
+    next = renameProgramInState(state, id, name);
+  } else if (document.querySelector("#programStartMode").value === "duplicate") {
+    const sourceId = document.querySelector("#programDuplicateSource").value;
+    if (!state.programs.some((program) => program.id === sourceId)) {
+      error.textContent = "Choose a program to duplicate.";
+      return false;
+    }
+    next = duplicateProgramInState(state, sourceId, name);
+  } else {
+    next = createProgramInState(state, name);
+  }
+
+  const result = store.replace(next);
+  const successMessage = id ? "Program renamed." : "Program created.";
+  if (!saveResult(result, successMessage)) return false;
+  document.querySelector("#programDialog").close();
+  render();
+  main.scrollTop = 0;
+  return true;
+}
+
+function selectProgram(id) {
+  const state = store.getState();
+  if (!state.programs.some((program) => program.id === id)) return;
+  const result = store.replace(setActiveProgramInState(state, id));
+  if (!saveResult(result, "Program selected.")) return;
+  document.querySelector("#programsDialog").close();
+  render();
+  main.scrollTop = 0;
+}
+
+async function deleteProgram(id) {
+  const state = store.getState();
+  const program = state.programs.find((item) => item.id === id);
+  if (!program) return;
+  const count = program.routineIds.length;
+  const confirmed = await confirmAction(
+    `Delete ${program.name}?`,
+    `This removes ${count} ${count === 1 ? "routine" : "routines"} and their completion history. Master exercises stay in the Library.`,
+    "Delete program",
+  );
+  if (!confirmed) return;
+  const result = store.replace(removeProgramFromState(state, id));
+  if (!saveResult(result, "Program deleted.")) return;
+  document.querySelector("#programDialog").close();
+  render();
+  main.scrollTop = 0;
+}
+
 function openRoutineEditor(id = "") {
   const state = store.getState();
+  if (!getActiveProgram(state)) {
+    openProgramEditor();
+    return;
+  }
   const routine = state.routines.find((item) => item.id === id);
   document.querySelector("#routineDialogTitle").textContent = routine ? "Edit routine" : "Add routine";
   document.querySelector("#routineId").value = routine?.id || "";
@@ -747,6 +1016,7 @@ function openRoutineEditor(id = "") {
 
 function saveRoutine() {
   const state = store.getState();
+  const activeProgram = getActiveProgram(state);
   const id = document.querySelector("#routineId").value;
   const name = document.querySelector("#routineName").value.trim();
   const error = document.querySelector("#routineFormError");
@@ -754,7 +1024,8 @@ function saveRoutine() {
     error.textContent = "Enter a routine name.";
     return false;
   }
-  const duplicate = state.routines.find((routine) => routine.id !== id && routine.name.toLowerCase() === name.toLowerCase());
+  const owner = id ? getRoutineProgram(state, id) : activeProgram;
+  const duplicate = getProgramRoutines(state, owner).find((routine) => routine.id !== id && routine.name.toLowerCase() === name.toLowerCase());
   if (duplicate) {
     error.textContent = "A routine with this name already exists.";
     return false;
@@ -769,14 +1040,15 @@ function saveRoutine() {
         status: document.querySelector("#routineStatus").value,
       } : routine);
     } else {
-      next.routines.push({
+      const withRoutine = addRoutineToProgram(next, next.settings.activeProgramId, {
         id: routineId,
         name,
         group: document.querySelector("#routineGroup").value,
         status: document.querySelector("#routineStatus").value,
         entries: [],
       });
-      next.settings.activeRoutineId = routineId;
+      withRoutine.settings.activeRoutineId = routineId;
+      return withRoutine;
     }
   });
   if (!saveResult(result, id ? "Routine updated." : "Routine added.")) return false;
@@ -799,15 +1071,21 @@ async function deleteRoutine(id) {
 }
 
 function selectRoutine(id) {
-  const result = store.update((state) => { state.settings.activeRoutineId = id; });
+  const result = store.update((state) => {
+    const owner = state.programs.find((program) => program.routineIds.includes(id));
+    if (!owner) return state;
+    const next = setActiveProgramInState(state, owner.id);
+    next.settings.activeRoutineId = id;
+    return next;
+  });
   if (saveResult(result)) render();
 }
 
 function moveRoutine(id, direction) {
-  const result = store.update((state) => {
-    const index = state.routines.findIndex((routine) => routine.id === id);
-    state.routines = moveItem(state.routines, index, direction);
-  });
+  const state = store.getState();
+  const program = state.programs.find((item) => item.routineIds.includes(id));
+  const index = program?.routineIds.indexOf(id) ?? -1;
+  const result = store.replace(reorderRoutineInProgram(state, program?.id, id, index + direction));
   if (saveResult(result)) render();
 }
 
@@ -1007,6 +1285,9 @@ main.addEventListener("click", (event) => {
   if (action === "new-exercise") openExerciseEditor();
   else if (action === "view-exercise") openExerciseDetails(id);
   else if (action === "open-exercise-filter") openExerciseFilter();
+  else if (action === "open-programs") openPrograms();
+  else if (action === "new-program") openProgramEditor();
+  else if (action === "edit-program") openProgramEditor(id);
   else if (action === "new-routine") openRoutineEditor();
   else if (action === "edit-routine") openRoutineEditor(id);
   else if (action === "select-routine") selectRoutine(id);
@@ -1074,10 +1355,20 @@ document.querySelector("#pickerList").addEventListener("click", (event) => {
   if (button) pickExercise(button.dataset.id);
 });
 
+document.querySelector("#programsList").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-action]");
+  if (!button) return;
+  if (button.dataset.action === "select-program") selectProgram(button.dataset.id);
+  else if (button.dataset.action === "edit-program") openProgramEditor(button.dataset.id);
+});
+
+document.querySelector("#newProgramButton").addEventListener("click", () => openProgramEditor());
+document.querySelector("#programStartMode").addEventListener("change", syncProgramStartMode);
+
 document.querySelector("#applyExerciseFilterButton").addEventListener("click", () => {
-  exerciseMuscle = document.querySelector("#muscleFilterSelect").value;
-  exerciseMuscleScope = filterDraftScope;
-  exerciseCategory = document.querySelector("#categoryFilterSelect").value;
+  exerciseTarget = document.querySelector("#targetFilterSelect").value;
+  exerciseTargetScope = filterDraftScope;
+  exercisePurpose = document.querySelector("#purposeFilterSelect").value;
   document.querySelector("#exerciseFilterDialog").close();
   renderExercises(store.getState());
 });
@@ -1097,23 +1388,23 @@ document.querySelector("#pickerSearch").addEventListener("input", (event) => {
 });
 
 document.querySelector("#chooseAlternativesButton").addEventListener("click", openAlternativesPicker);
-document.querySelector("#exercisePrimaryMuscle").addEventListener("change", (event) => {
-  document.querySelectorAll('#secondaryMuscleOptions input').forEach((input) => {
-    if (input.value === event.target.value) input.checked = false;
-    input.disabled = input.value === event.target.value;
-  });
-});
+for (const selectId of ["exercisePrimaryTarget1", "exercisePrimaryTarget2"]) {
+  document.querySelector(`#${selectId}`).addEventListener("change", syncExerciseTargetOptions);
+}
 document.querySelector("#alternativesSearch").addEventListener("input", (event) => {
   alternativesQuery = event.target.value;
   renderAlternativesList();
 });
 document.querySelector("#alternativesList").addEventListener("change", (event) => {
   if (event.target.type !== "checkbox") return;
-  if (event.target.checked) alternativeDraftIds = [...new Set([...alternativeDraftIds, event.target.value])];
-  else alternativeDraftIds = alternativeDraftIds.filter((id) => id !== event.target.value);
+  if (event.target.checked && !relatedDraftExercises.some((related) => related.exerciseId === event.target.value)) {
+    relatedDraftExercises.push({ exerciseId: event.target.value, relation: "similar" });
+  } else if (!event.target.checked) {
+    relatedDraftExercises = relatedDraftExercises.filter((related) => related.exerciseId !== event.target.value);
+  }
 });
 document.querySelector("#saveAlternativesButton").addEventListener("click", () => {
-  pendingAlternativeIds = [...alternativeDraftIds];
+  pendingRelatedExercises = relatedDraftExercises.map((related) => ({ ...related }));
   updateAlternativesCount();
   document.querySelector("#alternativesDialog").close();
 });
@@ -1158,6 +1449,12 @@ document.querySelector("#routineForm").addEventListener("submit", (event) => {
   saveRoutine();
 });
 
+document.querySelector("#programForm").addEventListener("submit", (event) => {
+  if (event.submitter?.value !== "save") return;
+  event.preventDefault();
+  saveProgram();
+});
+
 document.querySelector("#entryForm").addEventListener("submit", (event) => {
   if (event.submitter?.value !== "save") return;
   event.preventDefault();
@@ -1181,6 +1478,11 @@ document.querySelector("#duplicateExerciseButton").addEventListener("click", () 
   openExerciseEditor(id, true);
 });
 document.querySelector("#deleteRoutineButton").addEventListener("click", () => deleteRoutine(document.querySelector("#routineId").value));
+document.querySelector("#duplicateProgramButton").addEventListener("click", () => {
+  const id = document.querySelector("#programId").value;
+  openProgramEditor("", id);
+});
+document.querySelector("#deleteProgramButton").addEventListener("click", () => deleteProgram(document.querySelector("#programId").value));
 headerCompleteButton.addEventListener("click", toggleToday);
 document.querySelector("#settingsThemeButton").addEventListener("click", toggleTheme);
 document.querySelector("#settingsButton").addEventListener("click", openSettings);
@@ -1218,7 +1520,7 @@ if ("serviceWorker" in navigator) {
     }
   });
   navigator.serviceWorker
-    .register("sw.js?v=24", { updateViaCache: "none" })
+    .register("sw.js?v=28", { updateViaCache: "none" })
     .then((registration) => registration.update())
     .catch(() => showToast("Offline mode could not be started."));
 }

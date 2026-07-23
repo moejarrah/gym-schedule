@@ -4,7 +4,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { runInNewContext } from "node:vm";
 
 import { createDefaultState } from "../data.js";
-import { validateState } from "../storage.js";
+import { setRelatedExercisesInState, validateState } from "../storage.js";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
@@ -26,7 +26,7 @@ test("HTML keeps zoom enabled and uses external production assets", () => {
   const viewport = html.match(/<meta name="viewport" content="([^"]+)">/)?.[1] || "";
   assert.match(viewport, /viewport-fit=cover/);
   assert.doesNotMatch(viewport, /user-scalable=no|maximum-scale=1/);
-  assert.match(html, /<script type="module" src="app\.js\?v=24"><\/script>/);
+  assert.match(html, /<script type="module" src="app\.js\?v=28"><\/script>/);
   assert.match(html, /rel="apple-touch-icon"[^>]+app-icon-180\.png/);
   assert.doesNotMatch(html, /\sonclick=/);
 });
@@ -37,9 +37,9 @@ test("offline shell lists every production module and icon", () => {
     assert.match(worker, new RegExp(asset.replaceAll(".", "\\.")));
   }
   assert.match(worker, /event\.request\.mode === "navigate"/);
-  assert.match(worker, /gym-schedule-v24/);
-  assert.match(worker, /styles\.css\?v=24/);
-  assert.match(worker, /app\.js\?v=24/);
+  assert.match(worker, /gym-schedule-v28/);
+  assert.match(worker, /styles\.css\?v=28/);
+  assert.match(worker, /app\.js\?v=28/);
 });
 
 test("activation removes only stale caches owned by the gym app", async () => {
@@ -142,7 +142,7 @@ test("the iPhone shell constrains the app and leaves the main view scrollable", 
 test("core exercise references and program controls remain reachable", () => {
   const html = read("index.html");
   const app = read("app.js");
-  for (const id of ["detailVideo", "detailAlternatives", "detailEditExercise", "detailCategories", "exercisePrimaryMuscle", "secondaryMuscleOptions", "exerciseCategoryOptions", "categoryFilterSelect"]) {
+  for (const id of ["detailVideo", "detailAlternatives", "detailEditExercise", "detailCategories", "exercisePrimaryTarget1", "exercisePrimaryTarget2", "secondaryTargetOptions", "exerciseMovement", "exerciseEquipmentOptions", "exercisePurpose", "purposeFilterSelect"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
   assert.match(app, /data-action="open-workout-exercise"/);
@@ -158,26 +158,70 @@ test("core exercise references and program controls remain reachable", () => {
   assert.doesNotMatch(app, /toggle-program-edit/);
 });
 
-test("exercise editing requires one supported primary target without a legacy UI state", () => {
+test("Program management is reachable and routine views are scoped to the active program", () => {
   const html = read("index.html");
   const app = read("app.js");
-  assert.match(html, /id="exercisePrimaryMuscle"[^>]+required/);
-  assert.doesNotMatch(html, />Not set<\/option>/);
-  assert.match(app, /if \(!MUSCLE_GROUPS\.includes\(primaryMuscle\)\)/);
-  assert.match(app, /primaryMuscles: \[primaryMuscle\]/);
-  assert.match(app, /exerciseMuscleScope === "primary" \? exercise\.primaryMuscles : exerciseTargets\(exercise\)/);
+  const css = read("styles.css");
+
+  for (const id of [
+    "programsDialog",
+    "programsList",
+    "programDialog",
+    "programForm",
+    "programName",
+    "programStartMode",
+    "programDuplicateSource",
+    "programFormError",
+  ]) {
+    assert.match(html, new RegExp(`id="${id}"`));
+  }
+
+  for (const action of [
+    "open-programs",
+    "select-program",
+    "edit-program",
+    "new-program",
+  ]) {
+    assert.match(app, new RegExp(`data-action="${action}"`));
+  }
+
+  assert.match(app, /function getActiveProgram\(/);
+  assert.match(app, /function getProgramRoutines\(/);
+  assert.match(app, /getProgramRoutines\(state,\s*getActiveProgram\(state\)\)/);
+  assert.match(app, /createProgramInState/);
+  assert.match(app, /duplicateProgramInState/);
+  assert.match(app, /renameProgramInState/);
+  assert.match(app, /removeProgramFromState/);
+  assert.match(css, /\.program-switcher/);
 });
 
-test("exercise save executes add, edit, duplicate, categories, and required-primary paths", () => {
+test("exercise editing requires the essential classification without a legacy UI state", () => {
+  const html = read("index.html");
+  const app = read("app.js");
+  assert.match(html, /id="exercisePrimaryTarget1"[^>]+required/);
+  assert.match(html, /id="exerciseMovement"[^>]+required/);
+  assert.match(html, /id="exercisePurpose"[^>]+required/);
+  assert.doesNotMatch(html, />Not set<\/option>/);
+  assert.match(app, /EXERCISE_TARGETS\.some\(\(option\) => option\.id === target\)/);
+  assert.match(app, /MOVEMENT_PATTERNS\.some\(\(option\) => option\.id === movementPattern\)/);
+  assert.match(app, /EXERCISE_EQUIPMENT\.some\(\(option\) => option\.id === value\)/);
+  assert.match(app, /EXERCISE_PURPOSES\.some\(\(option\) => option\.id === purpose\)/);
+  assert.match(app, /exerciseTargetScope === "primary" \? exercise\.primaryTargets : exerciseTargets\(exercise\)/);
+});
+
+test("exercise save executes add, edit, duplicate, essential classification, and required-target paths", () => {
   const app = read("app.js");
   const start = app.indexOf("function youtubeId(");
   const end = app.indexOf("async function deleteExercise(", start);
   assert.notEqual(start, -1);
   assert.notEqual(end, -1);
   const source = app.slice(start, end);
-  const muscles = ["Chest", "Back", "Shoulders", "Triceps", "Glutes", "Hamstrings"];
+  const targets = ["chest", "lats", "front-delts", "triceps", "glute-max", "hamstrings"].map((id) => ({ id }));
+  const movements = ["horizontal-press", "hip-thrust-bridge"].map((id) => ({ id }));
+  const equipmentValues = ["dumbbells", "bench", "cable"].map((id) => ({ id }));
+  const purposes = ["strength", "mobility", "rehab"].map((id) => ({ id }));
 
-  function runSave(state, values, secondaryMuscles = [], categories = []) {
+  function runSave(state, values, secondaryTargets = [], equipment = [], pendingRelatedExercises = []) {
     const error = { textContent: "" };
     let updateCalls = 0;
     let closeCalls = 0;
@@ -185,7 +229,10 @@ test("exercise save executes add, edit, duplicate, categories, and required-prim
     const elements = {
       "#exerciseId": { value: values.id || "" },
       "#exerciseName": { value: values.name || "" },
-      "#exercisePrimaryMuscle": { value: values.primaryMuscle || "" },
+      "#exercisePrimaryTarget1": { value: values.primaryTarget1 || "" },
+      "#exercisePrimaryTarget2": { value: values.primaryTarget2 || "" },
+      "#exerciseMovement": { value: values.movement || "" },
+      "#exercisePurpose": { value: values.purpose || "" },
       "#exerciseVideo": { value: values.video || "" },
       "#exerciseFormError": error,
       "#exercisePrescription": { value: values.prescription || "" },
@@ -193,9 +240,14 @@ test("exercise save executes add, edit, duplicate, categories, and required-prim
       "#exerciseDialog": { close: () => { closeCalls += 1; } },
     };
     const context = {
-      MUSCLE_GROUPS: muscles,
-      pendingAlternativeIds: [],
+      EXERCISE_TARGETS: targets,
+      MOVEMENT_PATTERNS: movements,
+      EXERCISE_EQUIPMENT: equipmentValues,
+      EXERCISE_PURPOSES: purposes,
+      pendingRelatedExercises,
+      exerciseEditorSourceId: values.sourceId || "",
       makeId: () => "exercise-new",
+      setRelatedExercisesInState,
       render: () => { renderCalls += 1; },
       saveResult: (result) => result.ok,
       document: {
@@ -204,8 +256,8 @@ test("exercise save executes add, edit, duplicate, categories, and required-prim
           return elements[selector];
         },
         querySelectorAll: (selector) => {
-          if (selector === '#secondaryMuscleOptions input:checked') return secondaryMuscles.map((value) => ({ value }));
-          if (selector === '#exerciseCategoryOptions input:checked') return categories.map((value) => ({ value }));
+          if (selector === '#secondaryTargetOptions input:checked') return secondaryTargets.map((value) => ({ value }));
+          if (selector === '#exerciseEquipmentOptions input:checked') return equipment.map((value) => ({ value }));
           assert.fail(`unexpected selector: ${selector}`);
         },
       },
@@ -214,10 +266,10 @@ test("exercise save executes add, edit, duplicate, categories, and required-prim
         update: (mutator) => {
           updateCalls += 1;
           const next = structuredClone(state);
-          mutator(next);
-          if (!validateState(next)) return { ok: false };
+          const candidate = mutator(next) || next;
+          if (!validateState(candidate)) return { ok: false };
           for (const key of Object.keys(state)) delete state[key];
-          Object.assign(state, next);
+          Object.assign(state, candidate);
           return { ok: true };
         },
       },
@@ -227,61 +279,84 @@ test("exercise save executes add, edit, duplicate, categories, and required-prim
   }
 
   const addedState = createDefaultState();
-  const added = runSave(addedState, { name: "Hip extension", primaryMuscle: "Glutes", prescription: "3 × 10" }, ["Hamstrings"], ["Rehab"]);
+  const added = runSave(addedState, {
+    name: "Hip extension",
+    primaryTarget1: "glute-max",
+    movement: "hip-thrust-bridge",
+    purpose: "rehab",
+    prescription: "3 × 10",
+  }, ["hamstrings"], ["cable"]);
   assert.equal(added.result, true);
   const addedExercise = addedState.exercises.find((exercise) => exercise.id === "exercise-new");
-  assert.deepEqual(Array.from(addedExercise.primaryMuscles), ["Glutes"]);
-  assert.deepEqual(Array.from(addedExercise.secondaryMuscles), ["Hamstrings"]);
-  assert.deepEqual(Array.from(addedExercise.categories), ["Rehab"]);
+  assert.deepEqual(Array.from(addedExercise.primaryTargets), ["glute-max"]);
+  assert.deepEqual(Array.from(addedExercise.secondaryTargets), ["hamstrings"]);
+  assert.deepEqual(Array.from(addedExercise.equipment), ["cable"]);
+  assert.equal(addedExercise.purpose, "rehab");
 
   const editedState = createDefaultState();
   const editedId = editedState.exercises[0].id;
   const editedName = editedState.exercises[0].name;
-  const edited = runSave(editedState, { id: editedId, name: editedName, primaryMuscle: "Back" }, ["Shoulders"], ["Mobility"]);
+  const existingRelated = structuredClone(editedState.exercises[0].relatedExercises);
+  const edited = runSave(editedState, {
+    id: editedId,
+    sourceId: editedId,
+    name: editedName,
+    primaryTarget1: "lats",
+    movement: "horizontal-press",
+    purpose: "mobility",
+  }, ["front-delts"], ["dumbbells", "bench"], existingRelated);
   assert.equal(edited.result, true);
-  assert.deepEqual(Array.from(editedState.exercises[0].primaryMuscles), ["Back"]);
-  assert.deepEqual(Array.from(editedState.exercises[0].secondaryMuscles), ["Shoulders"]);
-  assert.deepEqual(Array.from(editedState.exercises[0].categories), ["Mobility"]);
+  assert.deepEqual(Array.from(editedState.exercises[0].primaryTargets), ["lats"]);
+  assert.deepEqual(Array.from(editedState.exercises[0].secondaryTargets), ["front-delts"]);
+  assert.equal(editedState.exercises[0].purpose, "mobility");
+  assert.deepEqual(editedState.exercises[0].relatedExercises, existingRelated);
 
   const duplicateState = createDefaultState();
   const original = structuredClone(duplicateState.exercises[0]);
-  const duplicated = runSave(duplicateState, { name: `${original.name} copy`, primaryMuscle: "Back" }, ["Shoulders"], ["Full Body"]);
+  const duplicated = runSave(duplicateState, {
+    sourceId: original.id,
+    name: `${original.name} copy`,
+    primaryTarget1: "chest",
+    movement: "horizontal-press",
+    purpose: "strength",
+  }, ["triceps"], ["dumbbells", "bench"], original.relatedExercises);
   assert.equal(duplicated.result, true);
   assert.deepEqual(duplicateState.exercises[0], original);
   const duplicate = duplicateState.exercises.find((exercise) => exercise.id === "exercise-new");
-  assert.deepEqual(Array.from(duplicate.primaryMuscles), ["Back"]);
-  assert.deepEqual(Array.from(duplicate.categories), ["Full Body"]);
+  assert.deepEqual(Array.from(duplicate.primaryTargets), ["chest"]);
+  assert.equal(duplicate.purpose, "strength");
+  assert.deepEqual(duplicate.relatedExercises, original.relatedExercises);
 
   const blockedState = createDefaultState();
   const blocked = runSave(blockedState, { name: "Missing target" });
   assert.equal(blocked.result, false);
-  assert.equal(blocked.error, "Choose one primary muscle.");
+  assert.equal(blocked.error, "Choose a dominant target.");
   assert.equal(blocked.updateCalls, 0);
   assert.equal(blocked.closeCalls, 0);
   assert.equal(blocked.renderCalls, 0);
 });
 
-test("muscle scope and category filters remain distinct and combine with AND", () => {
+test("target scope and purpose filters remain distinct and combine with AND", () => {
   const app = read("app.js");
   const start = app.indexOf("function filteredExercises(");
   const end = app.indexOf("function renderExerciseRows(", start);
   const context = {
-    exerciseMuscleScope: "primary",
-    exerciseTargets: (exercise) => [...exercise.primaryMuscles, ...exercise.secondaryMuscles],
-    exerciseSearchTerms: (exercise) => [...exercise.primaryMuscles, ...exercise.secondaryMuscles, ...exercise.categories],
+    exerciseTargetScope: "primary",
+    exerciseTargets: (exercise) => [...exercise.primaryTargets, ...exercise.secondaryTargets],
+    exerciseSearchTerms: (exercise) => [...exercise.primaryTargets, ...exercise.secondaryTargets, exercise.movementPattern, exercise.purpose],
   };
   runInNewContext(`${app.slice(start, end)}\nthis.filteredExercises = filteredExercises;`, context);
   const exercises = [
-    { id: "primary", name: "Primary", primaryMuscles: ["Glutes"], secondaryMuscles: [], categories: ["Mobility"] },
-    { id: "secondary", name: "Secondary", primaryMuscles: ["Quads"], secondaryMuscles: ["Glutes"], categories: ["Rehab"] },
-    { id: "other", name: "Other", primaryMuscles: ["Back"], secondaryMuscles: [], categories: ["Mobility"] },
+    { id: "primary", name: "Primary", primaryTargets: ["glute-max"], secondaryTargets: [], movementPattern: "hip-hinge", purpose: "mobility" },
+    { id: "secondary", name: "Secondary", primaryTargets: ["quads"], secondaryTargets: ["glute-max"], movementPattern: "squat", purpose: "rehab" },
+    { id: "other", name: "Other", primaryTargets: ["lats"], secondaryTargets: [], movementPattern: "vertical-pull", purpose: "mobility" },
   ];
 
-  assert.deepEqual(context.filteredExercises({ exercises }, "", "Glutes", "All").map((exercise) => exercise.id), ["primary"]);
-  context.exerciseMuscleScope = "combined";
-  assert.deepEqual(context.filteredExercises({ exercises }, "", "Glutes", "All").map((exercise) => exercise.id), ["primary", "secondary"]);
-  assert.deepEqual(context.filteredExercises({ exercises }, "", "All", "Mobility").map((exercise) => exercise.id), ["other", "primary"]);
-  assert.deepEqual(context.filteredExercises({ exercises }, "", "Glutes", "Mobility").map((exercise) => exercise.id), ["primary"]);
+  assert.deepEqual(context.filteredExercises({ exercises }, "", "glute-max", "All").map((exercise) => exercise.id), ["primary"]);
+  context.exerciseTargetScope = "combined";
+  assert.deepEqual(context.filteredExercises({ exercises }, "", "glute-max", "All").map((exercise) => exercise.id), ["primary", "secondary"]);
+  assert.deepEqual(context.filteredExercises({ exercises }, "", "All", "mobility").map((exercise) => exercise.id), ["other", "primary"]);
+  assert.deepEqual(context.filteredExercises({ exercises }, "", "glute-max", "mobility").map((exercise) => exercise.id), ["primary"]);
   assert.deepEqual(context.filteredExercises({ exercises }, "mobility", "All", "All").map((exercise) => exercise.id), ["other", "primary"]);
 });
 
@@ -289,7 +364,7 @@ test("failed modal actions have compact in-dialog alert targets", () => {
   const html = read("index.html");
   const app = read("app.js");
   const css = read("styles.css");
-  for (const id of ["exerciseFormError", "routineFormError", "pickerFormError", "entryFormError", "settingsFormError"]) {
+  for (const id of ["exerciseFormError", "programsFormError", "programFormError", "routineFormError", "pickerFormError", "entryFormError", "settingsFormError"]) {
     assert.match(html, new RegExp(`id="${id}"[^>]+role="alert"[^>]+data-dialog-error`));
   }
   assert.match(app, /id="dayFormError" role="alert" data-dialog-error/);

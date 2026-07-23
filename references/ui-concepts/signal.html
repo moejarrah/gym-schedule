@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Concept 3 — Signal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     CONCEPT 3 — SIGNAL
+     Swiss meet-card: white, black ink, one vermillion signal
+     color for state only. Hard 2px rules, black square checks,
+     boxed R for rehab, 800-weight tabular prescriptions.
+     ============================================================ */
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+
+  :root {
+    --page-bg: #232528;
+    --page-text: #e8e9eb;
+    --page-muted: #9a9da3;
+    --frame-border: #101114;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+    background: var(--page-bg);
+    color: var(--page-text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- page chrome ---------- */
+  .page-head {
+    max-width: 1060px; margin: 0 auto; padding: 28px 24px 8px;
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px;
+  }
+  .page-head h1 { font-size: 15px; font-weight: 700; letter-spacing: 0.02em; }
+  .page-head .tag { font-size: 12px; color: var(--page-muted); font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .page-head nav { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+  .page-head nav a {
+    font-size: 12px; font-weight: 600; color: var(--page-muted); text-decoration: none;
+    padding: 6px 10px; border-radius: 8px; border: 1px solid #3a3d42;
+  }
+  .page-head nav a.on { color: var(--page-text); border-color: #6b6f77; }
+  .theme-switch { display: inline-flex; border: 1px solid #3a3d42; border-radius: 8px; overflow: hidden; }
+  .theme-switch button { font-size: 12px; font-weight: 600; color: var(--page-muted); padding: 6px 12px; }
+  .theme-switch button.on { background: #3a3d42; color: var(--page-text); }
+
+  .concept-notes {
+    max-width: 1060px; margin: 0 auto; padding: 10px 24px 0;
+    color: var(--page-muted); font-size: 13px; line-height: 1.6;
+    display: flex; flex-wrap: wrap; gap: 6px 28px;
+  }
+  .concept-notes li { margin-left: 16px; }
+
+  .frames { display: flex; flex-wrap: wrap; gap: 56px; justify-content: center; padding: 36px 24px 72px; }
+  .frame-wrap { display: grid; gap: 14px; justify-items: center; align-content: start; }
+  .frame-cap {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px; color: var(--page-muted); text-align: center; max-width: 360px; line-height: 1.6;
+  }
+
+  /* ============================================================
+     PHONE
+     ============================================================ */
+  .phone {
+    width: 393px; height: 852px;
+    border-radius: 48px;
+    border: 10px solid var(--frame-border);
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.55);
+  }
+
+  .screen {
+    --bg: #fbfbf8;
+    --row-press: #f0f0ea;
+    --ink: #101010;
+    --hairline: rgba(16, 16, 16, 0.14);
+    --rule: #101010;
+    --muted: #6e6e66;
+    --faint: #b4b4aa;
+    --accent: #e1340f;
+    --danger: #c0341d;
+    --scrim: rgba(16, 16, 16, 0.32);
+
+    height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Archivo", -apple-system, sans-serif;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    font-size: 15px; line-height: 1.4;
+  }
+  .screen[data-theme="dark"] {
+    --bg: #0e0e0d;
+    --row-press: #1a1a18;
+    --ink: #f4f4f0;
+    --hairline: rgba(244, 244, 240, 0.16);
+    --rule: #f4f4f0;
+    --muted: #9a9a90;
+    --faint: #57574f;
+    --accent: #ff4a1f;
+    --danger: #ff6a54;
+    --scrim: rgba(0, 0, 0, 0.55);
+  }
+
+  .scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+  .scroll::-webkit-scrollbar { display: none; }
+
+  /* ---------- status bar ---------- */
+  .statusbar {
+    flex: 0 0 auto;
+    padding: 14px 30px 2px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 14px; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .statusbar svg { height: 12px; width: auto; display: block; }
+
+  /* ---------- the one chrome row ---------- */
+  .topbar {
+    flex: 0 0 auto;
+    min-height: 48px;
+    display: flex; align-items: center;
+    border-bottom: 2px solid var(--rule);
+  }
+  .tabs {
+    flex: 1; min-width: 0;
+    display: flex; align-items: center; gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 6px 4px 6px 10px;
+    -webkit-mask-image: linear-gradient(to right, #000 85%, transparent);
+    mask-image: linear-gradient(to right, #000 85%, transparent);
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .rtab {
+    flex: 0 0 auto;
+    min-height: 34px;
+    padding: 7px 10px;
+    color: var(--muted);
+    font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+    white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .rtab .cdot { width: 5px; height: 5px; background: var(--ink); }
+  .rtab .cdot.hollow { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink); }
+  .rtab.active { background: var(--ink); color: var(--bg); }
+  .rtab.active .cdot { background: var(--accent); }
+  .rtab.active .cdot.hollow { background: transparent; box-shadow: inset 0 0 0 1.5px var(--accent); }
+
+  .tactions {
+    flex: 0 0 auto;
+    display: flex; align-items: center;
+    padding-right: 6px;
+    border-left: 1px solid var(--hairline);
+  }
+  .tbtn {
+    width: 40px; height: 40px;
+    display: grid; place-items: center;
+    color: var(--muted);
+  }
+  .tbtn:active { background: var(--row-press); }
+  .tbtn svg { width: 21px; height: 21px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .tbtn.complete.on { color: var(--accent); }
+  .tbtn.complete.on svg circle { fill: currentColor; stroke: currentColor; }
+  .tbtn.complete.on svg path { stroke: var(--bg); }
+
+  /* ---------- column header ---------- */
+  .thead {
+    display: grid;
+    grid-template-columns: 26px 1fr auto;
+    gap: 12px;
+    padding: 7px 16px 6px 14px;
+    border-bottom: 2px solid var(--rule);
+    font-size: 9.5px; font-weight: 800; letter-spacing: 0.14em;
+    color: var(--muted);
+  }
+  .thead .r { text-align: right; }
+
+  /* ---------- rows ---------- */
+  .rows { display: grid; }
+  .row {
+    width: 100%;
+    min-height: 50px;
+    padding: 5px 16px 5px 14px;
+    display: flex; align-items: center; gap: 10px;
+    text-align: left;
+    position: relative;
+  }
+  .row + .row::before {
+    content: "";
+    position: absolute; top: 0; left: 0; right: 0;
+    border-top: 1px solid var(--hairline);
+  }
+  .row:active { background: var(--row-press); }
+
+  .check {
+    width: 20px; height: 20px; flex: 0 0 20px;
+    border: 1.5px solid var(--ink);
+    display: grid; place-items: center;
+    color: transparent;
+  }
+  .check svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 2.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .row.done .check { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  .row.done .name, .row.done .rx { color: var(--faint); }
+
+  .name {
+    flex: 1; min-width: 0;
+    font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .rbox {
+    flex: 0 0 auto;
+    width: 15px; height: 15px;
+    border: 1.5px solid var(--ink);
+    display: grid; place-items: center;
+    font-size: 8.5px; font-weight: 800;
+    color: var(--ink);
+  }
+  .row.done .rbox { border-color: var(--faint); color: var(--faint); }
+  .rx {
+    flex: 0 0 auto;
+    font-size: 14.5px; font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+  .rx .per { font-size: 10.5px; font-weight: 600; color: var(--muted); }
+  .row { cursor: pointer; }
+
+  /* per-row video button: ink-filled when a video is linked */
+  .vplay {
+    flex: 0 0 auto;
+    width: 26px; height: 26px;
+    position: relative;
+    display: grid; place-items: center;
+    border: 1.5px solid var(--faint);
+    color: var(--faint);
+    cursor: pointer;
+  }
+  .vplay::after { content: ""; position: absolute; inset: -9px; }
+  .vplay svg { width: 10px; height: 10px; fill: currentColor; margin-left: 1px; }
+  .vplay.on { border-color: var(--ink); background: var(--ink); color: var(--bg); }
+
+  /* ---------- video sheet ---------- */
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    max-height: 82%;
+    background: var(--bg);
+    border-top: 2px solid var(--rule);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .grab { flex: 0 0 auto; padding: 8px 0 2px; display: grid; place-items: center; }
+  .grab::before { content: ""; width: 36px; height: 5px; background: var(--hairline); }
+  .sheet-scroll { overflow-y: auto; scrollbar-width: none; padding: 8px 18px 24px; }
+  .sheet-scroll::-webkit-scrollbar { display: none; }
+  .sheet h3 { font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+  .scrim { position: absolute; inset: 0; background: var(--scrim); }
+
+  .vid {
+    margin-top: 12px;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    display: grid; place-items: center;
+  }
+  .vid .p {
+    width: 54px; height: 54px;
+    background: rgba(255, 255, 255, 0.18);
+    display: grid; place-items: center; color: #fff;
+  }
+  .vid .p svg { width: 21px; height: 21px; fill: currentColor; margin-left: 3px; }
+  .find {
+    margin: 16px 0 8px;
+    font-size: 9.5px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .novid { margin-top: 6px; color: var(--muted); font-size: 14px; font-weight: 600; }
+  .srch { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .srch a {
+    min-height: 44px;
+    border: 1.5px solid var(--ink);
+    background: var(--bg);
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    font-size: 13px; font-weight: 700;
+    text-decoration: none; color: var(--ink);
+  }
+  .srch a svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .danger-link {
+    margin-top: 10px;
+    width: 100%; min-height: 44px;
+    color: var(--danger);
+    font-size: 13px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .paste { display: flex; gap: 8px; margin-top: 12px; }
+  .paste input {
+    flex: 1; min-width: 0; min-height: 44px;
+    padding: 9px 12px;
+    border: 1.5px solid var(--ink);
+    background: var(--bg);
+    color: var(--ink);
+    font: inherit; font-size: 14px;
+    border-radius: 0;
+  }
+  .paste .save {
+    min-height: 44px; padding: 0 18px;
+    background: var(--ink); color: var(--bg);
+    font-size: 13px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+
+  /* ---------- bottom nav ---------- */
+  .tabbar {
+    flex: 0 0 auto;
+    padding: 4px 8px 20px;
+    border-top: 2px solid var(--rule);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+  }
+  .tab {
+    min-height: 46px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    color: var(--faint);
+    font-size: 9.5px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase;
+  }
+  .tab.on { color: var(--accent); }
+  .tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+
+<header class="page-head">
+  <h1>Concept 3 — Signal</h1>
+  <span class="tag">swiss meet-card · black ink · per-row video play</span>
+  <nav>
+    <a href="ironworks.html">1</a>
+    <a href="club-card.html">2</a>
+    <a class="on" href="signal.html">3</a>
+    <span class="theme-switch" role="group" aria-label="Theme">
+      <button class="on" data-theme-btn="light" type="button">Light</button>
+      <button data-theme-btn="dark" type="button">Dark</button>
+    </span>
+  </nav>
+</header>
+
+<ul class="concept-notes">
+  <li>Black and white do the work; vermillion appears only for state — active nav, completion.</li>
+  <li>Hard 2px rules, black square checks, and a boxed R for rehab: printable, not decorative.</li>
+  <li>Prescriptions are 800-weight tabular — the column reads like a results board.</li>
+  <li>Frame two is Home Daily: 15 rows per screen proves the density on your longest routine.</li>
+  <li>Legacy video flow is back: square ▶ on every row — ink-filled when linked, outline when not.</li>
+</ul>
+
+<div class="frames">
+
+  <!-- ================= FRAME A — PUSH A ================= -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="light">
+
+        <div class="statusbar">
+          <span>9:41</span>
+          <svg viewBox="0 0 78 14" aria-hidden="true"><g fill="currentColor"><rect x="0" y="6" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="11" rx="1"/><path d="M30 7c2.6 0 4.7-2.1 4.7-4.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M30 10.4c4.1 0 7.4-3.3 7.4-7.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="30" cy="7" r="1.6"/><rect x="52" y="2" width="20" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.5"/><rect x="54" y="4" width="13" height="6" rx="1.5"/><rect x="73" y="5" width="2.5" height="4" rx="1" opacity="0.5"/></g></svg>
+        </div>
+
+        <div class="topbar">
+          <div class="tabs" role="list">
+            <button class="rtab active" type="button"><span class="cdot"></span>Push A</button>
+            <button class="rtab" type="button"><span class="cdot"></span>Pull A</button>
+            <button class="rtab" type="button"><span class="cdot"></span>Legs A</button>
+            <button class="rtab" type="button"><span class="cdot"></span>Push B</button>
+            <button class="rtab" type="button"><span class="cdot"></span>Pull B</button>
+            <button class="rtab" type="button"><span class="cdot hollow"></span>Home Daily</button>
+          </div>
+          <div class="tactions">
+            <button class="tbtn complete" type="button" aria-label="Mark routine completed today">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.6 2.6L16.5 9"/></svg>
+            </button>
+            <button class="tbtn" type="button" aria-label="Settings">
+              <svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="scroll">
+          <div class="thead"><span></span><span>EXERCISE</span><span class="r">SETS × REPS</span></div>
+          <div class="rows">
+            <div class="row done" role="button" tabindex="0">
+              <span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span>
+              <span class="name">Low incline dumbbell press</span>
+              <span class="rx">3 × 8–12</span>
+              <button class="vplay on" type="button" aria-label="Play video: Low incline dumbbell press"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button>
+            </div>
+            <div class="row done" role="button" tabindex="0">
+              <span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span>
+              <span class="name">Machine chest press</span>
+              <span class="rx">2 × 8–12</span>
+              <button class="vplay" type="button" aria-label="Find a video: Machine chest press"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button>
+            </div>
+            <div class="row" role="button" tabindex="0">
+              <span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span>
+              <span class="name">Scaption raise <span class="rbox">R</span></span>
+              <span class="rx">2 × 12–20</span>
+              <button class="vplay on" type="button" aria-label="Play video: Scaption raise"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button>
+            </div>
+            <div class="row" role="button" tabindex="0">
+              <span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span>
+              <span class="name">Rope pushdown</span>
+              <span class="rx">2–3 × 10–15</span>
+              <button class="vplay" type="button" aria-label="Find a video: Rope pushdown"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button>
+            </div>
+            <div class="row" role="button" tabindex="0">
+              <span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span>
+              <span class="name">Cable external rotation <span class="rbox">R</span></span>
+              <span class="rx">2 × 15–20<span class="per">/side</span></span>
+              <button class="vplay" type="button" aria-label="Find a video: Cable external rotation"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button>
+            </div>
+            <div class="row" role="button" tabindex="0">
+              <span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span>
+              <span class="name">Cable serratus punch <span class="rbox">R</span></span>
+              <span class="rx">2 × 12–15<span class="per">/side</span></span>
+              <button class="vplay on" type="button" aria-label="Play video: Cable serratus punch"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button>
+            </div>
+          </div>
+        </div>
+
+        <nav class="tabbar" aria-label="Concept tab bar">
+          <button class="tab on" type="button">
+            <svg viewBox="0 0 24 24"><path d="M5 9v6M8.5 6.5v11M15.5 6.5v11M19 9v6M8.5 12h7M2.5 10.5v3M21.5 10.5v3"/></svg>
+            Workout
+          </button>
+          <button class="tab" type="button">
+            <svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2"/></svg>
+            Program
+          </button>
+          <button class="tab" type="button">
+            <svg viewBox="0 0 24 24"><path d="M4 19V6a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1v13"/><path d="M4 19a2 2 0 0 0 2 2h13"/><path d="M9 9h6M9 13h6"/></svg>
+            Library
+          </button>
+          <button class="tab" type="button">
+            <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>
+            Log
+          </button>
+        </nav>
+
+      </div>
+    </div>
+    <p class="frame-cap">Push A — ink rows, black square checks, boxed R on rehab entries. Vermillion only fires on state.</p>
+  </div>
+
+  <!-- ================= FRAME B — HOME DAILY (LONG LIST) ================= -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="light">
+
+        <div class="statusbar">
+          <span>9:41</span>
+          <svg viewBox="0 0 78 14" aria-hidden="true"><g fill="currentColor"><rect x="0" y="6" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="11" rx="1"/><path d="M30 7c2.6 0 4.7-2.1 4.7-4.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M30 10.4c4.1 0 7.4-3.3 7.4-7.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="30" cy="7" r="1.6"/><rect x="52" y="2" width="20" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.5"/><rect x="54" y="4" width="13" height="6" rx="1.5"/><rect x="73" y="5" width="2.5" height="4" rx="1" opacity="0.5"/></g></svg>
+        </div>
+
+        <div class="topbar">
+          <div class="tabs" role="list">
+            <button class="rtab" type="button"><span class="cdot"></span>Push A</button>
+            <button class="rtab" type="button"><span class="cdot"></span>Pull A</button>
+            <button class="rtab" type="button"><span class="cdot"></span>Legs A</button>
+            <button class="rtab" type="button"><span class="cdot"></span>Push B</button>
+            <button class="rtab active" type="button"><span class="cdot hollow"></span>Home Daily</button>
+          </div>
+          <div class="tactions">
+            <button class="tbtn complete" type="button" aria-label="Mark routine completed today">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.6 2.6L16.5 9"/></svg>
+            </button>
+            <button class="tbtn" type="button" aria-label="Settings">
+              <svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="scroll">
+          <div class="thead"><span></span><span>EXERCISE</span><span class="r">SETS × REPS</span></div>
+          <div class="rows">
+            <div class="row" role="button" tabindex="0"><span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="name">Dead bug</span><span class="rx">2 × 5–8</span><button class="vplay on" type="button" aria-label="Play video: Dead bug"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+            <div class="row" role="button" tabindex="0"><span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="name">Side plank (hip abduction)</span><span class="rx">2 × 15–30s<span class="per">/side</span></span><button class="vplay" type="button" aria-label="Find a video: Side plank"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+            <div class="row" role="button" tabindex="0"><span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="name">Bird dog</span><span class="rx">1–2 × 5–8<span class="per">/side</span></span><button class="vplay on" type="button" aria-label="Play video: Bird dog"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+            <div class="row" role="button" tabindex="0"><span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="name">Modified curl-up</span><span class="rx">2 × 8–12</span><button class="vplay" type="button" aria-label="Find a video: Modified curl-up"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+            <div class="row" role="button" tabindex="0"><span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="name">Back-to-wall Y raise</span><span class="rx">2 × 8–12</span><button class="vplay on" type="button" aria-label="Play video: Back-to-wall Y raise"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+            <div class="row" role="button" tabindex="0"><span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="name">Serratus wall slide <span class="rbox">R</span></span><span class="rx">2 × 8–12</span><button class="vplay on" type="button" aria-label="Play video: Serratus wall slide"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+            <div class="row" role="button" tabindex="0"><span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="name">Push-up plus</span><span class="rx">2 × 10–15</span><button class="vplay" type="button" aria-label="Find a video: Push-up plus"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+            <div class="row" role="button" tabindex="0"><span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="name">Prone W raise <span class="rbox">R</span></span><span class="rx">2 × 10–15</span><button class="vplay" type="button" aria-label="Find a video: Prone W raise"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+            <div class="row" role="button" tabindex="0"><span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="name">Clamshell <span class="rbox">R</span></span><span class="rx">2 × 10–15<span class="per">/side</span></span><button class="vplay" type="button" aria-label="Find a video: Clamshell"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+            <div class="row" role="button" tabindex="0"><span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="name">Cat-cow</span><span class="rx">1 × 6–8</span><button class="vplay on" type="button" aria-label="Play video: Cat-cow"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+            <div class="row" role="button" tabindex="0"><span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="name">Knee-to-wall ankle rocks</span><span class="rx">2 × 8–12<span class="per">/side</span></span><button class="vplay" type="button" aria-label="Find a video: Knee-to-wall ankle rocks"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+            <div class="row" role="button" tabindex="0"><span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="name">Half-kneeling hip flexor stretch</span><span class="rx">1–2 × 20–30s<span class="per">/side</span></span><button class="vplay" type="button" aria-label="Find a video: Half-kneeling hip flexor stretch"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+            <div class="row" role="button" tabindex="0"><span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="name">Active straight-leg raise</span><span class="rx">2 × 5–8<span class="per">/leg</span></span><button class="vplay on" type="button" aria-label="Play video: Active straight-leg raise"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+            <div class="row" role="button" tabindex="0"><span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="name">90/90 hip switches</span><span class="rx">1–2 × 8–10</span><button class="vplay" type="button" aria-label="Find a video: 90/90 hip switches"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+            <div class="row" role="button" tabindex="0"><span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="name">Hip hinge</span><span class="rx">2 × 8–12</span><button class="vplay" type="button" aria-label="Find a video: Hip hinge"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+            <div class="row" role="button" tabindex="0"><span class="check"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="name">Supported deep squat hold</span><span class="rx">1–2 × 20–30s</span><button class="vplay" type="button" aria-label="Find a video: Supported deep squat hold"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+          </div>
+        </div>
+
+        <nav class="tabbar" aria-label="Concept tab bar">
+          <button class="tab on" type="button">
+            <svg viewBox="0 0 24 24"><path d="M5 9v6M8.5 6.5v11M15.5 6.5v11M19 9v6M8.5 12h7M2.5 10.5v3M21.5 10.5v3"/></svg>
+            Workout
+          </button>
+          <button class="tab" type="button">
+            <svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2"/></svg>
+            Program
+          </button>
+          <button class="tab" type="button">
+            <svg viewBox="0 0 24 24"><path d="M4 19V6a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1v13"/><path d="M4 19a2 2 0 0 0 2 2h13"/><path d="M9 9h6M9 13h6"/></svg>
+            Library
+          </button>
+          <button class="tab" type="button">
+            <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>
+            Log
+          </button>
+        </nav>
+
+      </div>
+    </div>
+    <p class="frame-cap">Home Daily — 15 rows per screen, ink ▶ where videos are linked, checks hold your place.</p>
+  </div>
+
+  <!-- ================= FRAME C — VIDEO SHEET (UNLINKED) ================= -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="light">
+
+        <div class="statusbar">
+          <span>9:41</span>
+          <svg viewBox="0 0 78 14" aria-hidden="true"><g fill="currentColor"><rect x="0" y="6" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="11" rx="1"/><path d="M30 7c2.6 0 4.7-2.1 4.7-4.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M30 10.4c4.1 0 7.4-3.3 7.4-7.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="30" cy="7" r="1.6"/><rect x="52" y="2" width="20" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.5"/><rect x="54" y="4" width="13" height="6" rx="1.5"/><rect x="73" y="5" width="2.5" height="4" rx="1" opacity="0.5"/></g></svg>
+        </div>
+
+        <div class="topbar" aria-hidden="true" style="opacity:0.5;">
+          <div class="tabs">
+            <span class="rtab active"><span class="cdot"></span>Push A</span>
+            <span class="rtab"><span class="cdot"></span>Pull A</span>
+            <span class="rtab"><span class="cdot"></span>Legs A</span>
+          </div>
+        </div>
+
+        <div class="scroll" aria-hidden="true" style="opacity:0.5;">
+          <div class="rows">
+            <div class="row"><span class="check"></span><span class="name">Low incline dumbbell press</span><span class="rx">3 × 8–12</span></div>
+            <div class="row"><span class="check"></span><span class="name">Machine chest press</span><span class="rx">2 × 8–12</span></div>
+            <div class="row"><span class="check"></span><span class="name">Scaption raise</span><span class="rx">2 × 12–20</span></div>
+            <div class="row"><span class="check"></span><span class="name">Rope pushdown</span><span class="rx">2–3 × 10–15</span></div>
+          </div>
+        </div>
+
+        <div class="scrim"></div>
+
+        <div class="sheet" role="dialog" aria-label="Exercise video">
+          <div class="grab"></div>
+          <div class="sheet-scroll">
+            <h3>Rope pushdown</h3>
+            <p class="novid">No video linked</p>
+
+            <p class="find">Find one</p>
+            <div class="srch">
+              <a href="#">YouTube <svg viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></svg></a>
+              <a href="#">Google <svg viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></svg></a>
+              <a href="#">YouTube · alternatives <svg viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></svg></a>
+              <a href="#">Google · alternatives <svg viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></svg></a>
+            </div>
+
+            <div class="paste">
+              <input type="text" placeholder="Paste YouTube link or video ID" aria-label="YouTube link or video ID">
+              <button class="save" type="button">Save</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <p class="frame-cap">▶ on an unlinked row — four search shortcuts and paste-a-link, the legacy modal in Signal&rsquo;s voice.</p>
+  </div>
+
+</div>
+
+<script>
+  const screens = document.querySelectorAll(".screen");
+  const buttons = document.querySelectorAll("[data-theme-btn]");
+  buttons.forEach((btn) => btn.addEventListener("click", () => {
+    buttons.forEach((b) => b.classList.toggle("on", b === btn));
+    screens.forEach((s) => s.dataset.theme = btn.dataset.themeBtn);
+  }));
+</script>
+
+</body>
+</html>

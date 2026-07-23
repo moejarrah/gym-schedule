@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Concept 2 — Club Card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@1,500;1,600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     CONCEPT 2 — CLUB CARD
+     A member-club program card: cream paper, racing green,
+     Fraunces italic index numerals, letterspaced caps tabs.
+     No checks — pure list with order numbers. Density intact:
+     50px rows, one 48px tab row, list starts at the top.
+     ============================================================ */
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+
+  :root {
+    --page-bg: #26241f;
+    --page-text: #efece6;
+    --page-muted: #a39d92;
+    --frame-border: #12110e;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+    background: var(--page-bg);
+    color: var(--page-text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- page chrome ---------- */
+  .page-head {
+    max-width: 1060px; margin: 0 auto; padding: 28px 24px 8px;
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px;
+  }
+  .page-head h1 { font-size: 15px; font-weight: 700; letter-spacing: 0.02em; }
+  .page-head .tag { font-size: 12px; color: var(--page-muted); font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .page-head nav { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+  .page-head nav a {
+    font-size: 12px; font-weight: 600; color: var(--page-muted); text-decoration: none;
+    padding: 6px 10px; border-radius: 8px; border: 1px solid #45423a;
+  }
+  .page-head nav a.on { color: var(--page-text); border-color: #7a7568; }
+  .theme-switch { display: inline-flex; border: 1px solid #45423a; border-radius: 8px; overflow: hidden; }
+  .theme-switch button { font-size: 12px; font-weight: 600; color: var(--page-muted); padding: 6px 12px; }
+  .theme-switch button.on { background: #45423a; color: var(--page-text); }
+
+  .concept-notes {
+    max-width: 1060px; margin: 0 auto; padding: 10px 24px 0;
+    color: var(--page-muted); font-size: 13px; line-height: 1.6;
+    display: flex; flex-wrap: wrap; gap: 6px 28px;
+  }
+  .concept-notes li { margin-left: 16px; }
+
+  .frames { display: flex; flex-wrap: wrap; gap: 56px; justify-content: center; padding: 36px 24px 72px; }
+  .frame-wrap { display: grid; gap: 14px; justify-items: center; align-content: start; }
+  .frame-cap {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px; color: var(--page-muted); text-align: center; max-width: 360px; line-height: 1.6;
+  }
+
+  /* ============================================================
+     PHONE
+     ============================================================ */
+  .phone {
+    width: 393px; height: 852px;
+    border-radius: 48px;
+    border: 10px solid var(--frame-border);
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.55);
+  }
+
+  .screen {
+    --paper: #f4f1e8;
+    --card: #fbf9f2;
+    --row-press: #eae6d9;
+    --hairline: rgba(58, 50, 32, 0.13);
+    --rule: rgba(58, 50, 32, 0.32);
+    --text: #1d1f19;
+    --muted: #6e6a5c;
+    --faint: #aaa594;
+    --accent: #1a5c38;
+    --accent-deep: #123f27;
+    --rehab: #a87b1f;
+    --danger: #b0341d;
+    --scrim: rgba(26, 24, 16, 0.34);
+
+    --f-serif: "Fraunces", Georgia, serif;
+    --f-sans: "Inter", -apple-system, sans-serif;
+
+    height: 100%;
+    background: var(--paper);
+    color: var(--text);
+    font-family: var(--f-sans);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    font-size: 15px; line-height: 1.4;
+  }
+  .screen[data-theme="dark"] {
+    --paper: #10160f;
+    --card: #171e17;
+    --row-press: #1c241c;
+    --hairline: rgba(230, 228, 210, 0.10);
+    --rule: rgba(230, 228, 210, 0.30);
+    --text: #eae8dc;
+    --muted: #98937f;
+    --faint: #5f5b4c;
+    --accent: #63b183;
+    --accent-deep: #63b183;
+    --rehab: #c9a24b;
+    --danger: #e0705c;
+    --scrim: rgba(0, 0, 0, 0.55);
+  }
+
+  .scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+  .scroll::-webkit-scrollbar { display: none; }
+
+  /* ---------- status bar ---------- */
+  .statusbar {
+    flex: 0 0 auto;
+    padding: 14px 30px 2px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 14px; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .statusbar svg { height: 12px; width: auto; display: block; }
+
+  /* ---------- the one chrome row ---------- */
+  .topbar {
+    flex: 0 0 auto;
+    min-height: 48px;
+    display: flex; align-items: stretch;
+    border-bottom: 1px solid var(--rule);
+  }
+  .tabs {
+    flex: 1; min-width: 0;
+    display: flex; align-items: stretch; gap: 18px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 0 4px 0 16px;
+    -webkit-mask-image: linear-gradient(to right, #000 85%, transparent);
+    mask-image: linear-gradient(to right, #000 85%, transparent);
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .rtab {
+    flex: 0 0 auto;
+    padding: 13px 0 11px;
+    color: var(--muted);
+    font-size: 11.5px; font-weight: 700; letter-spacing: 0.11em; text-transform: uppercase;
+    white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 7px;
+    box-shadow: inset 0 -2px transparent;
+  }
+  .rtab .cdot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+  .rtab .cdot.hollow { background: transparent; box-shadow: inset 0 0 0 1.5px var(--accent); }
+  .rtab.active { color: var(--accent); box-shadow: inset 0 -2px var(--accent); }
+
+  .tactions {
+    flex: 0 0 auto;
+    display: flex; align-items: center;
+    padding: 0 8px;
+    border-left: 1px solid var(--hairline);
+  }
+  .tbtn {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    color: var(--muted);
+  }
+  .tbtn:active { background: var(--row-press); }
+  .tbtn svg { width: 21px; height: 21px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .tbtn.complete.on { color: #fff; background: var(--accent); }
+  .screen[data-theme="dark"] .tbtn.complete.on { color: #0d1a12; }
+
+  /* ---------- rows ---------- */
+  .rows { display: grid; }
+  .row {
+    width: 100%;
+    min-height: 50px;
+    padding: 6px 18px 6px 16px;
+    display: flex; align-items: center; gap: 8px;
+    text-align: left;
+    position: relative;
+  }
+  .row + .row::before {
+    content: "";
+    position: absolute; top: 0; left: 42px; right: 0;
+    border-top: 1px solid var(--hairline);
+  }
+  .row:active { background: var(--row-press); }
+
+  .idx {
+    flex: 0 0 18px;
+    font-family: var(--f-serif);
+    font-style: italic;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--faint);
+    text-align: left;
+  }
+  .name {
+    flex: 1; min-width: 0;
+    font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .name .rdia { width: 5px; height: 5px; background: var(--rehab); transform: rotate(45deg); flex: 0 0 auto; }
+  .rx {
+    flex: 0 0 auto;
+    font-size: 13.5px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .rx .per { font-size: 11px; font-weight: 500; color: var(--muted); }
+  .row { cursor: pointer; }
+
+  /* per-row video button: filled green when a video is linked */
+  .vplay {
+    flex: 0 0 auto;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    position: relative;
+    display: grid; place-items: center;
+    border: 1.5px solid var(--faint);
+    color: var(--faint);
+    cursor: pointer;
+  }
+  .vplay::after { content: ""; position: absolute; inset: -9px; }
+  .vplay svg { width: 10px; height: 10px; fill: currentColor; margin-left: 1px; }
+  .vplay.on { border-color: transparent; background: var(--accent); color: var(--card); }
+
+  /* ---------- video sheet ---------- */
+  .vid {
+    margin-top: 14px;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border-radius: 12px;
+    display: grid; place-items: center;
+  }
+  .vid .p {
+    width: 54px; height: 54px; border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    display: grid; place-items: center; color: #fff;
+  }
+  .vid .p svg { width: 21px; height: 21px; fill: currentColor; margin-left: 3px; }
+  .find {
+    margin: 16px 0 8px;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .novid { margin-top: 8px; color: var(--muted); font-size: 14px; }
+  .srch { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .srch a {
+    min-height: 44px;
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    background: var(--paper);
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    font-size: 13.5px; font-weight: 650;
+    text-decoration: none; color: var(--text);
+  }
+  .srch a svg { width: 12px; height: 12px; stroke: var(--faint); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .danger-link {
+    margin-top: 10px;
+    width: 100%; min-height: 44px;
+    color: var(--danger);
+    font-size: 13.5px; font-weight: 700;
+  }
+  .paste { display: flex; gap: 8px; margin-top: 12px; }
+  .paste input {
+    flex: 1; min-width: 0; min-height: 44px;
+    padding: 9px 12px;
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    background: var(--paper);
+    color: var(--text);
+    font: inherit; font-size: 14px;
+  }
+  .paste .save {
+    min-height: 44px; padding: 0 18px;
+    border-radius: 10px;
+    background: var(--accent-deep); color: var(--card);
+    font-size: 14px; font-weight: 700;
+  }
+
+  /* ---------- bottom nav ---------- */
+  .tabbar {
+    flex: 0 0 auto;
+    padding: 4px 8px 20px;
+    border-top: 1px solid var(--rule);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+  }
+  .tab {
+    min-height: 46px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    color: var(--faint);
+    font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+  }
+  .tab.on { color: var(--accent); }
+  .tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ---------- sheet (frame B) ---------- */
+  .scrim { position: absolute; inset: 0; background: var(--scrim); }
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    max-height: 80%;
+    background: var(--card);
+    border-radius: 16px 16px 0 0;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .grab { flex: 0 0 auto; padding: 8px 0 2px; display: grid; place-items: center; }
+  .grab::before { content: ""; width: 36px; height: 5px; border-radius: 3px; background: var(--hairline); }
+  .sheet-scroll { overflow-y: auto; scrollbar-width: none; padding: 8px 20px 10px; }
+  .sheet-scroll::-webkit-scrollbar { display: none; }
+
+  .sheet h3 {
+    font-family: var(--f-serif);
+    font-style: italic;
+    font-size: 27px; font-weight: 600; letter-spacing: -0.01em;
+  }
+  .sheet .big-rx {
+    margin-top: 4px;
+    font-size: 30px; font-weight: 800; letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-deep);
+  }
+  .sheet .facts { margin-top: 14px; border-top: 1px solid var(--hairline); }
+  .fact {
+    display: flex; gap: 12px; align-items: baseline;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--hairline);
+    font-size: 14.5px;
+  }
+  .fact .k {
+    flex: 0 0 88px;
+    color: var(--muted);
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase;
+  }
+  .fact .v { font-weight: 600; }
+  .sheet .notes { margin-top: 14px; font-size: 14.5px; line-height: 1.6; }
+  .sheet .alts { margin-top: 16px; border-top: 1px solid var(--hairline); }
+  .alt {
+    width: 100%; min-height: 46px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    border-bottom: 1px solid var(--hairline);
+    text-align: left;
+    font-size: 14.5px; font-weight: 600;
+  }
+  .alt svg { width: 16px; height: 16px; flex: 0 0 auto; stroke: var(--faint); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .sheet-actions {
+    flex: 0 0 auto;
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 20px 26px;
+    border-top: 1px solid var(--hairline);
+  }
+  .btn {
+    min-height: 46px; border-radius: 10px;
+    font-size: 15px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 0 16px;
+  }
+  .btn.secondary { background: var(--paper); border: 1px solid var(--hairline); flex: 1; }
+  .btn.text { color: var(--muted); }
+  .btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+
+<header class="page-head">
+  <h1>Concept 2 — Club Card</h1>
+  <span class="tag">cream paper · racing green · per-row video play</span>
+  <nav>
+    <a href="ironworks.html">1</a>
+    <a class="on" href="club-card.html">2</a>
+    <a href="signal.html">3</a>
+    <span class="theme-switch" role="group" aria-label="Theme">
+      <button class="on" data-theme-btn="light" type="button">Light</button>
+      <button data-theme-btn="dark" type="button">Dark</button>
+    </span>
+  </nav>
+</header>
+
+<ul class="concept-notes">
+  <li>A member-club program card: cream, ink, one racing green. No second accent anywhere.</li>
+  <li>Letterspaced caps tabs with a double rule; Fraunces italic numerals give order without clutter.</li>
+  <li>Same density: 50px rows, one 48px tab row, list starts immediately.</li>
+  <li>Shown completed — the only completion UI is the green icon, top-right (tap again to undo).</li>
+  <li>Legacy video flow is back: ▶ on every row — filled green when linked, quiet outline when not.</li>
+  <li>▶ opens the video sheet: inline play when linked; searches + paste-a-link when not.</li>
+</ul>
+
+<div class="frames">
+
+  <!-- ================= FRAME A — WORKOUT (COMPLETED) ================= -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="light">
+
+        <div class="statusbar">
+          <span>9:41</span>
+          <svg viewBox="0 0 78 14" aria-hidden="true"><g fill="currentColor"><rect x="0" y="6" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="11" rx="1"/><path d="M30 7c2.6 0 4.7-2.1 4.7-4.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M30 10.4c4.1 0 7.4-3.3 7.4-7.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="30" cy="7" r="1.6"/><rect x="52" y="2" width="20" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.5"/><rect x="54" y="4" width="13" height="6" rx="1.5"/><rect x="73" y="5" width="2.5" height="4" rx="1" opacity="0.5"/></g></svg>
+        </div>
+
+        <div class="topbar">
+          <div class="tabs" role="list">
+            <button class="rtab active" type="button"><span class="cdot"></span>Push A</button>
+            <button class="rtab" type="button"><span class="cdot"></span>Pull A</button>
+            <button class="rtab" type="button"><span class="cdot"></span>Legs A</button>
+            <button class="rtab" type="button"><span class="cdot"></span>Push B</button>
+            <button class="rtab" type="button"><span class="cdot"></span>Pull B</button>
+            <button class="rtab" type="button"><span class="cdot hollow"></span>Home Daily</button>
+          </div>
+          <div class="tactions">
+            <button class="tbtn complete on" type="button" aria-label="Routine completed today">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.6 2.6L16.5 9"/></svg>
+            </button>
+            <button class="tbtn" type="button" aria-label="Settings">
+              <svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="scroll">
+          <div class="rows">
+            <div class="row" role="button" tabindex="0"><span class="idx">1</span><span class="name">Low incline dumbbell press</span><span class="rx">3 × 8–12</span><button class="vplay on" type="button" aria-label="Play video: Low incline dumbbell press"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+            <div class="row" role="button" tabindex="0"><span class="idx">2</span><span class="name">Machine chest press</span><span class="rx">2 × 8–12</span><button class="vplay" type="button" aria-label="Find a video: Machine chest press"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+            <div class="row" role="button" tabindex="0"><span class="idx">3</span><span class="name">Scaption raise <span class="rdia"></span></span><span class="rx">2 × 12–20</span><button class="vplay on" type="button" aria-label="Play video: Scaption raise"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+            <div class="row" role="button" tabindex="0"><span class="idx">4</span><span class="name">Rope pushdown</span><span class="rx">2–3 × 10–15</span><button class="vplay" type="button" aria-label="Find a video: Rope pushdown"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+            <div class="row" role="button" tabindex="0"><span class="idx">5</span><span class="name">Cable external rotation <span class="rdia"></span></span><span class="rx">2 × 15–20<span class="per">/side</span></span><button class="vplay" type="button" aria-label="Find a video: Cable external rotation"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+            <div class="row" role="button" tabindex="0"><span class="idx">6</span><span class="name">Cable serratus punch <span class="rdia"></span></span><span class="rx">2 × 12–15<span class="per">/side</span></span><button class="vplay on" type="button" aria-label="Play video: Cable serratus punch"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></button></div>
+          </div>
+        </div>
+
+        <nav class="tabbar" aria-label="Concept tab bar">
+          <button class="tab on" type="button">
+            <svg viewBox="0 0 24 24"><path d="M5 9v6M8.5 6.5v11M15.5 6.5v11M19 9v6M8.5 12h7M2.5 10.5v3M21.5 10.5v3"/></svg>
+            Workout
+          </button>
+          <button class="tab" type="button">
+            <svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2"/></svg>
+            Program
+          </button>
+          <button class="tab" type="button">
+            <svg viewBox="0 0 24 24"><path d="M4 19V6a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1v13"/><path d="M4 19a2 2 0 0 0 2 2h13"/><path d="M9 9h6M9 13h6"/></svg>
+            Library
+          </button>
+          <button class="tab" type="button">
+            <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>
+            Log
+          </button>
+        </nav>
+
+      </div>
+    </div>
+    <p class="frame-cap">Workout — italic serif indices, letterspaced caps tabs, and a green ▶ where a video is linked.</p>
+  </div>
+
+  <!-- ================= FRAME B — VIDEO SHEET (LINKED) ================= -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="light">
+
+        <div class="statusbar">
+          <span>9:41</span>
+          <svg viewBox="0 0 78 14" aria-hidden="true"><g fill="currentColor"><rect x="0" y="6" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="11" rx="1"/><path d="M30 7c2.6 0 4.7-2.1 4.7-4.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M30 10.4c4.1 0 7.4-3.3 7.4-7.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="30" cy="7" r="1.6"/><rect x="52" y="2" width="20" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.5"/><rect x="54" y="4" width="13" height="6" rx="1.5"/><rect x="73" y="5" width="2.5" height="4" rx="1" opacity="0.5"/></g></svg>
+        </div>
+
+        <div class="topbar" aria-hidden="true" style="opacity:0.5;">
+          <div class="tabs">
+            <span class="rtab active"><span class="cdot"></span>Push A</span>
+            <span class="rtab"><span class="cdot"></span>Pull A</span>
+            <span class="rtab"><span class="cdot"></span>Legs A</span>
+          </div>
+        </div>
+
+        <div class="scroll" aria-hidden="true" style="opacity:0.5;">
+          <div class="rows">
+            <div class="row"><span class="idx">1</span><span class="name">Low incline dumbbell press</span><span class="rx">3 × 8–12</span></div>
+            <div class="row"><span class="idx">2</span><span class="name">Machine chest press</span><span class="rx">2 × 8–12</span></div>
+            <div class="row"><span class="idx">3</span><span class="name">Scaption raise</span><span class="rx">2 × 12–20</span></div>
+            <div class="row"><span class="idx">4</span><span class="name">Rope pushdown</span><span class="rx">2–3 × 10–15</span></div>
+          </div>
+        </div>
+
+        <div class="scrim"></div>
+
+        <div class="sheet" role="dialog" aria-label="Exercise video">
+          <div class="grab"></div>
+          <div class="sheet-scroll">
+            <h3>Scaption raise</h3>
+            <div class="vid"><span class="p"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></div>
+
+            <p class="find">Find a different video</p>
+            <div class="srch">
+              <a href="#">YouTube <svg viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></svg></a>
+              <a href="#">Google <svg viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></svg></a>
+              <a href="#">YouTube · alternatives <svg viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></svg></a>
+              <a href="#">Google · alternatives <svg viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></svg></a>
+            </div>
+            <button class="danger-link" type="button">Remove linked video</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <p class="frame-cap">▶ on a linked row — plays inline (YouTube embed). Searches below if the link is wrong; remove is one quiet button.</p>
+  </div>
+
+  <!-- ================= FRAME C — EXERCISE SHEET ================= -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="light">
+
+        <div class="statusbar">
+          <span>9:41</span>
+          <svg viewBox="0 0 78 14" aria-hidden="true"><g fill="currentColor"><rect x="0" y="6" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="11" rx="1"/><path d="M30 7c2.6 0 4.7-2.1 4.7-4.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M30 10.4c4.1 0 7.4-3.3 7.4-7.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="30" cy="7" r="1.6"/><rect x="52" y="2" width="20" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.5"/><rect x="54" y="4" width="13" height="6" rx="1.5"/><rect x="73" y="5" width="2.5" height="4" rx="1" opacity="0.5"/></g></svg>
+        </div>
+
+        <div class="topbar" aria-hidden="true" style="opacity:0.5;">
+          <div class="tabs">
+            <span class="rtab active"><span class="cdot"></span>Push A</span>
+            <span class="rtab"><span class="cdot"></span>Pull A</span>
+            <span class="rtab"><span class="cdot"></span>Legs A</span>
+          </div>
+        </div>
+
+        <div class="scroll" aria-hidden="true" style="opacity:0.5;">
+          <div class="rows">
+            <div class="row"><span class="idx">1</span><span class="name">Low incline dumbbell press</span><span class="rx">3 × 8–12</span></div>
+            <div class="row"><span class="idx">2</span><span class="name">Machine chest press</span><span class="rx">2 × 8–12</span></div>
+            <div class="row"><span class="idx">3</span><span class="name">Scaption raise</span><span class="rx">2 × 12–20</span></div>
+            <div class="row"><span class="idx">4</span><span class="name">Rope pushdown</span><span class="rx">2–3 × 10–15</span></div>
+          </div>
+        </div>
+
+        <div class="scrim"></div>
+
+        <div class="sheet" role="dialog" aria-label="Exercise reference">
+          <div class="grab"></div>
+          <div class="sheet-scroll">
+            <h3>Scaption raise</h3>
+            <p class="big-rx">2 × 12–20</p>
+
+            <div class="facts">
+              <div class="fact"><span class="k">Primary</span><span class="v">Shoulders</span></div>
+              <div class="fact"><span class="k">Category</span><span class="v">Rehab</span></div>
+            </div>
+
+            <p class="notes">Raise in the scapular plane (~30° forward), thumbs up. Stop below shoulder height if pinchy. Keep ribs down — no lean-back.</p>
+
+            <div class="alts">
+              <button class="alt" type="button">Very light cable lateral raise <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>
+              <button class="alt" type="button">Back-to-wall Y raise / wall angel <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>
+            </div>
+          </div>
+          <div class="sheet-actions">
+            <button class="btn secondary" type="button">
+              <svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg>
+              Watch video
+            </button>
+            <button class="btn text" type="button">Edit</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <p class="frame-cap">Sheet — Fraunces italic title, deep-green prescription, ledger facts. Quiet, not cute.</p>
+  </div>
+
+</div>
+
+<script>
+  const screens = document.querySelectorAll(".screen");
+  const buttons = document.querySelectorAll("[data-theme-btn]");
+  buttons.forEach((btn) => btn.addEventListener("click", () => {
+    buttons.forEach((b) => b.classList.toggle("on", b === btn));
+    screens.forEach((s) => s.dataset.theme = btn.dataset.themeBtn);
+  }));
+</script>
+
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ironworks Log and Settings Flows</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700&family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="ironworks-flows.css">
+</head>
+<body>
+<header class="page-head">
+  <h1>Ironworks · Log + Settings</h1>
+  <p>history → day → data</p>
+  <div class="page-actions">
+    <a href="ironworks.html">Workout</a>
+    <a href="ironworks-program.html">Program</a>
+    <a href="ironworks-classification.html">Library</a>
+    <span class="switcher" role="group" aria-label="Phone width">
+      <button class="on" type="button" data-size="393">393</button>
+      <button type="button" data-size="320">320</button>
+    </span>
+    <span class="switcher" role="group" aria-label="Theme">
+      <button type="button" data-theme="light">Light</button>
+      <button class="on" type="button" data-theme="dark">Dark</button>
+    </span>
+  </div>
+</header>
+
+<ul class="concept-notes">
+  <li>Log stays lightweight: month, marked dates, recent sessions, and one day editor.</li>
+  <li>History may reference inactive programs; the program name supplies context without changing the stored completion.</li>
+  <li>Settings remains a plain list. Appearance, data, and training rules each have one clear home.</li>
+  <li>Import confirmation and import failure share one sheet so replacement risk and errors cannot be missed.</li>
+  <li>Nothing here becomes an analytics dashboard, streak tracker, account page, or cloud-sync surface.</li>
+</ul>
+
+<main class="frames">
+  <!-- Log -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮  ◉</span></div>
+        <header class="appbar"><div class="app-title">Log</div></header>
+        <div class="scroll">
+          <div class="monthbar">
+            <strong>July 2026</strong>
+            <button class="icon-btn" type="button" aria-label="Previous month"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>
+            <button class="icon-btn" type="button" aria-label="Next month"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button>
+          </div>
+          <div class="weekdays"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+          <div class="calendar">
+            <button class="day out" type="button">28</button><button class="day out" type="button">29</button><button class="day out" type="button">30</button>
+            <button class="day" type="button">1</button><button class="day done" type="button" aria-label="July 2, completed workout">2</button><button class="day" type="button">3</button><button class="day" type="button">4</button>
+            <button class="day done" type="button" aria-label="July 5, completed workout">5</button><button class="day" type="button">6</button><button class="day note" type="button" aria-label="July 7, note recorded">7</button><button class="day done" type="button" aria-label="July 8, completed workout">8</button><button class="day" type="button">9</button><button class="day" type="button">10</button><button class="day done" type="button" aria-label="July 11, completed workout">11</button>
+            <button class="day" type="button">12</button><button class="day done" type="button" aria-label="July 13, completed workout">13</button><button class="day" type="button">14</button><button class="day done note" type="button" aria-label="July 15, completed workout and note recorded">15</button><button class="day" type="button">16</button><button class="day today" type="button" aria-current="date" aria-label="July 17, today">17</button><button class="day" type="button">18</button>
+            <button class="day" type="button">19</button><button class="day" type="button">20</button><button class="day" type="button">21</button><button class="day" type="button">22</button><button class="day" type="button">23</button><button class="day" type="button">24</button><button class="day" type="button">25</button>
+            <button class="day" type="button">26</button><button class="day" type="button">27</button><button class="day" type="button">28</button><button class="day" type="button">29</button><button class="day" type="button">30</button><button class="day" type="button">31</button><button class="day out" type="button">1</button>
+          </div>
+          <div class="section-label">Recent</div>
+          <div class="log-summary">
+            <button class="summary-row" type="button"><span class="summary-date">15 Jul</span><span class="summary-copy"><strong>Pull A</strong><small>PPL + Rehab · 6/6 main</small></span><span class="tag">Done</span></button>
+            <button class="summary-row" type="button"><span class="summary-date">13 Jul</span><span class="summary-copy"><strong>Push A</strong><small>PPL + Rehab · note added</small></span><span class="row-end">›</span></button>
+            <button class="summary-row" type="button"><span class="summary-date">11 Jul</span><span class="summary-copy"><strong>Full body</strong><small>Travel / Home · inactive program</small></span><span class="row-end">›</span></button>
+          </div>
+        </div>
+        <nav class="tabbar" aria-label="App tabs">
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M5 9v6M8.5 6.5v11M15.5 6.5v11M19 9v6M8.5 12h7"/></svg>Workout</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/></svg>Program</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M4 19V6h15v13M4 19a2 2 0 0 0 2 2h13"/></svg>Library</button>
+          <button class="tab on" type="button"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>Log</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/></svg>Settings</button>
+        </nav>
+      </div>
+    </div>
+    <p class="frame-cap">Log. The month stays primary; recent rows add program context only when useful, including inactive-program history.</p>
+  </section>
+
+  <!-- Day editor -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><span>● ● ●</span></div>
+        <header class="appbar" style="opacity:.5"><div class="app-title">Log</div></header>
+        <div class="scroll" style="opacity:.42"><div class="calendar"></div></div>
+        <div class="scrim"></div>
+        <section class="sheet" role="dialog" aria-label="Edit July 15">
+          <div class="grab"></div>
+          <header class="sheet-head"><div><h2>Wednesday, July 15</h2><p>Workout history</p></div><button class="icon-btn" type="button" aria-label="Close day editor">×</button></header>
+          <div class="sheet-scroll">
+            <p class="form-label">Completed routines</p>
+            <div class="check-list">
+              <button class="check-row on" type="button" role="checkbox" aria-checked="true"><span class="check-box"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="check-copy"><strong>Pull A</strong><small>PPL + Rehab · 6/6 main</small></span></button>
+              <button class="check-row" type="button" role="checkbox" aria-checked="false"><span class="check-box"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="check-copy"><strong>Home Daily</strong><small>PPL + Rehab</small></span></button>
+            </div>
+            <p class="form-label" style="margin-top:18px">Already recorded from another program</p>
+            <div class="check-list">
+              <button class="check-row on" type="button" role="checkbox" aria-checked="true"><span class="check-box"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="check-copy"><strong>Hotel full body</strong><small>Travel / Home · inactive</small></span></button>
+            </div>
+            <label class="field"><span>Note</span><textarea class="control">Shoulder felt good. Kept the final curl set light.</textarea></label>
+          </div>
+          <footer class="sheet-actions"><button class="button primary" type="button">Save day</button></footer>
+        </section>
+      </div>
+    </div>
+    <p class="frame-cap">Day editor. Active-program choices and already-recorded inactive-program history are distinct without rewriting past data.</p>
+  </section>
+
+  <!-- Settings -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮  ◉</span></div>
+        <header class="appbar"><div class="app-title">Settings</div></header>
+        <div class="scroll">
+          <div class="settings-section">Appearance</div>
+          <button class="setting-row" type="button" data-setting-theme>
+            <span class="setting-icon"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9Z"/></svg></span>
+            <span class="row-copy"><strong>Theme</strong><small>Choose the app appearance</small></span>
+            <span class="tag" data-theme-label>Dark</span>
+          </button>
+          <div class="settings-section">Data</div>
+          <button class="setting-row" type="button"><span class="setting-icon"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></span><span class="row-copy"><strong>Export data</strong><small>Save a complete backup</small></span><span class="row-end">›</span></button>
+          <button class="setting-row" type="button"><span class="setting-icon"><svg viewBox="0 0 24 24"><path d="M12 21V9M7 14l5-5 5 5M5 3h14"/></svg></span><span class="row-copy"><strong>Import data</strong><small>Replace this device’s app data</small></span><span class="row-end">›</span></button>
+          <button class="setting-row" type="button"><span class="setting-icon"><svg viewBox="0 0 24 24"><path d="M4 7h16M8 7V4h8v3M7 7l1 13h8l1-13"/></svg></span><span class="row-copy"><strong>Restore starting data</strong><small>Replace programs, exercises, and history</small></span><span class="row-end">›</span></button>
+          <div class="settings-section">Training</div>
+          <button class="setting-row" type="button"><span class="setting-icon"><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4Z"/><path d="M8 20V7a3 3 0 0 1 3-3"/></svg></span><span class="row-copy"><strong>Training rules</strong><small>Progression, pain, and unilateral guidance</small></span><span class="row-end">›</span></button>
+          <div class="settings-section">About</div>
+          <div class="setting-row"><span class="setting-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg></span><span class="row-copy"><strong>Gym App</strong><small>Local-first · offline ready</small></span><span class="tag muted">Local</span></div>
+        </div>
+        <nav class="tabbar" aria-label="App tabs">
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M5 9v6M8.5 6.5v11M15.5 6.5v11M19 9v6M8.5 12h7"/></svg>Workout</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/></svg>Program</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M4 19V6h15v13M4 19a2 2 0 0 0 2 2h13"/></svg>Library</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/></svg>Log</button>
+          <button class="tab on" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2"/></svg>Settings</button>
+        </nav>
+      </div>
+    </div>
+    <p class="frame-cap">Settings. Familiar rows grouped by purpose; no profile, account, cloud, subscription, or decorative settings dashboard.</p>
+  </section>
+
+  <!-- Import error -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><span>● ● ●</span></div>
+        <header class="appbar" style="opacity:.5"><div class="app-title">Settings</div></header>
+        <div class="scroll" style="opacity:.42"></div>
+        <div class="scrim"></div>
+        <section class="sheet compact" role="dialog" aria-label="Import data">
+          <div class="grab"></div>
+          <header class="sheet-head"><h2>Import data</h2><button class="icon-btn" type="button" aria-label="Close import">×</button></header>
+          <div class="sheet-scroll">
+            <p class="confirm-copy">Importing replaces every program, exercise, and history record on this device.</p>
+            <label class="field"><span>Backup file</span><input class="control" type="text" value="gym-backup.json" readonly></label>
+            <p class="form-error" role="alert">This file isn’t a compatible Gym App backup. Nothing was changed.</p>
+          </div>
+          <footer class="sheet-actions"><button class="button" type="button">Choose another</button><button class="button primary" type="button">Import data</button></footer>
+        </section>
+      </div>
+    </div>
+    <p class="frame-cap">Import failure. Replacement scope, selected file, failure, and “nothing changed” evidence remain in one focused sheet.</p>
+  </section>
+
+  <!-- Rules -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><span>● ● ●</span></div>
+        <header class="appbar" style="opacity:.5"><div class="app-title">Settings</div></header>
+        <div class="scroll" style="opacity:.42"></div>
+        <div class="scrim"></div>
+        <section class="sheet" role="dialog" aria-label="Training rules">
+          <div class="grab"></div>
+          <header class="sheet-head"><h2>Training rules</h2><button class="icon-btn" type="button" aria-label="Close training rules">×</button></header>
+          <div class="sheet-scroll">
+            <section class="rule"><h3>Progression</h3><ul><li>Weeks 1–2: light weights, 3–4 RIR.</li><li>Add weight only when form and next-day response stay controlled.</li></ul></section>
+            <section class="rule"><h3>Pain rule</h3><ul><li>0–2/10: okay.</li><li>3/10: reduce weight or range.</li><li>Sharp or pinchy pain: stop.</li></ul></section>
+            <section class="rule"><h3>Unilateral rule</h3><ul><li>Start with the weaker side.</li><li>Match those reps with the stronger side.</li></ul></section>
+            <section class="rule"><h3>Duplication rule</h3><ul><li>If rehab was done at the gym, skip the home copy or do one easy set.</li></ul></section>
+          </div>
+        </section>
+      </div>
+    </div>
+    <p class="frame-cap">Training rules. Owner-provided content remains readable and separate from exercise classification or automatic recommendations.</p>
+  </section>
+</main>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const screens = document.querySelectorAll(".screen");
+  const phones = document.querySelectorAll(".phone");
+  const themeButtons = document.querySelectorAll("[data-theme]");
+  const sizeButtons = document.querySelectorAll("[data-size]");
+
+  function applyTheme(theme) {
+    screens.forEach((screen) => { screen.dataset.theme = theme; });
+    themeButtons.forEach((button) => button.classList.toggle("on", button.dataset.theme === theme));
+    document.querySelectorAll("[data-theme-label]").forEach((label) => {
+      label.textContent = theme === "dark" ? "Dark" : "Light";
+    });
+  }
+  function applySize(size) {
+    phones.forEach((phone) => phone.classList.toggle("narrow", size === "320"));
+    sizeButtons.forEach((button) => button.classList.toggle("on", button.dataset.size === size));
+  }
+
+  applyTheme(params.get("theme") === "light" ? "light" : "dark");
+  applySize(params.get("size") === "320" ? "320" : "393");
+  themeButtons.forEach((button) => button.addEventListener("click", () => applyTheme(button.dataset.theme)));
+  sizeButtons.forEach((button) => button.addEventListener("click", () => applySize(button.dataset.size)));
+  document.querySelectorAll("[data-setting-theme]").forEach((button) => {
+    button.addEventListener("click", () => applyTheme(screens[0].dataset.theme === "dark" ? "light" : "dark"));
+  });
+  document.querySelectorAll(".check-row").forEach((button) => {
+    button.addEventListener("click", () => {
+      const checked = !button.classList.contains("on");
+      button.classList.toggle("on", checked);
+      button.setAttribute("aria-checked", String(checked));
+    });
+  });
+</script>
+</body>
+</html>
