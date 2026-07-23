@@ -663,6 +663,7 @@ button.program-row:active:not(.is-dragging) {
   cursor: grabbing;
   pointer-events: none;
   transform-origin: center;
+  transition: box-shadow 140ms ease;
   will-change: transform;
 }
 

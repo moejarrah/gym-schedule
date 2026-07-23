@@ -425,15 +425,39 @@ function entryDragPoint(event) {
   return { clientX: event.clientX, clientY: event.clientY };
 }
 
+function slideEntryRows(rows, mutate) {
+  const previous = new Map(rows.map((row) => [row, row.getBoundingClientRect()]));
+  mutate();
+  for (const row of rows) {
+    row.style.transition = "none";
+    row.style.transform = "";
+  }
+  const moved = [];
+  for (const row of rows) {
+    const delta = previous.get(row).top - row.getBoundingClientRect().top;
+    if (!delta) continue;
+    row.style.transform = `translateY(${delta}px)`;
+    moved.push(row);
+  }
+  if (!moved.length) return;
+  void moved[0].offsetHeight;
+  for (const row of moved) {
+    row.style.transition = "transform 160ms ease";
+    row.style.transform = "translateY(0)";
+  }
+}
+
 function updateEntryDropTarget(clientY) {
-  if (!entryDrag?.active) return;
+  if (!entryDrag?.active || entryDrag.settling) return;
   const rows = [...entryDrag.list.querySelectorAll(".program-row")];
   const before = rows.find((row) => {
     const rect = row.getBoundingClientRect();
     return clientY < rect.top + rect.height / 2;
   });
-  if (before) entryDrag.list.insertBefore(entryDrag.placeholder, before);
-  else entryDrag.list.append(entryDrag.placeholder);
+  slideEntryRows(rows, () => {
+    if (before) entryDrag.list.insertBefore(entryDrag.placeholder, before);
+    else entryDrag.list.append(entryDrag.placeholder);
+  });
 }
 
 function runEntryDragAutoScroll() {
@@ -462,6 +486,7 @@ function activateEntryDrag() {
   const placeholder = document.createElement("div");
   placeholder.className = "program-row-placeholder";
   placeholder.style.height = `${bounds.height}px`;
+  entryDrag.originIndex = [...entryDrag.list.children].indexOf(entryDrag.row);
   entryDrag.row.before(placeholder);
   entryDrag.placeholder = placeholder;
   entryDrag.active = true;
@@ -473,15 +498,22 @@ function activateEntryDrag() {
   entryDrag.row.style.height = `${bounds.height}px`;
   document.body.append(entryDrag.row);
   document.body.classList.add("entry-drag-active");
+  entryDrag.liftPending = true;
+  entryDrag.row.style.transition = "transform 140ms ease, box-shadow 140ms ease";
+  entryDrag.row.style.transform = "translate3d(0, 0, 0) scale(1)";
+  void entryDrag.row.offsetHeight;
+  entryDrag.row.style.transform = "translate3d(0, 0, 0) scale(1.015)";
   entryDrag.autoScrollFrame = requestAnimationFrame(runEntryDragAutoScroll);
 }
 
 function startEntryDrag(row, clientX, clientY, pointerId) {
   if (entryDrag || !row) return;
+  const routine = getActiveRoutine(store.getState());
   entryDrag = {
     row,
     list: row.closest(".program-list"),
     entryId: row.dataset.id,
+    routineId: routine?.id || "",
     pointerId,
     startX: clientX,
     startY: clientY,
@@ -489,12 +521,15 @@ function startEntryDrag(row, clientX, clientY, pointerId) {
     active: false,
     placeholder: null,
     autoScrollFrame: 0,
+    originIndex: -1,
+    liftPending: false,
+    settling: false,
   };
   entryDrag.timer = window.setTimeout(activateEntryDrag, ENTRY_HOLD_DELAY);
 }
 
 function moveEntryDrag(event) {
-  if (!entryDrag) return;
+  if (!entryDrag || entryDrag.settling) return;
   const point = entryDragPoint(event);
   if (!point) return;
   const distance = Math.hypot(point.clientX - entryDrag.startX, point.clientY - entryDrag.startY);
@@ -505,34 +540,71 @@ function moveEntryDrag(event) {
   }
   if (!entryDrag.active) return;
   event.preventDefault();
+  if (entryDrag.liftPending) {
+    entryDrag.liftPending = false;
+    entryDrag.row.style.transition = "";
+  }
   entryDrag.clientY = point.clientY;
   entryDrag.row.style.transform = `translate3d(0, ${point.clientY - entryDrag.startY}px, 0) scale(1.015)`;
   updateEntryDropTarget(point.clientY);
 }
 
+function restoreEntryDragOrigin(drag) {
+  const rows = [...drag.list.querySelectorAll(".program-row")];
+  const ref = rows[drag.originIndex] || null;
+  slideEntryRows(rows, () => {
+    if (ref) drag.list.insertBefore(drag.placeholder, ref);
+    else drag.list.append(drag.placeholder);
+  });
+}
+
+function settleEntryDrag(drag, done) {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    done();
+    return;
+  }
+  const target = drag.placeholder.getBoundingClientRect();
+  drag.row.style.transition = "left 140ms ease, top 140ms ease, transform 140ms ease, box-shadow 140ms ease";
+  drag.row.style.left = `${target.left}px`;
+  drag.row.style.top = `${target.top}px`;
+  drag.row.style.transform = "translate3d(0, 0, 0) scale(1)";
+  window.setTimeout(done, 150);
+}
+
 function finishEntryDrag(savePosition) {
-  if (!entryDrag) return;
+  if (!entryDrag || entryDrag.settling) return;
   clearTimeout(entryDrag.timer);
   const drag = entryDrag;
-  entryDrag = null;
-  if (!drag.active) return;
+  if (!drag.active) {
+    entryDrag = null;
+    return;
+  }
 
+  drag.settling = true;
   cancelAnimationFrame(drag.autoScrollFrame);
+  suppressEntryClickUntil = performance.now() + 600;
+  if (!savePosition) restoreEntryDragOrigin(drag);
+  settleEntryDrag(drag, () => {
+    entryDrag = null;
+    completeEntryDrag(drag, savePosition);
+  });
+}
+
+function completeEntryDrag(drag, savePosition) {
   const targetIndex = [...drag.list.children].indexOf(drag.placeholder);
   drag.placeholder.replaceWith(drag.row);
   drag.row.classList.remove("is-dragging");
   drag.row.removeAttribute("style");
   document.body.classList.remove("entry-drag-active");
-  suppressEntryClickUntil = performance.now() + 600;
 
   if (!savePosition) {
     render();
     return;
   }
   const state = store.getState();
-  const routine = getActiveRoutine(state);
+  const routine = state.routines.find((item) => item.id === drag.routineId);
   const sourceIndex = routine?.entries.findIndex((entry) => entry.id === drag.entryId) ?? -1;
-  if (!routine || sourceIndex === targetIndex) return;
+  if (!routine || sourceIndex < 0 || sourceIndex === targetIndex) return;
   const result = store.replace(reorderRoutineEntry(state, routine.id, drag.entryId, targetIndex));
   saveResult(result, "Exercise moved.");
   render();
