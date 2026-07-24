@@ -42,4 +42,4 @@ The owner verified the completed Workout, reference/video, Program-management, L
 
 ## Next action
 
-Plan Slice 11 Library work in narrow browse/filter and master-editor slices. Do not begin implementation until the owner approves that plan.
+Owner reviews the proposed Slice 11A–11C Library plan in `IMPLEMENTATION_PLAN.md`. Do not begin Slice 11A until the owner approves it.
