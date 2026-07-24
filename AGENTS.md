@@ -3,7 +3,7 @@
 ## Start here
 
 - Read `docs/HANDOFF_STATUS.md` before meaningful work. It is the current truth after interruptions or context loss.
-- Read `docs/AUDIT.md` only when it contains a current owner-confirmed issue; an empty file means there is no queued work.
+- Read `docs/AUDIT.md` only when it lists a current owner-confirmed issue; `No confirmed open issues` means there is no queued work.
 - Read `docs/PRODUCT.md` before changing behavior, navigation, wording, or UI. Its user-action contract must remain reachable.
 - Follow `docs/WORKFLOW.md` for multi-file, storage-sensitive, redesign, release, or otherwise non-trivial work.
 - The newest user request controls scope. Do not revive older ideas unless they remain recorded as open work.
@@ -16,7 +16,7 @@
 
 ## Architecture boundaries
 
-- Production files are `index.html`, `styles.css`, `data.js`, `storage.js`, `app.js`, `manifest.json`, `icons/`, and `sw.js`. `package.json` only identifies ES modules and exposes dependency-free checks; there is no build step.
+- Production files are `index.html`, `styles.css`, `styles/`, `fonts/`, `data.js`, `storage.js`, `app.js`, `ui/`, `manifest.json`, `icons/`, and `sw.js`. `package.json` only identifies ES modules and exposes dependency-free checks; there is no build step.
 - Stay with vanilla HTML, CSS, and JavaScript. Do not add a framework, bundler, backend, account system, database, analytics, cloud sync, or production dependency unless the user explicitly asks.
 - Prefer a direct change over a new abstraction. Extract a helper or module only when it removes real duplication, isolates stateful logic, or makes testing materially easier.
 - If code is split, use a few plain CSS/JavaScript modules that run directly in the browser. Do not introduce a package manager solely for organization.
@@ -24,8 +24,9 @@
 
 ## Data rules
 
-- Treat existing localStorage data as valuable user data. Never clear, rename, or change stored data without a backward-compatible migration.
-- Before a storage migration, preserve import/export compatibility and tell the user to export a backup.
+- During pre-release development, data from older schema versions is disposable. Do not add backward migrations or preserve old import formats unless the owner explicitly asks.
+- Protect current-schema saves and current-format export/import. Ordinary app actions must not clear, partially write, or silently reinterpret valid current data.
+- If a development schema change will reset current data, make that part of the slice scope instead of adding compatibility machinery.
 - Use stable IDs for persistent records. Display names are editable text, not identifiers.
 - Keep one source of truth for each fact. Derive calendar summaries and progress from completion/session records.
 - Surface failed saves or imports. Do not report success after a failed storage write.
@@ -59,7 +60,7 @@
   npm run check
   ```
 
-- Manually exercise every changed flow. For storage work, test save, reload, undo/delete, export, import, and migration as applicable.
+- Manually exercise every changed flow. For storage work, test save, reload, undo/delete, export, import, and any explicitly approved reset as applicable.
 - For UI work, runtime-check 320 × 700 and 393 × 852, both themes, long-list scrolling, keyboard focus, safe areas, and every changed dialog/action. Static inspection is insufficient.
 - Actual Safari and installed-PWA behavior must be labeled `Device verification pending` until the owner checks it on the target iPhone.
 - When cached production assets change, update and verify the service-worker cache and offline fallback.
@@ -69,7 +70,7 @@
 
 - Use subagents only for concrete, bounded, independent exploration or verification when requested or when the task genuinely benefits. Prefer read-only assignments.
 - Do not let multiple agents edit overlapping files. The main agent owns scope, decisions, integration, final checks, and status docs.
-- Verifiers report only correctness, regression, data-loss, accessibility, and unmet-requirement issues. Optional polish belongs in `docs/AUDIT.md`.
+- Verifiers report only correctness, regression, data-loss, accessibility, and unmet-requirement issues. Optional polish enters `docs/AUDIT.md` only when the owner asks to track it.
 
 ## Definition of done
 
@@ -80,5 +81,5 @@
 ## Maintaining these instructions
 
 - Keep this file short, practical, and stable. Add a rule only for a recurring mistake, non-obvious repository constraint, or exact verification command.
-- Put product meaning in `docs/PRODUCT.md`, work procedure in `docs/WORKFLOW.md`, current state in `docs/HANDOFF_STATUS.md`, and open work in `docs/AUDIT.md`.
+- Put product meaning in `docs/PRODUCT.md`, work procedure in `docs/WORKFLOW.md`, current state in `docs/HANDOFF_STATUS.md`, approved future slices in `docs/IMPLEMENTATION_PLAN.md`, and open issues in `docs/AUDIT.md`. Completed history belongs in Git, not the plan or handoff.
 - Remove stale rules. Do not duplicate rules already enforced mechanically.

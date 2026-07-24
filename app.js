@@ -4,9 +4,9 @@ import {
   EXERCISE_TARGETS,
   MOVEMENT_PATTERNS,
   RULES,
-  classificationLabel,
-} from "./data.js?v=28";
+} from "./data.js?v=37";
 import {
+  addRoutineEntryInState,
   addRoutineToProgram,
   createBackup,
   createProgramInState,
@@ -16,22 +16,54 @@ import {
   makeId,
   moveRoutineEntry,
   reorderRoutineInProgram,
-  reorderRoutineEntry,
+  reorderRoutineEntryWithinRole,
   parseImportedState,
   removeExerciseFromState,
   removeProgramFromState,
+  removeRoutineEntryFromState,
   removeRoutineFromState,
   renameProgramInState,
   setActiveProgramInState,
+  setActiveRoutineInState,
+  setDayInState,
   setRelatedExercisesInState,
-  toggleRoutineForDate,
-} from "./storage.js?v=28";
+  toggleEntryCheckForDate,
+  updateRoutineInState,
+  updateRoutineEntryInState,
+} from "./storage.js?v=37";
+import {
+  classificationSummary,
+  exerciseSearchTerms,
+  exerciseTargets,
+  filteredExercises,
+  libraryMarkup,
+  libraryRowsMarkup,
+} from "./ui/library.js?v=37";
+import {
+  calendarMarkup,
+  dayEditorMarkup,
+  rulesMarkup,
+} from "./ui/log-settings.js?v=37";
+import {
+  escapeHtml,
+} from "./ui/shared.js?v=37";
+import {
+  pickerListMarkup,
+  programMarkup,
+  programsListMarkup,
+} from "./ui/program.js?v=37";
+import {
+  exerciseReferenceMarkup,
+  exerciseVideoSearchMarkup,
+} from "./ui/exercise-reference.js?v=37";
+import {
+  workoutMarkup,
+} from "./ui/workout.js?v=37";
 
 const store = createStore();
 const main = document.querySelector("#appMain");
 const viewTitle = document.querySelector("#viewTitle");
 const viewMetaLine = document.querySelector("#viewMetaLine");
-const headerCompleteButton = document.querySelector("#headerCompleteButton");
 const toast = document.querySelector("#toast");
 
 let currentView = "workout";
@@ -50,18 +82,13 @@ let toastTimer;
 let confirmResolver;
 let entryDrag = null;
 let suppressEntryClickUntil = 0;
+let programDialogFocusReturn = null;
+let routineDialogFocusReturn = null;
+let entryDialogFocusReturn = null;
+let pickerDialogFocusReturn = null;
 
 const ENTRY_HOLD_DELAY = 340;
 const ENTRY_HOLD_TOLERANCE = 10;
-
-function escapeHtml(value = "") {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
 
 function showToast(message) {
   clearTimeout(toastTimer);
@@ -122,89 +149,13 @@ function getActiveRoutine(state = store.getState()) {
   return getProgramRoutines(state).find((routine) => routine.id === state.settings.activeRoutineId) || null;
 }
 
-function routineTabs(state, selectedId) {
-  const routines = getProgramRoutines(state, getActiveProgram(state));
-  if (!routines.length) return "";
-  return `<div class="routine-tabs" aria-label="Choose a routine">
-    ${routines.map((routine) => `
-      <button class="routine-tab ${routine.group === "home" ? "home" : ""}" type="button"
-        aria-label="${escapeHtml(routine.name)}, ${routine.group === "home" ? "Home" : "Gym"}" aria-pressed="${routine.id === selectedId}" data-action="select-routine" data-id="${escapeHtml(routine.id)}">
-        <span class="routine-dot" aria-hidden="true"></span>${escapeHtml(routine.name)}
-      </button>`).join("")}
-  </div>`;
-}
-
-function programSwitcher(state) {
-  const program = getActiveProgram(state);
-  if (!program) {
-    return `<div class="program-switcher empty">
-      <div><span>Active program</span><strong>No program</strong></div>
-    </div>`;
-  }
-  return `<div class="program-switcher">
-    <button class="program-select" type="button" data-action="open-programs" aria-label="Choose active program, currently ${escapeHtml(program.name)}">
-      <span>Active program</span>
-      <strong>${escapeHtml(program.name)}</strong>
-      <span class="program-select-chevron" aria-hidden="true">${chevronIcon("down")}</span>
-    </button>
-    <button class="mini-button" type="button" data-action="edit-program" data-id="${escapeHtml(program.id)}" aria-label="Edit ${escapeHtml(program.name)}">${editIcon()}</button>
-  </div>`;
-}
-
 function exerciseById(state, id) {
   return state.exercises.find((exercise) => exercise.id === id);
 }
 
-function exerciseTargets(exercise) {
-  return [...(exercise?.primaryTargets || []), ...(exercise?.secondaryTargets || [])];
-}
-
-function exerciseSearchTerms(exercise) {
-  return [
-    ...exerciseTargets(exercise),
-    exercise?.movementPattern,
-    ...(exercise?.equipment || []),
-    exercise?.purpose,
-    exercise?.style,
-    exercise?.laterality,
-    ...(exercise?.emphases || []),
-  ].filter(Boolean).map(classificationLabel);
-}
-
-function targetSummary(exercise) {
-  const primary = exercise?.primaryTargets?.map(classificationLabel).join(" / ") || "Needs classification";
-  const secondary = exercise?.secondaryTargets?.map(classificationLabel).join(" / ");
-  return secondary ? `${primary} · Also ${secondary}` : primary;
-}
-
-function classificationSummary(exercise) {
-  return [targetSummary(exercise), classificationLabel(exercise?.movementPattern), classificationLabel(exercise?.purpose)].filter(Boolean).join(" · ");
-}
-
-function editIcon() {
-  return `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m4 20 4.2-1 10.6-10.6a2 2 0 0 0-2.8-2.8L5.4 16.2 4 20Z"/><path d="m14.5 7.1 2.8 2.8"/></svg>`;
-}
-
-function upIcon() {
-  return `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m7 14 5-5 5 5"/></svg>`;
-}
-
-function downIcon() {
-  return `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>`;
-}
-
-function chevronIcon(direction) {
-  const paths = {
-    left: "m14 7-5 5 5 5",
-    right: "m10 7 5 5-5 5",
-    up: "m7 14 5-5 5 5",
-    down: "m7 10 5 5 5-5",
-  };
-  return `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="${paths[direction] || paths.right}"/></svg>`;
-}
-
 function render() {
   const state = store.getState();
+  document.body.dataset.currentView = currentView;
   document.querySelectorAll(".bottom-nav [data-view]").forEach((button) => {
     if (button.dataset.view === currentView) button.setAttribute("aria-current", "page");
     else button.removeAttribute("aria-current");
@@ -221,7 +172,6 @@ function updateHeader(state) {
   const program = getActiveProgram(state);
   const routine = getActiveRoutine(state);
   const programRoutineCount = program?.routineIds.length || 0;
-  const todayCompleted = Boolean(routine && state.sessions[localDateKey()]?.routineIds.includes(routine.id));
   const labels = {
     routines: ["Program", program ? `Manage ${programRoutineCount} ${programRoutineCount === 1 ? "routine" : "routines"}` : "No program selected"],
     exercises: ["Library", `${state.exercises.length} ${state.exercises.length === 1 ? "exercise" : "exercises"}`],
@@ -232,10 +182,6 @@ function updateHeader(state) {
     : labels[currentView];
   viewTitle.textContent = title;
   viewMetaLine.textContent = meta;
-  const canComplete = currentView === "workout" && routine;
-  headerCompleteButton.hidden = !canComplete;
-  headerCompleteButton.setAttribute("aria-pressed", String(todayCompleted));
-  headerCompleteButton.setAttribute("aria-label", todayCompleted ? `Remove ${routine?.name} completion for today` : `Mark ${routine?.name} completed today`);
 }
 
 function formatDate(date, options) {
@@ -249,106 +195,52 @@ function dateFromKey(key) {
 
 function renderWorkout(state) {
   const program = getActiveProgram(state);
+  const routines = getProgramRoutines(state, program);
   const routine = getActiveRoutine(state);
-  main.innerHTML = `<section class="page">
-    ${programSwitcher(state)}
-    ${routineTabs(state, routine?.id)}
-    ${!program ? `<div class="empty-state"><h3>No programs yet</h3><p>Add a program to organize your workout days.</p><button class="button primary" type="button" data-action="new-program">Add program</button></div>` : routine ? `
-      <div class="workout-section-heading">
-        <h2>Exercises</h2>
-        <button class="text-button" type="button" data-view-link="routines">Manage program</button>
-      </div>
-      ${routine.entries.length ? `<div class="workout-list">${routine.entries.map((entry, index) => {
-        const exercise = exerciseById(state, entry.exerciseId);
-        return `<article class="workout-item">
-          <button class="workout-row" type="button" data-action="open-workout-exercise" data-id="${escapeHtml(exercise?.id || "")}" data-prescription="${escapeHtml(entry.prescription)}" aria-label="View ${escapeHtml(exercise?.name || "exercise")} details">
-            <span class="row-number">${index + 1}</span>
-            <span class="row-main"><span class="row-title">${escapeHtml(exercise?.name || "Missing exercise")}</span><span class="row-meta">${escapeHtml(entry.prescription || exercise?.defaultPrescription || "No prescription")}</span></span>
-            <span class="workout-chevron" aria-hidden="true">${chevronIcon("right")}</span>
-          </button>
-        </article>`;
-      }).join("")}</div>` : `<div class="empty-state compact-empty"><h3>No exercises yet</h3><p>Open Program to add exercises.</p><button class="button secondary" type="button" data-view-link="routines">Manage program</button></div>`}
-    ` : `<div class="empty-state"><h3>No routines yet</h3><p>Add the first workout day to ${escapeHtml(program.name)} in Program.</p><button class="button primary" type="button" data-view-link="routines">Manage program</button></div>`}
-  </section>`;
+  main.innerHTML = workoutMarkup({
+    state,
+    program,
+    routines,
+    routine,
+    todayKey: localDateKey(),
+    exerciseById,
+  });
 }
 
 function renderCalendar(state) {
-  const year = calendarMonth.getFullYear();
-  const month = calendarMonth.getMonth();
-  const firstWeekday = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const cells = [];
-  for (let index = 0; index < firstWeekday; index += 1) cells.push(`<span class="calendar-blank" aria-hidden="true"></span>`);
-  for (let day = 1; day <= daysInMonth; day += 1) {
-    const key = localDateKey(new Date(year, month, day));
-    const session = state.sessions[key];
-    const count = session?.routineIds.length || 0;
-    const hasNote = Boolean(session?.note);
-    const label = formatDate(new Date(year, month, day), { weekday: "long", month: "long", day: "numeric", year: "numeric" });
-    cells.push(`<button class="calendar-day ${key === localDateKey() ? "today" : ""} ${count ? "has-session" : ""} ${hasNote ? "has-note" : ""}" type="button" data-action="open-day" data-date="${key}" aria-label="${escapeHtml(label)}${count ? `, ${count} completed` : ""}${hasNote ? ", has note" : ""}"><span>${day}</span>${count ? `<span class="day-count">${count}</span>` : hasNote ? `<span class="day-note" aria-hidden="true">•</span>` : ""}</button>`);
-  }
-  main.innerHTML = `<section class="page">
-    <div class="calendar-header">
-      <button class="icon-button" type="button" data-action="previous-month" aria-label="Previous month">${chevronIcon("left")}</button>
-      <h2>${escapeHtml(formatDate(calendarMonth, { month: "long", year: "numeric" }))}</h2>
-      <button class="icon-button" type="button" data-action="next-month" aria-label="Next month">${chevronIcon("right")}</button>
-    </div>
-    <div class="weekday-row" aria-hidden="true">${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => `<span>${day}</span>`).join("")}</div>
-    <div class="calendar-grid">${cells.join("")}</div>
-    <p class="calendar-help">Tap a date to log routines or add a note.</p>
-  </section>`;
+  main.innerHTML = calendarMarkup(state, calendarMonth, formatDate);
 }
 
-function toggleToday() {
+function toggleEntryCheck(routineId, entryId) {
   const state = store.getState();
-  const routine = getActiveRoutine(state);
-  if (!routine) return;
-  const wasCompleted = Boolean(state.sessions[localDateKey()]?.routineIds.includes(routine.id));
-  const result = store.replace(toggleRoutineForDate(state, routine.id));
-  if (saveResult(result, wasCompleted ? "Completion removed." : `${routine.name} completed.`)) render();
+  const checked = state.sessions[localDateKey()]?.checkedEntryIdsByRoutine?.[routineId]?.includes(entryId);
+  const result = store.replace(toggleEntryCheckForDate(state, routineId, entryId));
+  if (saveResult(result, checked ? "Exercise unchecked." : "Exercise checked.")) render();
 }
 
 function openExerciseDetails(exerciseId, prescription = "") {
   const state = store.getState();
   const exercise = exerciseById(state, exerciseId);
   if (!exercise) return;
-  document.querySelector("#detailExerciseName").textContent = exercise.name;
-  document.querySelector("#detailPrescription").textContent = prescription || exercise.defaultPrescription || "No prescription";
-  const muscleList = document.querySelector("#detailMuscles");
-  const primary = exercise.primaryTargets || [];
-  const secondary = exercise.secondaryTargets || [];
-  muscleList.innerHTML = `${primary.length ? `<p><strong>Primary</strong> ${primary.map(classificationLabel).map(escapeHtml).join(" · ")}</p>` : ""}${secondary.length ? `<p><strong>Secondary</strong> ${secondary.map(classificationLabel).map(escapeHtml).join(" · ")}</p>` : ""}`;
-  document.querySelector("#detailTargetsSection").hidden = !primary.length && !secondary.length;
-  const classification = [
-    exercise.movementPattern,
-    ...(exercise.equipment || []),
-    exercise.purpose,
-    exercise.style,
-    exercise.laterality,
-    exercise.support,
-    ...(exercise.emphases || []),
-    exercise.typicalChallenge,
-  ].filter(Boolean);
-  document.querySelector("#detailCategories").textContent = classification.map(classificationLabel).join(" · ");
-  document.querySelector("#detailCategoriesSection").hidden = !classification.length;
-  const instructions = document.querySelector("#detailInstructions");
-  instructions.textContent = exercise.instructions || "No notes added yet.";
-  instructions.classList.toggle("muted-copy", !exercise.instructions);
-  const alternatives = (exercise.relatedExercises || []).map((related) => ({
+  const relatedExercises = (exercise.relatedExercises || []).map((related) => ({
     ...related,
     exercise: exerciseById(state, related.exerciseId),
   })).filter((related) => related.exercise);
-  const alternativesTarget = document.querySelector("#detailAlternatives");
-  alternativesTarget.innerHTML = alternatives.length
-    ? `<div class="alternative-links">${alternatives.map((related) => `<button type="button" data-action="view-alternative" data-id="${escapeHtml(related.exercise.id)}"><span>${escapeHtml(related.exercise.name)}<small>${escapeHtml(related.relation === "similar" ? "Alternative" : related.relation === "easier" ? "Easier" : "Harder")}</small></span><span aria-hidden="true">›</span></button>`).join("")}</div>`
-    : `<p class="muted-copy">No related exercises linked.</p>`;
-  const video = document.querySelector("#detailVideo");
-  video.hidden = !exercise.videoId;
-  document.querySelector("#detailVideoEmpty").hidden = Boolean(exercise.videoId);
-  if (exercise.videoId) video.href = `https://www.youtube.com/watch?v=${exercise.videoId}`;
-  else video.removeAttribute("href");
-  document.querySelector("#detailEditExercise").dataset.exerciseId = exercise.id;
-  document.querySelector("#exerciseDetailDialog").showModal();
+  document.querySelector("#exerciseDetailContent").innerHTML = exerciseReferenceMarkup({
+    exercise,
+    prescription,
+    relatedExercises,
+  });
+  const dialog = document.querySelector("#exerciseDetailDialog");
+  if (!dialog.open) dialog.showModal();
+  else requestAnimationFrame(() => dialog.querySelector(".reference-sheet-head .icon-button")?.focus());
+}
+
+function openExerciseVideoSearch(exerciseId) {
+  const exercise = exerciseById(store.getState(), exerciseId);
+  if (!exercise) return;
+  document.querySelector("#exerciseVideoContent").innerHTML = exerciseVideoSearchMarkup(exercise);
+  document.querySelector("#exerciseVideoDialog").showModal();
 }
 
 function changeCalendarMonth(offset) {
@@ -358,25 +250,16 @@ function changeCalendarMonth(offset) {
 
 function openDayEditor(dateKey) {
   const state = store.getState();
-  const session = state.sessions[dateKey] || { routineIds: [], note: "" };
+  const session = state.sessions[dateKey] || { routineIds: [], checkedEntryIdsByRoutine: {}, note: "" };
   const date = dateFromKey(dateKey);
-  const routines = state.routines;
-  document.querySelector("#dayDialogContent").innerHTML = `
-    <header class="dialog-header">
-      <div><p class="dialog-kicker">Workout history</p><h2 id="dayDialogTitle">${escapeHtml(formatDate(date, { weekday: "long", month: "long", day: "numeric" }))}</h2></div>
-      <button class="icon-button" type="button" data-close-dialog="dayDialog" aria-label="Close day editor">×</button>
-    </header>
-    <form id="dayForm" class="day-form" data-date="${dateKey}">
-      <fieldset class="field-group"><legend>Completed routines</legend>
-        <div class="day-routines">${routines.length ? routines.map((routine) => {
-          const program = getRoutineProgram(state, routine.id);
-          return `<label class="check-option"><input type="checkbox" name="routine" value="${escapeHtml(routine.id)}" ${session.routineIds.includes(routine.id) ? "checked" : ""}><span><strong>${escapeHtml(routine.name)}</strong><small>${escapeHtml(program?.name || "Program")} · ${escapeHtml(routine.group)}</small></span></label>`;
-        }).join("") : `<p class="muted-copy">Add a routine before logging a completion.</p>`}</div>
-      </fieldset>
-      <label class="field">Note<textarea id="dayNote" rows="4" maxlength="500" placeholder="Optional note">${escapeHtml(session.note)}</textarea></label>
-      <p class="form-error" id="dayFormError" role="alert" data-dialog-error></p>
-      <div class="dialog-actions"><button class="button primary" type="submit">Save day</button></div>
-    </form>`;
+  document.querySelector("#dayDialogContent").innerHTML = dayEditorMarkup({
+    state,
+    session,
+    dateKey,
+    date,
+    formatDate,
+    getRoutineProgram,
+  });
   document.querySelector("#dayDialog").showModal();
 }
 
@@ -384,58 +267,38 @@ function saveDay(form) {
   const dateKey = form.dataset.date;
   const routineIds = [...form.querySelectorAll('input[name="routine"]:checked')].map((input) => input.value);
   const note = form.querySelector("#dayNote").value.trim();
-  const result = store.update((state) => {
-    if (!routineIds.length && !note) delete state.sessions[dateKey];
-    else state.sessions[dateKey] = { routineIds, note };
-  });
+  const result = store.replace(setDayInState(store.getState(), dateKey, routineIds, note));
   if (!saveResult(result, "Day updated.")) return;
   document.querySelector("#dayDialog").close();
   render();
 }
 
 function renderExercises(state) {
-  const activeFilters = [];
-  if (exerciseTarget !== "All") activeFilters.push(`${classificationLabel(exerciseTarget)} · ${exerciseTargetScope === "primary" ? "Primary" : "Any"}`);
-  if (exercisePurpose !== "All") activeFilters.push(classificationLabel(exercisePurpose));
-  const filterLabel = activeFilters.length ? activeFilters.join(" + ") : "Filter";
-  main.innerHTML = `<section class="page">
-    <div class="compact-toolbar library-toolbar">
-      <span class="result-count" id="exerciseResultCount"></span>
-      <button class="button primary compact-button" type="button" data-action="new-exercise">Add exercise</button>
-    </div>
-    <div class="library-controls">
-      <label class="search-field"><span class="visually-hidden">Search exercises</span><input id="exerciseSearch" type="search" value="${escapeHtml(exerciseQuery)}" autocomplete="off" placeholder="Search exercises"></label>
-      <button class="button secondary filter-button" type="button" data-action="open-exercise-filter" aria-label="Filter exercises, currently ${escapeHtml(filterLabel)}">${escapeHtml(filterLabel)}</button>
-    </div>
-    <div id="exerciseList"></div>
-  </section>`;
-  renderExerciseRows(state);
+  const exercises = currentFilteredExercises(state);
+  main.innerHTML = libraryMarkup({
+    query: exerciseQuery,
+    target: exerciseTarget,
+    targetScope: exerciseTargetScope,
+    purpose: exercisePurpose,
+    exercises,
+  });
 }
 
-function filteredExercises(state, query = exerciseQuery, target = exerciseTarget, purpose = exercisePurpose) {
-  const needle = query.trim().toLowerCase();
-  return state.exercises
-    .filter((exercise) => target === "All" || (exerciseTargetScope === "primary" ? exercise.primaryTargets : exerciseTargets(exercise)).includes(target))
-    .filter((exercise) => purpose === "All" || exercise.purpose === purpose)
-    .filter((exercise) => !needle || exercise.name.toLowerCase().includes(needle) || exerciseSearchTerms(exercise).some((item) => item.toLowerCase().includes(needle)))
-    .sort((a, b) => a.name.localeCompare(b.name));
+function currentFilteredExercises(state) {
+  return filteredExercises(state, {
+    query: exerciseQuery,
+    target: exerciseTarget,
+    targetScope: exerciseTargetScope,
+    purpose: exercisePurpose,
+  });
 }
 
 function renderExerciseRows(state) {
   const target = document.querySelector("#exerciseList");
   if (!target) return;
-  const exercises = filteredExercises(state);
-  if (!exercises.length) {
-    document.querySelector("#exerciseResultCount").textContent = "0 results";
-    target.innerHTML = `<div class="empty-state compact-empty"><h3>No matching exercises</h3><p>Change the search or filters, or add a new exercise.</p><button class="button primary" type="button" data-action="new-exercise">Add exercise</button></div>`;
-    return;
-  }
+  const exercises = currentFilteredExercises(state);
   document.querySelector("#exerciseResultCount").textContent = `${exercises.length} ${exercises.length === 1 ? "result" : "results"}`;
-  target.innerHTML = `<div class="library-list">${exercises.map((exercise) => `
-    <button class="library-row" type="button" data-action="view-exercise" data-id="${escapeHtml(exercise.id)}" aria-label="View ${escapeHtml(exercise.name)} details">
-      <span class="row-main"><span class="row-title">${escapeHtml(exercise.name)}</span><span class="row-meta">${escapeHtml(exercise.defaultPrescription || "No prescription")} · ${escapeHtml(classificationSummary(exercise))}</span></span>
-      <span class="workout-chevron" aria-hidden="true">${chevronIcon("right")}</span>
-    </button>`).join("")}</div>`;
+  target.innerHTML = libraryRowsMarkup(exercises);
 }
 
 function openExerciseFilter() {
@@ -456,42 +319,13 @@ function renderRoutines(state) {
   const program = getActiveProgram(state);
   const routines = getProgramRoutines(state, program);
   const routine = getActiveRoutine(state);
-  main.innerHTML = `<section class="page">
-    ${programSwitcher(state)}
-    ${program ? `<div class="compact-toolbar">
-      <span class="toolbar-label">Manage routines</span>
-      <button class="button primary compact-button" type="button" data-action="new-routine">Add routine</button>
-    </div>` : ""}
-    ${routineTabs(state, routine?.id)}
-    ${!program ? `<div class="empty-state"><h3>No programs yet</h3><p>Create a program, then add its workout days.</p><button class="button primary" type="button" data-action="new-program">Add program</button></div>` : routine ? `
-      <div class="program-heading">
-        <div>
-          <h2>${escapeHtml(routine.name)}</h2>
-          <p>${routine.group === "home" ? "Home" : "Gym"} · ${routine.status} · ${routine.entries.length} ${routine.entries.length === 1 ? "exercise" : "exercises"}</p>
-        </div>
-        <div class="row-actions">
-          <button class="mini-button" type="button" data-action="move-routine-up" data-id="${escapeHtml(routine.id)}" aria-label="Move routine earlier" ${routines.indexOf(routine) === 0 ? "disabled" : ""}>${upIcon()}</button>
-          <button class="mini-button" type="button" data-action="move-routine-down" data-id="${escapeHtml(routine.id)}" aria-label="Move routine later" ${routines.indexOf(routine) === routines.length - 1 ? "disabled" : ""}>${downIcon()}</button>
-          <button class="mini-button" type="button" data-action="edit-routine" data-id="${escapeHtml(routine.id)}" aria-label="Edit ${escapeHtml(routine.name)}">${editIcon()}</button>
-        </div>
-      </div>
-      ${renderRoutineEntries(state, routine)}
-      <button class="add-row-button" type="button" data-action="open-picker">+ Add exercise</button>
-    ` : `<div class="empty-state"><h3>No routines yet</h3><p>Add the first workout day to ${escapeHtml(program.name)}. Exercises will come from the shared Library.</p><button class="button primary" type="button" data-action="new-routine">Add routine</button></div>`}
-  </section>`;
-}
-
-function renderRoutineEntries(state, routine) {
-  if (!routine.entries.length) {
-    return `<div class="empty-state compact-empty"><h3>No exercises yet</h3><p>Use Add exercise below to build this routine.</p></div>`;
-  }
-  return `<div class="program-list">${routine.entries.map((entry, index) => {
-    const exercise = exerciseById(state, entry.exerciseId);
-    const content = `<span class="row-number">${index + 1}</span>
-      <span class="row-main"><span class="row-title">${escapeHtml(exercise?.name || "Missing exercise")}</span><span class="row-meta">${escapeHtml(entry.prescription || exercise?.defaultPrescription || "No prescription")}</span></span>
-      <span class="drag-hint" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h8"/></svg></span>`;
-    return `<button class="program-row" type="button" data-action="edit-entry" data-id="${escapeHtml(entry.id)}" aria-label="${escapeHtml(exercise?.name || "Exercise")}. Tap to edit. Hold and drag to reorder.">${content}</button>`;
-  }).join("")}</div>`;
+  main.innerHTML = programMarkup({
+    state,
+    program,
+    routines,
+    routine,
+    exerciseById,
+  });
 }
 
 function entryDragPoint(event) {
@@ -668,7 +502,7 @@ function finishEntryDrag(savePosition) {
 }
 
 function completeEntryDrag(drag, savePosition) {
-  const targetIndex = [...drag.list.children].indexOf(drag.placeholder);
+  const targetRoleIndex = [...drag.list.children].indexOf(drag.placeholder);
   drag.placeholder.replaceWith(drag.row);
   drag.row.classList.remove("is-dragging");
   drag.row.removeAttribute("style");
@@ -680,9 +514,12 @@ function completeEntryDrag(drag, savePosition) {
   }
   const state = store.getState();
   const routine = state.routines.find((item) => item.id === drag.routineId);
-  const sourceIndex = routine?.entries.findIndex((entry) => entry.id === drag.entryId) ?? -1;
-  if (!routine || sourceIndex < 0 || sourceIndex === targetIndex) return;
-  const result = store.replace(reorderRoutineEntry(state, routine.id, drag.entryId, targetIndex));
+  const entry = routine?.entries.find((item) => item.id === drag.entryId);
+  const sourceRoleIndex = routine?.entries
+    .filter((item) => item.role === entry?.role)
+    .findIndex((item) => item.id === drag.entryId) ?? -1;
+  if (!routine || !entry || sourceRoleIndex < 0 || sourceRoleIndex === targetRoleIndex) return;
+  const result = store.replace(reorderRoutineEntryWithinRole(state, routine.id, drag.entryId, targetRoleIndex));
   saveResult(result, "Exercise moved.");
   render();
 }
@@ -871,19 +708,7 @@ async function deleteExercise(id) {
 }
 
 function renderProgramsList() {
-  const state = store.getState();
-  const target = document.querySelector("#programsList");
-  target.innerHTML = state.programs.length ? state.programs.map((program) => {
-    const active = program.id === state.settings.activeProgramId;
-    const routineCount = program.routineIds.length;
-    return `<div class="program-choice-row">
-      <button class="program-choice" type="button" data-action="select-program" data-id="${escapeHtml(program.id)}" aria-pressed="${active}">
-        <span class="program-active-mark" aria-hidden="true">${active ? "✓" : ""}</span>
-        <span><strong>${escapeHtml(program.name)}</strong><small>${routineCount} ${routineCount === 1 ? "routine" : "routines"}${active ? " · Active" : ""}</small></span>
-      </button>
-      <button class="mini-button" type="button" data-action="edit-program" data-id="${escapeHtml(program.id)}" aria-label="Edit ${escapeHtml(program.name)}">${editIcon()}</button>
-    </div>`;
-  }).join("") : `<div class="empty-state compact-empty"><h3>No programs yet</h3><p>Add one to organize your workout days.</p></div>`;
+  document.querySelector("#programsList").innerHTML = programsListMarkup(store.getState());
 }
 
 function openPrograms() {
@@ -892,12 +717,21 @@ function openPrograms() {
   document.querySelector("#programsDialog").showModal();
 }
 
+function setProgramStartMode(mode) {
+  const resolvedMode = mode === "duplicate" ? "duplicate" : "empty";
+  document.querySelector("#programStartMode").value = resolvedMode;
+  document.querySelectorAll('#programStartModeOptions [data-mode]').forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.mode === resolvedMode));
+  });
+  syncProgramStartMode();
+}
+
 function syncProgramStartMode() {
   const mode = document.querySelector("#programStartMode").value;
   const sourceField = document.querySelector("#programDuplicateSourceField");
   const source = document.querySelector("#programDuplicateSource");
-  sourceField.hidden = mode !== "duplicate";
   source.disabled = mode !== "duplicate";
+  sourceField.classList.toggle("is-disabled", source.disabled);
 }
 
 function openProgramEditor(id = "", duplicateSourceId = "") {
@@ -905,27 +739,33 @@ function openProgramEditor(id = "", duplicateSourceId = "") {
   const program = id ? state.programs.find((item) => item.id === id) : null;
   const duplicateSource = duplicateSourceId ? state.programs.find((item) => item.id === duplicateSourceId) : null;
   if (id && !program) return;
+  programDialogFocusReturn = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
   const programsDialog = document.querySelector("#programsDialog");
   if (programsDialog.open) programsDialog.close();
   const programDialog = document.querySelector("#programDialog");
-  if (programDialog.open) programDialog.close();
+  if (programDialog.open) {
+    programDialog.dataset.skipFocusReturn = "true";
+    programDialog.close();
+  }
 
   const sourceSelect = document.querySelector("#programDuplicateSource");
   sourceSelect.innerHTML = state.programs.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("");
-  const duplicateOption = document.querySelector('#programStartMode option[value="duplicate"]');
-  duplicateOption.disabled = !state.programs.length;
+  const duplicateButton = document.querySelector('#programStartModeOptions [data-mode="duplicate"]');
+  duplicateButton.disabled = !state.programs.length;
 
   document.querySelector("#programDialogTitle").textContent = program ? "Edit program" : "Add program";
+  document.querySelector("#programDialogSubtitle").hidden = Boolean(program);
   document.querySelector("#programId").value = program?.id || "";
   document.querySelector("#programName").value = program?.name || (duplicateSource ? `${duplicateSource.name} copy` : "");
   document.querySelector("#programCreateFields").hidden = Boolean(program);
   document.querySelector("#programEditActions").hidden = !program;
+  document.querySelector("#programCancelButton").hidden = Boolean(program);
   document.querySelector("#programSaveButton").textContent = program ? "Save changes" : "Create program";
   document.querySelector("#programFormError").textContent = "";
-  document.querySelector("#programStartMode").value = duplicateSource ? "duplicate" : "empty";
   if (state.programs.length) sourceSelect.value = duplicateSource?.id || state.settings.activeProgramId || state.programs[0].id;
-  syncProgramStartMode();
+  setProgramStartMode(duplicateSource ? "duplicate" : "empty");
+  programDialog.classList.toggle("compact-dialog", Boolean(program));
   programDialog.showModal();
   requestAnimationFrame(() => document.querySelector("#programName").focus());
 }
@@ -983,35 +823,71 @@ async function deleteProgram(id) {
   const program = state.programs.find((item) => item.id === id);
   if (!program) return;
   const count = program.routineIds.length;
+  const editor = document.querySelector("#programDialog");
+  const returnToEditor = editor.open;
+  if (returnToEditor) {
+    editor.dataset.skipFocusReturn = "true";
+    editor.close();
+  }
   const confirmed = await confirmAction(
     `Delete ${program.name}?`,
     `This removes ${count} ${count === 1 ? "routine" : "routines"} and their completion history. Master exercises stay in the Library.`,
     "Delete program",
+    "Keep program",
+    "program-delete",
   );
-  if (!confirmed) return;
+  if (!confirmed) {
+    if (returnToEditor) openProgramEditor(id);
+    return;
+  }
   const result = store.replace(removeProgramFromState(state, id));
-  if (!saveResult(result, "Program deleted.")) return;
-  document.querySelector("#programDialog").close();
+  if (!result.ok) {
+    if (returnToEditor) openProgramEditor(id);
+    saveResult(result);
+    return;
+  }
+  saveResult(result, "Program deleted.");
   render();
   main.scrollTop = 0;
 }
 
-function openRoutineEditor(id = "") {
+function openRoutineEditor(id = "", focusReturn = document.activeElement) {
   const state = store.getState();
   if (!getActiveProgram(state)) {
     openProgramEditor();
     return;
   }
   const routine = state.routines.find((item) => item.id === id);
-  document.querySelector("#routineDialogTitle").textContent = routine ? "Edit routine" : "Add routine";
+  const dialog = document.querySelector("#routineDialog");
+  routineDialogFocusReturn = focusReturn;
+  document.querySelector("#routineDialogTitle").textContent = routine ? `Edit ${routine.name}` : "Add routine";
   document.querySelector("#routineId").value = routine?.id || "";
   document.querySelector("#routineName").value = routine?.name || "";
-  document.querySelector("#routineGroup").value = routine?.group || "gym";
-  document.querySelector("#routineStatus").value = routine?.status || "required";
+  setRoutineOption("group", routine?.group || "gym");
+  setRoutineOption("status", routine?.status || "required");
   document.querySelector("#routineFormError").textContent = "";
-  document.querySelector("#deleteRoutineButton").hidden = !routine;
-  document.querySelector("#routineDialog").showModal();
+  document.querySelector("#routineEditActions").hidden = !routine;
+  updateRoutineMoveButtons(routine?.id || "");
+  dialog.classList.toggle("compact-dialog", !routine);
+  dialog.showModal();
   requestAnimationFrame(() => document.querySelector("#routineName").focus());
+}
+
+function setRoutineOption(kind, value) {
+  const input = document.querySelector(`#routine${kind === "group" ? "Group" : "Status"}`);
+  const options = document.querySelector(`#routine${kind === "group" ? "Group" : "Status"}Options`);
+  input.value = value;
+  options.querySelectorAll("button").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset[`routine${kind[0].toUpperCase()}${kind.slice(1)}`] === value));
+  });
+}
+
+function updateRoutineMoveButtons(id) {
+  const state = store.getState();
+  const program = getRoutineProgram(state, id);
+  const index = program?.routineIds.indexOf(id) ?? -1;
+  document.querySelector("#moveRoutineEarlierButton").disabled = index <= 0;
+  document.querySelector("#moveRoutineLaterButton").disabled = index < 0 || index === program.routineIds.length - 1;
 }
 
 function saveRoutine() {
@@ -1033,23 +909,20 @@ function saveRoutine() {
   const routineId = id || makeId("routine");
   const result = store.update((next) => {
     if (id) {
-      next.routines = next.routines.map((routine) => routine.id === id ? {
-        ...routine,
+      return updateRoutineInState(next, id, {
         name,
         group: document.querySelector("#routineGroup").value,
         status: document.querySelector("#routineStatus").value,
-      } : routine);
-    } else {
-      const withRoutine = addRoutineToProgram(next, next.settings.activeProgramId, {
-        id: routineId,
-        name,
-        group: document.querySelector("#routineGroup").value,
-        status: document.querySelector("#routineStatus").value,
-        entries: [],
       });
-      withRoutine.settings.activeRoutineId = routineId;
-      return withRoutine;
     }
+    const withRoutine = addRoutineToProgram(next, next.settings.activeProgramId, {
+      id: routineId,
+      name,
+      group: document.querySelector("#routineGroup").value,
+      status: document.querySelector("#routineStatus").value,
+      entries: [],
+    });
+    return setActiveRoutineInState(withRoutine, routineId);
   });
   if (!saveResult(result, id ? "Routine updated." : "Routine added.")) return false;
   document.querySelector("#routineDialog").close();
@@ -1061,23 +934,42 @@ async function deleteRoutine(id) {
   const state = store.getState();
   const routine = state.routines.find((item) => item.id === id);
   if (!routine) return;
-  const confirmed = await confirmAction("Delete routine", `Delete “${routine.name}”? Exercises stay in the library, but its completion history will be removed.`, "Delete routine");
-  if (!confirmed) return;
-  const result = store.replace(removeRoutineFromState(state, id));
-  if (saveResult(result, "Routine deleted.")) {
-    document.querySelector("#routineDialog").close();
-    render();
+  const editor = document.querySelector("#routineDialog");
+  const returnToEditor = editor.open;
+  const focusReturn = routineDialogFocusReturn;
+  if (returnToEditor) {
+    editor.dataset.skipFocusReturn = "true";
+    editor.close();
   }
+  const confirmed = await confirmAction(
+    `Delete ${routine.name}?`,
+    "This removes the routine and its completion history. Master exercises stay in the Library.",
+    "Delete routine",
+    "Keep routine",
+    "routine-delete",
+  );
+  if (!confirmed) {
+    if (returnToEditor) openRoutineEditor(id, focusReturn);
+    return;
+  }
+  const result = store.replace(removeRoutineFromState(state, id));
+  if (!result.ok) {
+    if (returnToEditor) openRoutineEditor(id, focusReturn);
+    saveResult(result);
+    return;
+  }
+  saveResult(result, "Routine deleted.");
+  render();
+  setTimeout(() => {
+    const target = main.querySelector(".routine-tab[aria-pressed='true']")
+      || main.querySelector(".program-empty-state [data-action='new-routine']")
+      || main.querySelector(".program-page-manage");
+    target?.focus({ preventScroll: true });
+  }, 0);
 }
 
 function selectRoutine(id) {
-  const result = store.update((state) => {
-    const owner = state.programs.find((program) => program.routineIds.includes(id));
-    if (!owner) return state;
-    const next = setActiveProgramInState(state, owner.id);
-    next.settings.activeRoutineId = id;
-    return next;
-  });
+  const result = store.replace(setActiveRoutineInState(store.getState(), id));
   if (saveResult(result)) render();
 }
 
@@ -1086,13 +978,17 @@ function moveRoutine(id, direction) {
   const program = state.programs.find((item) => item.routineIds.includes(id));
   const index = program?.routineIds.indexOf(id) ?? -1;
   const result = store.replace(reorderRoutineInProgram(state, program?.id, id, index + direction));
-  if (saveResult(result)) render();
+  if (!saveResult(result, "Routine moved.")) return false;
+  render();
+  updateRoutineMoveButtons(id);
+  return true;
 }
 
 function moveEntry(id, direction) {
   const activeId = store.getState().settings.activeRoutineId;
   const prescription = document.querySelector("#entryPrescription").value.trim();
-  const result = store.replace(moveRoutineEntry(store.getState(), activeId, id, direction, prescription));
+  const role = document.querySelector("#entryRole").value;
+  const result = store.replace(moveRoutineEntry(store.getState(), activeId, id, direction, prescription, role));
   if (!saveResult(result, "Exercise moved.")) return false;
   document.querySelector("#entryDialog").close();
   render();
@@ -1106,20 +1002,18 @@ async function removeEntry(id) {
   const exercise = entry ? exerciseById(state, entry.exerciseId) : null;
   if (!entry) return;
   const confirmed = await confirmAction(
-    "Remove exercise",
-    `Remove “${exercise?.name || "this exercise"}” from ${routine.name}? It will stay in the exercise library.`,
-    "Remove",
+    `Remove ${exercise?.name || "exercise"}?`,
+    `This removes only the ${routine.name} entry. The master exercise stays in the Library.`,
+    "Remove entry",
+    "Keep entry",
+    "entry-remove",
   );
   if (!confirmed) return;
   const activeId = store.getState().settings.activeRoutineId;
-  const result = store.update((state) => {
-    const routine = state.routines.find((item) => item.id === activeId);
-    if (routine) routine.entries = routine.entries.filter((entry) => entry.id !== id);
-  });
-  if (saveResult(result, "Exercise removed from routine.")) {
-    if (document.querySelector("#entryDialog").open) document.querySelector("#entryDialog").close();
-    render();
-  }
+  const result = store.replace(removeRoutineEntryFromState(store.getState(), activeId, id));
+  if (!saveResult(result, "Exercise removed from routine.")) return;
+  if (document.querySelector("#entryDialog").open) document.querySelector("#entryDialog").close();
+  render();
 }
 
 function openEntryEditor(id) {
@@ -1128,35 +1022,58 @@ function openEntryEditor(id) {
   const entry = routine?.entries.find((item) => item.id === id);
   const exercise = entry ? exerciseById(state, entry.exerciseId) : null;
   if (!entry || !exercise) return;
+  entryDialogFocusReturn = document.activeElement;
   document.querySelector("#entryId").value = entry.id;
   document.querySelector("#entryExerciseName").textContent = exercise.name;
+  document.querySelector("#entryRoutineContext").textContent = `${routine.name} entry`;
+  document.querySelector("#entryPrescriptionLabel").textContent = `Prescription for ${routine.name}`;
   document.querySelector("#entryPrescription").value = entry.prescription || exercise.defaultPrescription || "";
+  document.querySelector("#entryFormNote").textContent = `This changes only the ${routine.name} entry. The master exercise and its default prescription stay unchanged.`;
+  document.querySelector("#removeEntryButton").firstChild.textContent = `Remove from ${routine.name} `;
+  setEntryRole(entry.role);
   document.querySelector("#entryFormError").textContent = "";
-  const index = routine.entries.indexOf(entry);
-  document.querySelector("#moveEntryEarlierButton").disabled = index === 0;
-  document.querySelector("#moveEntryLaterButton").disabled = index === routine.entries.length - 1;
   document.querySelector("#entryDialog").showModal();
   requestAnimationFrame(() => document.querySelector("#entryPrescription").focus());
+}
+
+function setEntryRole(role) {
+  document.querySelector("#entryRole").value = role;
+  document.querySelectorAll("#entryRoleOptions [data-entry-role]").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.entryRole === role));
+  });
+  const state = store.getState();
+  const routine = getActiveRoutine(state);
+  const entryId = document.querySelector("#entryId").value;
+  const entry = routine?.entries.find((item) => item.id === entryId);
+  if (!entry) return;
+  const roleEntries = routine.entries.filter((item) => item.role === role);
+  const roleIndex = role === entry.role
+    ? roleEntries.findIndex((item) => item.id === entryId)
+    : roleEntries.length;
+  const roleCount = roleEntries.length + (role === entry.role ? 0 : 1);
+  document.querySelector("#moveEntryEarlierButton").disabled = roleIndex <= 0;
+  document.querySelector("#moveEntryLaterButton").disabled = roleIndex >= roleCount - 1;
 }
 
 function saveEntry() {
   const id = document.querySelector("#entryId").value;
   const prescription = document.querySelector("#entryPrescription").value.trim();
+  const role = document.querySelector("#entryRole").value;
   const activeId = store.getState().settings.activeRoutineId;
-  const result = store.update((state) => {
-    const routine = state.routines.find((item) => item.id === activeId);
-    const entry = routine?.entries.find((item) => item.id === id);
-    if (entry) entry.prescription = prescription;
-  });
-  if (!saveResult(result, "Prescription updated.")) return false;
+  const result = store.replace(updateRoutineEntryInState(store.getState(), activeId, id, { prescription, role }));
+  if (!saveResult(result, "Routine entry updated.")) return false;
   document.querySelector("#entryDialog").close();
   render();
   return true;
 }
 
 function openPicker() {
+  const routine = getActiveRoutine(store.getState());
+  if (!routine) return;
+  pickerDialogFocusReturn = document.activeElement;
   pickerQuery = "";
   document.querySelector("#pickerSearch").value = "";
+  document.querySelector("#pickerRoutineContext").textContent = `${routine.name} · Library`;
   document.querySelector("#pickerFormError").textContent = "";
   renderPickerList();
   document.querySelector("#pickerDialog").showModal();
@@ -1171,31 +1088,34 @@ function renderPickerList() {
   const exercises = state.exercises
     .filter((exercise) => !needle || exercise.name.toLowerCase().includes(needle) || exerciseSearchTerms(exercise).some((term) => term.toLowerCase().includes(needle)))
     .sort((a, b) => a.name.localeCompare(b.name));
-  const target = document.querySelector("#pickerList");
-  target.innerHTML = exercises.length ? exercises.map((exercise) => `
-    <button class="picker-item" type="button" data-action="pick-exercise" data-id="${escapeHtml(exercise.id)}">
-      <span><strong>${escapeHtml(exercise.name)}</strong><span class="row-meta">${escapeHtml(exercise.defaultPrescription || "No default prescription")}</span></span>
-      <span>${existing.has(exercise.id) ? "Add again" : "Add"}</span>
-    </button>`).join("") : `<div class="empty-state"><h3>No matching exercises</h3><p>Add a new exercise from the library first.</p></div>`;
+  document.querySelector("#pickerResultCount").textContent = `${exercises.length} ${exercises.length === 1 ? "exercise" : "exercises"}`;
+  document.querySelector("#pickerList").innerHTML = pickerListMarkup(exercises, existing);
 }
 
 function pickExercise(exerciseId) {
-  const activeId = store.getState().settings.activeRoutineId;
-  const result = store.update((state) => {
-    const routine = state.routines.find((item) => item.id === activeId);
-    const exercise = exerciseById(state, exerciseId);
-    if (routine && exercise) routine.entries.push({ id: makeId("entry"), exerciseId, prescription: exercise.defaultPrescription || "" });
-  });
+  const state = store.getState();
+  const activeId = state.settings.activeRoutineId;
+  const exercise = exerciseById(state, exerciseId);
+  if (!exercise) return;
+  const entry = {
+    id: makeId("entry"),
+    exerciseId,
+    prescription: exercise.defaultPrescription || "",
+    role: "main",
+  };
+  const result = store.replace(addRoutineEntryInState(state, activeId, entry));
   if (!saveResult(result, "Exercise added to routine.")) return;
   document.querySelector("#pickerDialog").close();
   render();
 }
 
-function confirmAction(title, message, buttonLabel) {
+function confirmAction(title, message, buttonLabel, cancelLabel = "Keep it", variant = "") {
   document.querySelector("#confirmTitle").textContent = title;
   document.querySelector("#confirmMessage").textContent = message;
   document.querySelector("#confirmAction").textContent = buttonLabel;
+  document.querySelector("#confirmCancel").textContent = cancelLabel;
   const dialog = document.querySelector("#confirmDialog");
+  dialog.dataset.variant = variant;
   dialog.returnValue = "cancel";
   dialog.showModal();
   return new Promise((resolve) => { confirmResolver = resolve; });
@@ -1203,7 +1123,7 @@ function confirmAction(title, message, buttonLabel) {
 
 function applyTheme(theme) {
   document.documentElement.dataset.theme = theme;
-  document.querySelector('meta[name="theme-color"]').content = theme === "dark" ? "#111411" : "#f4f5f3";
+  document.querySelector('meta[name="theme-color"]').content = theme === "dark" ? "#0f1114" : "#f3f4f5";
   document.querySelector("#settingsThemeValue").textContent = theme === "dark" ? "Dark" : "Light";
 }
 
@@ -1215,8 +1135,7 @@ function toggleTheme() {
 
 function openSettings() {
   document.querySelector("#settingsFormError").textContent = "";
-  document.querySelector("#rulesContent").innerHTML = RULES.map(([title, items]) => `
-    <section class="rule-section"><h3>${escapeHtml(title)}</h3><ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>`).join("");
+  document.querySelector("#rulesContent").innerHTML = rulesMarkup(RULES);
   document.querySelector("#settingsDialog").showModal();
 }
 
@@ -1298,9 +1217,10 @@ main.addEventListener("click", (event) => {
     openEntryEditor(id);
   }
   else if (action === "open-picker") openPicker();
+  else if (action === "toggle-entry-check") toggleEntryCheck(button.dataset.routineId, id);
   else if (action === "open-workout-exercise") openExerciseDetails(id, button.dataset.prescription || "");
+  else if (action === "open-workout-video") openExerciseVideoSearch(id);
   else if (action === "view-alternative") openExerciseDetails(id);
-  else if (action === "toggle-today") toggleToday();
   else if (action === "previous-month") changeCalendarMonth(-1);
   else if (action === "next-month") changeCalendarMonth(1);
   else if (action === "open-day") openDayEditor(button.dataset.date);
@@ -1363,7 +1283,25 @@ document.querySelector("#programsList").addEventListener("click", (event) => {
 });
 
 document.querySelector("#newProgramButton").addEventListener("click", () => openProgramEditor());
-document.querySelector("#programStartMode").addEventListener("change", syncProgramStartMode);
+document.querySelector("#programStartModeOptions").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-mode]");
+  if (button && !button.disabled) setProgramStartMode(button.dataset.mode);
+});
+
+document.querySelector("#routineGroupOptions").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-routine-group]");
+  if (button) setRoutineOption("group", button.dataset.routineGroup);
+});
+
+document.querySelector("#routineStatusOptions").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-routine-status]");
+  if (button) setRoutineOption("status", button.dataset.routineStatus);
+});
+
+document.querySelector("#entryRoleOptions").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-entry-role]");
+  if (button) setEntryRole(button.dataset.entryRole);
+});
 
 document.querySelector("#applyExerciseFilterButton").addEventListener("click", () => {
   exerciseTarget = document.querySelector("#targetFilterSelect").value;
@@ -1410,21 +1348,20 @@ document.querySelector("#saveAlternativesButton").addEventListener("click", () =
 });
 
 document.querySelector("#exerciseDetailDialog").addEventListener("click", (event) => {
-  const alternative = event.target.closest('[data-action="view-alternative"]');
-  if (alternative) {
+  const action = event.target.closest("[data-action]");
+  if (!action) return;
+  if (action.dataset.action === "view-alternative") openExerciseDetails(action.dataset.id);
+  else if (action.dataset.action === "edit-master-exercise") {
     document.querySelector("#exerciseDetailDialog").close();
-    openExerciseDetails(alternative.dataset.id);
+    openExerciseEditor(action.dataset.id);
   }
 });
 
-document.querySelector("#detailEditExercise").addEventListener("click", (event) => {
-  const id = event.currentTarget.dataset.exerciseId;
-  document.querySelector("#exerciseDetailDialog").close();
-  openExerciseEditor(id);
-});
-
-document.querySelector("#dayDialog").addEventListener("click", (event) => {
-  if (event.target.closest('[data-close-dialog="dayDialog"]')) document.querySelector("#dayDialog").close();
+document.querySelector("#exerciseVideoDialog").addEventListener("click", (event) => {
+  const action = event.target.closest('[data-action="edit-master-exercise"]');
+  if (!action) return;
+  document.querySelector("#exerciseVideoDialog").close();
+  openExerciseEditor(action.dataset.id);
 });
 
 document.querySelector("#dayDialog").addEventListener("submit", (event) => {
@@ -1433,8 +1370,11 @@ document.querySelector("#dayDialog").addEventListener("submit", (event) => {
   saveDay(event.target);
 });
 
-document.querySelectorAll("[data-close-dialog]").forEach((button) => {
-  button.addEventListener("click", () => document.querySelector(`#${button.dataset.closeDialog}`).close());
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-close-dialog]");
+  if (!button) return;
+  const dialog = document.querySelector(`#${button.dataset.closeDialog}`);
+  if (dialog?.open) dialog.close();
 });
 
 document.querySelector("#exerciseForm").addEventListener("submit", (event) => {
@@ -1470,6 +1410,12 @@ document.querySelector("#moveEntryLaterButton").addEventListener("click", () => 
   moveEntry(id, 1);
 });
 document.querySelector("#removeEntryButton").addEventListener("click", () => removeEntry(document.querySelector("#entryId").value));
+document.querySelector("#moveRoutineEarlierButton").addEventListener("click", () => {
+  moveRoutine(document.querySelector("#routineId").value, -1);
+});
+document.querySelector("#moveRoutineLaterButton").addEventListener("click", () => {
+  moveRoutine(document.querySelector("#routineId").value, 1);
+});
 
 document.querySelector("#deleteExerciseButton").addEventListener("click", () => deleteExercise(document.querySelector("#exerciseId").value));
 document.querySelector("#duplicateExerciseButton").addEventListener("click", () => {
@@ -1483,7 +1429,6 @@ document.querySelector("#duplicateProgramButton").addEventListener("click", () =
   openProgramEditor("", id);
 });
 document.querySelector("#deleteProgramButton").addEventListener("click", () => deleteProgram(document.querySelector("#programId").value));
-headerCompleteButton.addEventListener("click", toggleToday);
 document.querySelector("#settingsThemeButton").addEventListener("click", toggleTheme);
 document.querySelector("#settingsButton").addEventListener("click", openSettings);
 document.querySelector("#exportButton").addEventListener("click", exportData);
@@ -1498,6 +1443,80 @@ document.querySelector("#resetButton").addEventListener("click", resetData);
 document.querySelector("#confirmDialog").addEventListener("close", (event) => {
   confirmResolver?.(event.target.returnValue === "confirm");
   confirmResolver = null;
+  delete event.target.dataset.variant;
+});
+
+document.querySelector("#programDialog").addEventListener("close", (event) => {
+  if (event.target.dataset.skipFocusReturn) {
+    delete event.target.dataset.skipFocusReturn;
+    return;
+  }
+  requestAnimationFrame(() => {
+    const storedTarget = programDialogFocusReturn;
+    const storedDialog = storedTarget?.closest?.("dialog");
+    const fallback = currentView === "routines"
+      ? main.querySelector(".program-page-manage")
+      : currentView === "workout"
+        ? main.querySelector(".workout-program-pick, [data-action='new-program']")
+        : main;
+    const target = storedTarget?.isConnected && (!storedDialog || storedDialog.open)
+      ? storedTarget
+      : fallback;
+    target?.focus?.({ preventScroll: true });
+    programDialogFocusReturn = null;
+  });
+});
+
+document.querySelector("#routineDialog").addEventListener("close", (event) => {
+  if (event.target.dataset.skipFocusReturn) {
+    delete event.target.dataset.skipFocusReturn;
+    return;
+  }
+  const editedRoutineId = event.target.querySelector("#routineId")?.value || "";
+  requestAnimationFrame(() => {
+    const storedTarget = routineDialogFocusReturn;
+    const fallback = currentView === "routines"
+      ? editedRoutineId
+        ? [...main.querySelectorAll(".program-view-edit")].find((button) => button.dataset.id === editedRoutineId)
+        : main.querySelector(".program-app-action, [data-action='new-routine'], .program-page-manage")
+      : main;
+    const target = storedTarget !== main && storedTarget?.isConnected && main.contains(storedTarget)
+      ? storedTarget
+      : fallback;
+    target?.focus?.({ preventScroll: true });
+    routineDialogFocusReturn = null;
+  });
+});
+
+document.querySelector("#entryDialog").addEventListener("close", (event) => {
+  const editedEntryId = event.target.querySelector("#entryId")?.value || "";
+  setTimeout(() => {
+    const storedTarget = entryDialogFocusReturn;
+    const fallback = currentView === "routines"
+      ? [...main.querySelectorAll(".program-row")].find((button) => button.dataset.id === editedEntryId)
+        || main.querySelector(".add-row-button")
+        || main.querySelector(".program-view-edit")
+      : main;
+    const target = storedTarget !== main && storedTarget?.isConnected && main.contains(storedTarget)
+      ? storedTarget
+      : fallback;
+    target?.focus?.({ preventScroll: true });
+    entryDialogFocusReturn = null;
+  }, 0);
+});
+
+document.querySelector("#pickerDialog").addEventListener("close", () => {
+  requestAnimationFrame(() => {
+    const storedTarget = pickerDialogFocusReturn;
+    const fallback = currentView === "routines"
+      ? main.querySelector(".add-row-button, .program-empty-state [data-action='open-picker']")
+      : main;
+    const target = storedTarget !== main && storedTarget?.isConnected && main.contains(storedTarget)
+      ? storedTarget
+      : fallback;
+    target?.focus?.({ preventScroll: true });
+    pickerDialogFocusReturn = null;
+  });
 });
 
 document.querySelectorAll("dialog").forEach((dialog) => {
@@ -1520,7 +1539,7 @@ if ("serviceWorker" in navigator) {
     }
   });
   navigator.serviceWorker
-    .register("sw.js?v=28", { updateViaCache: "none" })
+    .register("sw.js?v=37", { updateViaCache: "none" })
     .then((registration) => registration.update())
     .catch(() => showToast("Offline mode could not be started."));
 }

@@ -62,7 +62,7 @@ Every redesign or navigation change must keep these actions clearly reachable. B
 - Reorder routines.
 - Search the library and add an exercise to the selected routine.
 - Open a routine entry to change only that entry's prescription and Main/Optional role.
-- Hold and drag a routine entry to any position; earlier/later controls remain available as a non-drag fallback.
+- Hold and drag a routine entry to any position within its current Main/Optional section; earlier/later controls remain available as a non-drag fallback. Change section deliberately in the entry editor.
 - Remove an entry from the routine without deleting its master exercise.
 
 ### Library
@@ -108,7 +108,6 @@ Every redesign or navigation change must keep these actions clearly reachable. B
 - An exercise with Rehab purpose is not automatically Optional. Entry role is chosen independently in each routine.
 - Tapping an entry’s number/check control changes completion. Tapping the rest of the row opens the exercise reference.
 - Log is an explicit history editor: marking a routine complete adds its routine ID and checks its current Main entries; unmarking it removes the routine ID and clears that routine’s saved entry checks for the date.
-- Migrated routine-only completions remain valid historical facts even when they have no entry-check detail. Migration must not invent old checks, and later routine edits must not recalculate past completion.
 
 ### Classification meaning
 

@@ -1,6 +1,6 @@
 # Exercise Classification Study
 
-Status: vocabulary and workbook approved in Slice 5; the backward-compatible production schema migration is repo verified in Slice 6.
+Status: approved reference. The vocabulary entered production in schema 7 and remains current in schema 8.
 
 ## Decision
 
@@ -15,7 +15,7 @@ The model has four layers:
 
 This avoids contradictory data. For example, `Chest` is a target, `upper` is an emphasis within that target, `horizontal press` is a movement, and `Push` is a derived browsing shortcut. They are not four competing categories.
 
-## Proposed master-exercise fields
+## Master-exercise fields
 
 ### Required
 
@@ -202,11 +202,11 @@ The editable source is `artifacts/exports/Gym App Data.xlsx`. Slice 5:
 4. Added only clear alternative/progression relationships, with reciprocal rows.
 5. Mechanically validated required values, target exclusion, controlled vocabularies, stable links, and blank optional uncertainty.
 
-The workbook remains local and editable. Slice 6 converts its exact reviewed values to stable production IDs, loads them by existing exercise ID, and migrates older stored data without replacing user-owned names, prescriptions, notes/cues, or videos. Exact custom legacy values migrate only when the meaning is unambiguous; uncertain new fields stay blank.
+The workbook remains local and editable. Production converts its reviewed labels to stable IDs, loads them by existing exercise ID, and migrates older stored data without replacing user-owned names, prescriptions, notes/cues, or videos. Exact custom legacy values migrate only when the meaning is unambiguous; uncertain new fields stay blank.
 
 ## UI mapping
 
-- **Workout rows:** unchanged. Name, routine prescription, completion, and video stay fast.
+- **Workout rows:** name, routine prescription, and completion stay fast.
 - **Exercise reference:** ordered targets, emphasis, compact classification facts, one related-exercise list, notes, two web-search actions, and a deliberate Edit exercise action.
 - **Library:** compact rows plus progressive filters.
 - **Exercise editor:** essential fields first; optional classification under one disclosure.

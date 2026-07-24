@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f4f5f3">
+  <meta name="theme-color" content="#f3f4f5">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Gym Schedule">
   <title>Gym Schedule</title>
-  <link rel="manifest" href="manifest.json?v=28">
+  <link rel="manifest" href="manifest.json?v=37">
   <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/app-icon-180.png">
-  <link rel="stylesheet" href="styles.css?v=28">
+  <link rel="stylesheet" href="styles.css?v=37">
 </head>
 <body>
   <div class="app-shell">
@@ -19,14 +19,6 @@
       <div class="topbar-title">
         <h1 id="viewTitle">Push A</h1>
         <p id="viewMetaLine">Gym · 6 exercises · required</p>
-      </div>
-      <div class="topbar-actions">
-        <button class="icon-button header-complete" id="headerCompleteButton" type="button" aria-label="Mark routine completed today" aria-pressed="false">
-          <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.6 2.6L16.5 9"/></svg>
-        </button>
-        <button class="icon-button" id="settingsButton" type="button" aria-label="Open settings" title="Open settings">
-          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
-        </button>
       </div>
     </header>
 
@@ -42,12 +34,16 @@
         <span>Program</span>
       </button>
       <button type="button" data-view="exercises">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="9" cy="9" r="5"/><path d="m13 13 6 6M9 6v6M6 9h6"/></svg>
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19V6a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1v13"/><path d="M4 19a2 2 0 0 0 2 2h13"/><path d="M9 9h6M9 13h6"/></svg>
         <span>Library</span>
       </button>
       <button type="button" data-view="calendar">
         <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
         <span>Log</span>
+      </button>
+      <button type="button" id="settingsButton" aria-label="Open settings">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
+        <span>Settings</span>
       </button>
     </nav>
   </div>
@@ -115,10 +111,10 @@
     </div>
   </dialog>
 
-  <dialog id="programsDialog" class="sheet-dialog" aria-labelledby="programsDialogTitle">
-    <div class="dialog-form">
+  <dialog id="programsDialog" class="sheet-dialog programs-dialog" aria-labelledby="programsDialogTitle">
+    <div class="dialog-form programs-sheet">
       <header class="dialog-header">
-        <div><p class="dialog-kicker">Training blocks</p><h2 id="programsDialogTitle">Programs</h2></div>
+        <h2 id="programsDialogTitle">Programs</h2>
         <button class="icon-button" data-close-dialog="programsDialog" aria-label="Close programs" type="button">×</button>
       </header>
       <div id="programsList" class="programs-list"></div>
@@ -127,96 +123,126 @@
     </div>
   </dialog>
 
-  <dialog id="programDialog" class="sheet-dialog" aria-labelledby="programDialogTitle">
-    <form method="dialog" id="programForm" class="dialog-form">
+  <dialog id="programDialog" class="sheet-dialog program-dialog" aria-labelledby="programDialogTitle">
+    <form method="dialog" id="programForm" class="dialog-form program-sheet" novalidate>
       <header class="dialog-header">
-        <div><p class="dialog-kicker">Training block</p><h2 id="programDialogTitle">Add program</h2></div>
+        <div><h2 id="programDialogTitle">Add program</h2><p id="programDialogSubtitle">Create a new training block</p></div>
         <button class="icon-button" value="cancel" aria-label="Close program editor" type="submit" formnovalidate>×</button>
       </header>
       <input id="programId" type="hidden">
-      <label class="field">Program name<input id="programName" required maxlength="60" autocomplete="off"></label>
+      <label class="field"><span>Name</span><input class="control" id="programName" required maxlength="60" autocomplete="off"></label>
       <div id="programCreateFields">
-        <label class="field">Start with<select id="programStartMode"><option value="empty">Empty program</option><option value="duplicate">Duplicate a program</option></select></label>
-        <label class="field" id="programDuplicateSourceField">Duplicate from<select id="programDuplicateSource"></select></label>
-        <p class="dialog-intro">Duplicating copies routines and prescriptions. Exercises remain linked to the shared Library.</p>
+        <input id="programStartMode" type="hidden" value="empty">
+        <div class="field">
+          <span class="form-label">Start with</span>
+          <div class="segment" id="programStartModeOptions" role="group" aria-label="Choose how to start">
+            <button type="button" data-action="choose-program-start-mode" data-mode="empty" aria-pressed="true">Empty</button>
+            <button type="button" data-action="choose-program-start-mode" data-mode="duplicate" aria-pressed="false">Duplicate</button>
+          </div>
+        </div>
+        <label class="field" id="programDuplicateSourceField"><span>Duplicate from</span><select class="control" id="programDuplicateSource"></select></label>
+        <p class="form-note">Duplicating copies routines and prescriptions. Exercises remain linked to the same Library.</p>
       </div>
-      <div class="stacked-actions" id="programEditActions" hidden>
-        <button class="button secondary" id="duplicateProgramButton" type="button">Duplicate program</button>
-        <button class="button secondary danger-text" id="deleteProgramButton" type="button">Delete program</button>
+      <div class="action-list" id="programEditActions" hidden>
+        <button class="action-row" id="duplicateProgramButton" type="button">Duplicate program <span aria-hidden="true">›</span></button>
+        <button class="action-row danger" id="deleteProgramButton" type="button">Delete program <span aria-hidden="true">›</span></button>
       </div>
       <p class="form-error" id="programFormError" role="alert" data-dialog-error></p>
-      <footer class="dialog-actions"><button class="button primary full" id="programSaveButton" type="submit" value="save">Create program</button></footer>
-    </form>
-  </dialog>
-
-  <dialog id="routineDialog" class="sheet-dialog" aria-labelledby="routineDialogTitle">
-    <form method="dialog" id="routineForm" class="dialog-form">
-      <header class="dialog-header">
-        <div><p class="dialog-kicker">Routine setup</p><h2 id="routineDialogTitle">Add routine</h2></div>
-        <button class="icon-button" value="cancel" aria-label="Close routine editor" type="submit" formnovalidate>×</button>
-      </header>
-      <input type="hidden" id="routineId">
-      <label class="field">Routine name<input id="routineName" required maxlength="50" autocomplete="off"></label>
-      <div class="field-row">
-        <label class="field">Location<select id="routineGroup"><option value="gym">Gym</option><option value="home">Home</option></select></label>
-        <label class="field">Status<select id="routineStatus"><option value="required">Required</option><option value="optional">Optional</option></select></label>
-      </div>
-      <p class="form-error" id="routineFormError" role="alert" data-dialog-error></p>
       <footer class="dialog-actions">
-        <button class="button secondary danger-text" id="deleteRoutineButton" type="button" hidden>Delete routine</button>
-        <button class="button primary" type="submit" value="save">Save routine</button>
+        <button class="button text" id="programCancelButton" type="submit" value="cancel" formnovalidate>Cancel</button>
+        <button class="button primary" id="programSaveButton" type="submit" value="save">Create program</button>
       </footer>
     </form>
   </dialog>
 
-  <dialog id="pickerDialog" class="sheet-dialog tall-dialog" aria-labelledby="pickerDialogTitle">
-    <div class="dialog-form">
+  <dialog id="routineDialog" class="sheet-dialog routine-dialog" aria-labelledby="routineDialogTitle">
+    <form method="dialog" id="routineForm" class="dialog-form" novalidate>
       <header class="dialog-header">
-        <div><p class="dialog-kicker">Routine exercise</p><h2 id="pickerDialogTitle">Add exercise</h2></div>
+        <h2 id="routineDialogTitle">Add routine</h2>
+        <button class="icon-button" value="cancel" aria-label="Close routine editor" type="submit" formnovalidate>×</button>
+      </header>
+      <input type="hidden" id="routineId">
+      <label class="field"><span>Name</span><input class="control" id="routineName" required maxlength="50" autocomplete="off"></label>
+      <input type="hidden" id="routineGroup" value="gym">
+      <div class="field">
+        <span class="form-label">Location</span>
+        <div class="segment" id="routineGroupOptions" role="group" aria-label="Routine location">
+          <button type="button" data-routine-group="gym" aria-pressed="true">Gym</button>
+          <button type="button" data-routine-group="home" aria-pressed="false">Home</button>
+        </div>
+      </div>
+      <input type="hidden" id="routineStatus" value="required">
+      <div class="field">
+        <span class="form-label">Status</span>
+        <div class="segment" id="routineStatusOptions" role="group" aria-label="Routine status">
+          <button type="button" data-routine-status="required" aria-pressed="true">Required</button>
+          <button type="button" data-routine-status="optional" aria-pressed="false">Optional</button>
+        </div>
+      </div>
+      <div class="action-list" id="routineEditActions" hidden>
+        <button class="action-row" id="moveRoutineEarlierButton" type="button">Move routine earlier <span aria-hidden="true">↑</span></button>
+        <button class="action-row" id="moveRoutineLaterButton" type="button">Move routine later <span aria-hidden="true">↓</span></button>
+        <button class="action-row danger" id="deleteRoutineButton" type="button">Delete routine <span aria-hidden="true">›</span></button>
+      </div>
+      <p class="form-error" id="routineFormError" role="alert" data-dialog-error></p>
+      <footer class="dialog-actions">
+        <button class="button primary full" id="routineSaveButton" type="submit" value="save">Save routine</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="pickerDialog" class="sheet-dialog tall-dialog picker-dialog" aria-labelledby="pickerDialogTitle">
+    <div class="dialog-form picker-sheet">
+      <header class="dialog-header">
+        <div><h2 id="pickerDialogTitle">Add exercise</h2><p id="pickerRoutineContext">Routine · Library</p></div>
         <button class="icon-button" data-close-dialog="pickerDialog" aria-label="Close exercise picker" type="button">×</button>
       </header>
-      <label class="field">Search exercises<input id="pickerSearch" type="search" autocomplete="off" placeholder="Name, muscle, or category"></label>
+      <label class="picker-search">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+        <span class="visually-hidden">Search exercises</span>
+        <input id="pickerSearch" type="search" autocomplete="off" placeholder="Exercise, target, or movement">
+      </label>
+      <div class="picker-result-head"><span id="pickerResultCount">0 exercises</span><span>Shared Library</span></div>
       <div id="pickerList" class="picker-list"></div>
       <p class="form-error" id="pickerFormError" role="alert" data-dialog-error></p>
     </div>
   </dialog>
 
-  <dialog id="entryDialog" class="sheet-dialog" aria-labelledby="entryExerciseName">
-    <form method="dialog" id="entryForm" class="dialog-form">
+  <dialog id="entryDialog" class="sheet-dialog entry-dialog" aria-labelledby="entryExerciseName">
+    <form method="dialog" id="entryForm" class="dialog-form entry-sheet" novalidate>
       <header class="dialog-header">
-        <div><p class="dialog-kicker">This routine only</p><h2 id="entryExerciseName">Edit routine entry</h2></div>
-        <button class="icon-button" value="cancel" aria-label="Close prescription editor" type="submit" formnovalidate>×</button>
+        <div><h2 id="entryExerciseName">Edit routine entry</h2><p id="entryRoutineContext">Routine entry</p></div>
+        <button class="icon-button" value="cancel" aria-label="Close entry editor" type="submit" formnovalidate>×</button>
       </header>
       <input id="entryId" type="hidden">
-      <p class="dialog-intro">Change its sets, reps, or position here. The master exercise stays unchanged.</p>
-      <label class="field">Sets and reps for this routine<input id="entryPrescription" maxlength="60" autocomplete="off"></label>
-      <div class="entry-editor-actions">
-        <button class="button secondary" id="moveEntryEarlierButton" type="button">Move earlier</button>
-        <button class="button secondary" id="moveEntryLaterButton" type="button">Move later</button>
-        <button class="button secondary danger-text" id="removeEntryButton" type="button">Remove from routine</button>
+      <div class="entry-sheet-scroll">
+        <label class="field"><span id="entryPrescriptionLabel">Prescription for routine</span><input class="control" id="entryPrescription" maxlength="60" autocomplete="off"></label>
+        <input id="entryRole" type="hidden" value="main">
+        <div class="field">
+          <span class="form-label">Section</span>
+          <div class="segment" id="entryRoleOptions" role="group" aria-label="Routine entry section">
+            <button type="button" data-entry-role="main" aria-pressed="true">Main</button>
+            <button type="button" data-entry-role="optional" aria-pressed="false">Optional</button>
+          </div>
+        </div>
+        <p class="form-note" id="entryFormNote">This changes only this routine entry. The master exercise and its default prescription stay unchanged.</p>
+        <p class="form-error" id="entryFormError" role="alert" data-dialog-error></p>
+        <div class="action-list entry-sheet-actions-list">
+          <button class="action-row" id="moveEntryEarlierButton" type="button">Move earlier <span aria-hidden="true">↑</span></button>
+          <button class="action-row" id="moveEntryLaterButton" type="button">Move later <span aria-hidden="true">↓</span></button>
+          <button class="action-row danger" id="removeEntryButton" type="button">Remove from routine <span aria-hidden="true">›</span></button>
+        </div>
       </div>
-      <p class="form-error" id="entryFormError" role="alert" data-dialog-error></p>
-      <footer class="dialog-actions"><button class="button primary" type="submit" value="save">Save prescription</button></footer>
+      <footer class="dialog-actions"><button class="button primary full" id="entrySaveButton" type="submit" value="save">Save entry</button></footer>
     </form>
   </dialog>
 
-  <dialog id="exerciseDetailDialog" class="sheet-dialog" aria-labelledby="detailExerciseName">
-    <div class="dialog-form">
-      <header class="dialog-header">
-        <div><p class="dialog-kicker">Exercise</p><h2 id="detailExerciseName">Exercise details</h2></div>
-        <button class="icon-button" data-close-dialog="exerciseDetailDialog" aria-label="Close exercise details" type="button">×</button>
-      </header>
-      <p class="detail-prescription" id="detailPrescription"></p>
-      <section class="detail-section" id="detailTargetsSection"><h3>Muscles</h3><div id="detailMuscles"></div></section>
-      <section class="detail-section" id="detailCategoriesSection"><h3>Classification</h3><p id="detailCategories"></p></section>
-      <section class="detail-section"><h3>Notes</h3><p id="detailInstructions"></p></section>
-      <section class="detail-section" id="detailAlternativesSection"><h3>Related exercises</h3><div id="detailAlternatives"></div></section>
-      <section class="detail-section"><h3>Video</h3><p class="muted-copy" id="detailVideoEmpty">No video linked.</p></section>
-      <div class="detail-sheet-actions">
-        <a class="button primary centered-button" id="detailVideo" target="_blank" rel="noopener noreferrer" hidden>Watch video</a>
-        <button class="button secondary" id="detailEditExercise" type="button">Edit exercise</button>
-      </div>
-    </div>
+  <dialog id="exerciseDetailDialog" class="sheet-dialog reference-dialog" aria-labelledby="detailExerciseName">
+    <div id="exerciseDetailContent"></div>
+  </dialog>
+
+  <dialog id="exerciseVideoDialog" class="sheet-dialog reference-dialog video-search-dialog" aria-labelledby="videoExerciseName">
+    <div id="exerciseVideoContent"></div>
   </dialog>
 
   <dialog id="dayDialog" class="sheet-dialog" aria-labelledby="dayDialogTitle">
@@ -256,13 +282,13 @@
       <h2 id="confirmTitle">Confirm action</h2>
       <p id="confirmMessage"></p>
       <div class="dialog-actions">
-        <button class="button secondary" value="cancel">Keep it</button>
+        <button class="button secondary" id="confirmCancel" value="cancel">Keep it</button>
         <button class="button danger" id="confirmAction" value="confirm">Delete</button>
       </div>
     </form>
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="app.js?v=28"></script>
+  <script type="module" src="app.js?v=37"></script>
 </body>
 </html>

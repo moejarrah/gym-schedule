@@ -2,53 +2,44 @@
 
 Updated: 2026-07-24
 
-This file is the short current truth for resuming work. Replace stale details instead of appending a work log.
+This is the current recovery truth. Completed implementation and verification history belongs in Git.
 
-## Deployed baseline
+## Baseline
 
-- **Published revision:** `origin/main` at `df1f690`.
-- **Local committed baseline:** use the latest `main` commit from `git log -1`; it is ahead of the published revision.
-- **Service-worker cache:** version 24 is published from `origin/main`.
-- **Current release:** version 24 contains the verified data/UI slices, repository organization, direct hold-and-drag routine ordering, and the iOS text-selection fix.
-- **Stored-data schema:** version 5 under `gymAppStateV1`, with migrations from versions 1–4.
-- **Architecture:** build-free vanilla HTML, CSS, and JavaScript; no production dependencies or backend.
-- **Target device:** iPhone 15 Pro, iOS 17.x, Safari and Add to Home Screen.
+| State | Revision | Schema | Cache | Verification |
+| --- | --- | ---: | ---: | --- |
+| Published `origin/main` | `df1f690` | 5 | 24 | Earlier owner-accepted release |
+| Local `main` | `HEAD` — `Complete Ironworks workout and program checkpoint` | 8 | 37 | Slices 7–10 repo and owner device verified |
 
-## Active work
+The owner verified the completed Workout, reference/video, Program-management, Library-picker, entry-editor, and grouped reorder flows on the target iPhone in Safari and the installed PWA.
 
-- **Status:** Slice 6.5 is repo verified and forms the local recovery checkpoint before Slice 7. The schema remains version 7; no Slice 7 role or completion behavior has started.
-- **Verification:** 63 automated checks pass. A fresh read-only verifier reported no findings after checking stable seed identity, default-data equivalence, plan corrections, served assets, offline cache, and cumulative Slice 0–6 behavior.
-- **Device status:** Slice 6 Safari and installed-PWA verification is pending on the target iPhone. Earlier version-24 behavior remains owner-confirmed.
+## Current product state
 
-## Current repository state
+- Workout is the compact execution view. Number/check, reference, and linked/unlinked video actions are distinct.
+- Program manages multiple programs, their routines, and routine entries. Program and routine CRUD, duplicate, reorder, confirmation, and failure paths are implemented.
+- Program entries are grouped Main then Optional with continuous numbering. Hold-drag and Earlier/Later remain within the current role; the entry editor deliberately changes role.
+- The Library picker searches shared master exercises. Adding an exercise creates a routine-specific entry without changing the master.
+- The exercise reference shows ordered targets, classification, routine/default prescription, notes, linked video, two external searches, and Easier/Similar/Harder relationships.
+- Main-entry checks drive automatic completion. Optional checks persist without blocking completion. Log remains the explicit history editor.
 
-- The deployed app remains schema version 5/cache version 24. The local verified checkpoint is schema version 7/cache version 28 with backward migrations from versions 1–6.
-- Schema version 6 adds Program ownership and selection. Schema version 7 adds the reviewed exercise classification and reciprocal related-exercise model.
-- `artifacts/exports/Gym App Data.xlsx` is the local friendly-label source workbook: 77 classified exercises and 38 directed reciprocal related-exercise rows. Its non-classification sheets remain an earlier editable export snapshot.
-- `references/exercise-classification-study.md` records the finalized vocabulary and workbook boundary.
-- The repository organization is committed and published on `main`.
-- Repository documents now live in `docs/`; `AGENTS.md` and `README.md` remain at the root for immediate discovery.
-- `tools/iphone-preview.html` is the local interactive iPhone-shaped preview and is intentionally not a production source.
-- Design concepts live under `references/`; local archives and generated test output live under ignored `artifacts/` subfolders.
-- The smooth-reorder patch is committed locally at `9a57f1c`; it is not in the currently published `origin/main` revision.
-- `references/ui-concepts/ironworks-program.html` and `ironworks-log-settings.html` are the owner-approved Slice 1 extensions; `ironworks-flows.css` contains their shared reference-only styles.
-- Slice 2 fixtures live under `tests/fixtures/` and are never loaded by the production app.
-- Default routine seeds now store explicit entry and master-exercise IDs; display-name or list-order changes cannot alter identity.
+## Architecture and data
 
-## Last repository validation
+- Build-free vanilla HTML, CSS, and JavaScript; no backend or production dependencies.
+- `app.js` coordinates state, navigation, events, dialogs, saves, and drag behavior. Pure view markup lives in `ui/`.
+- `storage.js` owns validation and persistent mutations. `data.js` owns controlled vocabularies and seed data.
+- `styles.css` imports `styles/base.css`, `styles/components.css`, and `styles/views.css`.
+- Barlow, Barlow Condensed, and IBM Plex Mono are self-hosted under `fonts/` and cached offline.
+- Current storage is schema 8 under `gymAppStateV1`; production cache is 37.
+- Pre-release data from older schema versions is disposable. Future development should support the current schema and current-format import/export without adding backward migrations unless the owner explicitly asks.
 
-- The current checkpoint passes all 63 tests, manifest parsing, JavaScript/service-worker syntax, synchronized offline assets, served-source checks, and `git diff --check`.
-- Coverage includes migrations from versions 1–6, strict stable-ID classification validation, reviewed seed completeness, custom-value uncertainty, reciprocal related links, deletion cleanup, Program ownership/selection/CRUD/duplication/deletion, cross-program history, failed migration and CRUD writes, import/export/reload, atomic routine-entry ordering, active-dialog errors, cache isolation, and production-shell invariants.
-- The relocated iPhone preview loads the app with live refresh. Earlier runtime checks passed at 320 × 700 and 393 × 852 in both themes with long lists and dialogs.
-- Runtime checks cover FLIP movement, animated settle, cancellation, reduced motion, edge autoscroll, fallback controls, narrow layouts, frozen mouse-drop targeting, and saving against the drag-origin routine during a routine switch.
-- The owner completed the version-24 checklist on the target iPhone and confirmed Safari and Add to Home Screen behavior is good.
-- Slice 1 reference runtime checks cover both themes and target widths, populated and empty programs/routines, program/routine/entry management, Log/day editing, import failure, Settings, and training rules.
-- Slice 3 browser checks cover real localStorage migration, current routine creation and ordering, persisted reload, and narrow-phone geometry.
-- Slice 4 browser checks cover complete Program management, active-program routine scoping, duplicate-ID and shared-exercise integrity, deletion/history cleanup, inactive-program Log labels, no-program recovery, write-failure rollback, and offline startup from cache v27.
-- The fresh Slice 4 verifier independently passed 56/56 checks and runtime checks at 320 × 700 and 393 × 852 in both themes, with no findings.
-- Slice 6 browser checks cover real version-6 localStorage migration, stable IDs and friendly labels, classification search/filters/detail/editor, reciprocal related links, add/delete cleanup, persisted reload, export/import, failed writes, 320 × 700 and 393 × 852 in both themes, scrolling, touch targets, and offline startup from cache v28.
-- Slice 6.5 verification proves all 77 exercise IDs and 84 entry IDs survive seed display-name and order changes; default data remains equivalent, 38 directed relationships remain intact, and no schema, cache, UI, or dependency change landed.
+## Verification
 
-## Next safest action
+- Manifest parsing and `git diff --check` pass.
+- All 86 dependency-free checks pass.
+- Changed flows were runtime-checked at 320 × 700 and 393 × 852, in both themes, including scrolling, focus, safe areas, failure rollback, persistence, and offline startup.
+- Fresh bounded verifiers found no remaining correctness, regression, data-loss, accessibility, or plan-adherence issues in Slices 7–10.
+- The owner confirmed the completed checkpoint on the target iPhone in Safari and the installed PWA.
 
-Owner assesses the verified checkpoint. Start Slice 7 only after approval, using Main as the migration default and atomic storage helpers for checks, Log completion, role reconciliation, and cleanup.
+## Next action
+
+Plan Slice 11 Library work in narrow browse/filter and master-editor slices. Do not begin implementation until the owner approves that plan.

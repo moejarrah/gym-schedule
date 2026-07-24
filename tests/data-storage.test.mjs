@@ -11,6 +11,7 @@ import {
 } from "../data.js";
 import {
   STORAGE_KEY,
+  addRoutineEntryInState,
   addRoutineToProgram,
   createBackup,
   createProgramInState,
@@ -21,15 +22,21 @@ import {
   moveItem,
   moveRoutineEntry,
   removeProgramFromState,
-  reorderRoutineEntry,
+  reorderRoutineEntryWithinRole,
   reorderRoutineInProgram,
   parseImportedState,
   removeExerciseFromState,
   removeRoutineFromState,
+  removeRoutineEntryFromState,
   renameProgramInState,
   setActiveProgramInState,
+  setActiveRoutineInState,
+  setDayInState,
   setRelatedExercisesInState,
+  toggleEntryCheckForDate,
   toggleRoutineForDate,
+  updateRoutineInState,
+  updateRoutineEntryInState,
   validateState,
 } from "../storage.js";
 
@@ -121,8 +128,16 @@ function version5State() {
   return legacy;
 }
 
-function version6State() {
+function version7State() {
   const legacy = structuredClone(createDefaultState());
+  legacy.version = 7;
+  legacy.routines.forEach((routine) => routine.entries.forEach((entry) => delete entry.role));
+  for (const session of Object.values(legacy.sessions)) delete session.checkedEntryIdsByRoutine;
+  return legacy;
+}
+
+function version6State() {
+  const legacy = version7State();
   const broadTarget = new Map([
     ["chest", "Chest"],
     ["lats", "Back"], ["upper-mid-back", "Back"], ["traps", "Back"], ["spinal-erectors", "Back"],
@@ -167,6 +182,17 @@ function version6State() {
   return legacy;
 }
 
+function routinesWithoutRoles(routines) {
+  return routines.map((routine) => ({
+    ...routine,
+    entries: routine.entries.map(({ role: _role, ...entry }) => entry),
+  }));
+}
+
+function sessionsWithoutChecks(sessions) {
+  return Object.fromEntries(Object.entries(sessions).map(([dateKey, { checkedEntryIdsByRoutine: _checks, ...session }]) => [dateKey, session]));
+}
+
 test("starting data is valid and all routine references resolve", () => {
   const state = createDefaultState();
   assert.equal(validateState(state), true);
@@ -177,7 +203,10 @@ test("starting data is valid and all routine references resolve", () => {
   assert.equal(new Set(state.routines.map((routine) => routine.id)).size, state.routines.length);
   const exerciseIds = new Set(state.exercises.map((exercise) => exercise.id));
   for (const routine of state.routines) {
-    for (const entry of routine.entries) assert.equal(exerciseIds.has(entry.exerciseId), true);
+    for (const entry of routine.entries) {
+      assert.equal(exerciseIds.has(entry.exerciseId), true);
+      assert.equal(entry.role, "main");
+    }
   }
   assert.equal(state.routines.some((routine) => routine.id === "rest" || routine.status === "rest"), false);
   assert.equal(state.exercises.every((exercise) => exercise.primaryTargets.length >= 1 && exercise.primaryTargets.length <= 2), true);
@@ -226,7 +255,7 @@ test("version 2 migration preserves a customized former Rest routine", () => {
   assert.equal(preserved.name, "Recovery mobility");
   assert.equal(preserved.status, "optional");
   assert.equal(preserved.entries.length, 1);
-  assert.deepEqual(migrated.sessions["2026-07-16"], { routineIds: ["rest"], note: "Kept" });
+  assert.deepEqual(migrated.sessions["2026-07-16"], { routineIds: ["rest"], checkedEntryIdsByRoutine: {}, note: "Kept" });
   assert.equal(validateState(migrated), true);
 });
 
@@ -234,8 +263,8 @@ test("versions 3 and 4 migrate descriptive targets into categories", () => {
   for (const legacy of [version3State(), version4State()]) {
     const migrated = migrateState(legacy);
     assert.equal(migrated.version, createDefaultState().version);
-    assert.deepEqual(migrated.routines, legacy.routines);
-    assert.deepEqual(migrated.sessions, legacy.sessions);
+    assert.deepEqual(routinesWithoutRoles(migrated.routines), legacy.routines);
+    assert.deepEqual(sessionsWithoutChecks(migrated.sessions), legacy.sessions);
     assert.equal(migrated.settings.activeRoutineId, legacy.settings.activeRoutineId);
     assert.equal(migrated.settings.theme, legacy.settings.theme);
     for (const [index, exercise] of legacy.exercises.entries()) {
@@ -260,8 +289,8 @@ test("version 5 data migrates every routine into one program without changing co
 
   const migrated = migrateState(legacy);
   assert.equal(migrated.version, createDefaultState().version);
-  assert.deepEqual(migrated.routines, legacy.routines);
-  assert.deepEqual(migrated.sessions, legacy.sessions);
+  assert.deepEqual(routinesWithoutRoles(migrated.routines), legacy.routines);
+  assert.deepEqual(sessionsWithoutChecks(migrated.sessions), legacy.sessions);
   assert.deepEqual(migrated.exercises.map(({ id, name, defaultPrescription, instructions, videoId }) => ({ id, name, defaultPrescription, instructions, videoId })),
     legacy.exercises.map(({ id, name, defaultPrescription, instructions, videoId }) => ({ id, name, defaultPrescription, instructions, videoId })));
   assert.deepEqual(migrated.exercises[0].primaryTargets, ["chest"]);
@@ -269,6 +298,22 @@ test("version 5 data migrates every routine into one program without changing co
   assert.equal(migrated.settings.activeRoutineId, legacy.settings.activeRoutineId);
   assert.equal(migrated.settings.theme, legacy.settings.theme);
   assert.equal(migrated.settings.activeProgramId, migrated.programs[0].id);
+  assert.equal(validateState(migrated), true);
+});
+
+test("version 7 migration adds Main roles without inventing historical entry checks", () => {
+  const legacy = version7State();
+  legacy.sessions["2026-07-18"] = { routineIds: ["push-a"], note: "Historical completion" };
+  const migrated = migrateState(legacy);
+
+  assert.equal(migrated.version, createDefaultState().version);
+  assert.equal(migrated.routines.every((routine) => routine.entries.every((entry) => entry.role === "main")), true);
+  assert.deepEqual(routinesWithoutRoles(migrated.routines), legacy.routines);
+  assert.deepEqual(migrated.sessions["2026-07-18"], {
+    routineIds: ["push-a"],
+    checkedEntryIdsByRoutine: {},
+    note: "Historical completion",
+  });
   assert.equal(validateState(migrated), true);
 });
 
@@ -358,7 +403,8 @@ test("store upgrades valid version 4 data in place", () => {
   storage.setItem(STORAGE_KEY, JSON.stringify(legacy));
 
   const state = createStore(storage).getState();
-  assert.deepEqual(state.routines, legacy.routines);
+  assert.deepEqual(routinesWithoutRoles(state.routines), legacy.routines);
+  assert.deepEqual(sessionsWithoutChecks(state.sessions), legacy.sessions);
   assert.equal(state.exercises.find((exercise) => exercise.id === "suitcase-carry").purpose, "strength");
   assert.equal(JSON.parse(storage.getItem(STORAGE_KEY)).version, createDefaultState().version);
 });
@@ -369,8 +415,8 @@ test("store upgrades valid version 5 data in place", () => {
   storage.setItem(STORAGE_KEY, JSON.stringify(legacy));
 
   const state = createStore(storage).getState();
-  assert.deepEqual(state.routines, legacy.routines);
-  assert.deepEqual(state.sessions, legacy.sessions);
+  assert.deepEqual(routinesWithoutRoles(state.routines), legacy.routines);
+  assert.deepEqual(sessionsWithoutChecks(state.sessions), legacy.sessions);
   assert.equal(state.programs.length, 1);
   assert.equal(JSON.parse(storage.getItem(STORAGE_KEY)).version, createDefaultState().version);
 });
@@ -390,6 +436,22 @@ test("store upgrades version 6 classification in place", () => {
   assert.equal(JSON.parse(storage.getItem(STORAGE_KEY)).version, createDefaultState().version);
 });
 
+test("store upgrades version 7 roles and session checks in place", () => {
+  const storage = new MemoryStorage();
+  const legacy = version7State();
+  legacy.sessions["2026-07-17"] = { routineIds: ["push-a"], note: "Historical" };
+  storage.setItem(STORAGE_KEY, JSON.stringify(legacy));
+
+  const state = createStore(storage).getState();
+  assert.equal(state.routines.every((routine) => routine.entries.every((entry) => entry.role === "main")), true);
+  assert.deepEqual(state.sessions["2026-07-17"], {
+    routineIds: ["push-a"],
+    checkedEntryIdsByRoutine: {},
+    note: "Historical",
+  });
+  assert.deepEqual(JSON.parse(storage.getItem(STORAGE_KEY)), state);
+});
+
 test("a version 5 upgrade write failure keeps the original stored value intact", () => {
   const storage = new MemoryStorage();
   const legacy = version5State();
@@ -406,6 +468,19 @@ test("a version 5 upgrade write failure keeps the original stored value intact",
 test("a version 6 upgrade write failure keeps the original stored value intact", () => {
   const storage = new MemoryStorage();
   const legacy = version6State();
+  const raw = JSON.stringify(legacy);
+  storage.setItem(STORAGE_KEY, raw);
+  storage.failWrites = true;
+
+  const store = createStore(storage);
+  assert.equal(store.getState().version, createDefaultState().version);
+  assert.equal(storage.getItem(STORAGE_KEY), raw);
+  assert.match(store.getLastError(), /upgraded for this session/i);
+});
+
+test("a version 7 upgrade write failure keeps the original stored value intact", () => {
+  const storage = new MemoryStorage();
+  const legacy = version7State();
   const raw = JSON.stringify(legacy);
   storage.setItem(STORAGE_KEY, raw);
   storage.failWrites = true;
@@ -556,8 +631,33 @@ test("validation rejects malformed values that would break the UI", () => {
   secondProgram.settings.activeRoutineId = "";
   assert.equal(validateState(secondProgram), false);
 
+  const invalidRole = createDefaultState();
+  invalidRole.routines[0].entries[0].role = "sometimes";
+  assert.equal(validateState(invalidRole), false);
+
+  const missingChecks = createDefaultState();
+  missingChecks.sessions["2026-07-17"] = { routineIds: ["push-a"], note: "" };
+  assert.equal(validateState(missingChecks), false);
+
+  const crossRoutineCheck = createDefaultState();
+  crossRoutineCheck.sessions["2026-07-17"] = {
+    routineIds: [],
+    checkedEntryIdsByRoutine: { "push-a": [crossRoutineCheck.routines[1].entries[0].id] },
+    note: "",
+  };
+  assert.equal(validateState(crossRoutineCheck), false);
+
+  const duplicateCheck = createDefaultState();
+  const entryId = duplicateCheck.routines[0].entries[0].id;
+  duplicateCheck.sessions["2026-07-17"] = {
+    routineIds: [],
+    checkedEntryIdsByRoutine: { "push-a": [entryId, entryId] },
+    note: "",
+  };
+  assert.equal(validateState(duplicateCheck), false);
+
   const invalidDate = createDefaultState();
-  invalidDate.sessions["2026-02-31"] = { routineIds: ["push-a"], note: "" };
+  invalidDate.sessions["2026-02-31"] = { routineIds: ["push-a"], checkedEntryIdsByRoutine: {}, note: "" };
   assert.equal(validateState(invalidDate), false);
 
   const invalidRelated = createDefaultState();
@@ -583,12 +683,25 @@ test("validation rejects malformed values that would break the UI", () => {
 test("deleting an exercise removes every routine reference", () => {
   let state = createDefaultState();
   const exerciseId = "rope-pushdown";
+  const removedEntries = state.routines.flatMap((routine) => (
+    routine.entries.filter((entry) => entry.exerciseId === exerciseId).map((entry) => [routine.id, entry.id])
+  ));
+  state.sessions["2026-07-17"] = {
+    routineIds: ["push-a"],
+    checkedEntryIdsByRoutine: Object.fromEntries(removedEntries.map(([routineId, id]) => [routineId, [id]])),
+    note: "Keep",
+  };
   state = setRelatedExercisesInState(state, state.exercises[0].id, [{ exerciseId, relation: "similar" }]);
   assert.ok(state.routines.some((routine) => routine.entries.some((entry) => entry.exerciseId === exerciseId)));
   const next = removeExerciseFromState(state, exerciseId);
   assert.equal(next.exercises.some((exercise) => exercise.id === exerciseId), false);
   assert.equal(next.routines.some((routine) => routine.entries.some((entry) => entry.exerciseId === exerciseId)), false);
   assert.equal(next.exercises.some((exercise) => exercise.relatedExercises.some((related) => related.exerciseId === exerciseId)), false);
+  assert.deepEqual(next.sessions["2026-07-17"], {
+    routineIds: ["push-a"],
+    checkedEntryIdsByRoutine: {},
+    note: "Keep",
+  });
   assert.equal(validateState(next), true);
 });
 
@@ -611,7 +724,7 @@ test("moveItem reorders within bounds and ignores invalid moves", () => {
   assert.deepEqual(moveItem(["a", "b", "c"], 0, -1), ["a", "b", "c"]);
 });
 
-test("moving a routine entry saves its prescription and position together", () => {
+test("moving a routine entry saves its prescription and position together within its role", () => {
   const storage = new MemoryStorage();
   const store = createStore(storage);
   const state = store.getState();
@@ -636,6 +749,29 @@ test("moving a routine entry saves its prescription and position together", () =
   assert.equal(reloaded.exercises.find((exercise) => exercise.id === entry.exerciseId).defaultPrescription, masterPrescription);
 });
 
+test("adding a routine entry permits duplicate exercises with fresh entry IDs", () => {
+  const state = createDefaultState();
+  const routine = state.routines[0];
+  const exercise = structuredClone(state.exercises[0]);
+  const first = {
+    id: "runtime-entry-a",
+    exerciseId: exercise.id,
+    prescription: exercise.defaultPrescription,
+    role: "main",
+  };
+  const second = { ...first, id: "runtime-entry-b" };
+  const withFirst = addRoutineEntryInState(state, routine.id, first);
+  const withSecond = addRoutineEntryInState(withFirst, routine.id, second);
+  const added = withSecond.routines[0].entries.slice(-2);
+
+  assert.deepEqual(added.map((entry) => entry.id), ["runtime-entry-a", "runtime-entry-b"]);
+  assert.deepEqual(added.map((entry) => entry.exerciseId), [exercise.id, exercise.id]);
+  assert.deepEqual(added.map((entry) => entry.role), ["main", "main"]);
+  assert.deepEqual(withSecond.exercises[0], exercise);
+  assert.deepEqual(addRoutineEntryInState(withSecond, routine.id, second), withSecond);
+  assert.equal(validateState(withSecond), true);
+});
+
 test("a failed atomic entry move leaves stored state unchanged", () => {
   const storage = new MemoryStorage();
   const store = createStore(storage);
@@ -650,19 +786,28 @@ test("a failed atomic entry move leaves stored state unchanged", () => {
   assert.deepEqual(store.getState(), before);
 });
 
-test("a routine entry can move directly to any valid position", () => {
+test("a routine entry can move directly to any valid position within its role", () => {
   const state = createDefaultState();
   const routine = state.routines[0];
   const entry = routine.entries[0];
-  const next = reorderRoutineEntry(state, routine.id, entry.id, routine.entries.length - 1);
+  routine.entries[1].role = "optional";
+  const sameRoleIds = routine.entries.filter((item) => item.role === entry.role).map((item) => item.id);
+  const next = reorderRoutineEntryWithinRole(state, routine.id, entry.id, sameRoleIds.length - 1);
+  const reorderedRoutine = next.routines[0];
 
-  assert.equal(next.routines[0].entries.at(-1).id, entry.id);
-  assert.deepEqual(next.routines[0].entries.slice(0, -1).map((item) => item.id), routine.entries.slice(1).map((item) => item.id));
+  assert.deepEqual(
+    reorderedRoutine.entries.filter((item) => item.role === "main").map((item) => item.id),
+    [...sameRoleIds.slice(1), entry.id],
+  );
+  assert.deepEqual(
+    reorderedRoutine.entries.filter((item) => item.role === "optional").map((item) => item.id),
+    [routine.entries[1].id],
+  );
   assert.notDeepEqual(next, state);
   assert.equal(validateState(next), true);
 
-  assert.deepEqual(reorderRoutineEntry(state, routine.id, entry.id, -1), state);
-  assert.deepEqual(reorderRoutineEntry(state, routine.id, entry.id, routine.entries.length), state);
+  assert.deepEqual(reorderRoutineEntryWithinRole(state, routine.id, entry.id, -1), state);
+  assert.deepEqual(reorderRoutineEntryWithinRole(state, routine.id, entry.id, sameRoleIds.length), state);
 });
 
 test("a failed direct reorder leaves the stored routine unchanged", () => {
@@ -670,20 +815,163 @@ test("a failed direct reorder leaves the stored routine unchanged", () => {
   const store = createStore(storage);
   const before = store.getState();
   const routine = before.routines[0];
-  const moved = reorderRoutineEntry(before, routine.id, routine.entries[0].id, routine.entries.length - 1);
+  const moved = reorderRoutineEntryWithinRole(before, routine.id, routine.entries[0].id, routine.entries.length - 1);
 
   storage.failWrites = true;
   assert.equal(store.replace(moved).ok, false);
   assert.deepEqual(store.getState(), before);
 });
 
-test("completion toggles use one date session and remain reversible", () => {
+test("role-scoped moves preserve the other section and master data", () => {
+  const state = createDefaultState();
+  const routine = state.routines[0];
+  routine.entries[1].role = "optional";
+  routine.entries[3].role = "optional";
+  const entry = routine.entries[2];
+  const mainBefore = routine.entries.filter((item) => item.role === "main").map((item) => item.id);
+  const optionalBefore = routine.entries.filter((item) => item.role === "optional").map((item) => item.id);
+  const mastersBefore = structuredClone(state.exercises);
+  const next = moveRoutineEntry(state, routine.id, entry.id, 1, "Runtime prescription", "main");
+  const nextRoutine = next.routines[0];
+
+  assert.deepEqual(
+    nextRoutine.entries.filter((item) => item.role === "main").map((item) => item.id),
+    [mainBefore[0], mainBefore[2], mainBefore[1], ...mainBefore.slice(3)],
+  );
+  assert.deepEqual(
+    nextRoutine.entries.filter((item) => item.role === "optional").map((item) => item.id),
+    optionalBefore,
+  );
+  assert.equal(nextRoutine.entries.find((item) => item.id === entry.id).prescription, "Runtime prescription");
+  assert.deepEqual(next.exercises, mastersBefore);
+  assert.equal(validateState(next), true);
+});
+
+test("changing entry role moves it to the end of its new visible section", () => {
+  const state = createDefaultState();
+  const routine = state.routines[0];
+  routine.entries[1].role = "optional";
+  routine.entries[3].role = "optional";
+  state.sessions["2026-07-17"] = {
+    routineIds: [routine.id],
+    checkedEntryIdsByRoutine: { [routine.id]: [routine.entries[0].id] },
+    note: "Keep history",
+  };
+  const changed = routine.entries[0];
+  const remainingMainIds = routine.entries.filter((item) => item.role === "main" && item.id !== changed.id).map((item) => item.id);
+  const optionalIds = routine.entries.filter((item) => item.role === "optional").map((item) => item.id);
+  const historyBefore = structuredClone(state.sessions);
+  const mastersBefore = structuredClone(state.exercises);
+  const next = updateRoutineEntryInState(state, routine.id, changed.id, { prescription: "4 × 6", role: "optional" });
+  const nextRoutine = next.routines[0];
+
+  assert.deepEqual(nextRoutine.entries.filter((item) => item.role === "main").map((item) => item.id), remainingMainIds);
+  assert.deepEqual(nextRoutine.entries.filter((item) => item.role === "optional").map((item) => item.id), [...optionalIds, changed.id]);
+  assert.equal(nextRoutine.entries.find((item) => item.id === changed.id).prescription, "4 × 6");
+  assert.deepEqual(next.sessions, historyBefore);
+  assert.deepEqual(next.exercises, mastersBefore);
+  assert.equal(validateState(next), true);
+});
+
+test("all-Optional and one-item sections use the same bounded reorder rules", () => {
+  const state = createDefaultState();
+  const routine = state.routines[0];
+  routine.entries = routine.entries.slice(0, 3).map((entry) => ({ ...entry, role: "optional" }));
+  const ids = routine.entries.map((entry) => entry.id);
+  const moved = reorderRoutineEntryWithinRole(state, routine.id, ids[1], 0);
+
+  assert.deepEqual(moved.routines[0].entries.map((entry) => entry.id), [ids[1], ids[0], ids[2]]);
+  const one = structuredClone(state);
+  one.routines[0].entries = [one.routines[0].entries[0]];
+  assert.deepEqual(reorderRoutineEntryWithinRole(one, one.routines[0].id, one.routines[0].entries[0].id, 1), one);
+  assert.equal(validateState(moved), true);
+  assert.equal(validateState(one), true);
+});
+
+test("entry checks derive completion from Main entries while Optional checks stay independent", () => {
   const state = createDefaultState();
   const dateKey = localDateKey(new Date(2026, 6, 17));
-  const completed = toggleRoutineForDate(state, "push-a", dateKey);
-  assert.deepEqual(completed.sessions[dateKey].routineIds, ["push-a"]);
-  assert.equal(validateState(completed), true);
-  const removed = toggleRoutineForDate(completed, "push-a", dateKey);
+  const routine = state.routines.find((item) => item.id === "push-a");
+  const optionalEntry = routine.entries.at(-1);
+  let next = updateRoutineEntryInState(state, routine.id, optionalEntry.id, { role: "optional" });
+  next = toggleEntryCheckForDate(next, routine.id, optionalEntry.id, dateKey);
+  assert.deepEqual(next.sessions[dateKey].routineIds, []);
+  assert.deepEqual(next.sessions[dateKey].checkedEntryIdsByRoutine[routine.id], [optionalEntry.id]);
+
+  const mainEntries = routine.entries.slice(0, -1);
+  for (const entry of mainEntries) next = toggleEntryCheckForDate(next, routine.id, entry.id, dateKey);
+  assert.deepEqual(next.sessions[dateKey].routineIds, [routine.id]);
+
+  next = toggleEntryCheckForDate(next, routine.id, optionalEntry.id, dateKey);
+  assert.deepEqual(next.sessions[dateKey].routineIds, [routine.id]);
+  next = toggleEntryCheckForDate(next, routine.id, mainEntries[0].id, dateKey);
+  assert.deepEqual(next.sessions[dateKey].routineIds, []);
+  assert.equal(validateState(next), true);
+});
+
+test("empty and Optional-only routines never auto-complete but Log may complete them deliberately", () => {
+  const dateKey = "2026-07-17";
+  let state = createDefaultState();
+  const routine = state.routines.find((item) => item.id === "push-a");
+  for (const entry of routine.entries) state = updateRoutineEntryInState(state, routine.id, entry.id, { role: "optional" });
+  state = toggleEntryCheckForDate(state, routine.id, routine.entries[0].id, dateKey);
+  assert.deepEqual(state.sessions[dateKey].routineIds, []);
+
+  const logged = setDayInState(state, dateKey, [routine.id], "");
+  assert.deepEqual(logged.sessions[dateKey].routineIds, [routine.id]);
+  const removed = setDayInState(logged, dateKey, [], "");
+  assert.equal(removed.sessions[dateKey], undefined);
+
+  const empty = structuredClone(state);
+  empty.routines.find((item) => item.id === routine.id).entries = [];
+  empty.sessions = {};
+  assert.deepEqual(toggleEntryCheckForDate(empty, routine.id, "missing", dateKey), empty);
+  const completedEmpty = setDayInState(empty, dateKey, [routine.id], "");
+  assert.deepEqual(completedEmpty.sessions[dateKey].routineIds, [routine.id]);
+});
+
+test("Log completion checks current Main entries without inventing checks for unchanged migrated history", () => {
+  const dateKey = "2026-07-17";
+  const state = createDefaultState();
+  const routine = state.routines.find((item) => item.id === "push-a");
+  state.sessions[dateKey] = { routineIds: [], checkedEntryIdsByRoutine: { [routine.id]: [routine.entries.at(-1).id] }, note: "" };
+  state.routines.find((item) => item.id === routine.id).entries.at(-1).role = "optional";
+
+  const completed = setDayInState(state, dateKey, [routine.id], "");
+  assert.deepEqual(
+    new Set(completed.sessions[dateKey].checkedEntryIdsByRoutine[routine.id]),
+    new Set(routine.entries.map((entry) => entry.id)),
+  );
+  const unchanged = setDayInState({
+    ...completed,
+    sessions: { [dateKey]: { routineIds: [routine.id], checkedEntryIdsByRoutine: {}, note: "Migrated" } },
+  }, dateKey, [routine.id], "Migrated");
+  assert.deepEqual(unchanged.sessions[dateKey].checkedEntryIdsByRoutine, {});
+
+  const unmarked = setDayInState(completed, dateKey, [], "Keep note");
+  assert.deepEqual(unmarked.sessions[dateKey], { routineIds: [], checkedEntryIdsByRoutine: {}, note: "Keep note" });
+});
+
+test("entry role edits preserve historical completion and checks", () => {
+  const state = toggleRoutineForDate(createDefaultState(), "push-a", "2026-07-17");
+  const routine = state.routines.find((item) => item.id === "push-a");
+  const history = structuredClone(state.sessions);
+  const next = updateRoutineEntryInState(state, routine.id, routine.entries[0].id, { prescription: "4 × 6", role: "optional" });
+  const changed = next.routines.find((item) => item.id === routine.id).entries.at(-1);
+  assert.equal(changed.id, routine.entries[0].id);
+  assert.equal(changed.role, "optional");
+  assert.deepEqual(next.sessions, history);
+  assert.equal(validateState(next), true);
+});
+
+test("routine completion helper remains reversible and synchronizes Main checks", () => {
+  const state = createDefaultState();
+  const dateKey = "2026-07-17";
+  const routine = state.routines.find((item) => item.id === "push-a");
+  const completed = toggleRoutineForDate(state, routine.id, dateKey);
+  assert.deepEqual(completed.sessions[dateKey].routineIds, [routine.id]);
+  assert.deepEqual(completed.sessions[dateKey].checkedEntryIdsByRoutine[routine.id], routine.entries.map((entry) => entry.id));
+  const removed = toggleRoutineForDate(completed, routine.id, dateKey);
   assert.equal(removed.sessions[dateKey], undefined);
 });
 
@@ -694,6 +982,19 @@ test("deleting a routine cleans history and selects a valid fallback", () => {
   assert.notEqual(next.settings.activeRoutineId, "push-a");
   assert.equal(next.programs[0].routineIds.includes("push-a"), false);
   assert.equal(next.routines.some((routine) => routine.id === next.settings.activeRoutineId), true);
+  assert.equal(validateState(next), true);
+});
+
+test("deleting a routine entry removes only its checks and preserves recorded completion", () => {
+  const state = toggleRoutineForDate(createDefaultState(), "push-a", "2026-07-17");
+  const routine = state.routines.find((item) => item.id === "push-a");
+  const [removed, kept] = routine.entries;
+  const next = removeRoutineEntryFromState(state, routine.id, removed.id);
+
+  assert.equal(next.routines.find((item) => item.id === routine.id).entries.some((entry) => entry.id === removed.id), false);
+  assert.equal(next.sessions["2026-07-17"].routineIds.includes(routine.id), true);
+  assert.equal(next.sessions["2026-07-17"].checkedEntryIdsByRoutine[routine.id].includes(removed.id), false);
+  assert.equal(next.sessions["2026-07-17"].checkedEntryIdsByRoutine[routine.id].includes(kept.id), true);
   assert.equal(validateState(next), true);
 });
 
@@ -735,6 +1036,25 @@ test("adding and ordering a routine updates only its owning program", () => {
     reordered.programs.flatMap((program) => program.routineIds),
   );
   assert.equal(validateState(reordered), true);
+});
+
+test("routine selection and field updates stay inside storage helpers", () => {
+  const initial = createDefaultState();
+  const selected = setActiveRoutineInState(initial, "home-daily");
+  assert.equal(selected.settings.activeProgramId, initial.settings.activeProgramId);
+  assert.equal(selected.settings.activeRoutineId, "home-daily");
+  assert.equal(initial.settings.activeRoutineId, "push-a");
+
+  const updated = updateRoutineInState(selected, "home-daily", {
+    name: "Daily home",
+    group: "gym",
+    status: "optional",
+  });
+  const routine = updated.routines.find((item) => item.id === "home-daily");
+  assert.equal(routine.name, "Daily home");
+  assert.equal(routine.group, "gym");
+  assert.equal(routine.status, "optional");
+  assert.equal(validateState(updated), true);
 });
 
 test("switching programs repairs routine selection without changing history", () => {
@@ -799,12 +1119,21 @@ test("deleting a program removes only its routines and their history", () => {
   let state = createProgramInState(createDefaultState(), "Travel");
   const travel = state.programs.at(-1);
   state = addRoutineToProgram(state, travel.id, { id: "hotel", name: "Hotel", group: "home", status: "required", entries: [] });
-  state.sessions["2026-07-15"] = { routineIds: ["push-a", "hotel"], note: "Mixed" };
-  state.sessions["2026-07-16"] = { routineIds: ["hotel"], note: "" };
+  const pushEntryId = state.routines.find((routine) => routine.id === "push-a").entries[0].id;
+  state.sessions["2026-07-15"] = {
+    routineIds: ["push-a", "hotel"],
+    checkedEntryIdsByRoutine: { "push-a": [pushEntryId] },
+    note: "Mixed",
+  };
+  state.sessions["2026-07-16"] = { routineIds: ["hotel"], checkedEntryIdsByRoutine: {}, note: "" };
 
   const next = removeProgramFromState(state, travel.id);
   assert.equal(next.routines.some((routine) => routine.id === "hotel"), false);
-  assert.deepEqual(next.sessions["2026-07-15"], { routineIds: ["push-a"], note: "Mixed" });
+  assert.deepEqual(next.sessions["2026-07-15"], {
+    routineIds: ["push-a"],
+    checkedEntryIdsByRoutine: { "push-a": [pushEntryId] },
+    note: "Mixed",
+  });
   assert.equal(next.sessions["2026-07-16"], undefined);
   assert.equal(next.exercises.length, state.exercises.length);
   assert.equal(validateState(next), true);
@@ -812,13 +1141,21 @@ test("deleting a program removes only its routines and their history", () => {
 
 test("deleting the last program leaves a valid empty app and preserves standalone notes", () => {
   const state = createDefaultState();
-  state.sessions["2026-07-15"] = { routineIds: ["push-a"], note: "Keep this note" };
+  state.sessions["2026-07-15"] = {
+    routineIds: ["push-a"],
+    checkedEntryIdsByRoutine: { "push-a": [state.routines[0].entries[0].id] },
+    note: "Keep this note",
+  };
   const next = removeProgramFromState(state, state.programs[0].id);
   assert.deepEqual(next.programs, []);
   assert.deepEqual(next.routines, []);
   assert.equal(next.settings.activeProgramId, "");
   assert.equal(next.settings.activeRoutineId, "");
-  assert.deepEqual(next.sessions["2026-07-15"], { routineIds: [], note: "Keep this note" });
+  assert.deepEqual(next.sessions["2026-07-15"], {
+    routineIds: [],
+    checkedEntryIdsByRoutine: {},
+    note: "Keep this note",
+  });
   assert.equal(next.exercises.length, state.exercises.length);
   assert.equal(validateState(next), true);
 });
@@ -838,6 +1175,17 @@ test("failed Program writes leave stored and in-memory state unchanged", () => {
   const store = createStore(storage);
   const before = store.getState();
   const next = createProgramInState(before, "Should fail");
+  storage.failWrites = true;
+  assert.equal(store.replace(next).ok, false);
+  assert.deepEqual(store.getState(), before);
+  assert.deepEqual(JSON.parse(storage.getItem(STORAGE_KEY)), before);
+});
+
+test("failed entry-check writes leave stored and in-memory state unchanged", () => {
+  const storage = new MemoryStorage();
+  const store = createStore(storage);
+  const before = store.getState();
+  const next = toggleEntryCheckForDate(before, "push-a", before.routines[0].entries[0].id, "2026-07-17");
   storage.failWrites = true;
   assert.equal(store.replace(next).ok, false);
   assert.deepEqual(store.getState(), before);
@@ -867,8 +1215,8 @@ test("version 5 backups import through Program migration", () => {
   const legacy = version5State();
   legacy.sessions["2026-07-17"] = { routineIds: ["push-a"], note: "Keep" };
   const imported = parseImportedState(JSON.stringify({ schemaVersion: 5, data: legacy }));
-  assert.deepEqual(imported.routines, legacy.routines);
-  assert.deepEqual(imported.sessions, legacy.sessions);
+  assert.deepEqual(routinesWithoutRoles(imported.routines), legacy.routines);
+  assert.deepEqual(sessionsWithoutChecks(imported.sessions), legacy.sessions);
   assert.deepEqual(imported.programs[0].routineIds, legacy.routines.map((routine) => routine.id));
   assert.equal(validateState(imported), true);
 });
@@ -878,11 +1226,21 @@ test("version 6 backups import through classification migration", () => {
   legacy.sessions["2026-07-17"] = { routineIds: ["push-a"], note: "Keep" };
   legacy.exercises[0].instructions = "Keep this cue";
   const imported = parseImportedState(JSON.stringify({ schemaVersion: 6, data: legacy }));
-  assert.deepEqual(imported.routines, legacy.routines);
+  assert.deepEqual(routinesWithoutRoles(imported.routines), legacy.routines);
   assert.deepEqual(imported.programs, legacy.programs);
-  assert.deepEqual(imported.sessions, legacy.sessions);
+  assert.deepEqual(sessionsWithoutChecks(imported.sessions), legacy.sessions);
   assert.equal(imported.exercises[0].instructions, "Keep this cue");
   assert.deepEqual(imported.exercises[0].primaryTargets, ["chest"]);
+  assert.equal(validateState(imported), true);
+});
+
+test("version 7 backups import without inventing entry checks", () => {
+  const legacy = version7State();
+  legacy.sessions["2026-07-17"] = { routineIds: ["push-a"], note: "Keep" };
+  const imported = parseImportedState(JSON.stringify({ schemaVersion: 7, data: legacy }));
+  assert.deepEqual(routinesWithoutRoles(imported.routines), legacy.routines);
+  assert.deepEqual(sessionsWithoutChecks(imported.sessions), legacy.sessions);
+  assert.deepEqual(imported.sessions["2026-07-17"].checkedEntryIdsByRoutine, {});
   assert.equal(validateState(imported), true);
 });
 
@@ -912,7 +1270,12 @@ test("programs survive save, reload, export, and import", () => {
   const travel = state.programs.at(-1);
   state = addRoutineToProgram(state, travel.id, { id: "hotel", name: "Hotel", group: "home", status: "required", entries: [] });
   state = setActiveProgramInState(state, travel.id);
-  state.sessions["2026-07-17"] = { routineIds: ["push-a"], note: "Old program" };
+  const pushEntryId = state.routines.find((routine) => routine.id === "push-a").entries[0].id;
+  state.sessions["2026-07-17"] = {
+    routineIds: ["push-a"],
+    checkedEntryIdsByRoutine: { "push-a": [pushEntryId] },
+    note: "Old program",
+  };
 
   const storage = new MemoryStorage();
   const store = createStore(storage);

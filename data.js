@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 export const DEFAULT_PROGRAM_ID = "ppl-rehab";
 export const DEFAULT_PROGRAM_NAME = "PPL + Rehab";
 
@@ -418,6 +418,7 @@ function buildDefaults() {
         id: entryId,
         exerciseId,
         prescription,
+        role: "main",
       };
     });
     return {

@@ -26,14 +26,14 @@ If the change cannot be summarized tightly, split it. Do not combine cleanup, re
 
 - Trace the current behavior and data ownership in code.
 - For UI work, map every affected action in `PRODUCT.md` from old path to intended new path.
-- For storage work, inspect schema validation, migrations, import/export, deletion cleanup, and failure handling.
+- For storage work, inspect current-schema validation, import/export, deletion cleanup, failure handling, and any explicitly approved reset.
 - Reuse an existing pattern when it fits. Add no abstraction, file, dependency, configuration, or fallback unless the acceptance criteria require it.
 
 ## 4. Implement narrowly
 
 - Make the smallest complete change.
 - Run focused checks early.
-- Do not fix unrelated findings. Record worthwhile ones in `AUDIT.md` with evidence.
+- Do not fix unrelated findings. Report them separately; add one to `AUDIT.md` only when the owner asks to track it.
 - Keep production and reference artifacts separate.
 
 ## 5. Verify with observable evidence
@@ -62,7 +62,7 @@ Do not call phone UI complete before device verification. Do not publish a non-t
 Update only the truth that changed:
 
 - `HANDOFF_STATUS.md`: current commit/cache/schema, active slice, WIP, evidence, device status, and next safest action.
-- `AUDIT.md`: only reproducible issues the owner asks to track; remove them after device acceptance.
+- `AUDIT.md`: only reproducible issues the owner asks to track; remove them when resolved or when the owner closes them.
 - `PRODUCT.md`: only durable product behavior or action changes.
 - `AGENTS.md`: only recurring mistakes or repository-wide constraints.
 

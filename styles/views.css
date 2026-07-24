@@ -1,0 +1,1037 @@
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.workout-page {
+  max-width: none;
+  padding-top: 0;
+}
+
+.workout-programbar {
+  min-height: calc(45px + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) 8px 0 15px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.workout-program-pick {
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+
+.workout-program-pick > strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workout-program-pick > span {
+  color: var(--accent);
+  font-family: var(--font-label);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.workout-program-empty {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.workout-program-empty > span {
+  color: var(--accent);
+  font-family: var(--font-label);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.workout-program-empty > strong {
+  font-size: 0.88rem;
+}
+
+.workout-program-pick > strong {
+  font-size: 0.88rem;
+}
+
+.workout-program-pick > svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.workout-manage-program {
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+}
+
+.workout-manage-program svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.8;
+}
+
+.workout-page .routine-tabs {
+  margin: 0;
+  padding-inline: var(--space-4) 4px;
+}
+
+.workout-rows {
+  display: grid;
+}
+
+.workout-section {
+  display: grid;
+}
+
+.workout-section-label {
+  min-height: 32px;
+  padding: 10px var(--space-4) 6px;
+  border-top: 1px solid var(--line);
+  color: var(--faint);
+  display: flex;
+  align-items: flex-end;
+  font-family: var(--font-label);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.workout-section:first-child .workout-section-label {
+  min-height: 26px;
+  padding-top: 4px;
+  border-top: 0;
+}
+
+.workout-item {
+  min-height: 60px;
+  padding: 0 2px 0 6px;
+  display: flex;
+  align-items: stretch;
+  position: relative;
+}
+
+.workout-item + .workout-item::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 45px;
+  border-top: 1px solid var(--line);
+}
+
+.workout-item:active {
+  background: var(--press);
+}
+
+.workout-check,
+.workout-video {
+  width: 44px;
+  min-height: 60px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--faint);
+  flex: 0 0 44px;
+  display: grid;
+  place-items: center;
+  text-decoration: none;
+}
+
+.workout-check-mark {
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--faint);
+  display: grid;
+  place-items: center;
+  color: var(--faint);
+}
+
+.workout-check-number {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.workout-check-mark svg {
+  display: none;
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.6;
+}
+
+.workout-item.is-done .workout-check-mark {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.workout-item.is-done .workout-check-number {
+  display: none;
+}
+
+.workout-item.is-done .workout-check-mark svg {
+  display: block;
+}
+
+.workout-row {
+  min-width: 0;
+  min-height: 60px;
+  padding: 8px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  text-align: left;
+}
+
+.workout-page .row-main {
+  gap: 3px;
+}
+
+.workout-page .row-title {
+  font-size: 0.91rem;
+  letter-spacing: -0.005em;
+}
+
+.workout-page .row-meta {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.workout-item.is-done .row-title,
+.workout-item.is-done .row-meta {
+  color: var(--faint);
+}
+
+.workout-video-mark {
+  width: 26px;
+  height: 26px;
+  border: 1.5px solid var(--faint);
+  border-radius: 50%;
+  color: var(--faint);
+  display: grid;
+  place-items: center;
+}
+
+.workout-video-mark svg {
+  width: 10px;
+  height: 10px;
+  margin-left: 1px;
+  fill: currentColor;
+  stroke: none;
+}
+
+.workout-video.is-linked .workout-video-mark {
+  border-color: transparent;
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.workout-check:active,
+.workout-row:active,
+.workout-video:active,
+.workout-program-pick:active,
+.workout-manage-program:active {
+  background: var(--press);
+}
+
+.program-page {
+  max-width: none;
+  padding-top: 0;
+}
+
+.program-appbar {
+  min-height: calc(52px + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) 10px 0 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.program-appbar h1 {
+  min-width: 0;
+  margin: 0;
+  color: var(--text);
+  flex: 1;
+  font-family: var(--font-label);
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.program-app-action {
+  min-height: 44px;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.program-app-action:active {
+  background: var(--press);
+}
+
+.program-page-bar {
+  min-height: 45px;
+  padding: 0 8px 0 15px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.program-page-pick {
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.program-page-pick > strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.88rem;
+}
+
+.program-page-pick > span {
+  color: var(--accent);
+  font-family: var(--font-label);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.program-page-pick > svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.program-page-manage {
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+}
+
+.program-page-manage svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.program-page-pick:active,
+.program-page-manage:active {
+  background: var(--press);
+}
+
+.program-page .routine-tabs {
+  margin: 0;
+  padding: 0 14px;
+}
+
+.program-page .routine-dot {
+  display: none;
+}
+
+.program-viewbar {
+  min-height: 42px;
+  padding: 0 9px 0 15px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.program-viewbar-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.program-viewbar-copy strong,
+.program-viewbar-copy span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.program-viewbar-copy strong {
+  font-size: 0.88rem;
+  line-height: 1.25;
+}
+
+.program-viewbar-copy span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.program-view-edit {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  flex: 0 0 44px;
+  display: grid;
+  place-items: center;
+}
+
+.program-view-edit:active {
+  background: var(--press);
+}
+
+.program-view-edit svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.program-entries,
+.program-list {
+  display: grid;
+  position: relative;
+}
+
+.program-section-label {
+  min-height: 30px;
+  padding: 8px 15px 5px;
+  border-top: 1px solid var(--line);
+  color: var(--faint);
+  font-family: var(--font-label);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.program-section:first-child .program-section-label {
+  border-top: 0;
+}
+
+.program-row,
+.program-row * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.program-row {
+  width: 100%;
+  min-height: 62px;
+  padding: 8px 12px 8px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  cursor: pointer;
+  -webkit-touch-callout: none;
+}
+
+button.program-row:active:not(.is-dragging) {
+  background: var(--press);
+}
+
+.drag-hint {
+  width: 28px;
+  height: 44px;
+  flex: 0 0 28px;
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+}
+
+.drag-hint svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.8;
+}
+
+.program-row.is-dragging {
+  position: fixed;
+  z-index: var(--z-drag);
+  margin: 0;
+  padding-inline: 8px;
+  border: 0;
+  border-radius: 0;
+  background: var(--surface);
+  box-shadow: var(--shadow-lift);
+  cursor: grabbing;
+  pointer-events: none;
+  transform-origin: center;
+  transition: box-shadow 140ms ease;
+  will-change: transform;
+}
+
+.program-row-placeholder {
+  min-height: 62px;
+  border-bottom: 1px solid var(--line);
+  background: var(--accent-soft);
+}
+
+body.entry-drag-active {
+  cursor: grabbing;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.add-row-button {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 15px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--accent);
+  text-align: left;
+  font-weight: 700;
+}
+
+.program-empty-state {
+  min-height: 360px;
+  padding: 48px 26px;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.program-empty-state h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.38rem;
+}
+
+.program-empty-state p {
+  max-width: 29ch;
+  margin: 8px 0 20px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.program-empty-state .button {
+  flex: 0 0 auto;
+}
+
+.routine-dialog.compact-dialog {
+  max-height: min(72dvh, 620px);
+}
+
+.routine-dialog .dialog-header h2 {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entry-dialog {
+  height: min(84dvh, 760px);
+  overflow: hidden;
+}
+
+.entry-sheet {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.entry-sheet .dialog-header,
+.entry-sheet .dialog-actions {
+  flex: 0 0 auto;
+}
+
+.entry-sheet .dialog-header h2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entry-sheet-scroll {
+  min-height: 0;
+  padding-block: var(--space-3);
+  flex: 1;
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.entry-sheet-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.entry-sheet-actions-list {
+  margin-top: 0;
+}
+
+.entry-sheet .dialog-actions {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+#programCreateFields,
+.programs-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.programs-list {
+  min-height: 0;
+  gap: 0;
+  align-content: start;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.programs-list::-webkit-scrollbar {
+  display: none;
+}
+
+.program-choice-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.program-choice-row + .program-choice-row::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 46px;
+  border-top: 1px solid var(--line);
+}
+
+.program-choice-select {
+  min-width: 0;
+  min-height: 62px;
+  padding: 8px 0 8px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+
+.program-choice-copy {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 3px;
+}
+
+.program-choice-copy strong,
+.program-choice-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.program-choice-copy strong {
+  font-size: 0.91rem;
+}
+
+.program-choice-copy small {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.program-active-dot,
+.program-active-slot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+}
+
+.program-active-dot {
+  background: var(--accent);
+}
+
+.program-choice-edit {
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--faint);
+  flex: 0 0 44px;
+  display: grid;
+  place-items: center;
+}
+
+.program-choice-edit svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.program-choice-select:active,
+.program-choice-edit:active {
+  background: var(--press);
+}
+
+.programs-dialog {
+  height: min(84dvh, 760px);
+  overflow: hidden;
+}
+
+.programs-sheet {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.programs-sheet .dialog-header,
+.programs-sheet .dialog-actions,
+.programs-sheet .form-error {
+  flex: 0 0 auto;
+}
+
+.programs-sheet .programs-list {
+  flex: 1;
+}
+
+.program-dialog.compact-dialog {
+  max-height: min(66dvh, 560px);
+}
+
+.result-count {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.library-controls {
+  margin-bottom: var(--space-2);
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+
+.library-controls .search-field {
+  min-width: 0;
+  flex: 1;
+  margin: 0;
+}
+
+.library-controls .search-field input {
+  min-height: 44px;
+}
+
+.filter-button {
+  max-width: 168px;
+  padding-inline: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+}
+
+.library-list {
+  display: grid;
+}
+
+.library-row {
+  width: 100%;
+  min-height: 58px;
+  padding: 7px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+
+.library-row:active {
+  background: var(--press);
+}
+
+.workout-row:active {
+  background: var(--press);
+}
+
+.workout-row .row-title,
+.workout-row .row-meta {
+  display: block;
+}
+
+.calendar-header {
+  margin-bottom: var(--space-2);
+  text-align: center;
+}
+
+.calendar-header h2,
+.calendar-header p {
+  margin: 0;
+}
+
+.calendar-header h2 {
+  font-size: 1.2rem;
+}
+
+.weekday-row,
+.calendar-grid {
+  margin-inline: calc(var(--space-4) * -1);
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.weekday-row span {
+  padding: 5px 0;
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.calendar-grid {
+  gap: 2px;
+}
+
+.calendar-day,
+.calendar-blank {
+  min-width: 0;
+  min-height: 52px;
+}
+
+.calendar-day {
+  padding: 5px 2px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text);
+  display: grid;
+  place-content: center;
+  gap: 2px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.calendar-day:focus-visible {
+  outline-offset: -3px;
+}
+
+.calendar-day.today {
+  border-color: var(--gym);
+  font-weight: 800;
+}
+
+.calendar-day.has-session {
+  background: var(--home-soft);
+  color: var(--home-strong);
+}
+
+.day-count {
+  min-width: 18px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--home);
+  color: #fff;
+  font-size: 0.62rem;
+  line-height: 16px;
+}
+
+.day-note {
+  height: 16px;
+  color: var(--home);
+  font-size: 1.1rem;
+  line-height: 10px;
+}
+
+.calendar-help {
+  margin: var(--space-4) 0 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.day-form,
+.day-routines {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.day-routines .check-option span {
+  min-width: 0;
+  display: grid;
+}
+
+.day-routines .check-option small {
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.rules-list,
+.settings-section {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.rule-section {
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.rule-section h3,
+.settings-section h3 {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+}
+
+.settings-rules {
+  border-top: 1px solid var(--border);
+}
+
+.settings-rules summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  font-weight: 750;
+  cursor: pointer;
+  list-style: none;
+}
+
+.settings-rules summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings-rules summary::after {
+  content: "+";
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  font-weight: 400;
+}
+
+.settings-rules[open] summary::after {
+  content: "−";
+}
+
+.settings-rules .rules-list {
+  padding-top: var(--space-2);
+}
+
+.rule-section ul,
+.settings-section p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+}
+
+.rule-section ul {
+  padding-left: 20px;
+}
+
+.stacked-actions {
+  display: grid;
+  gap: var(--space-2);
+}

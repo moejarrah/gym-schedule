@@ -15,7 +15,7 @@ import {
   SCHEMA_VERSION,
   createDefaultState,
   getReviewedExerciseClassification,
-} from "./data.js?v=28";
+} from "./data.js?v=37";
 
 export const STORAGE_KEY = "gymAppStateV1";
 
@@ -97,8 +97,8 @@ function hasValidExerciseClassification(exercise) {
   return true;
 }
 
-export function validateState(value) {
-  if (!isRecord(value) || value.version !== SCHEMA_VERSION) return false;
+function validateStateVersion(value, version) {
+  if (!isRecord(value) || value.version !== version) return false;
   if (!Array.isArray(value.exercises) || !Array.isArray(value.routines) || !Array.isArray(value.programs)) return false;
   if (!isRecord(value.sessions) || !isRecord(value.settings)) return false;
 
@@ -128,6 +128,7 @@ export function validateState(value) {
 
   const routineIds = new Set();
   const entryIds = new Set();
+  const entryIdsByRoutine = new Map();
   for (const routine of value.routines) {
     if (!isRecord(routine) || typeof routine.id !== "string" || !routine.id) return false;
     if (typeof routine.name !== "string" || !routine.name.trim()) return false;
@@ -135,12 +136,16 @@ export function validateState(value) {
     if (!["gym", "home"].includes(routine.group)) return false;
     if (!["required", "optional"].includes(routine.status)) return false;
     routineIds.add(routine.id);
+    const routineEntryIds = new Set();
     for (const entry of routine.entries) {
       if (!isRecord(entry) || typeof entry.id !== "string" || !entry.id || entryIds.has(entry.id)) return false;
       if (typeof entry.exerciseId !== "string" || typeof entry.prescription !== "string") return false;
+      if (version >= 8 && !["main", "optional"].includes(entry.role)) return false;
       if (!exerciseIds.has(entry.exerciseId)) return false;
       entryIds.add(entry.id);
+      routineEntryIds.add(entry.id);
     }
+    entryIdsByRoutine.set(routine.id, routineEntryIds);
   }
 
   const programIds = new Set();
@@ -178,9 +183,26 @@ export function validateState(value) {
     if (!isRecord(session) || !Array.isArray(session.routineIds) || typeof session.note !== "string") return false;
     if (!session.routineIds.every((id) => typeof id === "string" && routineIds.has(id))) return false;
     if (new Set(session.routineIds).size !== session.routineIds.length) return false;
-    if (!session.routineIds.length && !session.note) return false;
+    if (version >= 8) {
+      if (!isRecord(session.checkedEntryIdsByRoutine)) return false;
+      let checkedCount = 0;
+      for (const [routineId, checkedEntryIds] of Object.entries(session.checkedEntryIdsByRoutine)) {
+        const validEntryIds = entryIdsByRoutine.get(routineId);
+        if (!validEntryIds || !Array.isArray(checkedEntryIds) || !checkedEntryIds.length) return false;
+        if (!checkedEntryIds.every((id) => typeof id === "string" && validEntryIds.has(id))) return false;
+        if (new Set(checkedEntryIds).size !== checkedEntryIds.length) return false;
+        checkedCount += checkedEntryIds.length;
+      }
+      if (!session.routineIds.length && !checkedCount && !session.note) return false;
+    } else if (!session.routineIds.length && !session.note) {
+      return false;
+    }
   }
   return true;
+}
+
+export function validateState(value) {
+  return validateStateVersion(value, SCHEMA_VERSION);
 }
 
 function hasValidLegacyExercise(exercise, exerciseIds) {
@@ -339,6 +361,18 @@ export function migrateState(value) {
     normalizeRelatedExercises(next.exercises);
     next.version = 7;
   }
+  if (next.version === 7) {
+    if (!validateStateVersion(next, 7)) throw new Error("invalid state");
+    next.routines = next.routines.map((routine) => ({
+      ...routine,
+      entries: routine.entries.map((entry) => ({ ...entry, role: "main" })),
+    }));
+    next.sessions = Object.fromEntries(Object.entries(next.sessions).map(([dateKey, session]) => [
+      dateKey,
+      { ...session, checkedEntryIdsByRoutine: {} },
+    ]));
+    next.version = 8;
+  }
   if (next.version !== SCHEMA_VERSION) throw new Error("unsupported state version");
   return next;
 }
@@ -402,6 +436,14 @@ export function setActiveProgramInState(state, programId) {
   return repairActiveSelection(next);
 }
 
+export function setActiveRoutineInState(state, routineId) {
+  const owner = state.programs.find((program) => program.routineIds.includes(routineId));
+  if (!owner) return clone(state);
+  const next = setActiveProgramInState(state, owner.id);
+  next.settings.activeRoutineId = routineId;
+  return next;
+}
+
 export function addRoutineToProgram(state, programId, routine) {
   const next = clone(state);
   const program = next.programs.find((item) => item.id === programId);
@@ -413,6 +455,17 @@ export function addRoutineToProgram(state, programId, routine) {
     next.settings.activeRoutineId = routine.id;
   }
   return syncRoutineOrder(next);
+}
+
+export function updateRoutineInState(state, routineId, updates) {
+  const next = clone(state);
+  const routine = next.routines.find((item) => item.id === routineId);
+  if (!routine || !isRecord(updates)) return next;
+  const name = typeof updates.name === "string" ? updates.name.trim() : "";
+  if (name) routine.name = name;
+  if (["gym", "home"].includes(updates.group)) routine.group = updates.group;
+  if (["required", "optional"].includes(updates.status)) routine.status = updates.status;
+  return next;
 }
 
 export function reorderRoutineInProgram(state, programId, routineId, targetIndex) {
@@ -464,11 +517,7 @@ export function removeProgramFromState(state, programId) {
   const removedRoutineIds = new Set(program.routineIds);
   next.programs = next.programs.filter((item) => item.id !== programId);
   next.routines = next.routines.filter((routine) => !removedRoutineIds.has(routine.id));
-  for (const [dateKey, session] of Object.entries(next.sessions)) {
-    const routineIds = session.routineIds.filter((id) => !removedRoutineIds.has(id));
-    if (!routineIds.length && !session.note) delete next.sessions[dateKey];
-    else next.sessions[dateKey] = { ...session, routineIds };
-  }
+  cleanRoutineSessions(next, removedRoutineIds);
   return repairActiveSelection(syncRoutineOrder(next));
 }
 
@@ -479,17 +528,144 @@ export function localDateKey(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
-export function toggleRoutineForDate(state, routineId, dateKey = localDateKey()) {
-  const next = clone(state);
-  const current = next.sessions[dateKey] || { routineIds: [], note: "" };
-  const routineIds = Array.isArray(current.routineIds) ? [...current.routineIds] : [];
-  const index = routineIds.indexOf(routineId);
-  if (index >= 0) routineIds.splice(index, 1);
-  else routineIds.push(routineId);
+function sessionWithDefaults(session) {
+  return {
+    routineIds: Array.isArray(session?.routineIds) ? [...session.routineIds] : [],
+    checkedEntryIdsByRoutine: isRecord(session?.checkedEntryIdsByRoutine)
+      ? clone(session.checkedEntryIdsByRoutine)
+      : {},
+    note: typeof session?.note === "string" ? session.note : "",
+  };
+}
 
-  if (!routineIds.length && !current.note) delete next.sessions[dateKey];
-  else next.sessions[dateKey] = { ...current, routineIds };
+function writeSession(state, dateKey, session) {
+  const checkedEntryIdsByRoutine = Object.fromEntries(
+    Object.entries(session.checkedEntryIdsByRoutine)
+      .filter(([, entryIds]) => Array.isArray(entryIds) && entryIds.length)
+      .map(([routineId, entryIds]) => [routineId, [...new Set(entryIds)]]),
+  );
+  if (!session.routineIds.length && !Object.keys(checkedEntryIdsByRoutine).length && !session.note) {
+    delete state.sessions[dateKey];
+  } else {
+    state.sessions[dateKey] = {
+      routineIds: [...new Set(session.routineIds)],
+      checkedEntryIdsByRoutine,
+      note: session.note,
+    };
+  }
+  return state;
+}
+
+function cleanRoutineSessions(state, removedRoutineIds) {
+  for (const [dateKey, value] of Object.entries(state.sessions)) {
+    const session = sessionWithDefaults(value);
+    session.routineIds = session.routineIds.filter((id) => !removedRoutineIds.has(id));
+    for (const routineId of removedRoutineIds) delete session.checkedEntryIdsByRoutine[routineId];
+    writeSession(state, dateKey, session);
+  }
+  return state;
+}
+
+function cleanEntrySessions(state, removedEntryIdsByRoutine) {
+  for (const [dateKey, value] of Object.entries(state.sessions)) {
+    const session = sessionWithDefaults(value);
+    for (const [routineId, removedEntryIds] of removedEntryIdsByRoutine) {
+      const checked = session.checkedEntryIdsByRoutine[routineId] || [];
+      session.checkedEntryIdsByRoutine[routineId] = checked.filter((id) => !removedEntryIds.has(id));
+    }
+    writeSession(state, dateKey, session);
+  }
+  return state;
+}
+
+export function toggleEntryCheckForDate(state, routineId, entryId, dateKey = localDateKey()) {
+  const next = clone(state);
+  const routine = next.routines.find((item) => item.id === routineId);
+  const entry = routine?.entries.find((item) => item.id === entryId);
+  if (!routine || !entry || !isDateKey(dateKey)) return next;
+  const session = sessionWithDefaults(next.sessions[dateKey]);
+  const checked = new Set(session.checkedEntryIdsByRoutine[routineId] || []);
+  if (checked.has(entryId)) checked.delete(entryId);
+  else checked.add(entryId);
+  session.checkedEntryIdsByRoutine[routineId] = [...checked];
+
+  if (entry.role === "main") {
+    const mainEntryIds = routine.entries.filter((item) => item.role === "main").map((item) => item.id);
+    const completed = mainEntryIds.length > 0 && mainEntryIds.every((id) => checked.has(id));
+    session.routineIds = completed
+      ? [...new Set([...session.routineIds, routineId])]
+      : session.routineIds.filter((id) => id !== routineId);
+  }
+  return writeSession(next, dateKey, session);
+}
+
+export function setDayInState(state, dateKey, routineIds, note) {
+  const next = clone(state);
+  if (!isDateKey(dateKey) || !Array.isArray(routineIds) || typeof note !== "string") return next;
+  const selectedIds = new Set(routineIds);
+  if (selectedIds.size !== routineIds.length || routineIds.some((id) => !next.routines.some((routine) => routine.id === id))) return next;
+  const session = sessionWithDefaults(next.sessions[dateKey]);
+  const previousIds = new Set(session.routineIds);
+
+  for (const routineId of previousIds) {
+    if (!selectedIds.has(routineId)) delete session.checkedEntryIdsByRoutine[routineId];
+  }
+  for (const routineId of selectedIds) {
+    if (previousIds.has(routineId)) continue;
+    const routine = next.routines.find((item) => item.id === routineId);
+    const checked = new Set(session.checkedEntryIdsByRoutine[routineId] || []);
+    for (const entry of routine.entries) {
+      if (entry.role === "main") checked.add(entry.id);
+    }
+    session.checkedEntryIdsByRoutine[routineId] = [...checked];
+  }
+
+  session.routineIds = [...routineIds];
+  session.note = note;
+  return writeSession(next, dateKey, session);
+}
+
+export function toggleRoutineForDate(state, routineId, dateKey = localDateKey()) {
+  const session = sessionWithDefaults(state.sessions?.[dateKey]);
+  const completed = session.routineIds.includes(routineId);
+  const routineIds = completed
+    ? session.routineIds.filter((id) => id !== routineId)
+    : [...session.routineIds, routineId];
+  return setDayInState(state, dateKey, routineIds, session.note);
+}
+
+export function updateRoutineEntryInState(state, routineId, entryId, updates) {
+  const next = clone(state);
+  const routine = next.routines.find((item) => item.id === routineId);
+  const index = routine?.entries.findIndex((item) => item.id === entryId) ?? -1;
+  if (!routine || index < 0 || !isRecord(updates)) return next;
+  const entry = routine.entries[index];
+  if (typeof updates.prescription === "string") entry.prescription = updates.prescription;
+  if (["main", "optional"].includes(updates.role) && updates.role !== entry.role) {
+    entry.role = updates.role;
+    routine.entries.splice(index, 1);
+    routine.entries.push(entry);
+  }
   return next;
+}
+
+export function addRoutineEntryInState(state, routineId, entry) {
+  const next = clone(state);
+  const routine = next.routines.find((item) => item.id === routineId);
+  if (!routine || !isRecord(entry) || typeof entry.id !== "string" || !entry.id) return next;
+  if (next.routines.some((item) => item.entries.some((candidate) => candidate.id === entry.id))) return next;
+  if (!next.exercises.some((exercise) => exercise.id === entry.exerciseId)) return next;
+  if (typeof entry.prescription !== "string" || !["main", "optional"].includes(entry.role)) return next;
+  routine.entries.push(clone(entry));
+  return next;
+}
+
+export function removeRoutineEntryFromState(state, routineId, entryId) {
+  const next = clone(state);
+  const routine = next.routines.find((item) => item.id === routineId);
+  if (!routine || !routine.entries.some((entry) => entry.id === entryId)) return next;
+  routine.entries = routine.entries.filter((entry) => entry.id !== entryId);
+  return cleanEntrySessions(next, new Map([[routineId, new Set([entryId])]]));
 }
 
 export function setRelatedExercisesInState(state, exerciseId, relatedExercises) {
@@ -517,6 +693,11 @@ export function setRelatedExercisesInState(state, exerciseId, relatedExercises) 
 
 export function removeExerciseFromState(state, exerciseId) {
   const next = clone(state);
+  const removedEntryIdsByRoutine = new Map();
+  for (const routine of next.routines) {
+    const removedEntryIds = routine.entries.filter((entry) => entry.exerciseId === exerciseId).map((entry) => entry.id);
+    if (removedEntryIds.length) removedEntryIdsByRoutine.set(routine.id, new Set(removedEntryIds));
+  }
   next.exercises = next.exercises
     .filter((exercise) => exercise.id !== exerciseId)
     .map((exercise) => ({
@@ -527,7 +708,7 @@ export function removeExerciseFromState(state, exerciseId) {
     ...routine,
     entries: routine.entries.filter((entry) => entry.exerciseId !== exerciseId),
   }));
-  return next;
+  return cleanEntrySessions(next, removedEntryIdsByRoutine);
 }
 
 export function removeRoutineFromState(state, routineId) {
@@ -537,11 +718,7 @@ export function removeRoutineFromState(state, routineId) {
     ...program,
     routineIds: program.routineIds.filter((id) => id !== routineId),
   }));
-  for (const [dateKey, session] of Object.entries(next.sessions)) {
-    const routineIds = (session.routineIds || []).filter((id) => id !== routineId);
-    if (!routineIds.length && !session.note) delete next.sessions[dateKey];
-    else next.sessions[dateKey] = { ...session, routineIds };
-  }
+  cleanRoutineSessions(next, new Set([routineId]));
   return repairActiveSelection(syncRoutineOrder(next));
 }
 
@@ -553,23 +730,44 @@ export function moveItem(items, index, direction) {
   return next;
 }
 
-export function moveRoutineEntry(state, routineId, entryId, direction, prescription) {
+function reorderEntryWithinRole(routine, entryId, targetRoleIndex) {
+  const entry = routine.entries.find((item) => item.id === entryId);
+  if (!entry || !Number.isInteger(targetRoleIndex)) return false;
+  const roleEntries = routine.entries.filter((item) => item.role === entry.role);
+  const sourceRoleIndex = roleEntries.findIndex((item) => item.id === entryId);
+  if (sourceRoleIndex < 0 || targetRoleIndex < 0 || targetRoleIndex >= roleEntries.length) return false;
+  const [moved] = roleEntries.splice(sourceRoleIndex, 1);
+  roleEntries.splice(targetRoleIndex, 0, moved);
+  let roleIndex = 0;
+  routine.entries = routine.entries.map((item) => (
+    item.role === entry.role ? roleEntries[roleIndex++] : item
+  ));
+  return true;
+}
+
+export function moveRoutineEntry(state, routineId, entryId, direction, prescription, role) {
   const next = clone(state);
   const routine = next.routines.find((item) => item.id === routineId);
   const index = routine?.entries.findIndex((entry) => entry.id === entryId) ?? -1;
   if (!routine || index < 0) return next;
-  routine.entries[index].prescription = prescription;
-  routine.entries = moveItem(routine.entries, index, direction);
+  const entry = routine.entries[index];
+  entry.prescription = prescription;
+  if (["main", "optional"].includes(role) && role !== entry.role) {
+    entry.role = role;
+    routine.entries.splice(index, 1);
+    routine.entries.push(entry);
+  }
+  const roleEntries = routine.entries.filter((item) => item.role === entry.role);
+  const sourceRoleIndex = roleEntries.findIndex((item) => item.id === entryId);
+  reorderEntryWithinRole(routine, entryId, sourceRoleIndex + direction);
   return next;
 }
 
-export function reorderRoutineEntry(state, routineId, entryId, targetIndex) {
+export function reorderRoutineEntryWithinRole(state, routineId, entryId, targetRoleIndex) {
   const next = clone(state);
   const routine = next.routines.find((item) => item.id === routineId);
-  const sourceIndex = routine?.entries.findIndex((entry) => entry.id === entryId) ?? -1;
-  if (!routine || sourceIndex < 0 || !Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= routine.entries.length) return next;
-  const [entry] = routine.entries.splice(sourceIndex, 1);
-  routine.entries.splice(targetIndex, 0, entry);
+  if (!routine) return next;
+  reorderEntryWithinRole(routine, entryId, targetRoleIndex);
   return next;
 }
 
