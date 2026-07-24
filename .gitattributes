@@ -1,0 +1,2 @@
+# Preserve owner-provided source material byte-for-byte.
+references/source-material/** whitespace=-blank-at-eol,-blank-at-eof

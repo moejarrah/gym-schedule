@@ -202,7 +202,7 @@ The editable source is `artifacts/exports/Gym App Data.xlsx`. Slice 5:
 4. Added only clear alternative/progression relationships, with reciprocal rows.
 5. Mechanically validated required values, target exclusion, controlled vocabularies, stable links, and blank optional uncertainty.
 
-The workbook remains local and editable. Production converts its reviewed labels to stable IDs, loads them by existing exercise ID, and migrates older stored data without replacing user-owned names, prescriptions, notes/cues, or videos. Exact custom legacy values migrate only when the meaning is unambiguous; uncertain new fields stay blank.
+The workbook remains local and editable. Historical Slice 6 converted its reviewed labels to stable IDs and completed the then-required migration without replacing user-owned names, prescriptions, notes/cues, or videos. That migration statement describes completed history, not current policy: later pre-release schemas may deliberately reset development data and must not add backward-compatibility work unless the owner asks.
 
 ## UI mapping
 

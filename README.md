@@ -6,7 +6,7 @@ A build-free, local-first workout PWA designed for personal use on iPhone.
 
 1. Read `AGENTS.md` for repository rules and boundaries.
 2. Read `docs/HANDOFF_STATUS.md` for the deployed version, active slice, verification state, and next action.
-3. Use `docs/PRODUCT.md` for behavior and `docs/IMPLEMENTATION_PLAN.md` for the approved remaining slices.
+3. Use `docs/PRODUCT.md` for current behavior and `docs/IMPLEMENTATION_PLAN.md` for the current approved or proposed remaining slices.
 4. Read `docs/AUDIT.md` only when it lists a current owner-confirmed issue.
 
 The live app is published from `main` at `https://moejarrah.github.io/gym-schedule/`.

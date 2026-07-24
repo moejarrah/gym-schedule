@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ironworks · PPLPPL 7 — Blocks, Notes, Choices</title>
+<style>
+  /* ============================================================
+     IRONWORKS · PPLPPL 7 MISSING FLOWS
+     Only the states the current production UI cannot render:
+     named blocks in source order, scoped notes, programmed
+     choices, embedded Optional rows, Home Base, and the
+     block/note/choice editors. Extends production Ironworks
+     (ui/workout.js metrics) — nothing here replaces it.
+     Fonts: local production woff2 files (../../fonts).
+     ============================================================ */
+
+  @font-face { font-family: "Barlow"; font-style: normal; font-weight: 500; font-display: swap; src: url("../../fonts/barlow-500-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Barlow"; font-style: normal; font-weight: 600; font-display: swap; src: url("../../fonts/barlow-600-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Barlow"; font-style: normal; font-weight: 700; font-display: swap; src: url("../../fonts/barlow-700-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 600; font-display: swap; src: url("../../fonts/barlow-condensed-600-latin.woff2") format("woff2"); }
+  @font-face { font-family: "IBM Plex Mono"; font-style: normal; font-weight: 500; font-display: swap; src: url("../../fonts/ibm-plex-mono-500-latin.woff2") format("woff2"); }
+  @font-face { font-family: "IBM Plex Mono"; font-style: normal; font-weight: 600; font-display: swap; src: url("../../fonts/ibm-plex-mono-600-latin.woff2") format("woff2"); }
+  @font-face { font-family: "IBM Plex Mono"; font-style: normal; font-weight: 700; font-display: swap; src: url("../../fonts/ibm-plex-mono-700-latin.woff2") format("woff2"); }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { border: 0; cursor: pointer; background: none; }
+
+  :root {
+    --page: #232528;
+    --page-text: #eceef1;
+    --page-muted: #a4a8af;
+    --frame: #101114;
+  }
+  body {
+    background: var(--page);
+    color: var(--page-text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- page chrome ---------- */
+  .page-head {
+    max-width: 1340px; margin: 0 auto; padding: 28px 24px 8px;
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 18px;
+  }
+  .page-head h1 { font-size: 15px; font-weight: 700; letter-spacing: 0.02em; }
+  .page-head p { color: var(--page-muted); font: 12px ui-monospace, "SF Mono", monospace; }
+  .page-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .page-actions a, .switcher {
+    min-height: 32px; border: 1px solid #41444a; border-radius: 8px;
+    font-size: 12px; font-weight: 650;
+  }
+  .page-actions a { padding: 6px 10px; color: var(--page-muted); text-decoration: none; }
+  .page-actions a.on { color: var(--page-text); border-color: #6b6f77; }
+  .switcher { display: inline-flex; overflow: hidden; }
+  .switcher button { padding: 6px 12px; color: var(--page-muted); font-size: 12px; font-weight: 650; }
+  .switcher button.on { background: #41444a; color: var(--page-text); }
+
+  .concept-notes {
+    max-width: 1340px; margin: 0 auto; padding: 10px 24px 0 42px;
+    color: var(--page-muted); font-size: 13px; line-height: 1.55;
+    columns: 2 460px; column-gap: 42px;
+  }
+  .concept-notes li { margin: 0 0 5px; break-inside: avoid; }
+
+  .frames {
+    display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start;
+    gap: 50px; padding: 34px 22px 74px;
+  }
+  .frame-wrap { display: grid; justify-items: center; gap: 12px; align-content: start; }
+  .frame-cap {
+    max-width: 360px; color: var(--page-muted);
+    font: 11px/1.55 ui-monospace, "SF Mono", monospace; text-align: center;
+  }
+
+  /* ============================================================
+     PHONE — production Ironworks tokens (styles/base.css)
+     ============================================================ */
+  .phone {
+    width: 393px; height: 852px;
+    overflow: hidden;
+    border: 10px solid var(--frame);
+    border-radius: 48px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+    position: relative;
+  }
+  .phone.narrow { width: 320px; height: 700px; }
+
+  .screen {
+    --bg: #0f1114;
+    --surface: #15181d;
+    --surface-2: #1c2026;
+    --line: rgba(235, 238, 245, 0.09);
+    --text: #e9ebee;
+    --text-muted: #9ca3ad;
+    --faint: #7f8792;
+    --accent: #5a7cff;
+    --accent-soft: rgba(90, 124, 255, 0.15);
+    --rehab: #d9a62e;
+    --danger: #e76657;
+    --scrim: rgba(0, 0, 0, 0.58);
+
+    --font-label: "Barlow Condensed", "Arial Narrow", sans-serif;
+    --font-body: "Barlow", -apple-system, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 15px; line-height: 1.4;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .screen[data-theme="light"] {
+    --bg: #f3f4f5;
+    --surface: #ffffff;
+    --surface-2: #e9ebee;
+    --line: rgba(18, 22, 30, 0.11);
+    --text: #171a1f;
+    --text-muted: #646c77;
+    --faint: #68707b;
+    --accent: #3b5bdb;
+    --accent-soft: rgba(59, 91, 219, 0.11);
+    --rehab: #9a6e12;
+    --danger: #c03b27;
+    --scrim: rgba(20, 24, 32, 0.34);
+  }
+
+  .scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+  .scroll::-webkit-scrollbar, .tabs::-webkit-scrollbar, .sheet-scroll::-webkit-scrollbar { display: none; }
+
+  .statusbar {
+    flex: 0 0 auto;
+    padding: 14px 28px 2px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 14px; font-weight: 650;
+    font-variant-numeric: tabular-nums;
+  }
+  .statusbar svg { width: 74px; height: 12px; }
+
+  /* ---------- program bar (production .workout-programbar) ---------- */
+  .programbar {
+    flex: 0 0 auto;
+    min-height: 46px;
+    padding: 4px 8px 4px 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .program-pick {
+    min-width: 0; flex: 1;
+    min-height: 38px;
+    display: flex; align-items: center; gap: 8px;
+    text-align: left;
+  }
+  .program-pick > span {
+    font-family: var(--font-label);
+    font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--faint);
+  }
+  .program-pick > strong {
+    min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: 14px; font-weight: 700;
+  }
+  .program-pick > svg { width: 16px; height: 16px; flex: 0 0 auto; stroke: var(--faint); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .program-manage {
+    width: 40px; height: 40px; flex: 0 0 auto;
+    display: grid; place-items: center;
+    color: var(--text-muted);
+  }
+  .program-manage svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; }
+
+  /* ---------- routine tabs ---------- */
+  .tabs {
+    flex: 0 0 auto;
+    display: flex; align-items: center; gap: 2px;
+    padding: 0 8px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, #000 92%, transparent);
+    mask-image: linear-gradient(to right, #000 92%, transparent);
+  }
+  .rtab {
+    flex: 0 0 auto;
+    min-height: 42px;
+    padding: 9px 10px 8px;
+    color: var(--text-muted);
+    font-size: 13px; font-weight: 650;
+    white-space: nowrap;
+    box-shadow: inset 0 -2px transparent;
+  }
+  .rtab.on { color: var(--text); box-shadow: inset 0 -2px var(--accent); }
+  .rtab.home { color: var(--text-muted); }
+
+  /* ---------- routine note (persistent, Home Base) ---------- */
+  .routine-note {
+    flex: 0 0 auto;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-size: 12.5px; line-height: 1.45;
+  }
+  .routine-note b { color: var(--text); font-weight: 650; }
+
+  /* ---------- blocks + rows (production workout metrics) ---------- */
+  .block-label {
+    min-height: 32px;
+    padding: 10px 16px 6px;
+    border-top: 1px solid var(--line);
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 10px;
+    color: var(--faint);
+    font-family: var(--font-label);
+    font-size: 12.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .block-label:first-child { min-height: 26px; padding-top: 4px; border-top: 0; }
+  .block-label .opt { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; }
+
+  .item {
+    min-height: 60px;
+    padding: 0 2px 0 6px;
+    display: flex; align-items: stretch;
+    position: relative;
+  }
+  .item + .item::before {
+    content: "";
+    position: absolute; top: 0; left: 45px; right: 0;
+    border-top: 1px solid var(--line);
+  }
+  .item:active { background: var(--surface-2); }
+
+  .check {
+    width: 40px; min-height: 60px; flex: 0 0 40px;
+    display: grid; place-items: center;
+    color: var(--faint);
+  }
+  .check-mark {
+    width: 22px; height: 22px;
+    border: 1.5px solid var(--faint);
+    display: grid; place-items: center;
+    color: var(--faint);
+  }
+  .check-num { font-family: var(--font-mono); font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .check-mark svg { display: none; width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+  .item.done .check-mark { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .item.done .check-mark svg { display: block; }
+  .item.done .check-num { display: none; }
+  .item.done .name, .item.done .rx { color: var(--faint); }
+
+  .row-main {
+    min-width: 0; flex: 1;
+    min-height: 60px;
+    padding: 8px 0;
+    display: grid; align-content: center; gap: 3px;
+  }
+  .name { font-size: 14.5px; font-weight: 600; letter-spacing: -0.005em; overflow-wrap: anywhere; }
+  .rx {
+    font-family: var(--font-mono);
+    font-size: 12.5px; font-weight: 600;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .rx .role-tag {
+    font-family: var(--font-label);
+    font-size: 10px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase;
+    color: var(--faint);
+    border: 1px solid var(--line);
+    padding: 1.5px 6px;
+  }
+  /* restrained entry-note preview: max two lines, only on rows that have one */
+  .note {
+    color: var(--text-muted);
+    font-size: 12px; font-weight: 450; line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .note b { font-weight: 650; color: var(--text-muted); }
+
+  .vplay {
+    width: 44px; min-height: 60px; flex: 0 0 44px;
+    display: grid; place-items: center;
+    color: var(--faint);
+  }
+  .vplay-mark {
+    width: 26px; height: 26px;
+    border: 1.5px solid var(--faint);
+    border-radius: 50%;
+    display: grid; place-items: center;
+    color: var(--faint);
+  }
+  .vplay-mark svg { width: 10px; height: 10px; fill: currentColor; margin-left: 1px; }
+  .vplay.linked .vplay-mark { border-color: transparent; background: var(--accent); color: #fff; }
+
+  /* ---------- bottom nav (production 5-tab) ---------- */
+  .tabbar {
+    flex: 0 0 auto;
+    padding: 4px 8px 20px;
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+    display: grid; grid-template-columns: repeat(5, 1fr);
+  }
+  .tab {
+    min-height: 46px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    color: var(--faint);
+    font-family: var(--font-label);
+    font-size: 12px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase;
+  }
+  .tab.on { color: var(--accent); }
+  .tab svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ---------- sheets ---------- */
+  .scrim { position: absolute; inset: 0; background: var(--scrim); }
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    max-height: 86%;
+    background: var(--surface);
+    border-radius: 14px 14px 0 0;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .grab { flex: 0 0 auto; padding: 8px 0 2px; display: grid; place-items: center; }
+  .grab::before { content: ""; width: 36px; height: 5px; border-radius: 3px; background: var(--line); }
+  .sheet-head {
+    min-height: 48px;
+    padding: 4px 16px 8px 20px;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .sheet-head h2 { flex: 1; margin: 0; font-size: 19px; line-height: 1.15; letter-spacing: -0.01em; }
+  .sheet-head .sub { display: block; margin-top: 2px; color: var(--text-muted); font-size: 12px; font-weight: 500; }
+  .sheet-head .icon-btn { flex: 0 0 auto; }
+  .icon-btn {
+    width: 40px; height: 40px;
+    display: grid; place-items: center;
+    color: var(--text-muted);
+    font-size: 20px;
+  }
+  .sheet-scroll { min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 12px 20px 18px; }
+  .sheet-actions {
+    flex: 0 0 auto;
+    padding: 10px 20px 26px;
+    border-top: 1px solid var(--line);
+    display: flex; gap: 8px;
+  }
+  .button {
+    min-height: 46px; padding: 0 16px;
+    background: var(--surface-2);
+    color: var(--text);
+    font-weight: 700;
+    flex: 1;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .button.primary { background: var(--accent); color: #fff; }
+  .button.text { flex: 0 0 auto; background: transparent; color: var(--text-muted); }
+
+  .section-label {
+    margin: 16px 0 7px;
+    color: var(--faint);
+    font-family: var(--font-label);
+    font-size: 12.5px; font-weight: 600; letter-spacing: 0.11em; text-transform: uppercase;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  /* ---------- choices sheet ---------- */
+  .choice-row {
+    width: 100%;
+    min-height: 56px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 8px;
+    text-align: left;
+  }
+  .choice-row .row-main { min-height: 0; padding: 0; }
+  .choice-tag {
+    flex: 0 0 auto;
+    font-family: var(--font-label);
+    font-size: 10px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase;
+    color: var(--accent);
+  }
+  .choice-row .vplay { min-height: 44px; }
+  .choice-row .chev { width: 18px; height: 18px; flex: 0 0 auto; stroke: var(--faint); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ---------- reference sheet ---------- */
+  .big-rx { margin: 2px 0 0; font: 700 30px var(--font-mono); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .meta-line { margin: 5px 0 0; color: var(--text-muted); font-size: 13px; }
+  .groups { margin-top: 14px; border-top: 1px solid var(--line); }
+  .group-label { padding: 10px 0 4px; color: var(--faint); font-family: var(--font-label); font-size: 12.5px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; }
+  .group-label:not(:first-child) { border-top: 1px solid var(--line); margin-top: 2px; }
+  .trow { min-height: 38px; padding: 7px 0; border-bottom: 1px solid var(--line); display: flex; align-items: baseline; gap: 10px; }
+  .trow .num { flex: 0 0 16px; color: var(--faint); font: 600 11px var(--font-mono); }
+  .trow strong { font-size: 14.5px; font-weight: 600; }
+  .trow em { color: var(--text-muted); font-style: normal; font-weight: 450; }
+  .scope-note { padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; line-height: 1.5; }
+  .scope-note b { font-weight: 650; }
+  .facts { margin-top: 14px; border-top: 1px solid var(--line); }
+  .fact { min-height: 38px; padding: 8px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 96px 1fr; gap: 10px; align-items: baseline; }
+  .fact span:first-child { color: var(--faint); font-family: var(--font-label); font-size: 12.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+  .fact strong { font-size: 14px; }
+  .video-link {
+    margin-top: 14px;
+    min-height: 48px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    display: flex; align-items: center; gap: 10px;
+    color: var(--text);
+    font-size: 14px; font-weight: 650;
+    text-decoration: none;
+  }
+  .video-link > svg { width: 13px; height: 13px; margin-left: auto; stroke: var(--faint); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .video-link .vplay-mark { border-color: transparent; background: var(--accent); color: #fff; }
+  .search-actions { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .search-actions a {
+    min-height: 44px;
+    background: var(--surface-2);
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    color: var(--text);
+    font-size: 13.5px; font-weight: 700;
+    text-decoration: none;
+  }
+  .search-actions svg { width: 12px; height: 12px; stroke: var(--faint); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .rel { margin-top: 14px; border-top: 1px solid var(--line); }
+  .rel-row { width: 100%; min-height: 42px; padding: 0; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; text-align: left; }
+  .rel-row .kind { flex: 0 0 74px; color: var(--faint); font-family: var(--font-label); font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+  .rel-row strong { flex: 1; font-size: 14px; font-weight: 600; }
+  .notes-copy { margin: 14px 0 0; font-size: 14.5px; line-height: 1.55; }
+
+  /* ---------- program screen (background of editor frames) ---------- */
+  .appbar {
+    min-height: 48px;
+    padding: 0 10px 0 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .app-title {
+    min-width: 0; flex: 1;
+    font-family: var(--font-label);
+    font-size: 18px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase;
+  }
+  .app-action { min-height: 40px; padding: 0 10px; color: var(--accent); font-size: 13.5px; font-weight: 700; }
+  .program-note-row {
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    text-align: left;
+  }
+  .program-note-row .pn-copy { min-width: 0; display: grid; gap: 1px; }
+  .program-note-row .pn-copy strong { font-size: 13px; font-weight: 650; }
+  .program-note-row .pn-copy small {
+    color: var(--text-muted); font-size: 12px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .program-note-row .chev { width: 18px; height: 18px; flex: 0 0 auto; stroke: var(--faint); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .viewbar {
+    min-height: 52px;
+    padding: 6px 8px 6px 16px;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .viewbar .vb-copy { min-width: 0; flex: 1; display: grid; }
+  .viewbar .vb-copy strong { font-size: 15.5px; font-weight: 700; }
+  .viewbar .vb-copy span { color: var(--text-muted); font-size: 12px; }
+
+  .prow {
+    width: 100%;
+    min-height: 52px;
+    padding: 6px 6px 6px 16px;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 10px;
+    text-align: left;
+  }
+  .prow .row-number { flex: 0 0 22px; color: var(--faint); font: 600 11px var(--font-mono); font-variant-numeric: tabular-nums; }
+  .prow .grip { width: 40px; height: 40px; flex: 0 0 auto; display: grid; place-items: center; color: var(--faint); }
+  .prow .grip svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+  .add-row {
+    width: 100%; min-height: 48px;
+    padding: 0 16px;
+    color: var(--accent);
+    text-align: left;
+    font-weight: 700; font-size: 14px;
+  }
+
+  /* ---------- editor fields ---------- */
+  .field { display: grid; gap: 6px; margin-top: 13px; }
+  .field:first-child { margin-top: 0; }
+  .field > span, .form-label { color: var(--text-muted); font-size: 12.5px; font-weight: 650; }
+  .control {
+    width: 100%;
+    min-height: 46px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 15px;
+  }
+  textarea.control { min-height: 84px; resize: vertical; line-height: 1.45; }
+  select.control { appearance: none; }
+  .segment {
+    min-height: 44px;
+    padding: 3px;
+    background: var(--surface-2);
+    display: grid; grid-template-columns: 1fr 1fr;
+  }
+  .segment button { color: var(--text-muted); font-size: 13.5px; font-weight: 650; }
+  .segment button.on { background: var(--surface); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
+  .form-note { margin-top: 6px; color: var(--faint); font-size: 12px; line-height: 1.45; }
+
+  .choice-edit-row {
+    min-height: 46px;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 9px;
+  }
+  .choice-edit-row .cn { flex: 0 0 20px; color: var(--faint); font: 600 11px var(--font-mono); }
+  .choice-edit-row .cc { min-width: 0; flex: 1; display: grid; }
+  .choice-edit-row .cc strong { font-size: 14px; font-weight: 650; overflow-wrap: anywhere; }
+  .choice-edit-row .cc small { color: var(--text-muted); font: 600 11.5px var(--font-mono); }
+  .choice-edit-row .mini {
+    width: 36px; height: 36px; flex: 0 0 auto;
+    display: grid; place-items: center;
+    color: var(--text-muted); font-size: 17px;
+  }
+  .pref-tag {
+    flex: 0 0 auto;
+    font-family: var(--font-label);
+    font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--accent);
+  }
+  .add-line { width: 100%; min-height: 44px; color: var(--accent); text-align: left; font-size: 13.5px; font-weight: 700; }
+
+  .block-row {
+    min-height: 46px;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 9px;
+  }
+  .block-row .grip { width: 30px; height: 40px; flex: 0 0 auto; display: grid; place-items: center; color: var(--faint); }
+  .block-row .grip svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+  .block-row strong { flex: 1; min-width: 0; font-size: 14px; font-weight: 650; overflow-wrap: anywhere; }
+  .block-row small { color: var(--text-muted); font: 600 11px var(--font-mono); }
+  .block-row .mini { width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; color: var(--faint); font-size: 17px; }
+  .block-row .mini:disabled { opacity: 0.35; }
+
+  .action-list { margin-top: 14px; border-top: 1px solid var(--line); }
+  .action-row {
+    width: 100%; min-height: 44px;
+    border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    text-align: left;
+    font-size: 14px; font-weight: 650;
+  }
+  .action-row span { color: var(--faint); }
+  .action-row.danger { color: var(--danger); }
+
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="page-head">
+  <h1>Ironworks · PPLPPL 7 — missing flows</h1>
+  <p>blocks · scoped notes · programmed choices · home base</p>
+  <div class="page-actions">
+    <a href="ironworks.html">Workout</a>
+    <a href="ironworks-program.html">Program</a>
+    <a href="ironworks-classification.html">Library</a>
+    <a class="on" href="ironworks-pplppl7.html">PPLPPL 7</a>
+    <span class="switcher" role="group" aria-label="Phone width">
+      <button class="on" type="button" data-size="393">393</button>
+      <button type="button" data-size="320">320</button>
+    </span>
+    <span class="switcher" role="group" aria-label="Theme">
+      <button type="button" data-theme="light">Light</button>
+      <button class="on" type="button" data-theme="dark">Dark</button>
+    </span>
+  </div>
+</header>
+
+<ul class="concept-notes">
+  <li>Only what production cannot render today. Rows, checks, video, reference structure, program bar, and tabs are the current production components, unchanged.</li>
+  <li>Blocks keep the written order and continuous numbering. Role never moves a row: an embedded Optional slot stays put and carries a text OPTIONAL tag.</li>
+  <li>Entry notes preview in two restrained lines, only on rows that have one. The full note lives in the reference under <em>For this routine</em>, separate from <em>Exercise notes</em>.</li>
+  <li>A multi-choice slot derives its title from canonical names joined by <em>or</em>. Shared prescription shows once; differing prescriptions keep source order on the row and pair per choice in the sheet.</li>
+  <li>Home Base keeps its choice-menu note persistently visible; 52 Optional entries stay inside their seven named blocks.</li>
+</ul>
+
+<main class="frames">
+
+  <!-- ========== 1. WORKOUT — PUSH A + GLUTES (named blocks) ========== -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><svg viewBox="0 0 78 14" aria-hidden="true"><g fill="currentColor"><rect x="0" y="6" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="11" rx="1"/><circle cx="30" cy="7" r="1.6"/><rect x="52" y="2" width="20" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="54" y="4" width="13" height="6" rx="1.5"/><rect x="73" y="5" width="2.5" height="4" rx="1" opacity=".5"/></g></svg></div>
+
+        <div class="programbar">
+          <button class="program-pick" type="button"><span>Active</span><strong>PPLPPL 7 — Glute Specialization</strong><svg viewBox="0 0 24 24"><path d="m7 9 5 5 5-5"/></svg></button>
+          <button class="program-manage" type="button" aria-label="Manage program"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+        </div>
+        <div class="tabs" role="list">
+          <button class="rtab on" type="button">Push A + Glutes</button>
+          <button class="rtab" type="button">Pull A</button>
+          <button class="rtab" type="button">Legs A</button>
+          <button class="rtab" type="button">Push B</button>
+          <button class="rtab" type="button">Pull B</button>
+          <button class="rtab" type="button">Legs B</button>
+          <button class="rtab home" type="button">Push morning</button>
+          <button class="rtab home" type="button">Home Base</button>
+        </div>
+
+        <div class="scroll">
+          <div class="block-label">Upper-body work</div>
+          <div class="item done">
+            <button class="check" type="button" aria-label="Checked"><span class="check-mark"><span class="check-num">1</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Low-incline dumbbell press</span><span class="rx">3 × 6–10</span></span>
+            <button class="vplay linked" type="button" aria-label="Play video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item done">
+            <button class="check" type="button" aria-label="Checked"><span class="check-mark"><span class="check-num">2</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Machine shoulder press</span><span class="rx">2 × 8–12</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">3</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Machine chest press</span><span class="rx">2 × 8–12</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+
+          <div class="block-label">Glute block</div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">4</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Single-leg hip thrust</span><span class="rx">2 × 10–15/leg</span></span>
+            <button class="vplay linked" type="button" aria-label="Play video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">5</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Standing cable hip abduction</span><span class="rx">2 × 15–25/side</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">6</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Cable kickback</span><span class="rx">2 × 12–20/leg</span>
+              <span class="note">Alternate straight-back and high/kneeling variations between training blocks.</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+
+          <div class="block-label">Upper-body accessories</div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">7</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Dumbbell scaption raise</span><span class="rx">3 × 12–20</span></span>
+            <button class="vplay linked" type="button" aria-label="Play video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">8</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Rope triceps pushdown</span><span class="rx">3 × 10–15</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">9</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Cable crunch</span><span class="rx">2 × 10–15</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">10</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Neck flexion</span><span class="rx">2 × 15–25</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+
+          <div class="block-label">Optional coverage · Rehab <span class="opt">Optional</span></div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">11</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Cable serratus punch or Push-up plus</span><span class="rx">2 × 12–20</span></span>
+            <button class="vplay linked" type="button" aria-label="Play video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">12</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Cable or Side-lying external rotation</span><span class="rx">2 × 15–25/side</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">13</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Cable internal rotation</span><span class="rx">1–2 × 15–25/side</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+        </div>
+
+        <nav class="tabbar" aria-label="App tabs">
+          <button class="tab on" type="button"><svg viewBox="0 0 24 24"><path d="M5 9v6M8.5 6.5v11M15.5 6.5v11M19 9v6M8.5 12h7M2.5 10.5v3M21.5 10.5v3"/></svg>Workout</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2"/></svg>Program</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M4 19V6a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1v13M4 19a2 2 0 0 0 2 2h13M9 9h6M9 13h6"/></svg>Library</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>Log</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>Settings</button>
+        </nav>
+      </div>
+    </div>
+    <p class="frame-cap">Workout — named blocks in written order, continuous numbering. Note preview on Cable kickback only. Rows 11–12 are programmed choices: the title is derived, the check completes the slot.</p>
+  </section>
+
+  <!-- ========== 2. WORKOUT — LEGS B (embedded optional slot) ========== -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><svg viewBox="0 0 78 14" aria-hidden="true"><g fill="currentColor"><rect x="0" y="6" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="11" rx="1"/><circle cx="30" cy="7" r="1.6"/><rect x="52" y="2" width="20" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="54" y="4" width="13" height="6" rx="1.5"/><rect x="73" y="5" width="2.5" height="4" rx="1" opacity=".5"/></g></svg></div>
+
+        <div class="programbar">
+          <button class="program-pick" type="button"><span>Active</span><strong>PPLPPL 7 — Glute Specialization</strong><svg viewBox="0 0 24 24"><path d="m7 9 5 5 5-5"/></svg></button>
+          <button class="program-manage" type="button" aria-label="Manage program"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+        </div>
+        <div class="tabs" role="list">
+          <button class="rtab" type="button">Push A + Glutes</button>
+          <button class="rtab" type="button">Pull A</button>
+          <button class="rtab" type="button">Legs A</button>
+          <button class="rtab" type="button">Push B</button>
+          <button class="rtab" type="button">Pull B</button>
+          <button class="rtab on" type="button">Legs B</button>
+          <button class="rtab home" type="button">Legs morning</button>
+        </div>
+
+        <div class="scroll">
+          <div class="item done">
+            <button class="check" type="button" aria-label="Checked"><span class="check-mark"><span class="check-num">1</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Romanian deadlift</span><span class="rx">3 × 6–10</span>
+              <span class="note"><b>Rotate</b> with a 45° glute-biased back extension when needed. Do not perform both automatically.</span></span>
+            <button class="vplay linked" type="button" aria-label="Play video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">2</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Barbell or Smith hip thrust</span><span class="rx">2 × 8–12</span></span>
+            <button class="vplay linked" type="button" aria-label="Play video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">3</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Glute-biased step-up</span><span class="rx">2 × 8–12/leg</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">4</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Leg press or Smith squat</span><span class="rx">2 × 10–15 <span class="role-tag">Optional</span></span>
+              <span class="note">Optional quad addition — after step-ups.</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">5</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Lying leg curl</span><span class="rx">2 × 10–15</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">6</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Lean-forward hip-abduction machine</span><span class="rx">2 × 15–25</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">7</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Adductor machine</span><span class="rx">2 × 12–20</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">8</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Seated calf raise</span><span class="rx">3 × 10–20</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">9</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Standing cable hip flexion / Psoas march</span><span class="rx">2 × 12–20/side</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">10</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Neck extension</span><span class="rx">2 × 15–25</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+
+          <div class="block-label">Optional coverage · Rehab <span class="opt">Optional</span></div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">11</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Seated or cable hip internal rotation</span><span class="rx">2 × 12–20/side</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">12</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Seated or cable hip external rotation</span><span class="rx">2 × 12–20/side</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">13</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Cable side bend</span><span class="rx">2 × 10–15/side</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+        </div>
+
+        <nav class="tabbar" aria-label="App tabs">
+          <button class="tab on" type="button"><svg viewBox="0 0 24 24"><path d="M5 9v6M8.5 6.5v11M15.5 6.5v11M19 9v6M8.5 12h7M2.5 10.5v3M21.5 10.5v3"/></svg>Workout</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2"/></svg>Program</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M4 19V6a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1v13M4 19a2 2 0 0 0 2 2h13M9 9h6M9 13h6"/></svg>Library</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>Log</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>Settings</button>
+        </nav>
+      </div>
+    </div>
+    <p class="frame-cap">Legs B — the optional quad slot stays exactly where the source puts it (position 4, mid-block) and carries a text OPTIONAL tag. The RDL rotate note previews in two lines, nothing moves.</p>
+  </section>
+
+  <!-- ========== 3. EXERCISE CHOICES SHEET ========== -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><svg viewBox="0 0 78 14" aria-hidden="true"><g fill="currentColor"><rect x="0" y="6" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="11" rx="1"/><circle cx="30" cy="7" r="1.6"/><rect x="52" y="2" width="20" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="54" y="4" width="13" height="6" rx="1.5"/><rect x="73" y="5" width="2.5" height="4" rx="1" opacity=".5"/></g></svg></div>
+
+        <div class="programbar" aria-hidden="true" style="opacity:.5">
+          <span class="program-pick"><span>Active</span><strong>PPLPPL 7 — Glute Specialization</strong></span>
+        </div>
+        <div class="tabs" aria-hidden="true" style="opacity:.5">
+          <button class="rtab" type="button">Push A + Glutes</button>
+          <button class="rtab" type="button">Pull A</button>
+          <button class="rtab home on" type="button">Home Base</button>
+        </div>
+        <div class="scroll" aria-hidden="true" style="opacity:.42">
+          <div class="block-label">Core</div>
+          <div class="item"><span class="check"><span class="check-mark"><span class="check-num">7</span></span></span><span class="row-main"><span class="name">Band side bend</span><span class="rx">1–2 × 10–15/side</span></span></div>
+          <div class="item"><span class="check"><span class="check-mark"><span class="check-num">8</span></span></span><span class="row-main"><span class="name">Sorensen hold or Prone back extension</span><span class="rx">1–2 × 20–45 sec or 1–2 × 8–15</span></span></div>
+        </div>
+
+        <div class="scrim"></div>
+
+        <section class="sheet" role="dialog" aria-label="Exercise choices">
+          <div class="grab"></div>
+          <header class="sheet-head">
+            <div><h2>Exercise choices</h2><span class="sub">Slot 8 · Core — first choice is preferred</span></div>
+            <button class="icon-btn" type="button" aria-label="Close choices">×</button>
+          </header>
+          <div class="sheet-scroll" style="padding-top:4px;">
+            <button class="choice-row" type="button">
+              <span class="row-main"><span class="name">Sorensen hold</span><span class="rx">1–2 × 20–45 sec</span></span>
+              <span class="choice-tag">Preferred</span>
+              <span class="vplay linked" aria-label="Play video: Sorensen hold"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></span>
+              <svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+            <button class="choice-row" type="button">
+              <span class="row-main"><span class="name">Prone back extension</span><span class="rx">1–2 × 8–15</span></span>
+              <span class="vplay" aria-label="Find a video: Prone back extension"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></span>
+              <svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+            <p class="form-note" style="margin-top:10px;">New 6: Back extension + RDL. Checking the row completes the slot, not an individual choice.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+    <p class="frame-cap">Exercise choices — every choice paired with its own prescription, video action, and reference path. Timed hold and rep-based extension share a slot, not a prescription.</p>
+  </section>
+
+  <!-- ========== 4. REFERENCE — FOR THIS ROUTINE vs EXERCISE NOTES ========== -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><svg viewBox="0 0 78 14" aria-hidden="true"><g fill="currentColor"><rect x="0" y="6" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="11" rx="1"/><circle cx="30" cy="7" r="1.6"/><rect x="52" y="2" width="20" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="54" y="4" width="13" height="6" rx="1.5"/><rect x="73" y="5" width="2.5" height="4" rx="1" opacity=".5"/></g></svg></div>
+
+        <div class="programbar" aria-hidden="true" style="opacity:.5">
+          <span class="program-pick"><span>Active</span><strong>PPLPPL 7 — Glute Specialization</strong></span>
+        </div>
+        <div class="scroll" aria-hidden="true" style="opacity:.42">
+          <div class="item done"><span class="check"><span class="check-mark"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></span><span class="row-main"><span class="name">Romanian deadlift</span><span class="rx">3 × 6–10</span></span></div>
+          <div class="item"><span class="check"><span class="check-mark"><span class="check-num">2</span></span></span><span class="row-main"><span class="name">Barbell or Smith hip thrust</span><span class="rx">2 × 8–12</span></span></div>
+        </div>
+
+        <div class="scrim"></div>
+
+        <section class="sheet" role="dialog" aria-label="Exercise reference">
+          <div class="grab"></div>
+          <header class="sheet-head">
+            <div><h2>Romanian deadlift</h2><span class="sub">Routine prescription · Legs B</span></div>
+            <button class="icon-btn" type="button" aria-label="Close reference">×</button>
+          </header>
+          <div class="sheet-scroll">
+            <p class="big-rx">3 × 6–10</p>
+            <p class="meta-line">Hip hinge · Barbell · Compound</p>
+
+            <div class="groups">
+              <p class="group-label">For this routine — Legs B</p>
+              <p class="scope-note"><b>Rotate</b> with a 45° glute-biased back extension when needed. Do not perform both automatically.</p>
+            </div>
+
+            <div class="groups">
+              <p class="group-label">Primary targets</p>
+              <div class="trow"><span class="num">1</span><strong>Hamstrings</strong></div>
+              <p class="group-label">Secondary involvement</p>
+              <div class="trow"><span class="num">1</span><strong>Glute max</strong></div>
+              <div class="trow"><span class="num">2</span><strong>Spinal erectors</strong></div>
+            </div>
+
+            <div class="facts">
+              <div class="fact"><span>Laterality</span><strong>Bilateral</strong></div>
+              <div class="fact"><span>Challenge</span><strong>Typically bottom to middle</strong></div>
+            </div>
+
+            <a class="video-link" href="#"><span class="vplay-mark" style="width:26px;height:26px;border-radius:50%;display:grid;place-items:center;"><svg viewBox="0 0 24 24" style="width:10px;height:10px;fill:currentColor;margin-left:1px;"><path d="M8 5.5v13l11-6.5Z"/></svg></span>Watch linked video <svg viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></svg></a>
+            <div class="search-actions">
+              <a href="#">Search YouTube <svg viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></svg></a>
+              <a href="#">Search alternatives <svg viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></svg></a>
+            </div>
+
+            <div class="rel">
+              <p class="group-label">Related exercises</p>
+              <button class="rel-row" type="button"><span class="kind">Easier</span><strong>Glute bridge</strong></button>
+              <button class="rel-row" type="button"><span class="kind">Alternative</span><strong>45° back extension</strong></button>
+              <button class="rel-row" type="button"><span class="kind">Harder</span><strong>Single-leg Romanian deadlift</strong></button>
+            </div>
+
+            <div class="groups">
+              <p class="group-label">Exercise notes</p>
+              <p class="scope-note">Soft knees, hips back, bar close. Stop at mid-shin unless the back stays flat. 3-second negatives on light days.</p>
+            </div>
+          </div>
+          <footer class="sheet-actions">
+            <button class="button" type="button">Edit exercise</button>
+          </footer>
+        </section>
+      </div>
+    </div>
+    <p class="frame-cap">Shared reference — the exact entry note sits in For this routine — Legs B, plainly separated from global Exercise notes. Everything else is the production reference, unchanged.</p>
+  </section>
+
+  <!-- ========== 5. HOME BASE (choice menu, 7 blocks, 52 optional) ========== -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><svg viewBox="0 0 78 14" aria-hidden="true"><g fill="currentColor"><rect x="0" y="6" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="11" rx="1"/><circle cx="30" cy="7" r="1.6"/><rect x="52" y="2" width="20" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="54" y="4" width="13" height="6" rx="1.5"/><rect x="73" y="5" width="2.5" height="4" rx="1" opacity=".5"/></g></svg></div>
+
+        <div class="programbar">
+          <button class="program-pick" type="button"><span>Active</span><strong>PPLPPL 7 — Glute Specialization</strong><svg viewBox="0 0 24 24"><path d="m7 9 5 5 5-5"/></svg></button>
+          <button class="program-manage" type="button" aria-label="Manage program"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+        </div>
+        <div class="tabs" role="list">
+          <button class="rtab" type="button">Push A + Glutes</button>
+          <button class="rtab" type="button">Pull A</button>
+          <button class="rtab" type="button">Legs A</button>
+          <button class="rtab" type="button">Push B</button>
+          <button class="rtab home" type="button">Push morning</button>
+          <button class="rtab home on" type="button">Home Base</button>
+        </div>
+        <p class="routine-note"><b>Choice menu</b> — choose only what you need; this is not one 52-exercise session.</p>
+
+        <div class="scroll">
+          <div class="block-label">Core <span class="opt">Optional</span></div>
+          <div class="item done">
+            <button class="check" type="button" aria-label="Checked"><span class="check-mark"><span class="check-num">1</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Dead bug</span><span class="rx">2 × 5–10/side</span>
+              <span class="note"><b>New 6</b>: Dead bug — same exercise</span></span>
+            <button class="vplay linked" type="button" aria-label="Play video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">2</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Bird dog</span><span class="rx">1–2 × 5–10/side</span>
+              <span class="note"><b>New 6 overlap</b>: Dead bug + Pallof press + back extension</span></span>
+            <button class="vplay linked" type="button" aria-label="Play video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">3</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Side plank</span><span class="rx">1–2 × 15–40 sec/side</span>
+              <span class="note"><b>New 6 overlap</b>: Suitcase carry for anti-lateral flexion</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">4</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Band Pallof press</span><span class="rx">1–2 × 10–15/side</span>
+              <span class="note"><b>New 6</b>: Pallof press — same exercise</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">5</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Band wood chop or Lift</span><span class="rx">1–2 × 8–15/side</span>
+              <span class="note"><b>New 6</b>: Cable wood chop — same function</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">6</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Reverse crunch</span><span class="rx">1–2 × 8–15</span>
+              <span class="note"><b>New 6 overlap</b>: Cable crunch + hanging knee raise</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">7</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Band side bend</span><span class="rx">1–2 × 10–15/side</span>
+              <span class="note"><b>New 6</b>: Cable side bend — same function</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">8</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Sorensen hold or Prone back extension</span><span class="rx">1–2 × 20–45 sec or 1–2 × 8–15</span>
+              <span class="note"><b>New 6</b>: Back extension + RDL</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+
+          <div class="block-label">Shoulder, scapula and spine <span class="opt">Optional</span></div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">9</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Neck CARs</span><span class="rx">1–2 slow circles/direction</span>
+              <span class="note"><b>New 6 overlap</b>: Neck flexion, extension, lateral flexion and rotation</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">10</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Shoulder CARs</span><span class="rx">1–2 slow circles/direction</span>
+              <span class="note"><b>New 6 overlap</b>: Overhead press, scaption, Y-raise and shoulder rotations</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+          <div class="item">
+            <button class="check" type="button" aria-label="Check"><span class="check-mark"><span class="check-num">11</span><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></button>
+            <span class="row-main"><span class="name">Wall angels</span><span class="rx">1–2 × 8–12</span>
+              <span class="note"><b>New 6 overlap</b>: Overhead press + scaption + Y-raise</span></span>
+            <button class="vplay" type="button" aria-label="Find a video"><span class="vplay-mark"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span></button>
+          </div>
+        </div>
+
+        <nav class="tabbar" aria-label="App tabs">
+          <button class="tab on" type="button"><svg viewBox="0 0 24 24"><path d="M5 9v6M8.5 6.5v11M15.5 6.5v11M19 9v6M8.5 12h7M2.5 10.5v3M21.5 10.5v3"/></svg>Workout</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2"/></svg>Program</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M4 19V6a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1v13M4 19a2 2 0 0 0 2 2h13M9 9h6M9 13h6"/></svg>Library</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>Log</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>Settings</button>
+        </nav>
+      </div>
+    </div>
+    <p class="frame-cap">Home Base — the choice-menu note stays pinned under the tabs. Every block carries the Optional cue in its heading; New 6 overlap notes preview in two lines; numbering runs 1–52 continuously.</p>
+  </section>
+
+  <!-- ========== 6. PROGRAM — ENTRY EDITOR (choices, role, block, note) ========== -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><svg viewBox="0 0 78 14" aria-hidden="true"><g fill="currentColor"><rect x="0" y="6" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="11" rx="1"/><circle cx="30" cy="7" r="1.6"/><rect x="52" y="2" width="20" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="54" y="4" width="13" height="6" rx="1.5"/><rect x="73" y="5" width="2.5" height="4" rx="1" opacity=".5"/></g></svg></div>
+
+        <header class="appbar" aria-hidden="true" style="opacity:.5"><div class="app-title">Program</div></header>
+        <div class="scroll" aria-hidden="true" style="opacity:.42">
+          <div class="viewbar"><div class="vb-copy"><strong>Legs B</strong><span>Gym · Required · 12 slots</span></div></div>
+          <div class="prow"><span class="row-number">1</span><span class="row-main"><span class="name">Romanian deadlift</span><span class="rx">3 × 6–10</span></span><span class="grip"><svg viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h8"/></svg></span></div>
+          <div class="prow"><span class="row-number">4</span><span class="row-main"><span class="name">Leg press or Smith squat</span><span class="rx">2 × 10–15 · Optional</span></span><span class="grip"><svg viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h8"/></svg></span></div>
+        </div>
+
+        <div class="scrim"></div>
+
+        <section class="sheet" role="dialog" aria-label="Edit routine entry">
+          <div class="grab"></div>
+          <header class="sheet-head">
+            <div><h2>Leg press or Smith squat</h2><span class="sub">Legs B entry · slot 4</span></div>
+            <button class="icon-btn" type="button" aria-label="Close entry editor">×</button>
+          </header>
+          <div class="sheet-scroll">
+            <p class="section-label">Choices — first is preferred</p>
+            <div class="choice-edit-row">
+              <span class="cn">1</span>
+              <span class="cc"><strong>Leg press</strong><small>2 × 10–15</small></span>
+              <span class="pref-tag">Preferred</span>
+              <button class="mini" type="button" aria-label="Edit choice prescription">›</button>
+              <button class="mini" type="button" aria-label="Remove choice">×</button>
+            </div>
+            <div class="choice-edit-row">
+              <span class="cn">2</span>
+              <span class="cc"><strong>Smith squat</strong><small>2 × 10–15</small></span>
+              <button class="mini" type="button" aria-label="Make preferred">↑</button>
+              <button class="mini" type="button" aria-label="Edit choice prescription">›</button>
+              <button class="mini" type="button" aria-label="Remove choice">×</button>
+            </div>
+            <button class="add-line" type="button">+ Add choice from Library</button>
+
+            <div class="field"><span class="form-label">Role</span>
+              <div class="segment"><button type="button">Main</button><button class="on" type="button">Optional</button></div>
+            </div>
+            <label class="field"><span>Routine block</span>
+              <select class="control"><option>Legs B — glutes and posterior chain</option><option>Optional coverage · Rehab</option></select>
+            </label>
+            <label class="field"><span>Programming note — for this routine only</span>
+              <textarea class="control">Optional quad addition: Leg press or Smith squat — 2 × 10–15 after step-ups.</textarea>
+            </label>
+            <p class="form-note">Choices, role, block, and this note change only the Legs B entry. The master exercises stay unchanged.</p>
+
+            <div class="action-list">
+              <button class="action-row" type="button">Move earlier <span>↑</span></button>
+              <button class="action-row" type="button">Move later <span>↓</span></button>
+              <button class="action-row danger" type="button">Remove from Legs B <span>›</span></button>
+            </div>
+          </div>
+          <footer class="sheet-actions"><button class="button primary" type="button">Save entry</button></footer>
+        </section>
+      </div>
+    </div>
+    <p class="frame-cap">Entry editor — ordered choices with promote/remove and per-choice prescription editing, Role, block assignment, and the programming note. Master exercises are never mutated here.</p>
+  </section>
+
+  <!-- ========== 7. PROGRAM — ROUTINE EDITOR (note + block management) ========== -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><svg viewBox="0 0 78 14" aria-hidden="true"><g fill="currentColor"><rect x="0" y="6" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="11" rx="1"/><circle cx="30" cy="7" r="1.6"/><rect x="52" y="2" width="20" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="54" y="4" width="13" height="6" rx="1.5"/><rect x="73" y="5" width="2.5" height="4" rx="1" opacity=".5"/></g></svg></div>
+
+        <header class="appbar" aria-hidden="true" style="opacity:.5"><div class="app-title">Program</div></header>
+        <div class="scroll" aria-hidden="true" style="opacity:.42">
+          <button class="program-note-row"><span class="pn-copy"><strong>Weekly layout &amp; rules</strong><small>Day 1 Push A + Glutes · Day 2 Pull A · Day 3 Legs A · Day 4 Push B…</small></span><svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>
+          <div class="viewbar"><div class="vb-copy"><strong>Push A + Glutes</strong><span>Gym · Required · 13 slots · 4 blocks</span></div></div>
+          <div class="block-label">Upper-body work</div>
+          <div class="prow"><span class="row-number">1</span><span class="row-main"><span class="name">Low-incline dumbbell press</span><span class="rx">3 × 6–10</span></span><span class="grip"><svg viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h8"/></svg></span></div>
+        </div>
+
+        <div class="scrim"></div>
+
+        <section class="sheet" role="dialog" aria-label="Edit routine">
+          <div class="grab"></div>
+          <header class="sheet-head">
+            <div><h2>Edit Push A + Glutes</h2></div>
+            <button class="icon-btn" type="button" aria-label="Close routine editor">×</button>
+          </header>
+          <div class="sheet-scroll">
+            <label class="field"><span>Name</span><input class="control" value="Push A + Glutes"></label>
+            <div class="field"><span class="form-label">Location</span>
+              <div class="segment"><button class="on" type="button">Gym</button><button type="button">Home</button></div>
+            </div>
+            <div class="field"><span class="form-label">Status</span>
+              <div class="segment"><button class="on" type="button">Required</button><button type="button">Optional</button></div>
+            </div>
+            <label class="field"><span>Routine note</span>
+              <textarea class="control" placeholder="Optional context for this day"></textarea>
+            </label>
+
+            <p class="section-label">Blocks — order preserved</p>
+            <div class="block-row"><span class="grip"><svg viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h8"/></svg></span><strong>Upper-body work</strong><small>3</small><button class="mini" type="button" aria-label="Rename block">›</button><button class="mini" type="button" aria-label="Delete block" disabled>×</button></div>
+            <div class="block-row"><span class="grip"><svg viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h8"/></svg></span><strong>Glute block</strong><small>3</small><button class="mini" type="button" aria-label="Rename block">›</button><button class="mini" type="button" aria-label="Delete block" disabled>×</button></div>
+            <div class="block-row"><span class="grip"><svg viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h8"/></svg></span><strong>Upper-body accessories</strong><small>4</small><button class="mini" type="button" aria-label="Rename block">›</button><button class="mini" type="button" aria-label="Delete block" disabled>×</button></div>
+            <div class="block-row"><span class="grip"><svg viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h8"/></svg></span><strong>Optional coverage · Rehab</strong><small>3</small><button class="mini" type="button" aria-label="Rename block">›</button><button class="mini" type="button" aria-label="Delete block" disabled>×</button></div>
+            <button class="add-line" type="button">+ Add block</button>
+            <p class="form-note">A block can be deleted only when empty. Reordering blocks never moves entries between blocks.</p>
+
+            <div class="action-list">
+              <button class="action-row" type="button">Move routine earlier <span>↑</span></button>
+              <button class="action-row" type="button">Move routine later <span>↓</span></button>
+              <button class="action-row danger" type="button">Delete routine <span>›</span></button>
+            </div>
+          </div>
+          <footer class="sheet-actions"><button class="button primary" type="button">Save routine</button></footer>
+        </section>
+      </div>
+    </div>
+    <p class="frame-cap">Routine editor — note and block management beside the existing fields. Behind it, the Program screen carries the shared weekly rules in one compact disclosure, not repeated above every routine.</p>
+  </section>
+
+</main>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const screens = document.querySelectorAll(".screen");
+  const phones = document.querySelectorAll(".phone");
+  const themeButtons = document.querySelectorAll("[data-theme]");
+  const sizeButtons = document.querySelectorAll("[data-size]");
+
+  function applyTheme(theme) {
+    screens.forEach((screen) => { screen.dataset.theme = theme; });
+    themeButtons.forEach((button) => button.classList.toggle("on", button.dataset.theme === theme));
+  }
+  function applySize(size) {
+    phones.forEach((phone) => phone.classList.toggle("narrow", size === "320"));
+    sizeButtons.forEach((button) => button.classList.toggle("on", button.dataset.size === size));
+  }
+
+  applyTheme(params.get("theme") === "light" ? "light" : "dark");
+  applySize(params.get("size") === "320" ? "320" : "393");
+  themeButtons.forEach((button) => button.addEventListener("click", () => applyTheme(button.dataset.theme)));
+  sizeButtons.forEach((button) => button.addEventListener("click", () => applySize(button.dataset.size)));
+
+  document.querySelectorAll(".segment").forEach((segment) => {
+    segment.querySelectorAll("button").forEach((button) => button.addEventListener("click", () => {
+      segment.querySelectorAll("button").forEach((item) => item.classList.toggle("on", item === button));
+    }));
+  });
+</script>
+
+</body>
+</html>
