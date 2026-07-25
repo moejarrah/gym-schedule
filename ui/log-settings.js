@@ -1,5 +1,5 @@
-import { localDateKey } from "../storage.js?v=44";
-import { chevronIcon, escapeHtml } from "./shared.js?v=44";
+import { localDateKey } from "../storage.js?v=46";
+import { chevronIcon, escapeHtml } from "./shared.js?v=46";
 
 export function calendarMarkup(state, calendarMonth, formatDate) {
   const year = calendarMonth.getFullYear();

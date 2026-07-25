@@ -17,8 +17,9 @@ import {
   createLibraryFilters,
   exerciseFilterContentMarkup,
   filteredExercises,
-  libraryMarkup,
+  libraryPageShellMarkup,
   libraryRowsMarkup,
+  libraryScrollContentMarkup,
   relationshipEditorMarkup,
 } from "../ui/library.js";
 import {
@@ -28,7 +29,7 @@ import {
   programsListMarkup,
   routineBlocksEditorMarkup,
 } from "../ui/program.js";
-import { entryChoicesMarkup, workoutMarkup } from "../ui/workout.js";
+import { entryChoicesMarkup, workoutBlocksMarkup, workoutMarkup } from "../ui/workout.js";
 import { entryPresentation } from "../ui/shared.js";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -63,9 +64,17 @@ test("HTML keeps zoom enabled and uses external production assets", () => {
   const viewport = html.match(/<meta name="viewport" content="([^"]+)">/)?.[1] || "";
   assert.match(viewport, /viewport-fit=cover/);
   assert.doesNotMatch(viewport, /user-scalable=no|maximum-scale=1/);
-  assert.match(html, /<script type="module" src="app\.js\?v=44"><\/script>/);
+  assert.match(html, /<script type="module" src="app\.js\?v=46"><\/script>/);
   assert.match(html, /rel="apple-touch-icon"[^>]+app-icon-180\.png/);
+  assert.match(html, /<h1 id="viewTitle">Workout<\/h1>/);
+  assert.match(html, /<p id="viewMetaLine">Loading saved data<\/p>/);
+  assert.doesNotMatch(html, /<h1 id="viewTitle">Push A<\/h1>|Gym · 6 exercises · required/);
   assert.doesNotMatch(html, /\sonclick=/);
+});
+
+test("only the approved Log and Settings concept remains tracked", () => {
+  assert.equal(existsSync(new URL("../references/ui-concepts/ironworks-log-settings.html", import.meta.url)), true);
+  assert.equal(existsSync(new URL("../references/ui-concepts/ironworks-logging.html", import.meta.url)), false);
 });
 
 test("offline shell lists every production module and icon", () => {
@@ -74,9 +83,9 @@ test("offline shell lists every production module and icon", () => {
     assert.match(worker, new RegExp(asset.replaceAll(".", "\\.")));
   }
   assert.match(worker, /event\.request\.mode === "navigate"/);
-  assert.match(worker, /gym-schedule-v44/);
-  assert.match(worker, /styles\.css\?v=44/);
-  assert.match(worker, /app\.js\?v=44/);
+  assert.match(worker, /gym-schedule-v46/);
+  assert.match(worker, /styles\.css\?v=46/);
+  assert.match(worker, /app\.js\?v=46/);
 });
 
 test("Ironworks fonts are self-hosted and available to the offline shell", () => {
@@ -159,7 +168,7 @@ test("the behavior-neutral source split keeps render modules pure and CSS order 
   const modulePaths = ["ui/shared.js", "ui/workout.js", "ui/exercise-reference.js", "ui/program.js", "ui/library.js", "ui/log-settings.js"];
 
   assert.deepEqual(
-    [...stylesheet.matchAll(/@import url\("(.+?\.css)\?v=44"\);/g)].map((match) => match[1]),
+    [...stylesheet.matchAll(/@import url\("(.+?\.css)\?v=46"\);/g)].map((match) => match[1]),
     ["./styles/base.css", "./styles/components.css", "./styles/views.css"],
   );
   for (const path of modulePaths) {
@@ -168,7 +177,7 @@ test("the behavior-neutral source split keeps render modules pure and CSS order 
   }
   assert.match(app, /workoutMarkup\(/);
   assert.match(app, /programMarkup\(/);
-  assert.match(app, /libraryMarkup\(/);
+  assert.match(app, /libraryPageShellMarkup\(/);
   assert.match(app, /calendarMarkup\(/);
   assert.match(base, /\.app-shell\s*\{/);
   assert.doesNotMatch(base, /\.(?:icon-button|program-page-bar|library-page|calendar-grid|dialog-form|toast)\b/);
@@ -194,12 +203,33 @@ test("compact phone rows keep their explicit one-dimensional layout", () => {
   assert.match(css, /\[hidden\]\s*\{[^}]*display:\s*none\s*!important;/);
 });
 
+test("small action and status text use AA-safe color tokens", () => {
+  const base = read("styles/base.css");
+  const components = read("styles/components.css");
+  const views = read("styles/views.css");
+
+  assert.match(base, /--accent-fill: #3b5bdb;/);
+  assert.match(base, /--accent-on-soft: #314dc1;/);
+  assert.match(base, /--rehab: #765000;/);
+  assert.match(base, /:root\[data-theme="dark"\][\s\S]*--accent-fill: #4266e4;/);
+  assert.match(base, /:root\[data-theme="dark"\][\s\S]*--accent-on-soft: #8299ff;/);
+  assert.match(components, /\.button\.primary\s*\{[^}]*background:\s*var\(--accent-fill\);[^}]*color:\s*#fff;/);
+  assert.match(views, /\.library-chip\[aria-pressed="true"\]\s*\{[^}]*color:\s*var\(--accent-on-soft\);/);
+  assert.match(views, /\.library-filter-button b\s*\{[^}]*background:\s*var\(--accent-fill\);[^}]*color:\s*#fff;/);
+  assert.match(views, /\.day-count\s*\{[^}]*background:\s*var\(--accent-fill\);[^}]*color:\s*#fff;/);
+});
+
 test("removed legacy CSS classes stay absent", () => {
   const css = readStyles();
   const classes = [...new Set([...css.matchAll(/\.([a-zA-Z_][\w-]*)/g)].map((match) => match[1]))];
   const removedLegacyClasses = [
+    "alternative-links",
+    "alternative-option",
     "calendar-summary",
+    "check-grid",
     "compact-actions",
+    "compact-button",
+    "compact-toolbar",
     "completed",
     "completion-count",
     "detail-actions",
@@ -210,15 +240,21 @@ test("removed legacy CSS classes stay absent", () => {
     "eyebrow",
     "filter-chip",
     "filter-chips",
+    "field-row",
     "header-complete",
     "home-action",
     "is-expanded",
+    "list-panel",
     "list-row",
+    "mini-button",
     "page-toolbar",
     "rest-notice",
     "routine-entry-content",
     "routine-entry-row",
     "routine-heading",
+    "row-actions",
+    "scope-options",
+    "search-field",
     "section-heading",
     "status-line",
     "status-pill",
@@ -226,6 +262,9 @@ test("removed legacy CSS classes stay absent", () => {
     "tag",
     "tags",
     "today-summary",
+    "toolbar-label",
+    "topbar-actions",
+    "workout-chevron",
     "workout-details",
   ];
 
@@ -648,10 +687,16 @@ test("Slice 10G exposes scoped notes and complete block authoring", () => {
     entry.note = index === 2 ? "Pause for two seconds." : "";
   });
 
-  const workout = workoutMarkup({
+  const workoutShell = workoutMarkup({
     state,
     program,
     routines,
+    routine,
+    todayKey: "2026-07-25",
+    exerciseById: (current, id) => current.exercises.find((exercise) => exercise.id === id),
+  });
+  const workoutBlocks = workoutBlocksMarkup({
+    state,
     routine,
     todayKey: "2026-07-25",
     exerciseById: (current, id) => current.exercises.find((exercise) => exercise.id === id),
@@ -665,12 +710,12 @@ test("Slice 10G exposes scoped notes and complete block authoring", () => {
   });
   const blockEditor = routineBlocksEditorMarkup(routine.blocks, routine.entries);
 
-  assert.ok(workout.indexOf("Choice menu") < workout.indexOf("workout-rows"));
-  assert.ok(workout.indexOf("Upper-body work") < workout.indexOf("Optional coverage"));
-  assert.equal((workout.match(/entry-note-preview/g) || []).length, 1);
-  assert.match(workout, /Pause for two seconds\./);
-  assert.match(workout, /entry-role-tag">Optional/);
-  assert.match(workout, /workout-block-role">Optional/);
+  assert.match(workoutShell, /Choice menu/);
+  assert.ok(workoutBlocks.indexOf("Upper-body work") < workoutBlocks.indexOf("Optional coverage"));
+  assert.equal((workoutBlocks.match(/entry-note-preview/g) || []).length, 1);
+  assert.match(workoutBlocks, /Pause for two seconds\./);
+  assert.match(workoutBlocks, /entry-role-tag">Optional/);
+  assert.match(workoutBlocks, /workout-block-role">Optional/);
 
   assert.match(programView, /Weekly layout &amp; rules/);
   assert.match(programView, /program-routine-note/);
@@ -725,10 +770,16 @@ test("Slice 10H renders and edits programmed choices without changing slot compl
   assert.equal(presentation.prescription, "3 × 6–10 or 2 × 8–12");
   assert.equal(presentation.preferred.choice.exerciseId, entry.choices[0].exerciseId);
 
-  const workout = workoutMarkup({
+  const workoutShell = workoutMarkup({
     state,
     program,
     routines,
+    routine,
+    todayKey: "2026-07-25",
+    exerciseById,
+  });
+  const workoutBlocks = workoutBlocksMarkup({
+    state,
     routine,
     todayKey: "2026-07-25",
     exerciseById,
@@ -750,11 +801,11 @@ test("Slice 10H renders and edits programmed choices without changing slot compl
     { mode: "choice" },
   );
 
-  assert.match(workout, /data-action="open-entry-choices"/);
-  assert.match(workout, /data-action="open-workout-exercise"/);
-  assert.match(workout, /Low-incline dumbbell press or Machine overhead press/);
-  assert.match(workout, /3 × 6–10 or 2 × 8–12/);
-  assert.match(workout, /data-action="toggle-entry-check"[^>]+data-id="push-a-glutes-entry-001"/);
+  assert.match(workoutBlocks, /data-action="open-entry-choices"/);
+  assert.match(workoutBlocks, /data-action="open-workout-exercise"/);
+  assert.match(workoutBlocks, /Low-incline dumbbell press or Machine overhead press/);
+  assert.match(workoutBlocks, /3 × 6–10 or 2 × 8–12/);
+  assert.match(workoutBlocks, /data-action="toggle-entry-check"[^>]+data-id="push-a-glutes-entry-001"/);
   assert.match(programView, /Low-incline dumbbell press or Machine overhead press/);
   assert.match(programView, /3 × 6–10 or 2 × 8–12/);
 
@@ -1332,14 +1383,16 @@ test("Slice 11A composes normalized Library search, quick groups, and faceted fi
   assert.match(libraryRowsMarkup([], { libraryEmpty: true }), /Library is empty[\s\S]*data-action="new-exercise"/);
   assert.match(libraryRowsMarkup([]), /No matching exercises[\s\S]*data-action="clear-library-filters"[\s\S]*data-action="new-exercise"/);
 
-  const page = libraryMarkup({
-    query: "row",
-    filters,
-    exercises: [exercises[1]],
-    totalCount: exercises.length,
-    browseGroups: availableLibraryBrowseGroups(state),
-  });
+  const page = libraryPageShellMarkup({ resultCount: 1 })
+    + `<div class="library-scroll">${libraryScrollContentMarkup({
+      query: "row",
+      filters,
+      exercises: [exercises[1]],
+      totalCount: exercises.length,
+      browseGroups: availableLibraryBrowseGroups(state),
+    })}</div></section>`;
   assert.match(page, /library-app-title">Library <span id="libraryAppCount">1/);
+  assert.match(read("app.js"), /libraryPageShellMarkup\(\{ resultCount: exercises\.length \}\)/);
   assert.match(page, /placeholder="Exercise, target, or movement"/);
   assert.match(page, /data-action="select-library-quick-group"/);
   assert.match(page, /data-action="toggle-library-target-scope"/);

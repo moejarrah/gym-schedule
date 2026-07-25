@@ -10,8 +10,8 @@ import {
   MOVEMENT_PATTERNS,
   RELATED_EXERCISE_RELATIONS,
   classificationLabel,
-} from "../data.js?v=44";
-import { chevronIcon, escapeHtml } from "./shared.js?v=44";
+} from "../data.js?v=46";
+import { chevronIcon, escapeHtml } from "./shared.js?v=46";
 
 export function createLibraryFilters() {
   return {
@@ -153,7 +153,18 @@ function quickGroupMarkup(groups, selectedId) {
   ].map((group) => `<button class="library-chip" type="button" data-action="select-library-quick-group" data-id="${escapeHtml(group.id)}" aria-pressed="${group.id === selectedId}">${escapeHtml(group.label)}</button>`).join("");
 }
 
-export function libraryMarkup({
+export function libraryPageShellMarkup({ resultCount }) {
+  return `<section class="page library-page">
+    <header class="library-appbar">
+      <div class="library-app-title">Library <span id="libraryAppCount">${resultCount}</span></div>
+      <button class="icon-button library-add-button" type="button" data-action="new-exercise" aria-label="Add exercise">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </header>
+  </section>`;
+}
+
+export function libraryScrollContentMarkup({
   query,
   filters,
   exercises,
@@ -163,29 +174,21 @@ export function libraryMarkup({
   const resultCount = exercises.length;
   const activeCount = activeLibraryFilterCount(filters);
   const countLabel = `${resultCount} ${resultCount === 1 ? "exercise" : "exercises"}`;
-  return `<section class="page library-page">
-    <header class="library-appbar">
-      <div class="library-app-title">Library <span id="libraryAppCount">${resultCount}</span></div>
-      <button class="icon-button library-add-button" type="button" data-action="new-exercise" aria-label="Add exercise">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-      </button>
-    </header>
-    <div class="library-scroll">
-      ${totalCount ? `
-        <label class="library-search">
-          <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
-          <span class="visually-hidden">Search exercises</span>
-          <input id="exerciseSearch" type="search" value="${escapeHtml(query)}" autocomplete="off" placeholder="Exercise, target, or movement">
-        </label>
-        <div class="library-quickbar">
-          <div class="library-quick-scroll" aria-label="Quick target filters">${quickGroupMarkup(browseGroups, filters.quickGroup)}</div>
-          <button class="library-filter-button" type="button" data-action="open-exercise-filter" aria-label="Filter exercises${activeCount ? `, ${activeCount} active ${activeCount === 1 ? "group" : "groups"}` : ""}">Filter${activeCount ? ` <b>${activeCount}</b>` : ""}</button>
-        </div>
-        <div class="library-result-head"><span id="exerciseResultCount">${countLabel}</span><button type="button" data-action="toggle-library-target-scope">${filters.targetScope === "primary" ? "Primary only" : "Primary + secondary"}</button></div>
-      ` : ""}
-      <div id="exerciseList">${libraryRowsMarkup(exercises, { libraryEmpty: totalCount === 0 })}</div>
-    </div>
-  </section>`;
+  return `
+    ${totalCount ? `
+      <label class="library-search">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+        <span class="visually-hidden">Search exercises</span>
+        <input id="exerciseSearch" type="search" value="${escapeHtml(query)}" autocomplete="off" placeholder="Exercise, target, or movement">
+      </label>
+      <div class="library-quickbar">
+        <div class="library-quick-scroll" aria-label="Quick target filters">${quickGroupMarkup(browseGroups, filters.quickGroup)}</div>
+        <button class="library-filter-button" type="button" data-action="open-exercise-filter" aria-label="Filter exercises${activeCount ? `, ${activeCount} active ${activeCount === 1 ? "group" : "groups"}` : ""}">Filter${activeCount ? ` <b>${activeCount}</b>` : ""}</button>
+      </div>
+      <div class="library-result-head"><span id="exerciseResultCount">${countLabel}</span><button type="button" data-action="toggle-library-target-scope">${filters.targetScope === "primary" ? "Primary only" : "Primary + secondary"}</button></div>
+    ` : ""}
+    <div id="exerciseList">${libraryRowsMarkup(exercises, { libraryEmpty: totalCount === 0 })}</div>
+  `;
 }
 
 function filterOptionButtons(group, options, selected) {

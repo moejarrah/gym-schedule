@@ -226,7 +226,7 @@
 
 .workout-item.is-done .workout-check-mark {
   border-color: var(--accent);
-  background: var(--accent);
+  background: var(--accent-fill);
   color: #ffffff;
 }
 
@@ -531,7 +531,7 @@
 
 .workout-video.is-linked .workout-video-mark {
   border-color: transparent;
-  background: var(--accent);
+  background: var(--accent-fill);
   color: #ffffff;
 }
 
@@ -1515,7 +1515,7 @@ body.routine-block-drag-active {
 .library-chip[aria-pressed="true"] {
   border-color: var(--accent);
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-on-soft);
 }
 
 .library-filter-button {
@@ -1538,7 +1538,7 @@ body.routine-block-drag-active {
   height: 18px;
   padding: 0 5px;
   border-radius: 9px;
-  background: var(--accent);
+  background: var(--accent-fill);
   color: #fff;
   font-family: var(--font-mono);
   font-size: 0.62rem;
@@ -1863,7 +1863,7 @@ body.routine-block-drag-active {
   height: 16px;
   padding: 0 4px;
   border-radius: 8px;
-  background: var(--home);
+  background: var(--accent-fill);
   color: #fff;
   font-size: 0.62rem;
   line-height: 16px;

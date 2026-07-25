@@ -10,7 +10,7 @@ import {
   MOVEMENT_PATTERNS,
   RULES,
   classificationLabel,
-} from "./data.js?v=44";
+} from "./data.js?v=46";
 import {
   addRoutineEntryInState,
   addRoutineToProgram,
@@ -37,7 +37,7 @@ import {
   updateProgramInState,
   updateRoutineInState,
   updateRoutineEntryInState,
-} from "./storage.js?v=44";
+} from "./storage.js?v=46";
 import {
   availableLibraryBrowseGroups,
   classificationOptionPickerMarkup,
@@ -46,41 +46,51 @@ import {
   exerciseFilterContentMarkup,
   exerciseSearchTerms,
   filteredExercises,
-  libraryMarkup,
+  libraryPageShellMarkup,
+  libraryScrollContentMarkup,
   libraryRowsMarkup,
   normalizedExerciseSearch,
   relationshipEditorMarkup,
-} from "./ui/library.js?v=44";
+} from "./ui/library.js?v=46";
 import {
   calendarMarkup,
   dayEditorMarkup,
   rulesMarkup,
-} from "./ui/log-settings.js?v=44";
+} from "./ui/log-settings.js?v=46";
 import {
   entryPresentation,
   escapeHtml,
-} from "./ui/shared.js?v=44";
+} from "./ui/shared.js?v=46";
 import {
   entryChoicesEditorMarkup,
   pickerListMarkup,
   programMarkup,
   programsListMarkup,
   routineBlocksEditorMarkup,
-} from "./ui/program.js?v=44";
+} from "./ui/program.js?v=46";
 import {
   exerciseReferenceMarkup,
   exerciseVideoSearchMarkup,
-} from "./ui/exercise-reference.js?v=44";
+} from "./ui/exercise-reference.js?v=46";
 import {
   entryChoicesMarkup,
+  workoutBlocksMarkup,
   workoutMarkup,
-} from "./ui/workout.js?v=44";
+} from "./ui/workout.js?v=46";
 
 const store = createStore();
 const main = document.querySelector("#appMain");
 const viewTitle = document.querySelector("#viewTitle");
 const viewMetaLine = document.querySelector("#viewMetaLine");
 const toast = document.querySelector("#toast");
+
+const workoutRows = document.createElement("div");
+workoutRows.className = "workout-rows";
+let workoutScrollTop = 0;
+
+const libraryScroll = document.createElement("div");
+libraryScroll.className = "library-scroll";
+let libraryScrollTop = 0;
 
 let currentView = "workout";
 let exerciseQuery = "";
@@ -190,6 +200,11 @@ function exerciseById(state, id) {
 }
 
 function render() {
+  workoutScrollTop = workoutRows.scrollTop || 0;
+  libraryScrollTop = libraryScroll.scrollTop || 0;
+  if (workoutRows.parentNode) workoutRows.remove();
+  if (libraryScroll.parentNode) libraryScroll.remove();
+
   const state = store.getState();
   document.body.dataset.currentView = currentView;
   document.querySelectorAll(".bottom-nav [data-view]").forEach((button) => {
@@ -241,6 +256,12 @@ function renderWorkout(state) {
     todayKey: localDateKey(),
     exerciseById,
   });
+
+  if (routine?.entries.length) {
+    workoutRows.innerHTML = workoutBlocksMarkup({ state, routine, todayKey: localDateKey(), exerciseById });
+    main.querySelector(".workout-page").appendChild(workoutRows);
+    workoutRows.scrollTop = workoutScrollTop;
+  }
 }
 
 function renderCalendar(state) {
@@ -384,13 +405,17 @@ function saveDay(form) {
 
 function renderExercises(state) {
   const exercises = currentFilteredExercises(state);
-  main.innerHTML = libraryMarkup({
+  main.innerHTML = libraryPageShellMarkup({ resultCount: exercises.length });
+
+  libraryScroll.innerHTML = libraryScrollContentMarkup({
     query: exerciseQuery,
     filters: exerciseFilters,
     exercises,
     totalCount: state.exercises.length,
     browseGroups: availableLibraryBrowseGroups(state, exerciseFilters.targetScope),
   });
+  main.querySelector(".library-page").appendChild(libraryScroll);
+  libraryScroll.scrollTop = libraryScrollTop;
 }
 
 function currentFilteredExercises(state) {
@@ -1823,8 +1848,6 @@ main.addEventListener("click", (event) => {
   else if (action === "new-routine") openRoutineEditor();
   else if (action === "edit-routine") openRoutineEditor(id);
   else if (action === "select-routine") selectRoutine(id);
-  else if (action === "move-routine-up") moveRoutine(id, -1);
-  else if (action === "move-routine-down") moveRoutine(id, 1);
   else if (action === "edit-entry") {
     if (performance.now() < suppressEntryClickUntil) return;
     openEntryEditor(id);
@@ -2439,7 +2462,7 @@ if ("serviceWorker" in navigator) {
     }
   });
   navigator.serviceWorker
-    .register("sw.js?v=44", { updateViaCache: "none" })
+    .register("sw.js?v=46", { updateViaCache: "none" })
     .then((registration) => registration.update())
     .catch(() => showToast("Offline mode could not be started."));
 }

@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import {
   EXERCISE_PURPOSES,
   MOVEMENT_PATTERNS,
-  REVIEWED_EXERCISE_IDS,
   classificationLabel,
   createDefaultState,
 } from "../data.js";
@@ -138,7 +137,7 @@ test("starting data uses the complete current schema and all references resolve"
   )));
   assert.equal(state.exercises.filter((exercise) => !programmedExerciseIds.has(exercise.id)).length, 25);
   assert.equal(state.routines.some((routine) => /^rest$/i.test(routine.name)), false);
-  assert.equal(new Set(REVIEWED_EXERCISE_IDS).size, 177);
+  assert.equal(state.exercises.length, 177);
 });
 
 test("older development schemas are rejected and stored data resets without mutation", () => {
@@ -255,6 +254,28 @@ test("validation rejects malformed values that would break the UI", () => {
   const missingAliases = createDefaultState();
   delete missingAliases.exercises[0].aliases;
   assert.equal(validateState(missingAliases), false);
+
+  for (const [field, emptyValue] of [
+    ["primaryTargets", []],
+    ["movementPattern", ""],
+    ["equipment", []],
+    ["purpose", ""],
+  ]) {
+    const missingRequiredClassification = createDefaultState();
+    const exercise = structuredClone(missingRequiredClassification.exercises[0]);
+    exercise.id = `owner-master-missing-${field}`;
+    exercise.name = `Owner master missing ${field}`;
+    exercise.aliases = [];
+    exercise.relatedExercises = [];
+    exercise[field] = emptyValue;
+    missingRequiredClassification.exercises.push(exercise);
+    assert.equal(validateState(missingRequiredClassification), false, field);
+    assert.throws(
+      () => parseImportedState(JSON.stringify(createBackup(missingRequiredClassification))),
+      /not compatible/i,
+      field,
+    );
+  }
 
   const invalidRoutine = createDefaultState();
   invalidRoutine.routines[0].status = "sometimes";
@@ -617,7 +638,9 @@ test("a failed atomic entry move leaves stored state unchanged", () => {
   const before = store.getState();
   const routine = before.routines[0];
   const entry = routine.entries[1];
-  const moved = moveRoutineEntry(before, routine.id, entry.id, -1, { prescription: "5 × 5" });
+  const moved = moveRoutineEntry(before, routine.id, entry.id, -1, {
+    choices: [{ ...entry.choices[0], prescription: "5 × 5" }],
+  });
 
   storage.failWrites = true;
   const result = store.replace(moved);
@@ -670,7 +693,7 @@ test("block-scoped moves preserve other blocks and master data", () => {
   const otherBlockBefore = routine.entries.filter((item) => item.blockId !== entry.blockId).map((item) => item.id);
   const mastersBefore = structuredClone(state.exercises);
   const next = moveRoutineEntry(state, routine.id, entry.id, 1, {
-    prescription: "Runtime prescription",
+    choices: [{ ...entry.choices[0], prescription: "Runtime prescription" }],
     role: "main",
   });
   const nextRoutine = next.routines[0];
@@ -703,7 +726,10 @@ test("changing entry role preserves source order, history, and master data", () 
   const optionalIds = routine.entries.filter((item) => item.role === "optional").map((item) => item.id);
   const historyBefore = structuredClone(state.sessions);
   const mastersBefore = structuredClone(state.exercises);
-  const next = updateRoutineEntryInState(state, routine.id, changed.id, { prescription: "4 × 6", role: "optional" });
+  const next = updateRoutineEntryInState(state, routine.id, changed.id, {
+    choices: [{ ...changed.choices[0], prescription: "4 × 6" }],
+    role: "optional",
+  });
   const nextRoutine = next.routines[0];
 
   assert.deepEqual(nextRoutine.entries.filter((item) => item.role === "main").map((item) => item.id), remainingMainIds);
@@ -799,7 +825,10 @@ test("entry role edits preserve historical completion and checks", () => {
   const state = toggleRoutineForDate(createDefaultState(), "push-a-glutes", "2026-07-17");
   const routine = state.routines.find((item) => item.id === "push-a-glutes");
   const history = structuredClone(state.sessions);
-  const next = updateRoutineEntryInState(state, routine.id, routine.entries[0].id, { prescription: "4 × 6", role: "optional" });
+  const next = updateRoutineEntryInState(state, routine.id, routine.entries[0].id, {
+    choices: [{ ...routine.entries[0].choices[0], prescription: "4 × 6" }],
+    role: "optional",
+  });
   const changed = next.routines.find((item) => item.id === routine.id).entries.find((entry) => entry.id === routine.entries[0].id);
   assert.equal(changed.id, routine.entries[0].id);
   assert.equal(changed.role, "optional");

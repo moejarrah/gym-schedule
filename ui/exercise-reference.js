@@ -1,5 +1,5 @@
-import { classificationLabel } from "../data.js?v=44";
-import { escapeHtml } from "./shared.js?v=44";
+import { classificationLabel } from "../data.js?v=46";
+import { escapeHtml } from "./shared.js?v=46";
 
 const RELATION_ORDER = new Map([
   ["easier", 0],

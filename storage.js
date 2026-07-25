@@ -9,10 +9,9 @@ import {
   EXERCISE_TARGETS,
   MOVEMENT_PATTERNS,
   RELATED_EXERCISE_RELATIONS,
-  REVIEWED_EXERCISE_IDS,
   SCHEMA_VERSION,
   createDefaultState,
-} from "./data.js?v=44";
+} from "./data.js?v=46";
 
 export const STORAGE_KEY = "gymAppStateV1";
 
@@ -42,8 +41,6 @@ const supportedSupports = new Set(EXERCISE_SUPPORTS.map((option) => option.id));
 const supportedEmphases = new Set(EXERCISE_EMPHASES.map((option) => option.id));
 const supportedChallenges = new Set(EXERCISE_CHALLENGES.map((option) => option.id));
 const supportedRelations = new Set(RELATED_EXERCISE_RELATIONS.map((option) => option.id));
-const reviewedExerciseIds = new Set(REVIEWED_EXERCISE_IDS);
-
 const inverseRelation = { easier: "harder", similar: "similar", harder: "easier" };
 
 function normalizedExerciseIdentity(value) {
@@ -64,21 +61,18 @@ function isOptionalControlledValue(value, allowed) {
 }
 
 function hasValidExerciseClassification(exercise) {
-  if (!hasUniqueAllowedStrings(exercise.primaryTargets, supportedTargets, 0, 2)) return false;
+  if (!hasUniqueAllowedStrings(exercise.primaryTargets, supportedTargets, 1, 2)) return false;
   if (!hasUniqueAllowedStrings(exercise.secondaryTargets, supportedTargets)) return false;
   if (exercise.primaryTargets.some((target) => exercise.secondaryTargets.includes(target))) return false;
-  if (!isOptionalControlledValue(exercise.movementPattern, supportedMovements)) return false;
-  if (!hasUniqueAllowedStrings(exercise.equipment, supportedEquipment)) return false;
-  if (!isOptionalControlledValue(exercise.purpose, supportedPurposes)) return false;
+  if (typeof exercise.movementPattern !== "string" || !supportedMovements.has(exercise.movementPattern)) return false;
+  if (!hasUniqueAllowedStrings(exercise.equipment, supportedEquipment, 1)) return false;
+  if (typeof exercise.purpose !== "string" || !supportedPurposes.has(exercise.purpose)) return false;
   if (!isOptionalControlledValue(exercise.style, supportedStyles)) return false;
   if (!isOptionalControlledValue(exercise.laterality, supportedLateralities)) return false;
   if (!isOptionalControlledValue(exercise.support, supportedSupports)) return false;
   if (!hasUniqueAllowedStrings(exercise.emphases, supportedEmphases)) return false;
   if (!isOptionalControlledValue(exercise.typicalChallenge, supportedChallenges)) return false;
   if (!Array.isArray(exercise.relatedExercises)) return false;
-  if (reviewedExerciseIds.has(exercise.id)) {
-    if (!exercise.primaryTargets.length || !exercise.movementPattern || !exercise.equipment.length || !exercise.purpose) return false;
-  }
   return true;
 }
 
@@ -552,10 +546,6 @@ export function updateRoutineEntryInState(state, routineId, entryId, updates) {
     }
     entry.choices = clone(updates.choices);
   }
-  if (Object.hasOwn(updates, "prescription")) {
-    if (typeof updates.prescription !== "string" || !updates.prescription.trim()) return clone(state);
-    entry.choices[0].prescription = updates.prescription;
-  }
   if (Object.hasOwn(updates, "blockId")) {
     if (typeof updates.blockId !== "string" || !routine.blocks.some((block) => block.id === updates.blockId)) return clone(state);
     entry.blockId = updates.blockId;
@@ -748,10 +738,6 @@ export function moveRoutineEntry(state, routineId, entryId, direction, updates =
       choiceIds.add(choice.exerciseId);
     }
     entry.choices = clone(updates.choices);
-  }
-  if (Object.hasOwn(updates, "prescription")) {
-    if (typeof updates.prescription !== "string" || !updates.prescription.trim()) return clone(state);
-    entry.choices[0].prescription = updates.prescription;
   }
   if (["main", "optional"].includes(updates.role)) entry.role = updates.role;
   if (typeof updates.note === "string") entry.note = updates.note;

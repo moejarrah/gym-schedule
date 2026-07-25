@@ -76,6 +76,8 @@
   --text-muted: #646c77;
   --faint: #68707b;
   --accent: #3b5bdb;
+  --accent-fill: #3b5bdb;
+  --accent-on-soft: #314dc1;
   --accent-soft: rgb(59 91 219 / 11%);
   --gym: var(--accent);
   --gym-strong: var(--accent);
@@ -84,7 +86,7 @@
   --home: var(--accent);
   --home-strong: var(--accent);
   --home-soft: var(--accent-soft);
-  --rehab: #9a6e12;
+  --rehab: #765000;
   --danger: #c03b27;
   --danger-soft: rgb(192 59 39 / 10%);
   --success: #267548;
@@ -124,6 +126,8 @@
   --text-muted: #9ca3ad;
   --faint: #7f8792;
   --accent: #5a7cff;
+  --accent-fill: #4266e4;
+  --accent-on-soft: #8299ff;
   --accent-soft: rgb(90 124 255 / 15%);
   --gym: var(--accent);
   --gym-strong: var(--accent);

@@ -3,7 +3,7 @@ import {
   entryPresentation,
   escapeHtml,
   routineTabsMarkup,
-} from "./shared.js?v=44";
+} from "./shared.js?v=46";
 
 function programBar(program) {
   if (!program) {
@@ -135,19 +135,12 @@ export function entryChoicesMarkup({
   </div>`;
 }
 
-export function workoutMarkup({
-  state,
-  program,
-  routines,
-  routine,
-  todayKey,
-  exerciseById,
-}) {
+export function workoutBlocksMarkup({ state, routine, todayKey, exerciseById }) {
   const checkedEntryIds = new Set(routine
     ? state.sessions[todayKey]?.checkedEntryIdsByRoutine?.[routine.id] || []
     : []);
   let displayIndex = 0;
-  const blocksMarkup = routine?.blocks.map((block) => {
+  return routine?.blocks.map((block) => {
     const entries = routine.entries.filter((entry) => entry.blockId === block.id);
     const markup = workoutBlockMarkup({
       block,
@@ -161,15 +154,20 @@ export function workoutMarkup({
     displayIndex += entries.length;
     return markup;
   }).join("") || "";
+}
 
+export function workoutMarkup({
+  state,
+  program,
+  routines,
+  routine,
+  todayKey,
+  exerciseById,
+}) {
   return `<section class="page workout-page">
     ${programBar(program)}
     ${routineTabsMarkup(routines, routine?.id)}
     ${routine ? routineNoteMarkup(routine.note) : ""}
-    ${!program ? `<div class="empty-state"><h3>No programs yet</h3><p>Add a program to organize your workout days.</p><button class="button primary" type="button" data-action="new-program">Add program</button></div>` : routine ? `
-      ${routine.entries.length ? `<div class="workout-rows">
-        ${blocksMarkup}
-      </div>` : `<div class="empty-state compact-empty"><h3>No exercises yet</h3><p>Open Program to add exercises.</p><button class="button secondary" type="button" data-view-link="routines">Manage program</button></div>`}
-    ` : `<div class="empty-state"><h3>No routines yet</h3><p>Add the first workout day to ${escapeHtml(program.name)} in Program.</p><button class="button primary" type="button" data-view-link="routines">Manage program</button></div>`}
+    ${!program ? `<div class="empty-state"><h3>No programs yet</h3><p>Add a program to organize your workout days.</p><button class="button primary" type="button" data-action="new-program">Add program</button></div>` : !routine ? `<div class="empty-state"><h3>No routines yet</h3><p>Add the first workout day to ${escapeHtml(program.name)} in Program.</p><button class="button primary" type="button" data-view-link="routines">Manage program</button></div>` : !routine.entries.length ? `<div class="empty-state compact-empty"><h3>No exercises yet</h3><p>Open Program to add exercises.</p><button class="button secondary" type="button" data-view-link="routines">Manage program</button></div>` : ""}
   </section>`;
 }

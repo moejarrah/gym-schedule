@@ -1,12 +1,12 @@
 # Ironworks Implementation Plan
 
-Status: Slices 10G–11C owner/device verified; Slice 11D repository/runtime verified and device verification pending
-Current checkpoint: Slices 7–11C owner verified; Slice 11D implemented through its verifier gate
-Next action: owner verifies Slice 11D on the target iPhone and assesses the Slice 12A specification; do not continue without approval
+Status: Slices 7–11D owner/device verified and released; Slices 12A–12B planned and deliberately deferred; Slice 13 repository/runtime and fresh-verifier gates complete with device verification pending
+Current checkpoint: Local schema 9/cache 46 current-state consolidation and retrospective hardening
+Next action: publish cache 46 for owner device verification
 
 ## Goal
 
-Finish the owner-approved Ironworks interface without changing the product hierarchy or introducing unnecessary architecture. The durable behavior contract lives in `PRODUCT.md`; the work method and verification gates live in `WORKFLOW.md`.
+Deliver the owner-approved Ironworks interface in bounded slices without changing the product hierarchy or introducing unnecessary architecture. The current-scope release completes the accepted Workout, Program, and Library work through Slice 11D while preserving the functional Log/Settings foundation; the fully specified Ironworks Log/Settings work remains deliberately deferred. The durable behavior contract lives in `PRODUCT.md`; the work method and verification gates live in `WORKFLOW.md`.
 
 ## Approved sources
 
@@ -36,7 +36,7 @@ Production should reproduce the approved dark-first charcoal/bone system, cobalt
 
 ## Completed checkpoint
 
-The Ironworks foundation, Workout execution, reference/video flows, Program management, Library picker, routine-entry editor, and grouped role-scoped reorder are complete through Slice 10. Exact revision, schema/cache, and verification truth belong in `HANDOFF_STATUS.md`; detailed history belongs in Git.
+The Ironworks foundation, Workout execution, reference/video flows, Program management, blocks, scoped notes, programmed choices, Library browse/editing/relationships, and the reviewed PPLPPL 7 seed are complete through Slice 11D. Exact revision, schema/cache, and verification truth belong in `HANDOFF_STATUS.md`; detailed history belongs in Git.
 
 ## Current and remaining sequence
 
@@ -47,12 +47,12 @@ Each implementation slice stops after complete repository/runtime checks, a fres
 3. **Slice 11A — Library browse and filters** — owner/device verified
 4. **Slice 11B — Master exercise editor** — owner/device verified
 5. **Slice 11C — Relationships and deletion** — owner/device verified
-6. **Slice 11D — Replacement Library and program seed** — repository/runtime verified; device verification pending
-7. **Slice 12A — Log and day editor**
-8. **Slice 12B — Settings and current-format data portability**
-9. **Slice 13 — Consolidate and release**
+6. **Slice 11D — Replacement Library and program seed** — owner/device verified and released
+7. **Slice 12A — Log and day editor** — implementation-ready specification; deliberately deferred
+8. **Slice 12B — Settings and current-format data portability** — implementation-ready specification; deliberately deferred
+9. **Slice 13 — Current-state consolidation and release** — repository/runtime and fresh-verifier gates complete; device verification pending
 
-Slices 12A–13 are sequence placeholders, not implementation-ready specifications. Tighten each one against the approved Log/Settings references and current product contract before starting it; do not improvise it from the title.
+Deferring Slice 12 leaves the current functional Log, day editor, Settings, theme, export/import, restore, and training-rule paths in production. Slice 13 may consolidate and release that accepted current scope, but it does not certify the deferred Ironworks Log/Settings presentation as complete. If Slice 12 resumes later, its implementation and release gates run after the current Slice 13 checkpoint.
 
 ## Replacement-program design brief
 
@@ -421,7 +421,7 @@ Every 11 sub-slice receives one production cache bump and stops after:
 
 ### 11D. Replacement Library and program seed
 
-**Status:** repository/runtime verified with cache 44 and 78 passing checks; owner device verification pending.
+**Status:** owner/device verified and released with cache 44 and 78 passing checks.
 
 **Goal:** install the approved manifest as the new development starting state without duplicating masters or retaining unfinished legacy seed data.
 
@@ -451,7 +451,149 @@ Every 11 sub-slice receives one production cache bump and stops after:
 
 **Out of scope:** migration from older development schemas, scheduler/pairing logic, recording which alternative was performed, or new UI beyond the approved slices.
 
-Slice 13 removes confirmed superseded markup, CSS, helpers, old-schema compatibility branches, and their tests. It also reviews module ownership, synchronizes cache/version references, and performs the complete automated, runtime, offline, current-format import/export, and fresh-verifier pass.
+## Slice 12 design brief
+
+### Outcome
+
+Finish the existing functional Log and Settings flows in the approved Ironworks presentation without changing their local-first meaning. `references/ui-concepts/ironworks-log-settings.html` supplies the visual and interaction direction; `PRODUCT.md` controls completion, history, reset, and data-replacement behavior.
+
+Slice 12 is deliberately deferred after specification. Until it resumes, the current calendar, day editor, Settings dialog, theme switch, backup import/export, restore, and training-rule paths remain supported production behavior.
+
+### Shared data and architecture boundary
+
+- Keep schema 9 and the existing session shape: one local date key owns completed routine IDs, checked entry IDs grouped by routine, and one optional note.
+- Do not add historical snapshots, copied routine/program names, analytics records, performed-choice tracking, scheduling state, or migrations.
+- Past sessions may reference routines in any still-saved program. Switching the active program never rewrites history.
+- `storage.js` continues to own session mutation, empty-day removal, validation, current-format backup parsing, atomic replacement, and failed-write behavior.
+- `ui/log-settings.js` owns pure Log, day-editor, Settings, import-sheet, and rules markup. `app.js` owns transient month, editor/file state, focus, events, and store calls.
+- Extend the production Ironworks shell and existing CSS modules. Add no dependency, router, generic settings system, data layer, or app-wide refactor.
+
+### 12A. Log and day editor
+
+**Status:** implementation-ready specification; deliberately deferred.
+
+**Goal:** make dated workout history quick to scan and safe to edit while preserving current completion and check semantics.
+
+**Product-action map:**
+
+| User action | Current path | Planned path |
+| --- | --- | --- |
+| Move between months | Log header arrows around the month | Compact month bar with separate 44 px Previous/Next actions |
+| Identify recorded dates | Calendar count or note marker | Ironworks date states for completion, note, both, and today, with complete accessible labels |
+| Open a date | Tap a calendar date | Unchanged; any in-month date opens the focused day sheet |
+| Reopen recent history | Calendar only | Up to eight most recent stored dates below the month, each opening the same day sheet |
+| Mark routines complete | One undifferentiated list of every saved routine | Active-program routines first; already-recorded routines from other saved programs in a separate inactive-program section |
+| Edit a day note | Day-dialog textarea | Unchanged field in the focused day sheet |
+| Clear a day | Uncheck routines, clear note, save | Unchanged; an empty session record is removed atomically |
+
+**Log view:**
+
+- The month remains primary. Previous and Next change one local calendar month at a time without changing the selected workout routine or active program.
+- Each in-month date is one 44 px button. Today uses `aria-current="date"`. Completion, note, and combined states remain distinguishable without color and are fully stated in the accessible name.
+- Dates outside the current month are blank rather than actionable. Month length and first-weekday alignment use local calendar dates and do not pass through UTC parsing.
+- `Recent` shows up to eight nonempty stored sessions ordered by date key descending, regardless of the displayed month. A row names its completed routines, current owning program context, note presence, and inactive-program context where applicable; it never invents a historical prescription or snapshot.
+- An empty history keeps the month usable and shows a restrained empty Recent state. This slice adds no totals, charts, streaks, heatmaps, goals, or recommendations.
+
+**Day editor:**
+
+- The sheet title states the full local date and `Workout history`.
+- Active-program routines appear in stored program order. A routine from another saved program appears only when it is already recorded on that date, under `Already recorded from another program`, with its owning program named.
+- With no active program, the editor still preserves and exposes any routines already recorded for that date. It does not offer unrelated inactive routines as new completions.
+- Marking a previously incomplete routine uses the existing `setDayInState` rule: add its routine ID and check its current Main entries. Empty and Optional-only routines can be deliberately marked complete.
+- Unmarking a completed routine removes its routine ID and all saved entry checks for that routine on that date. Leaving an already-completed routine selected never synthesizes missing checks or rewrites its saved checks.
+- The note remains optional plain text with the current 500-character limit. Cancel changes nothing. Save is one atomic state write; a failure keeps the complete draft open, reports that nothing changed, and preserves stored history.
+- Saving no completed routines, no entry checks, and a blank note removes the date record. Note-only and Optional-check-only records remain valid and visible.
+
+**Acceptance:**
+
+- Focused tests cover month boundaries, leap February, local date keys, completion-only, note-only, combined markers, recent ordering/limit, and accessible date labels.
+- Day-editor tests cover zero/one/several completions, active and recorded inactive programs, multiple programs on one date, empty and Optional-only routines, note-only records, preserved existing checks, unmark cleanup, blank-day deletion, cancel, save failure, reload, and current-format round trips.
+- Runtime checks cover both phone sizes and themes, long routine and Recent lists, independent sheet/page scrolling, 44 px targets, visible focus and focus return, keyboard/textarea behavior, safe areas, reduced motion, browser errors, and offline startup.
+- Workout checks and routine completion remain unchanged after editing the same date through Log.
+
+**Risks:** local-date drift at month boundaries, misleading historical context after current program edits, accidental cleanup of saved checks, long translated date/routine text, failed-write drafts, and nested scroll/focus behavior.
+
+**Out of scope:** session-schema changes, historical snapshots, adding inactive-program routines to a day, editing individual entry checks in Log, performed-choice recording, scheduling, analytics, streaks, goals, or Workout redesign.
+
+### 12B. Settings and current-format data portability
+
+**Status:** implementation-ready specification; deliberately deferred.
+
+**Goal:** give appearance, backup/restore, and owner training rules one trustworthy Settings home with explicit replacement scope and visible failure evidence.
+
+**Product-action map:**
+
+| User action | Current path | Planned path |
+| --- | --- | --- |
+| Open Settings | Bottom-nav button opens one tall dialog | Bottom-nav Settings view in the production shell |
+| Switch theme | Theme row toggles light/dark | Ironworks Appearance row with the current theme visible |
+| Export data | Settings dialog button starts a JSON download | Data row exports the same complete current-format backup |
+| Import data | File picker, then generic confirmation; errors return to Settings | File picker followed by one focused import sheet containing scope, filename, confirmation, and any failure |
+| Restore starting data | Generic confirmation | Explicit destructive confirmation naming programs, exercises, and history |
+| Read training rules | Inline disclosure | Focused scrollable Training rules sheet |
+
+**Settings view:**
+
+- Settings becomes a normal top-level view selected by the existing fifth bottom-navigation action. It uses the same app bar, page scrolling, focus placement, and safe-area behavior as the other primary views.
+- Rows are grouped under Appearance, Data, Training, and About. About states only that the app is local-first/offline ready; it adds no profile, version service, account, subscription, or cloud surface.
+- Theme remains the stored `light`/`dark` setting. The row shows the current value, applies the document and theme-color change immediately after a successful write, and leaves the old theme active after a failed write.
+- Training rules render the owner-provided `RULES` content exactly as stored in a focused sheet. They remain reference text, not medical reinterpretation or automated programming.
+
+**Export and import:**
+
+- Export uses `createBackup` and includes the complete current schema-9 state. The existing dated JSON filename remains. Success clears stale errors; blob/download failure produces a visible error and changes no app data.
+- Import begins with the native JSON file picker. After selection, one sheet shows the exact filename and states that importing replaces every program, exercise, history record, selection, and appearance setting contained in app data.
+- `Choose another` reopens the picker and clears the prior file-specific error. Selecting the same file again remains possible.
+- `Import data` is the explicit replacement confirmation. The file is read, parsed, completely validated, and written through the existing storage boundary before success is reported.
+- Invalid JSON, wrong schema/envelope, invalid current data, file-read failure, or storage-write failure remains in the same sheet with a plain `Nothing was changed` message. The sheet retains the selected filename and offers another choice.
+- A successful import closes the sheet, applies the imported theme and selections, rerenders every view, and remains valid after reload. Cancel or close changes nothing.
+
+**Restore:**
+
+- Restore uses one explicit destructive confirmation stating that it replaces programs, exercises, and history with the reviewed starting state.
+- Restore preserves the currently selected light/dark appearance because appearance is outside the stated replacement scope. It resets active program/routine selection to the seed’s valid defaults.
+- A failed restore keeps current state and theme unchanged and reports failure without closing the focused flow. A successful restore rerenders all views and survives reload.
+
+**Acceptance:**
+
+- Current-format export/import round trips the exact schema-9 state, including aliases, relationships, blocks, choices, scoped notes, sessions, selections, and theme.
+- Tests cover export failure, canceled picker/import/restore, repeat same-file selection, invalid and old-schema files, valid parse followed by write failure, success, imported theme application, restore theme preservation, and no false success.
+- Runtime checks cover both phone sizes and themes, all Settings rows and sheets, long rules, filenames and errors, independent scrolling, safe-area footers, file-input focus return, 44 px actions, visible focus, reduced motion, browser errors, and offline startup.
+- Installed-PWA checks confirm export/download behavior and file selection/import on the target iPhone; these remain device-pending until the owner verifies them.
+
+**Risks:** irreversible local replacement, misleading success after failed writes, repeated file-input selection, iOS download/file-picker behavior, imported theme application, focus loss across native file UI, and stale service-worker assets.
+
+**Out of scope:** new backup formats, old-schema compatibility, migrations, partial/selective import, merge import, automatic backups, cloud sync, accounts, encryption, analytics, configurable rules, or changes to the approved starting seed.
+
+## Slice 13. Current-state consolidation and release
+
+**Status:** repository/runtime and fresh-verifier gates complete with cache 46 and 80 passing checks; owner device verification pending.
+
+**Goal:** reduce confirmed superseded implementation residue and certify the currently accepted Slices 7–11D product without implementing deferred Slice 12 behavior.
+
+**Allowed work:**
+
+- Trace production HTML, CSS, JavaScript, service-worker assets, and tests before removal. Delete only markup, selectors, helpers, compatibility branches, or assertions proven unreachable or superseded in the current schema-9 app.
+- Review module ownership and real duplication. Keep `app.js` as coordinator unless a small extraction isolates stateful logic, removes repeated pure markup, or materially improves tests; line count alone is not a reason to split it.
+- Preserve the current functional Log/day editor and Settings/theme/export/import/restore/rules paths. Their future Ironworks redesign is deferred work, not dead code.
+- Remove no reference, manifest, source-material, or validator artifact that remains part of the approved content audit trail.
+- Synchronize production query versions, service-worker cache contents/name, manifest references, and tests if any production asset changes.
+- Update only status or architecture documentation whose current truth changes.
+
+**Acceptance:**
+
+- Final diff contains no behavior redesign, schema change, migration, dependency, seed-content change, broad formatting churn, or deferred Slice 12 implementation.
+- All existing product actions remain reachable. Current schema-9 data, sessions, completion, restore, and exact current-format export/import survive save and reload.
+- Manifest parsing/validation, focused checks, the full dependency-free suite, syntax checks, cache assertions, and `git diff --check` pass.
+- Runtime regression covers every primary view at 320 × 700 and 393 × 852 in both themes, long-list and dialog scrolling, focus, safe areas, reduced motion, browser errors, and cache-updated offline startup.
+- A fresh bounded verifier checks removals, regressions, data loss, accessibility, scope, and stale cache/version references. Confirmed findings are fixed and rechecked.
+- The owner verifies Safari and installed-PWA behavior before the current-scope release is marked device verified.
+
+**Risks:** deleting code that deferred Log/Settings still uses, obscuring behavior through over-extraction, invalidating cached imports, accidental formatting churn, and mistaking unsupported old-schema logic for current-format recovery behavior.
+
+**Out of scope:** Slice 12A/12B UI, new features, visual polish, program content edits, schema/storage redesign, framework conversion, new dependencies, speculative service-worker lifecycle work, or cleanup justified only by preference.
+
+If Slice 12 resumes after this release, its own implementation gates run from the specifications above and end with another bounded consolidation/release audit of whatever it changes.
 
 Release only after the owner confirms Safari and installed-PWA behavior on the target iPhone.
 

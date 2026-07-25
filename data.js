@@ -1,6 +1,4 @@
 export const SCHEMA_VERSION = 9;
-export const DEFAULT_PROGRAM_ID = "pplppl7-glute-specialization";
-export const DEFAULT_PROGRAM_NAME = "PPLPPL 7 — Glute Specialization";
 
 function vocabularyId(label) {
   return label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -7143,39 +7141,6 @@ const startingState = {
     "theme": "light"
   }
 };
-
-export const REVIEWED_EXERCISE_IDS = startingState.exercises.map((exercise) => exercise.id);
-
-export function getReviewedExerciseClassification(exerciseId) {
-  const exercise = startingState.exercises.find((item) => item.id === exerciseId);
-  if (!exercise) return null;
-  const {
-    primaryTargets,
-    secondaryTargets,
-    movementPattern,
-    equipment,
-    purpose,
-    style,
-    laterality,
-    support,
-    emphases,
-    typicalChallenge,
-    relatedExercises,
-  } = exercise;
-  return JSON.parse(JSON.stringify({
-    primaryTargets,
-    secondaryTargets,
-    movementPattern,
-    equipment,
-    purpose,
-    style,
-    laterality,
-    support,
-    emphases,
-    typicalChallenge,
-    relatedExercises,
-  }));
-}
 
 export function createDefaultState() {
   return JSON.parse(JSON.stringify(startingState));
