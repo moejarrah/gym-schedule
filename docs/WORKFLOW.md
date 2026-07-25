@@ -6,7 +6,7 @@ Use this workflow for non-trivial work. Small, obvious fixes may go directly fro
 
 After a freeze, interruption, compaction, or handoff:
 
-1. Read `HANDOFF_STATUS.md`, then the relevant `AUDIT.md` and `PRODUCT.md` sections.
+1. Read `docs/HANDOFF_STATUS.md`, then the relevant `docs/AUDIT.md` and `docs/PRODUCT.md` sections.
 2. Inspect `git status`, the latest commits, changed files, and any running preview/server.
 3. Distinguish committed work, uncommitted work, repo-verified work, and owner/device-verified work.
 4. Treat the newest user request as the active direction. Do not reconstruct scope from chat memory alone.
@@ -47,6 +47,15 @@ If the change cannot be summarized tightly, split it. Do not combine cleanup, re
 
 A passing static assertion is not evidence that a phone interaction works. Record untested behavior plainly.
 
+### Agent assignment and review
+
+- The main agent owns scope, implementation, integration, final checks, and status documentation.
+- Give each subagent one concrete, bounded, non-overlapping job. Prefer read-only mapping, research, or verification assignments; do not send several agents to edit the same files.
+- A useful pre-implementation assignment names the exact question, relevant files, exclusions, and evidence expected. It informs the slice but does not broaden it.
+- A fresh post-implementation verifier checks only the slice’s acceptance criteria, correctness, regressions, data loss, accessibility, and plan adherence. Optional polish is not a blocker.
+- The main agent evaluates every finding, fixes confirmed issues, reruns the full applicable checks, and asks the verifier to recheck the corrections. Record only the final material result in `HANDOFF_STATUS.md`.
+- Agents are not mandatory for trivial changes. Do not create work merely to keep agents busy.
+
 ## 6. Status and release gate
 
 Use: `Planned → In progress → Repo verified → Device verified → Released`.
@@ -61,9 +70,9 @@ Do not call phone UI complete before device verification. Do not publish a non-t
 
 Update only the truth that changed:
 
-- `HANDOFF_STATUS.md`: current commit/cache/schema, active slice, WIP, evidence, device status, and next safest action.
-- `AUDIT.md`: only reproducible issues the owner asks to track; remove them when resolved or when the owner closes them.
-- `PRODUCT.md`: only durable product behavior or action changes.
+- `docs/HANDOFF_STATUS.md`: current commit/cache/schema, active slice, WIP, evidence, device status, and next safest action.
+- `docs/AUDIT.md`: only reproducible issues the owner asks to track; remove them when resolved or when the owner closes them.
+- `docs/PRODUCT.md`: only durable product behavior or action changes.
 - `AGENTS.md`: only recurring mistakes or repository-wide constraints.
 
 The final response lists changed files, validation evidence, device-only gaps, and the next decision. Replace stale status; do not append a diary.

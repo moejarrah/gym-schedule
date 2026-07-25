@@ -3,15 +3,33 @@ import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { runInNewContext } from "node:vm";
 
-import { createDefaultState } from "../data.js";
-import { setRelatedExercisesInState, validateState } from "../storage.js";
+import { EXERCISE_BROWSE_GROUPS, createDefaultState } from "../data.js";
+import { upsertExerciseInState, validateState } from "../storage.js";
 import {
   exerciseReferenceMarkup,
   exerciseSearchUrls,
   exerciseVideoSearchMarkup,
 } from "../ui/exercise-reference.js";
-import { filteredExercises } from "../ui/library.js";
-import { pickerListMarkup, programMarkup, programsListMarkup } from "../ui/program.js";
+import {
+  activeLibraryFilterCount,
+  availableLibraryBrowseGroups,
+  classificationOptionPickerMarkup,
+  createLibraryFilters,
+  exerciseFilterContentMarkup,
+  filteredExercises,
+  libraryMarkup,
+  libraryRowsMarkup,
+  relationshipEditorMarkup,
+} from "../ui/library.js";
+import {
+  entryChoicesEditorMarkup,
+  pickerListMarkup,
+  programMarkup,
+  programsListMarkup,
+  routineBlocksEditorMarkup,
+} from "../ui/program.js";
+import { entryChoicesMarkup, workoutMarkup } from "../ui/workout.js";
+import { entryPresentation } from "../ui/shared.js";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const readStyles = () => ["styles/base.css", "styles/components.css", "styles/views.css"].map(read).join("\n");
@@ -45,7 +63,7 @@ test("HTML keeps zoom enabled and uses external production assets", () => {
   const viewport = html.match(/<meta name="viewport" content="([^"]+)">/)?.[1] || "";
   assert.match(viewport, /viewport-fit=cover/);
   assert.doesNotMatch(viewport, /user-scalable=no|maximum-scale=1/);
-  assert.match(html, /<script type="module" src="app\.js\?v=37"><\/script>/);
+  assert.match(html, /<script type="module" src="app\.js\?v=44"><\/script>/);
   assert.match(html, /rel="apple-touch-icon"[^>]+app-icon-180\.png/);
   assert.doesNotMatch(html, /\sonclick=/);
 });
@@ -56,9 +74,9 @@ test("offline shell lists every production module and icon", () => {
     assert.match(worker, new RegExp(asset.replaceAll(".", "\\.")));
   }
   assert.match(worker, /event\.request\.mode === "navigate"/);
-  assert.match(worker, /gym-schedule-v37/);
-  assert.match(worker, /styles\.css\?v=37/);
-  assert.match(worker, /app\.js\?v=37/);
+  assert.match(worker, /gym-schedule-v44/);
+  assert.match(worker, /styles\.css\?v=44/);
+  assert.match(worker, /app\.js\?v=44/);
 });
 
 test("Ironworks fonts are self-hosted and available to the offline shell", () => {
@@ -141,7 +159,7 @@ test("the behavior-neutral source split keeps render modules pure and CSS order 
   const modulePaths = ["ui/shared.js", "ui/workout.js", "ui/exercise-reference.js", "ui/program.js", "ui/library.js", "ui/log-settings.js"];
 
   assert.deepEqual(
-    [...stylesheet.matchAll(/@import url\("(.+?\.css)\?v=37"\);/g)].map((match) => match[1]),
+    [...stylesheet.matchAll(/@import url\("(.+?\.css)\?v=44"\);/g)].map((match) => match[1]),
     ["./styles/base.css", "./styles/components.css", "./styles/views.css"],
   );
   for (const path of modulePaths) {
@@ -153,12 +171,12 @@ test("the behavior-neutral source split keeps render modules pure and CSS order 
   assert.match(app, /libraryMarkup\(/);
   assert.match(app, /calendarMarkup\(/);
   assert.match(base, /\.app-shell\s*\{/);
-  assert.doesNotMatch(base, /\.(?:icon-button|program-page-bar|library-controls|calendar-grid|dialog-form|toast)\b/);
+  assert.doesNotMatch(base, /\.(?:icon-button|program-page-bar|library-page|calendar-grid|dialog-form|toast)\b/);
   for (const selector of ["icon-button", "dialog-form", "confirm-dialog", "toast"]) {
     assert.match(components, new RegExp(`\\.${selector}\\b`));
   }
-  assert.doesNotMatch(components, /\.(?:program-page-bar|library-controls|calendar-grid|settings-section)\b/);
-  for (const selector of ["program-page-bar", "library-controls", "calendar-grid", "settings-section"]) {
+  assert.doesNotMatch(components, /\.(?:program-page-bar|library-page|calendar-grid|settings-section)\b/);
+  for (const selector of ["program-page-bar", "library-page", "calendar-grid", "settings-section"]) {
     assert.match(views, new RegExp(`\\.${selector}\\b`));
   }
   assert.doesNotMatch(views, /\.(?:icon-button|dialog-form|confirm-dialog|toast)\b/);
@@ -217,6 +235,8 @@ test("removed legacy CSS classes stay absent", () => {
 test("the iPhone shell constrains the app and leaves the main view scrollable", () => {
   const css = readStyles();
   assert.match(css, /\.app-shell\s*\{[^}]*height:\s*100dvh;/);
+  assert.match(css, /\.topbar\s*\{[^}]*grid-row:\s*1;/);
+  assert.match(css, /#appMain\s*\{[^}]*grid-row:\s*2;/);
   assert.match(css, /#appMain\s*\{[^}]*overflow-y:\s*auto;/);
   assert.match(css, /#appMain\s*\{[^}]*-webkit-overflow-scrolling:\s*touch;/);
 });
@@ -225,10 +245,11 @@ test("core exercise references and program controls remain reachable", () => {
   const html = read("index.html");
   const app = read("app.js");
   const ui = readUi();
-  for (const id of ["exerciseDetailDialog", "exerciseDetailContent", "exerciseVideoDialog", "exerciseVideoContent", "exercisePrimaryTarget1", "exercisePrimaryTarget2", "secondaryTargetOptions", "exerciseMovement", "exerciseEquipmentOptions", "exercisePurpose", "purposeFilterSelect"]) {
+  for (const id of ["exerciseDetailDialog", "exerciseDetailContent", "exerciseVideoDialog", "exerciseVideoContent", "exercisePrimaryTarget1", "exercisePrimaryTarget2", "chooseSecondaryTargetsButton", "exerciseMovement", "chooseEquipmentButton", "exercisePurpose", "exerciseStyle", "exerciseLaterality", "exerciseSupport", "chooseEmphasesButton", "exerciseChallenge", "classificationPickerDialog", "exerciseFilterContent", "clearExerciseFilterButton", "applyExerciseFilterButton"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
-  assert.match(ui, /data-action="open-workout-exercise"/);
+  assert.match(ui, /open-workout-exercise/);
+  assert.match(ui, /open-entry-choices/);
   assert.match(ui, /data-action="open-workout-video"/);
   assert.match(ui, /data-action="edit-master-exercise"/);
   assert.match(ui, /data-action="view-alternative"/);
@@ -255,7 +276,8 @@ test("entry roles and per-day entry checks remain separate from exercise details
   assert.match(html, /data-entry-role="optional"[^>]+aria-pressed="false"/);
   assert.doesNotMatch(html, /id="headerCompleteButton"/);
   assert.match(ui, /data-action="toggle-entry-check"/);
-  assert.match(ui, /data-action="open-workout-exercise"/);
+  assert.match(ui, /open-workout-exercise/);
+  assert.match(ui, /open-entry-choices/);
   assert.match(ui, /data-action="open-workout-video"/);
   assert.match(app, /toggleEntryCheckForDate/);
   assert.match(app, /setDayInState/);
@@ -293,10 +315,14 @@ test("Ironworks Workout keeps its compact action structure and five-item navigat
   assert.match(shared, /class="routine-tabs/);
   assert.match(workout, /routineTabsMarkup\(routines, routine\?\.id\)/);
   assert.match(workout, /class="workout-program-empty"/);
-  assert.match(workout, /label: "Main"/);
-  assert.match(workout, /label: "Optional"/);
+  assert.match(workout, /routine\?\.blocks\.map/);
+  assert.match(workout, /entry\.blockId === block\.id/);
+  assert.match(workout, /class="routine-note-disclosure"/);
+  assert.match(workout, /class="entry-note-preview"/);
+  assert.match(workout, /class="entry-role-tag">Optional/);
   assert.match(workout, /data-action="toggle-entry-check"/);
-  assert.match(workout, /data-action="open-workout-exercise"/);
+  assert.match(workout, /open-workout-exercise/);
+  assert.match(workout, /open-entry-choices/);
   assert.match(workout, /data-action="open-workout-video"/);
   assert.match(workout, /data-prescription="\$\{escapeHtml\(prescription\)\}"/);
   assert.match(workout, /data-view-link="routines"/);
@@ -320,6 +346,8 @@ test("Ironworks exercise reference keeps classification, relationships, searches
     exercise,
     prescription: "4 × 6–8",
     relatedExercises,
+    routineName: "Push A",
+    routineNote: "Pause at the bottom.",
   });
   assert.match(reference, /Routine prescription/);
   assert.match(reference, /4 × 6–8/);
@@ -330,9 +358,13 @@ test("Ironworks exercise reference keeps classification, relationships, searches
   assert.match(reference, /Search YouTube/);
   assert.match(reference, /Search alternatives/);
   assert.equal((reference.match(/target="_blank"/g) || []).length, 3);
-  assert.ok(reference.indexOf(">Easier<") < reference.indexOf(">Similar<"));
-  assert.ok(reference.indexOf(">Similar<") < reference.indexOf(">Harder<"));
+  assert.ok(reference.indexOf(">Easier<") < reference.indexOf(">Alternative<"));
+  assert.ok(reference.indexOf(">Alternative<") < reference.indexOf(">Harder<"));
   assert.match(reference, /Control the bottom\./);
+  assert.match(reference, /For this routine — Push A/);
+  assert.match(reference, /Pause at the bottom\./);
+  assert.match(reference, /Exercise notes/);
+  assert.ok(reference.indexOf("For this routine") < reference.indexOf("Exercise notes"));
   assert.match(reference, /data-action="edit-master-exercise"/);
 
   exercise.videoId = "";
@@ -389,7 +421,7 @@ test("Program management is reachable and routine views are scoped to the active
   assert.match(app, /getProgramRoutines\(state/);
   assert.match(app, /createProgramInState/);
   assert.match(app, /duplicateProgramInState/);
-  assert.match(app, /renameProgramInState/);
+  assert.match(app, /updateProgramInState/);
   assert.match(app, /removeProgramFromState/);
   assert.match(app, /programDialogFocusReturn/);
   assert.match(app, /main\.querySelector\("\.program-page-manage"\)/);
@@ -468,7 +500,7 @@ test("Ironworks Program keeps routine navigation and management in their intende
   assert.match(css, /\.routine-dialog \.dialog-header h2\s*\{[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap;/);
   assert.match(css, /\.confirm-dialog\[data-variant="routine-delete"\]/);
 
-  const emptyProgram = { id: "empty", name: "Empty", routineIds: [] };
+  const emptyProgram = { id: "empty", name: "Empty", note: "", routineIds: [] };
   const emptyProgramMarkup = programMarkup({
     state: { ...state, programs: [emptyProgram], routines: [], settings: { ...state.settings, activeProgramId: "empty", activeRoutineId: "" } },
     program: emptyProgram,
@@ -510,8 +542,11 @@ test("Program picker and entry editor keep Library and routine data separate", (
     "pickerFormError",
     "entryDialog",
     "entryRoutineContext",
-    "entryPrescriptionLabel",
-    "entryPrescription",
+    "entryChoicesEditorLabel",
+    "entryChoicesList",
+    "addEntryChoiceButton",
+    "entryChoiceDialog",
+    "entryChoicePrescription",
     "entryRole",
     "entryRoleOptions",
     "entryFormNote",
@@ -546,15 +581,21 @@ test("Program picker and entry editor keep Library and routine data separate", (
   assert.match(css, /\.confirm-dialog\[data-variant="entry-remove"\]/);
 });
 
-test("Ironworks Program groups entries by role and keeps reorder targets section-relative", () => {
+test("Ironworks Program renders stored blocks and keeps reorder targets block-relative", () => {
   const app = read("app.js");
   const storage = read("storage.js");
   const css = readStyles();
   const state = createDefaultState();
   const program = state.programs.find((item) => item.id === state.settings.activeProgramId);
   const routine = state.routines.find((item) => item.id === program.routineIds[0]);
-  routine.entries[1].role = "optional";
-  routine.entries[3].role = "optional";
+  routine.blocks = [
+    { id: "main-work", name: "Main work" },
+    { id: "optional-work", name: "Optional coverage" },
+  ];
+  routine.entries.forEach((entry, index) => {
+    entry.blockId = index === 1 || index === 4 ? "optional-work" : "main-work";
+    entry.role = index === 1 || index === 3 || index === 4 ? "optional" : "main";
+  });
   const routines = program.routineIds.map((id) => state.routines.find((item) => item.id === id));
   const markup = programMarkup({
     state,
@@ -563,28 +604,209 @@ test("Ironworks Program groups entries by role and keeps reorder targets section
     routine,
     exerciseById: (current, id) => current.exercises.find((exercise) => exercise.id === id),
   });
-  const mainIds = routine.entries.filter((entry) => entry.role === "main").map((entry) => entry.id);
-  const optionalIds = routine.entries.filter((entry) => entry.role === "optional").map((entry) => entry.id);
+  const mainBlockIds = routine.entries.filter((entry) => entry.blockId === "main-work").map((entry) => entry.id);
+  const optionalBlockIds = routine.entries.filter((entry) => entry.blockId === "optional-work").map((entry) => entry.id);
   const rowIds = [...markup.matchAll(/class="program-row"[^>]+data-id="([^"]+)"/g)].map((match) => match[1]);
   const numbers = [...markup.matchAll(/class="row-number">(\d+)</g)].map((match) => Number(match[1]));
 
-  assert.match(markup, /class="program-section" data-entry-role="main"[\s\S]*class="program-section-label">Main/);
-  assert.match(markup, /class="program-section" data-entry-role="optional"[\s\S]*class="program-section-label">Optional/);
-  assert.match(markup, /class="program-list" data-entry-role="main"/);
-  assert.match(markup, /class="program-list" data-entry-role="optional"/);
-  assert.deepEqual(rowIds, [...mainIds, ...optionalIds]);
+  assert.match(markup, /data-block-id="main-work"[\s\S]*Main work/);
+  assert.match(markup, /data-block-id="optional-work"[\s\S]*Optional coverage/);
+  assert.match(markup, /class="program-list" data-block-id="main-work"/);
+  assert.match(markup, /class="program-list" data-block-id="optional-work"/);
+  assert.deepEqual(rowIds, [...mainBlockIds, ...optionalBlockIds]);
   assert.deepEqual(numbers, routine.entries.map((_, index) => index + 1));
-  assert.doesNotMatch(markup, /Optional · Rehab| · Main| · Optional/);
-  assert.match(app, /const targetRoleIndex = \[\.\.\.drag\.list\.children\]\.indexOf\(drag\.placeholder\)/);
-  assert.match(app, /reorderRoutineEntryWithinRole/);
-  assert.doesNotMatch(app, /reorderRoutineEntry\(state, routine\.id, drag\.entryId, targetIndex\)/);
-  assert.match(storage, /function reorderEntryWithinRole\(/);
-  assert.match(storage, /export function reorderRoutineEntryWithinRole\(/);
+  assert.match(markup, /class="entry-role-tag">Optional/);
+  assert.match(markup, /class="program-block-role">Optional/);
+  assert.match(app, /const targetBlockIndex = \[\.\.\.drag\.list\.children\]\.indexOf\(drag\.placeholder\)/);
+  assert.match(app, /reorderRoutineEntryWithinBlock/);
+  assert.match(storage, /function reorderEntryWithinBlock\(/);
+  assert.match(storage, /export function reorderRoutineEntryWithinBlock\(/);
   assert.match(app, /const ENTRY_HOLD_DELAY = 340;/);
   assert.match(app, /const ENTRY_HOLD_TOLERANCE = 10;/);
   assert.match(css, /\.program-section-label\s*\{[^}]*min-height:\s*30px;/);
   assert.match(css, /\.program-row\s*\{[^}]*min-height:\s*62px;/);
   assert.match(css, /\.program-row-placeholder\s*\{[^}]*min-height:\s*62px;/);
+});
+
+test("Slice 10G exposes scoped notes and complete block authoring", () => {
+  const html = read("index.html");
+  const app = read("app.js");
+  const css = readStyles();
+  const state = createDefaultState();
+  const program = state.programs[0];
+  const routine = state.routines.find((item) => item.id === program.routineIds[0]);
+  const routines = program.routineIds.map((id) => state.routines.find((item) => item.id === id));
+  program.note = "Weekly layout\nKeep one rest day.";
+  routine.note = "Choice menu: choose only what you need.";
+  routine.blocks = [
+    { id: "first-block", name: "Upper-body work" },
+    { id: "second-block", name: "Optional coverage" },
+  ];
+  routine.entries.forEach((entry, index) => {
+    entry.blockId = index < 3 ? "first-block" : "second-block";
+    entry.role = index === 1 || index >= 3 ? "optional" : "main";
+    entry.note = index === 2 ? "Pause for two seconds." : "";
+  });
+
+  const workout = workoutMarkup({
+    state,
+    program,
+    routines,
+    routine,
+    todayKey: "2026-07-25",
+    exerciseById: (current, id) => current.exercises.find((exercise) => exercise.id === id),
+  });
+  const programView = programMarkup({
+    state,
+    program,
+    routines,
+    routine,
+    exerciseById: (current, id) => current.exercises.find((exercise) => exercise.id === id),
+  });
+  const blockEditor = routineBlocksEditorMarkup(routine.blocks, routine.entries);
+
+  assert.ok(workout.indexOf("Choice menu") < workout.indexOf("workout-rows"));
+  assert.ok(workout.indexOf("Upper-body work") < workout.indexOf("Optional coverage"));
+  assert.equal((workout.match(/entry-note-preview/g) || []).length, 1);
+  assert.match(workout, /Pause for two seconds\./);
+  assert.match(workout, /entry-role-tag">Optional/);
+  assert.match(workout, /workout-block-role">Optional/);
+
+  assert.match(programView, /Weekly layout &amp; rules/);
+  assert.match(programView, /program-routine-note/);
+  assert.equal((programView.match(/data-action="open-picker"/g) || []).length, 2);
+  assert.match(programView, /data-block-id="first-block"/);
+  assert.match(programView, /data-block-id="second-block"/);
+  assert.match(blockEditor, /Upper-body work/);
+  assert.match(blockEditor, /3 entries/);
+  assert.match(blockEditor, /Optional coverage/);
+
+  for (const id of [
+    "programNote",
+    "routineNote",
+    "routineBlocksList",
+    "addRoutineBlockButton",
+    "routineBlockDialog",
+    "routineBlockName",
+    "moveBlockEarlierButton",
+    "moveBlockLaterButton",
+    "deleteBlockButton",
+    "entryBlock",
+    "entryNote",
+  ]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(html, />Role<\/span>/);
+  assert.doesNotMatch(html, />Section<\/span>/);
+  assert.match(app, /const BLOCK_HOLD_DELAY = 340;/);
+  assert.match(app, /const BLOCK_HOLD_TOLERANCE = 10;/);
+  assert.match(app, /pickerBlockId/);
+  assert.match(app, /routineBlockDraft/);
+  assert.match(css, /\.routine-block-grip,[\s\S]*?width:\s*44px;/);
+  assert.match(css, /\.routine-note-disclosure summary,[\s\S]*?min-height:\s*44px;/);
+  assert.match(css, /\.entry-note-preview\s*\{[^}]*-webkit-line-clamp:\s*2;/);
+});
+
+test("Slice 10H renders and edits programmed choices without changing slot completion", () => {
+  const html = read("index.html");
+  const app = read("app.js");
+  const storage = read("storage.js");
+  const css = readStyles();
+  const state = createDefaultState();
+  const program = state.programs[0];
+  const routine = state.routines.find((item) => item.id === program.routineIds[0]);
+  const entry = routine.entries[0];
+  const secondChoice = routine.entries[1].choices[0];
+  entry.choices = [entry.choices[0], { ...secondChoice }];
+  entry.note = "Rotate these choices by week.";
+  const routines = program.routineIds.map((id) => state.routines.find((item) => item.id === id));
+  const exerciseById = (current, id) => current.exercises.find((exercise) => exercise.id === id);
+
+  const presentation = entryPresentation(entry, state, exerciseById);
+  assert.equal(presentation.title, "Low-incline dumbbell press or Machine overhead press");
+  assert.equal(presentation.prescription, "3 × 6–10 or 2 × 8–12");
+  assert.equal(presentation.preferred.choice.exerciseId, entry.choices[0].exerciseId);
+
+  const workout = workoutMarkup({
+    state,
+    program,
+    routines,
+    routine,
+    todayKey: "2026-07-25",
+    exerciseById,
+  });
+  const programView = programMarkup({ state, program, routines, routine, exerciseById });
+  const sheet = entryChoicesMarkup({
+    state,
+    routine,
+    entry,
+    blockName: "Upper-body work",
+    displayIndex: 1,
+    exerciseById,
+  });
+  const editor = entryChoicesEditorMarkup(entry.choices, state, exerciseById);
+  const emptyEditor = entryChoicesEditorMarkup([], state, exerciseById);
+  const choicePicker = pickerListMarkup(
+    entry.choices.map((choice) => exerciseById(state, choice.exerciseId)),
+    new Set([entry.choices[0].exerciseId]),
+    { mode: "choice" },
+  );
+
+  assert.match(workout, /data-action="open-entry-choices"/);
+  assert.match(workout, /data-action="open-workout-exercise"/);
+  assert.match(workout, /Low-incline dumbbell press or Machine overhead press/);
+  assert.match(workout, /3 × 6–10 or 2 × 8–12/);
+  assert.match(workout, /data-action="toggle-entry-check"[^>]+data-id="push-a-glutes-entry-001"/);
+  assert.match(programView, /Low-incline dumbbell press or Machine overhead press/);
+  assert.match(programView, /3 × 6–10 or 2 × 8–12/);
+
+  assert.equal((sheet.match(/data-action="open-choice-reference"/g) || []).length, 2);
+  assert.equal((sheet.match(/data-action="open-choice-video"/g) || []).length, 2);
+  assert.match(sheet, /choice-preferred-tag">Preferred/);
+  assert.match(sheet, /Rotate these choices by week/);
+  assert.match(sheet, /completes this routine slot, not an individual choice/);
+  assert.match(editor, /data-action="prefer-entry-choice"/);
+  assert.equal((editor.match(/data-action="edit-entry-choice"/g) || []).length, 2);
+  assert.equal((editor.match(/data-action="remove-entry-choice"/g) || []).length, 2);
+  assert.match(emptyEditor, /Add at least one choice before saving/);
+  assert.match(choicePicker, /already a choice" disabled/);
+  assert.match(choicePicker, /picker-item-action">Added/);
+
+  const sharedEntry = structuredClone(entry);
+  sharedEntry.choices[1].prescription = sharedEntry.choices[0].prescription;
+  const shared = entryPresentation(sharedEntry, state, exerciseById);
+  assert.equal(shared.prescription, sharedEntry.choices[0].prescription);
+  const emptyPrescriptionEntry = structuredClone(entry);
+  emptyPrescriptionEntry.choices[0].prescription = "";
+  assert.match(entryPresentation(emptyPrescriptionEntry, state, exerciseById).prescription, /^No prescription or /);
+  const renamedMaster = state.exercises.find((exercise) => exercise.id === entry.choices[0].exerciseId);
+  renamedMaster.name = "Renamed preferred press";
+  assert.match(entryPresentation(entry, state, exerciseById).title, /^Renamed preferred press or /);
+  assert.equal(entry.choices[0].exerciseId, renamedMaster.id);
+
+  for (const id of [
+    "entryChoicesDialog",
+    "entryChoicesContent",
+    "entryChoiceDialog",
+    "entryChoiceForm",
+    "entryChoicePrescription",
+    "preferEntryChoiceButton",
+    "moveEntryChoiceEarlierButton",
+    "moveEntryChoiceLaterButton",
+    "removeEntryChoiceButton",
+  ]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(html, /id="entryChoicePrescription" required/);
+  assert.match(app, /choices: entryChoiceDraft/);
+  assert.match(app, /function openEntryChoices\(/);
+  assert.match(app, /function refreshOpenEntryChoices\(/);
+  assert.equal((app.match(/refreshOpenEntryChoices\(\);/g) || []).length, 2);
+  assert.match(app, /function moveEntryChoiceDraft\(/);
+  assert.match(app, /Add at least one exercise choice/);
+  assert.match(app, /Add a prescription to every exercise choice/);
+  assert.match(app, /Enter a prescription for this choice/);
+  assert.match(app, /Add a default prescription to this Library exercise/);
+  assert.match(storage, /Object\.hasOwn\(updates, "choices"\)/);
+  assert.match(css, /\.entry-choice-video\s*\{[^}]*width:\s*44px;/);
+  assert.match(css, /\.entry-choice-mini\s*\{[^}]*width:\s*44px;/);
+  assert.doesNotMatch(`${html}\n${app}`, /performedChoice|selectedChoice|choiceHistory/);
 });
 
 test("exercise editing requires the essential classification without a legacy UI state", () => {
@@ -602,7 +824,202 @@ test("exercise editing requires the essential classification without a legacy UI
   assert.match(library, /targetScope === "primary" \? exercise\.primaryTargets : exerciseTargets\(exercise\)/);
 });
 
-test("exercise save executes add, edit, duplicate, essential classification, and required-target paths", () => {
+test("Slice 11B exposes the complete master editor and one accessible scoped picker", () => {
+  const html = read("index.html");
+  const app = read("app.js");
+  const data = read("data.js");
+  const css = readStyles();
+  const editor = html.slice(html.indexOf('<dialog id="exerciseDialog"'), html.indexOf('<dialog id="exerciseFilterDialog"'));
+  for (const id of [
+    "exerciseAliases",
+    "exercisePrescription",
+    "exercisePrimaryTarget1",
+    "exercisePrimaryTarget2",
+    "chooseSecondaryTargetsButton",
+    "exerciseMovement",
+    "chooseEquipmentButton",
+    "exercisePurpose",
+    "exerciseStyle",
+    "exerciseLaterality",
+    "exerciseSupport",
+    "chooseEmphasesButton",
+    "exerciseChallenge",
+    "exerciseVideo",
+    "exerciseInstructions",
+    "chooseAlternativesButton",
+    "duplicateExerciseButton",
+    "deleteExerciseButton",
+  ]) assert.match(editor, new RegExp(`id="${id}"`));
+  assert.match(editor, /class="exercise-editor-footer"/);
+  assert.match(editor, /Routine execution stays in Program/);
+  assert.doesNotMatch(editor, /entryRole|entryPrescription|routine prescription/i);
+  assert.match(html, /id="classificationPickerDialog"/);
+  assert.match(app, /upsertExerciseInState\(state, exercise, relatedExercises\)/);
+  assert.match(app, /normalizedExerciseSearch/);
+  assert.match(app, /exerciseEditorMode === "duplicate"/);
+  assert.match(css, /\.exercise-editor-dialog\s*\{[^}]*height:\s*100dvh;/);
+  assert.match(css, /\.exercise-editor-scroll\s*\{[^}]*overflow:\s*auto;/);
+  assert.match(css, /\.exercise-editor-footer\s*\{[^}]*safe-area-inset-bottom/);
+  for (const label of ["Neck", "Feet/toes", "Neck movement", "Foot/toe control", "Hip extension", "Shrug"]) {
+    assert.match(data, new RegExp(`"${label.replace("/", "\\/")}"`));
+  }
+
+  const picker = classificationOptionPickerMarkup({
+    options: [{ id: "chest", label: "Chest" }, { id: "triceps", label: "Triceps" }],
+    selected: ["triceps"],
+    excluded: ["chest"],
+  });
+  assert.match(picker, /data-classification-value="chest" aria-pressed="false" disabled/);
+  assert.match(picker, /Primary target/);
+  assert.match(picker, /data-classification-value="triceps" aria-pressed="true"/);
+  assert.match(picker, /Selected/);
+});
+
+test("Slice 11C exposes linked-first relationship editing and exact deletion impact", () => {
+  const html = read("index.html");
+  const app = read("app.js");
+  const storage = read("storage.js");
+  const css = readStyles();
+  for (const id of [
+    "alternativesDialog",
+    "alternativesDialogHint",
+    "alternativesSearch",
+    "alternativesList",
+    "cancelAlternativesButton",
+    "saveAlternativesButton",
+  ]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(html, /Changes stay in this draft until you save the master exercise/);
+  assert.match(app, /relation:\s*"similar"/);
+  assert.match(app, /data-add-related/);
+  assert.match(app, /data-remove-related/);
+  assert.match(app, /data-related-relation/);
+  assert.match(app, /exerciseDeletionImpact\(state, id\)/);
+  assert.match(app, /Programmed use:/);
+  assert.match(app, /alternative.*removed/);
+  assert.match(app, /choices.*promoted/);
+  assert.match(app, /slots.*deleted with any saved checks/);
+  assert.match(app, /Related links removed:/);
+  assert.match(storage, /alternativeChoicesRemoved/);
+  assert.match(storage, /preferredChoicesPromoted/);
+  assert.match(storage, /slotsDeleted/);
+  assert.match(css, /\.relationship-list\s*\{[^}]*overflow:\s*auto;/);
+  assert.match(css, /\.relationship-relation select\s*\{[^}]*min-height:\s*44px;/);
+  assert.match(css, /\.relationship-remove\s*\{[^}]*min-height:\s*44px;/);
+  assert.match(css, /\.confirm-dialog\[data-variant="exercise-delete"\]/);
+
+  const linked = {
+    exercise: {
+      id: "linked",
+      name: "Linked <press>",
+      primaryTargets: ["chest"],
+      secondaryTargets: [],
+      movementPattern: "horizontal-press",
+      purpose: "strength",
+    },
+    relation: "similar",
+  };
+  const available = {
+    id: "available",
+    name: "Available row",
+    primaryTargets: ["triceps"],
+    secondaryTargets: [],
+    movementPattern: "elbow-extension",
+    purpose: "strength",
+  };
+  const markup = relationshipEditorMarkup({
+    linkedExercises: [linked],
+    availableExercises: [available],
+  });
+  assert.ok(markup.indexOf("Linked &lt;press&gt;") < markup.indexOf("Available row"));
+  assert.match(markup, /value="similar" selected>Alternative/);
+  assert.match(markup, /data-remove-related="linked"/);
+  assert.match(markup, /data-add-related="available"/);
+  assert.doesNotMatch(markup, /Linked <press>/);
+
+  const messageStart = app.indexOf("function exerciseDeletionMessage(");
+  const messageEnd = app.indexOf("async function deleteExercise(", messageStart);
+  const messageSource = app.slice(messageStart, messageEnd);
+  const context = {};
+  runInNewContext(`${messageSource}
+    this.zero = exerciseDeletionMessage({ name: "Unused" }, {
+      programmedUses: 0,
+      alternativeChoicesRemoved: 0,
+      preferredChoicesPromoted: 0,
+      slotsDeleted: 0,
+      relatedLinksRemoved: 2,
+    });
+    this.mixed = exerciseDeletionMessage({ name: "Mixed" }, {
+      programmedUses: 3,
+      alternativeChoicesRemoved: 1,
+      preferredChoicesPromoted: 1,
+      slotsDeleted: 1,
+      relatedLinksRemoved: 1,
+    });`, context);
+  assert.match(context.zero, /Programmed use: 0 slots/);
+  assert.match(context.zero, /No routine choices, slots, or saved checks will change/);
+  assert.match(context.zero, /Related links removed: 2/);
+  assert.match(context.mixed, /Programmed use: 3 slots/);
+  assert.match(context.mixed, /1 alternative choice removed; 1 next choice promoted; 1 slot deleted/);
+});
+
+test("a failed exercise deletion write keeps the editor and stored state intact", async () => {
+  const app = read("app.js");
+  const start = app.indexOf("function exerciseDeletionMessage(");
+  const end = app.indexOf("function renderProgramsList(", start);
+  const source = app.slice(start, end);
+  const state = createDefaultState();
+  const before = structuredClone(state);
+  const exerciseId = state.exercises[0].id;
+  let confirmation;
+  let replaceCalls = 0;
+  let closeCalls = 0;
+  let renderCalls = 0;
+  const context = {
+    exerciseById: (candidate, id) => candidate.exercises.find((exercise) => exercise.id === id),
+    exerciseDeletionImpact: (candidate, id) => {
+      const exercise = candidate.exercises.find((item) => item.id === id);
+      return {
+        programmedUses: candidate.routines.flatMap((routine) => routine.entries)
+          .filter((entry) => entry.choices.some((choice) => choice.exerciseId === id)).length,
+        alternativeChoicesRemoved: 0,
+        preferredChoicesPromoted: 0,
+        slotsDeleted: 1,
+        relatedLinksRemoved: exercise.relatedExercises.length,
+      };
+    },
+    confirmAction: async (...args) => {
+      confirmation = args;
+      return true;
+    },
+    removeExerciseFromState: () => before,
+    saveResult: (result) => result.ok,
+    refreshOpenEntryChoices: () => {},
+    render: () => { renderCalls += 1; },
+    document: {
+      querySelector: () => ({ close: () => { closeCalls += 1; } }),
+    },
+    store: {
+      getState: () => state,
+      replace: () => {
+        replaceCalls += 1;
+        return { ok: false };
+      },
+    },
+  };
+  runInNewContext(`${source}
+    this.promise = deleteExercise(${JSON.stringify(exerciseId)});`, context);
+  await context.promise;
+  assert.equal(replaceCalls, 1);
+  assert.equal(closeCalls, 0);
+  assert.equal(renderCalls, 0);
+  assert.deepEqual(state, before);
+  assert.equal(confirmation[0], "Delete exercise");
+  assert.equal(confirmation[2], "Delete exercise");
+  assert.equal(confirmation[3], "Keep exercise");
+  assert.equal(confirmation[4], "exercise-delete");
+});
+
+test("exercise save executes atomic add, edit, duplicate, optional classification, and required-target paths", () => {
   const app = read("app.js");
   const start = app.indexOf("function youtubeId(");
   const end = app.indexOf("async function deleteExercise(", start);
@@ -614,22 +1031,28 @@ test("exercise save executes add, edit, duplicate, essential classification, and
   const equipmentValues = ["dumbbells", "bench", "cable"].map((id) => ({ id }));
   const purposes = ["strength", "mobility", "rehab"].map((id) => ({ id }));
 
-  function runSave(state, values, secondaryTargets = [], equipment = [], pendingRelatedExercises = []) {
-    const error = { textContent: "" };
-    let updateCalls = 0;
+  function runSave(state, values, selections = {}, pendingRelatedExercises = []) {
+    let error = "";
+    let replaceCalls = 0;
     let closeCalls = 0;
     let renderCalls = 0;
     const elements = {
       "#exerciseId": { value: values.id || "" },
       "#exerciseName": { value: values.name || "" },
+      "#exerciseAliases": { value: values.aliases || "" },
       "#exercisePrimaryTarget1": { value: values.primaryTarget1 || "" },
       "#exercisePrimaryTarget2": { value: values.primaryTarget2 || "" },
       "#exerciseMovement": { value: values.movement || "" },
       "#exercisePurpose": { value: values.purpose || "" },
+      "#exerciseStyle": { value: values.style || "" },
+      "#exerciseLaterality": { value: values.laterality || "" },
+      "#exerciseSupport": { value: values.support || "" },
+      "#exerciseChallenge": { value: values.challenge || "" },
       "#exerciseVideo": { value: values.video || "" },
-      "#exerciseFormError": error,
+      "#exerciseFormError": {},
       "#exercisePrescription": { value: values.prescription || "" },
       "#exerciseInstructions": { value: values.instructions || "" },
+      "#chooseEquipmentButton": {},
       "#exerciseDialog": { close: () => { closeCalls += 1; } },
     };
     const context = {
@@ -637,29 +1060,33 @@ test("exercise save executes add, edit, duplicate, essential classification, and
       MOVEMENT_PATTERNS: movements,
       EXERCISE_EQUIPMENT: equipmentValues,
       EXERCISE_PURPOSES: purposes,
+      normalizedExerciseSearch: (value) => (String(value).normalize("NFKD").toLowerCase().match(/[\p{L}\p{N}]+/gu) || []).join(""),
       pendingRelatedExercises,
       exerciseEditorSourceId: values.sourceId || "",
+      exerciseEditorMode: values.mode || (values.id ? "edit" : values.sourceId ? "duplicate" : "add"),
+      exerciseEditorReturnId: "",
+      exerciseEditorSelections: {
+        secondaryTargets: selections.secondaryTargets || [],
+        equipment: selections.equipment || [],
+        emphases: selections.emphases || [],
+      },
       makeId: () => "exercise-new",
-      setRelatedExercisesInState,
+      upsertExerciseInState,
       render: () => { renderCalls += 1; },
+      refreshOpenEntryChoices: () => {},
       saveResult: (result) => result.ok,
+      showExerciseEditorError: (message) => { error = message; },
       document: {
         querySelector: (selector) => {
           assert.ok(elements[selector], `unexpected selector: ${selector}`);
           return elements[selector];
         },
-        querySelectorAll: (selector) => {
-          if (selector === '#secondaryTargetOptions input:checked') return secondaryTargets.map((value) => ({ value }));
-          if (selector === '#exerciseEquipmentOptions input:checked') return equipment.map((value) => ({ value }));
-          assert.fail(`unexpected selector: ${selector}`);
-        },
       },
       store: {
         getState: () => state,
-        update: (mutator) => {
-          updateCalls += 1;
-          const next = structuredClone(state);
-          const candidate = mutator(next) || next;
+        replace: (candidate) => {
+          replaceCalls += 1;
+          if (values.failWrite) return { ok: false };
           if (!validateState(candidate)) return { ok: false };
           for (const key of Object.keys(state)) delete state[key];
           Object.assign(state, candidate);
@@ -668,7 +1095,7 @@ test("exercise save executes add, edit, duplicate, essential classification, and
       },
     };
     runInNewContext(`${source}\nthis.result = saveExercise();`, context);
-    return { result: context.result, error: error.textContent, updateCalls, closeCalls, renderCalls };
+    return { result: context.result, error, replaceCalls, closeCalls, renderCalls };
   }
 
   const addedState = createDefaultState();
@@ -678,13 +1105,25 @@ test("exercise save executes add, edit, duplicate, essential classification, and
     movement: "hip-thrust-bridge",
     purpose: "rehab",
     prescription: "3 × 10",
-  }, ["hamstrings"], ["cable"]);
+    aliases: "Hip cable extension\nStanding hip extension",
+    style: "isolation",
+    laterality: "unilateral",
+    support: "supported",
+    challenge: "shortened-top",
+  }, {
+    secondaryTargets: ["hamstrings"],
+    equipment: ["cable"],
+    emphases: ["glute-bias"],
+  });
   assert.equal(added.result, true);
   const addedExercise = addedState.exercises.find((exercise) => exercise.id === "exercise-new");
   assert.deepEqual(Array.from(addedExercise.primaryTargets), ["glute-max"]);
   assert.deepEqual(Array.from(addedExercise.secondaryTargets), ["hamstrings"]);
   assert.deepEqual(Array.from(addedExercise.equipment), ["cable"]);
   assert.equal(addedExercise.purpose, "rehab");
+  assert.deepEqual(Array.from(addedExercise.aliases), ["Hip cable extension", "Standing hip extension"]);
+  assert.deepEqual(Array.from(addedExercise.emphases), ["glute-bias"]);
+  assert.equal(addedExercise.typicalChallenge, "shortened-top");
 
   const editedState = createDefaultState();
   const editedId = editedState.exercises[0].id;
@@ -697,7 +1136,10 @@ test("exercise save executes add, edit, duplicate, essential classification, and
     primaryTarget1: "lats",
     movement: "horizontal-press",
     purpose: "mobility",
-  }, ["front-delts"], ["dumbbells", "bench"], existingRelated);
+  }, {
+    secondaryTargets: ["front-delts"],
+    equipment: ["dumbbells", "bench"],
+  }, existingRelated);
   assert.equal(edited.result, true);
   assert.deepEqual(Array.from(editedState.exercises[0].primaryTargets), ["lats"]);
   assert.deepEqual(Array.from(editedState.exercises[0].secondaryTargets), ["front-delts"]);
@@ -712,7 +1154,10 @@ test("exercise save executes add, edit, duplicate, essential classification, and
     primaryTarget1: "chest",
     movement: "horizontal-press",
     purpose: "strength",
-  }, ["triceps"], ["dumbbells", "bench"], original.relatedExercises);
+  }, {
+    secondaryTargets: ["triceps"],
+    equipment: ["dumbbells", "bench"],
+  }, original.relatedExercises);
   assert.equal(duplicated.result, true);
   assert.deepEqual(duplicateState.exercises[0], original);
   const duplicate = duplicateState.exercises.find((exercise) => exercise.id === "exercise-new");
@@ -724,27 +1169,190 @@ test("exercise save executes add, edit, duplicate, essential classification, and
   const blocked = runSave(blockedState, { name: "Missing target" });
   assert.equal(blocked.result, false);
   assert.equal(blocked.error, "Choose a dominant target.");
-  assert.equal(blocked.updateCalls, 0);
+  assert.equal(blocked.replaceCalls, 0);
   assert.equal(blocked.closeCalls, 0);
   assert.equal(blocked.renderCalls, 0);
+
+  const collisionState = createDefaultState();
+  const collision = runSave(collisionState, {
+    name: "Unique exercise",
+    aliases: collisionState.exercises[0].name,
+  });
+  assert.equal(collision.result, false);
+  assert.equal(collision.error, "An alias is already used by another exercise.");
+  assert.equal(collision.replaceCalls, 0);
+
+  const failedState = createDefaultState();
+  const failedBefore = structuredClone(failedState);
+  const failed = runSave(failedState, {
+    name: "Unsaved exercise",
+    primaryTarget1: "chest",
+    movement: "horizontal-press",
+    purpose: "strength",
+    failWrite: true,
+  }, {
+    equipment: ["dumbbells"],
+  });
+  assert.equal(failed.result, false);
+  assert.equal(failed.replaceCalls, 1);
+  assert.equal(failed.closeCalls, 0);
+  assert.equal(failed.renderCalls, 0);
+  assert.deepEqual(failedState, failedBefore);
 });
 
-test("target scope and purpose filters remain distinct and combine with AND", () => {
+test("Slice 11A composes normalized Library search, quick groups, and faceted filters", () => {
+  const css = readStyles();
   const exercises = [
-    { id: "primary", name: "Primary", primaryTargets: ["glute-max"], secondaryTargets: [], movementPattern: "hip-hinge", purpose: "mobility" },
-    { id: "secondary", name: "Secondary", primaryTargets: ["quads"], secondaryTargets: ["glute-max"], movementPattern: "squat", purpose: "rehab" },
-    { id: "other", name: "Other", primaryTargets: ["lats"], secondaryTargets: [], movementPattern: "vertical-pull", purpose: "mobility" },
+    {
+      id: "press",
+      name: "Low-incline dumbbell press",
+      aliases: ["Incline DB press"],
+      defaultPrescription: "3 × 8–12",
+      primaryTargets: ["chest"],
+      secondaryTargets: ["triceps"],
+      movementPattern: "horizontal-press",
+      equipment: ["dumbbells", "bench"],
+      purpose: "strength",
+      style: "compound",
+      laterality: "bilateral",
+      emphases: ["upper-chest"],
+      typicalChallenge: "lengthened-bottom",
+    },
+    {
+      id: "row",
+      name: "One-arm cable row",
+      aliases: [],
+      defaultPrescription: "3 × 10",
+      primaryTargets: ["upper-mid-back", "lats"],
+      secondaryTargets: ["chest"],
+      movementPattern: "horizontal-pull",
+      equipment: ["cable"],
+      purpose: "strength",
+      style: "compound",
+      laterality: "unilateral",
+      emphases: [],
+      typicalChallenge: "middle",
+    },
+    {
+      id: "hinge",
+      name: "Romanian deadlift",
+      aliases: ["RDL"],
+      defaultPrescription: "3 × 6–10",
+      primaryTargets: ["hamstrings", "glute-max"],
+      secondaryTargets: ["adductors"],
+      movementPattern: "hip-hinge",
+      equipment: ["barbell", "dumbbells"],
+      purpose: "strength",
+      style: "compound",
+      laterality: "bilateral",
+      emphases: ["glute-bias"],
+      typicalChallenge: "lengthened-bottom",
+    },
+    {
+      id: "mobility",
+      name: "90/90 hip switches",
+      aliases: [],
+      defaultPrescription: "1 × 8",
+      primaryTargets: ["glute-med-min"],
+      secondaryTargets: ["adductors"],
+      movementPattern: "hip-rotation",
+      equipment: ["none"],
+      purpose: "mobility",
+      style: "mobility-control",
+      laterality: "alternating",
+      emphases: [],
+      typicalChallenge: "variable",
+    },
+    {
+      id: "rehab",
+      name: "Cable external rotation",
+      aliases: [],
+      defaultPrescription: "2 × 15",
+      primaryTargets: ["rotator-cuff"],
+      secondaryTargets: ["rear-delts"],
+      movementPattern: "shoulder-rotation",
+      equipment: ["cable"],
+      purpose: "rehab",
+      style: "isolation",
+      laterality: "unilateral",
+      emphases: [],
+      typicalChallenge: "variable",
+    },
   ];
+  const state = { exercises };
+  const ids = (query = "", updates = {}) => filteredExercises(state, {
+    query,
+    ...createLibraryFilters(),
+    ...updates,
+  }).map((exercise) => exercise.id);
 
-  const filter = (query, target, purpose, targetScope = "primary") => filteredExercises(
-    { exercises },
-    { query, target, purpose, targetScope },
-  ).map((exercise) => exercise.id);
-  assert.deepEqual(filter("", "glute-max", "All"), ["primary"]);
-  assert.deepEqual(filter("", "glute-max", "All", "combined"), ["primary", "secondary"]);
-  assert.deepEqual(filter("", "All", "mobility"), ["other", "primary"]);
-  assert.deepEqual(filter("", "glute-max", "mobility"), ["primary"]);
-  assert.deepEqual(filter("mobility", "All", "All"), ["other", "primary"]);
+  assert.deepEqual(ids("incline-db"), ["press"]);
+  assert.deepEqual(ids("90 90"), ["mobility"]);
+  assert.deepEqual(ids("hip/hinge"), ["hinge"]);
+  assert.deepEqual(ids("", { quickGroup: "back" }), ["row"]);
+  assert.deepEqual(ids("", { quickGroup: "push" }), ["press"]);
+  assert.deepEqual(ids("", { targets: ["chest"] }), ["press"]);
+  assert.deepEqual(ids("", { targets: ["chest"], targetScope: "all" }), ["press", "row"]);
+  assert.deepEqual(ids("", { targets: ["chest", "glute-max"] }), ["press", "hinge"]);
+  assert.deepEqual(ids("", {
+    targets: ["glute-max"],
+    movements: ["hip-hinge", "squat"],
+    equipment: ["barbell", "cable"],
+    purposes: ["strength"],
+    styles: ["compound"],
+    lateralities: ["bilateral"],
+    emphases: ["glute-bias"],
+    challenges: ["lengthened-bottom"],
+  }), ["hinge"]);
+  assert.deepEqual(ids("", { equipment: ["cable", "dumbbells"], purposes: ["rehab"] }), ["rehab"]);
+
+  const filters = {
+    ...createLibraryFilters(),
+    targetScope: "all",
+    targets: ["chest", "glute-max"],
+    movements: ["hip-hinge", "squat"],
+    equipment: ["barbell", "cable"],
+  };
+  assert.equal(activeLibraryFilterCount(filters), 4);
+  assert.equal(activeLibraryFilterCount(createLibraryFilters()), 0);
+
+  const groups = availableLibraryBrowseGroups(state).map((group) => group.id);
+  assert.ok(groups.includes("chest"));
+  assert.ok(groups.includes("back"));
+  assert.ok(groups.includes("push"));
+  assert.ok(!groups.includes("neck"));
+  assert.ok(EXERCISE_BROWSE_GROUPS.some((group) => group.id === "neck"));
+
+  const rows = libraryRowsMarkup(exercises);
+  assert.match(rows, /Hamstrings · Glute max/);
+  assert.match(rows, /Hip hinge/);
+  assert.match(rows, /library-purpose">Mobility/);
+  assert.match(rows, /library-purpose">Rehab/);
+  assert.doesNotMatch(rows.slice(rows.indexOf("Cable external rotation")), /Shoulder rotation/);
+  assert.match(libraryRowsMarkup([], { libraryEmpty: true }), /Library is empty[\s\S]*data-action="new-exercise"/);
+  assert.match(libraryRowsMarkup([]), /No matching exercises[\s\S]*data-action="clear-library-filters"[\s\S]*data-action="new-exercise"/);
+
+  const page = libraryMarkup({
+    query: "row",
+    filters,
+    exercises: [exercises[1]],
+    totalCount: exercises.length,
+    browseGroups: availableLibraryBrowseGroups(state),
+  });
+  assert.match(page, /library-app-title">Library <span id="libraryAppCount">1/);
+  assert.match(page, /placeholder="Exercise, target, or movement"/);
+  assert.match(page, /data-action="select-library-quick-group"/);
+  assert.match(page, /data-action="toggle-library-target-scope"/);
+  assert.match(page, /Filter <b>4<\/b>/);
+  assert.match(page, /data-action="view-exercise"/);
+  assert.doesNotMatch(page, /data-action="edit-master-exercise"/);
+  assert.match(css, /\.library-search:focus-within\s*\{[^}]*outline:\s*3px solid var\(--focus\);/);
+
+  const sheet = exerciseFilterContentMarkup(filters);
+  for (const group of ["targets", "movements", "equipment", "purposes", "styles", "lateralities", "emphases", "challenges"]) {
+    assert.match(sheet, new RegExp(`data-filter-group="${group}"`));
+  }
+  assert.match(sheet, /library-more-filters/);
 });
 
 test("failed modal actions have compact in-dialog alert targets", () => {

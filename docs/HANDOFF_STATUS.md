@@ -1,55 +1,65 @@
 # Current Handoff
 
-Updated: 2026-07-24
+Updated: 2026-07-25
 
-This is the current recovery truth. Completed implementation and verification history belongs in Git.
+Read this file first after an interruption, compaction, or handoff. It records only current recovery truth; completed implementation history belongs in Git.
 
-## Baseline
+## Snapshot
 
 | State | Revision | Schema | Cache | Verification |
 | --- | --- | ---: | ---: | --- |
 | Published `origin/main` | `df1f690` | 5 | 24 | Earlier owner-accepted release |
-| Local `main` | `HEAD` — `Plan PPLPPL 7 implementation slices` | 8 | 37 | Slices 7–10 owner device verified; PPLPPL 7 changes are planning/reference only |
+| Local `main` | `96ee1d4` plus uncommitted Slices 10E–11D | 9 | 44 | Slices 10G–11C owner/device verified; Slice 11D repository/runtime verified and device verification pending |
 
-The owner verified the completed Workout, reference/video, Program-management, Library-picker, entry-editor, and grouped reorder flows on the target iPhone in Safari and the installed PWA.
+The cumulative uncommitted working tree is intentional. It contains the approved PPLPPL 7 manifest work, the Slice 10F schema implementation, Slice 10G routine blocks/scoped notes, Slice 10H programmed-choice UI, Slice 11A Library browse/filters, Slice 11B master editor, Slice 11C relationships/deletion, and the Slice 11D replacement seed. Do not discard, partially revert, or split it without first reviewing the full diff. No commit has been requested yet.
 
-## Current product state
+`docs/AUDIT.md` has no confirmed open issue.
 
-- Workout is the compact execution view. Number/check, reference, and linked/unlinked video actions are distinct.
-- Program manages multiple programs, their routines, and routine entries. Program and routine CRUD, duplicate, reorder, confirmation, and failure paths are implemented.
-- Program entries are grouped Main then Optional with continuous numbering. Hold-drag and Earlier/Later remain within the current role; the entry editor deliberately changes role.
-- The Library picker searches shared master exercises. Adding an exercise creates a routine-specific entry without changing the master.
-- The exercise reference shows ordered targets, classification, routine/default prescription, notes, linked video, two external searches, and Easier/Similar/Harder relationships.
-- Main-entry checks drive automatic completion. Optional checks persist without blocking completion. Log remains the explicit history editor.
+## Current product and architecture
 
-## Architecture and data
+- Workout is the compact execution view; Program owns program/routine/entry management; Library owns reusable masters; Log owns dated history.
+- The build-free app uses vanilla HTML, CSS, and JavaScript with no backend or production dependency.
+- `app.js` coordinates state, events, dialogs, and drag behavior. Pure view markup is in `ui/`.
+- `storage.js` owns schema validation and persistent mutations. `data.js` owns controlled vocabularies and the approved restored starting seed.
+- `styles.css` imports the three plain CSS modules under `styles/`; local fonts and the app shell are cached for offline use.
+- Current storage is schema 9 under `gymAppStateV1`.
+- Schema 9 supports aliases, scoped program/routine/entry notes, ordered routine blocks, and ordered non-empty exercise choices with per-choice prescriptions.
+- Slice 10G activates generic routine blocks and program/routine/entry notes in Workout, Program, references, and the existing editors. Entry ordering is block-scoped and independent of Main/Optional role.
+- Slice 10H activates canonical derived choice titles, compact Workout choice sheets, one-slot completion, and ordered per-choice authoring in the existing Program entry editor. Choice prescriptions are required local entry data and never fall back silently to master defaults.
+- Slice 11A activates the Ironworks Library app bar, normalized search, result-bearing derived browse groups, direct primary/combined target scope, compact reference-opening rows, and a session-only draft filter sheet. It does not change stored exercises or the existing master editor/reference flows.
+- Slice 11B activates the full-height Add/Edit/Duplicate master editor, aliases, every essential and optional classification field, focused controlled-value pickers, safe-area-aware fixed save actions, and one atomic exercise/relationship upsert. It preserves stable edit IDs, routine references, current relationship values, and Program-owned execution fields.
+- Slice 11C activates linked-first searchable relationship editing with explicit Easier/Alternative/Harder direction, removal, draft cancellation, and atomic reciprocal saves. Exercise deletion now reports exact programmed-use and cleanup categories before preserving or removing choices, slots, checks, and incoming links through the existing storage boundary.
+- Slice 11D installs the metadata-free approved manifest projection as the sole restored starting state: 177 canonical masters, one generic PPLPPL 7 program, ten ordered routines, 24 blocks, 156 entries, and 184 choices. Existing valid schema-9 device data remains unchanged until the user deliberately chooses `Restore starting data`.
+- Older pre-release schemas and import envelopes are deliberately unsupported. Current-schema saves and current-format backups remain protected.
 
-- Build-free vanilla HTML, CSS, and JavaScript; no backend or production dependencies.
-- `app.js` coordinates state, navigation, events, dialogs, saves, and drag behavior. Pure view markup lives in `ui/`.
-- `storage.js` owns validation and persistent mutations. `data.js` owns controlled vocabularies and seed data.
-- `styles.css` imports `styles/base.css`, `styles/components.css`, and `styles/views.css`.
-- Barlow, Barlow Condensed, and IBM Plex Mono are self-hosted under `fonts/` and cached offline.
-- Current storage is schema 8 under `gymAppStateV1`; production cache is 37.
-- Pre-release data from older schema versions is disposable. Future development should support the current schema and current-format import/export without adding backward migrations unless the owner explicitly asks.
+## Approved replacement content
 
-## Verification
+- The untouched owner source is `references/source-material/pplppl7-glute-specialization.txt`.
+- `references/data/pplppl7-manifest.json` is the sole normalized content source. It is owner-approved with no pending identity, program, expansion, classification, or relationship decision.
+- The validated manifest contains 177 canonical masters, 31 aliases, 33 relationships, one program, ten routines, 24 blocks, 156 entries, and 184 choices.
+- `references/ui-concepts/ironworks-pplppl7.html` is the exact interaction/visual reference for blocks, scoped notes, choices, Home Base, and their editors.
+- The old workbook under `artifacts/exports/` is ignored and non-authoritative.
 
-- Manifest parsing and `git diff --check` pass.
-- All 86 dependency-free checks pass.
-- Changed flows were runtime-checked at 320 × 700 and 393 × 852, in both themes, including scrolling, focus, safe areas, failure rollback, persistence, and offline startup.
-- Fresh bounded verifiers found no remaining correctness, regression, data-loss, accessibility, or plan-adherence issues in Slices 7–10.
-- The owner confirmed the completed checkpoint on the target iPhone in Safari and the installed PWA.
-- The tracked PPLPPL 7 raw source matches the supplied attachment byte-for-byte. The production manifest parses, `git diff --check` passes, and all 86 checks still pass.
-- Fresh architecture, UI-contract, and documentation reviewers found no remaining material blocker in the PPLPPL 7 pre-start plan.
+## Verification truth
 
-## Approved next direction
-
-- `references/ui-concepts/ironworks-pplppl7.html` is the exact visual/interaction reference for named blocks, embedded Optional rows, programmed choices, scoped notes, Home Base, and their editors.
-- The owner-provided program is preserved verbatim at `references/source-material/pplppl7-glute-specialization.txt`; the future tracked manifest, not the ignored workbook, will be the durable normalized data truth.
-- Data review is split into bounded Slices 10E-A identity inventory, 10E-B program/editorial mapping, and 10E-C classification/integrity sign-off before schema or UI work.
-- The next schema will replace singular entry exercise/prescription fields with ordered choices and will use `routine.entries` as its only entry-order source.
-- Two pre-release resets are intentional: schema-shaped development defaults in 10F, then the final approved Library/program seed in 11D. No older-development-data migration is required.
+- Manifest parsing, the approved PPLPPL 7 manifest validator, and `git diff --check` pass.
+- All 78 dependency-free checks pass.
+- Slice 10G was runtime-checked at 320 × 700 and 393 × 852 in both themes. Evidence covers named/mixed/empty blocks, continuous numbering, scoped-note display/editing, block-scoped add, Earlier/Later and hold-drag reorder, preserved roles/history, dialog scrolling/focus return, safe viewport geometry, browser-error monitoring, and cache-39 offline startup.
+- A fresh read-only Slice 10G verifier found no confirmed issue, then rechecked the final integrated state with 71 passing checks and a clean diff.
+- Slice 10H was runtime-checked at 320 × 700 and 393 × 852 in both themes. Evidence covers derived titles/prescriptions, one-slot checks, direct one-choice references, separate per-choice reference/video actions, add/remove/promote/Earlier/Later/prescription editing, duplicate and blank-prescription guards, atomic save failure, reload, long scrolling, focus return, safe viewport geometry, browser-error monitoring, and cache-40 offline startup.
+- A fresh read-only Slice 10H verifier found stale-sheet and blank-prescription integrity defects plus a follow-on refresh-focus defect. All three were corrected and replayed through their exact runtime paths; the final verifier recheck found no remaining confirmed issue.
+- Slice 11A was runtime-checked at 320 × 700 and 393 × 852 in both themes. Evidence covers punctuation-tolerant search, result-bearing quick groups, primary/combined target scope, composed faceted filters, group-count badges, draft Clear/cancel/apply, distinct empty/no-result recovery, reference/add paths, session-only state, independent and horizontal scrolling, fixed filter footer, 44 px controls, safe viewport geometry, browser-error monitoring, and cache-41 offline startup.
+- A fresh read-only Slice 11A verifier found one missing Library-search keyboard focus indicator. The focus state and regression assertion were added; the same verifier rechecked both phone sizes/themes and confirmed the issue resolved with no regression.
+- Slice 11B was runtime-checked at 320 × 700 and 393 × 852 in both themes. Evidence covers explicit Add/Edit/Duplicate modes, required and YouTube errors with retained drafts and focused fields, aliases, essential and optional classification set/clear, primary/secondary exclusion, equipment/emphasis pickers, unchanged and reciprocal relationships, fresh duplicates with no routine use, independent scrolling, fixed safe-area footer, keyboard-visible focus, focus return, browser-error monitoring, and cache-42 offline startup.
+- A fresh read-only Slice 11B verifier found no confirmed correctness, regression, data-integrity, accessibility, scope, cache, or acceptance issue in the final integrated state.
+- Slice 11C was runtime-checked at 320 × 700 and 393 × 852 in both themes. Evidence covers linked-first long-list scrolling, normalized name/classification search, Alternative defaults, Easier/Alternative/Harder changes, remove, nested Cancel, draft-only Done, master Save/cancel, reciprocal reference refresh, duplicate isolation, zero/one/several-use deletion summaries, injected write failure, mixed alternative/promotion/slot cleanup, preserved checks/history, safe areas, focus return, reduced motion, browser-error monitoring, and cache-43 offline startup.
+- A fresh read-only Slice 11C verifier found no confirmed correctness, regression, data-integrity, accessibility, scope, cache, or acceptance issue in the final integrated state.
+- Slice 11D was runtime-checked at 320 × 700 and 393 × 852 in both themes. Evidence covers the exact manifest-derived counts and order, absence of review/source metadata, preservation of current schema-9 data until Restore, restore cancel/success/injected-write-failure paths, all ten routine tabs, Home Base’s pinned note/seven blocks/52 Optional entries, no Optional auto-completion, programmed choices, complete Program and Library lists, unused-master search, independent and horizontal scrolling, visible focus, safe viewport geometry, browser-error monitoring, and cache-44 offline startup.
+- A fresh read-only Slice 11D verifier independently reproduced the exact metadata-free manifest projection and found no confirmed correctness, regression, data-integrity, accessibility, scope, cache, or acceptance issue.
+- The owner verified Slices 7–11C on the target iPhone in Safari and the installed PWA.
+- The owner confirmed schema 9/cache 38 on the target iPhone. Slice 10F is device verified and accepted.
+- Slice 11D Safari and installed-PWA verification is pending on the target iPhone.
 
 ## Next action
 
-Begin Slice 10E-A only when the owner explicitly says to start it. Do not start schema, production UI, or content-normalization work as part of this planning checkpoint.
+Owner device-verifies Slice 11D on the target iPhone and assesses the Slice 12A specification. Do not start Log/day-editor implementation without explicit approval.

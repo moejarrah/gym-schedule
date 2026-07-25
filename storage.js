@@ -1,6 +1,4 @@
 import {
-  DEFAULT_PROGRAM_ID,
-  DEFAULT_PROGRAM_NAME,
   EXERCISE_CHALLENGES,
   EXERCISE_EQUIPMENT,
   EXERCISE_EMPHASES,
@@ -14,8 +12,7 @@ import {
   REVIEWED_EXERCISE_IDS,
   SCHEMA_VERSION,
   createDefaultState,
-  getReviewedExerciseClassification,
-} from "./data.js?v=37";
+} from "./data.js?v=44";
 
 export const STORAGE_KEY = "gymAppStateV1";
 
@@ -47,24 +44,12 @@ const supportedChallenges = new Set(EXERCISE_CHALLENGES.map((option) => option.i
 const supportedRelations = new Set(RELATED_EXERCISE_RELATIONS.map((option) => option.id));
 const reviewedExerciseIds = new Set(REVIEWED_EXERCISE_IDS);
 
-const legacyMuscles = new Set([
-  "Chest", "Back", "Shoulders", "Biceps", "Triceps", "Forearms", "Core",
-  "Quads", "Hamstrings", "Glutes", "Calves", "Adductors", "Ankles",
-]);
-const legacyCategories = new Set(["Mobility", "Rehab", "Full Body"]);
-const legacyTargetMap = new Map([
-  ["Chest", "chest"],
-  ["Biceps", "biceps"],
-  ["Triceps", "triceps"],
-  ["Forearms", "forearms"],
-  ["Quads", "quads"],
-  ["Hamstrings", "hamstrings"],
-  ["Calves", "calves"],
-  ["Adductors", "adductors"],
-  ["Ankles", "ankles"],
-]);
-
 const inverseRelation = { easier: "harder", similar: "similar", harder: "easier" };
+
+function normalizedExerciseIdentity(value) {
+  if (typeof value !== "string") return "";
+  return (value.normalize("NFKD").toLowerCase().match(/[\p{L}\p{N}]+/gu) || []).join("");
+}
 
 function hasUniqueAllowedStrings(values, allowed, minimum = 0, maximum = Infinity) {
   return Array.isArray(values)
@@ -97,15 +82,24 @@ function hasValidExerciseClassification(exercise) {
   return true;
 }
 
-function validateStateVersion(value, version) {
-  if (!isRecord(value) || value.version !== version) return false;
+export function validateState(value) {
+  if (!isRecord(value) || value.version !== SCHEMA_VERSION) return false;
   if (!Array.isArray(value.exercises) || !Array.isArray(value.routines) || !Array.isArray(value.programs)) return false;
   if (!isRecord(value.sessions) || !isRecord(value.settings)) return false;
 
   const exerciseIds = new Set();
+  const exerciseIdentities = new Set();
   for (const exercise of value.exercises) {
     if (!isRecord(exercise) || typeof exercise.id !== "string" || !exercise.id) return false;
     if (typeof exercise.name !== "string" || !exercise.name.trim()) return false;
+    if (!Array.isArray(exercise.aliases)) return false;
+    const identities = [exercise.name, ...exercise.aliases];
+    if (identities.some((identity) => typeof identity !== "string" || !identity.trim())) return false;
+    for (const identity of identities) {
+      const normalized = normalizedExerciseIdentity(identity);
+      if (!normalized || exerciseIdentities.has(normalized)) return false;
+      exerciseIdentities.add(normalized);
+    }
     if (["primaryMuscles", "secondaryMuscles", "categories", "alternativeExerciseIds"].some((key) => Object.hasOwn(exercise, key))) return false;
     if (!hasValidExerciseClassification(exercise)) return false;
     if (typeof exercise.defaultPrescription !== "string") return false;
@@ -128,20 +122,37 @@ function validateStateVersion(value, version) {
 
   const routineIds = new Set();
   const entryIds = new Set();
+  const blockIds = new Set();
   const entryIdsByRoutine = new Map();
   for (const routine of value.routines) {
     if (!isRecord(routine) || typeof routine.id !== "string" || !routine.id) return false;
     if (typeof routine.name !== "string" || !routine.name.trim()) return false;
-    if (!Array.isArray(routine.entries) || routineIds.has(routine.id)) return false;
+    if (!Array.isArray(routine.entries) || !Array.isArray(routine.blocks) || !routine.blocks.length || routineIds.has(routine.id)) return false;
     if (!["gym", "home"].includes(routine.group)) return false;
     if (!["required", "optional"].includes(routine.status)) return false;
+    if (typeof routine.note !== "string") return false;
     routineIds.add(routine.id);
+    const routineBlockIds = new Set();
+    for (const block of routine.blocks) {
+      if (!isRecord(block) || typeof block.id !== "string" || !block.id || typeof block.name !== "string") return false;
+      if (Object.hasOwn(block, "entryIds")) return false;
+      if (blockIds.has(block.id) || routineBlockIds.has(block.id)) return false;
+      blockIds.add(block.id);
+      routineBlockIds.add(block.id);
+    }
     const routineEntryIds = new Set();
     for (const entry of routine.entries) {
       if (!isRecord(entry) || typeof entry.id !== "string" || !entry.id || entryIds.has(entry.id)) return false;
-      if (typeof entry.exerciseId !== "string" || typeof entry.prescription !== "string") return false;
-      if (version >= 8 && !["main", "optional"].includes(entry.role)) return false;
-      if (!exerciseIds.has(entry.exerciseId)) return false;
+      if (Object.hasOwn(entry, "exerciseId") || Object.hasOwn(entry, "prescription")) return false;
+      if (!Array.isArray(entry.choices) || !entry.choices.length) return false;
+      if (!routineBlockIds.has(entry.blockId) || typeof entry.note !== "string") return false;
+      if (!["main", "optional"].includes(entry.role)) return false;
+      const choiceExerciseIds = new Set();
+      for (const choice of entry.choices) {
+        if (!isRecord(choice) || typeof choice.exerciseId !== "string" || typeof choice.prescription !== "string" || !choice.prescription.trim()) return false;
+        if (!exerciseIds.has(choice.exerciseId) || choiceExerciseIds.has(choice.exerciseId)) return false;
+        choiceExerciseIds.add(choice.exerciseId);
+      }
       entryIds.add(entry.id);
       routineEntryIds.add(entry.id);
     }
@@ -153,6 +164,7 @@ function validateStateVersion(value, version) {
   for (const program of value.programs) {
     if (!isRecord(program) || typeof program.id !== "string" || !program.id || programIds.has(program.id)) return false;
     if (typeof program.name !== "string" || !program.name.trim()) return false;
+    if (typeof program.note !== "string") return false;
     if (!Array.isArray(program.routineIds) || !program.routineIds.every((id) => typeof id === "string" && routineIds.has(id))) return false;
     if (new Set(program.routineIds).size !== program.routineIds.length) return false;
     programIds.add(program.id);
@@ -183,197 +195,23 @@ function validateStateVersion(value, version) {
     if (!isRecord(session) || !Array.isArray(session.routineIds) || typeof session.note !== "string") return false;
     if (!session.routineIds.every((id) => typeof id === "string" && routineIds.has(id))) return false;
     if (new Set(session.routineIds).size !== session.routineIds.length) return false;
-    if (version >= 8) {
-      if (!isRecord(session.checkedEntryIdsByRoutine)) return false;
-      let checkedCount = 0;
-      for (const [routineId, checkedEntryIds] of Object.entries(session.checkedEntryIdsByRoutine)) {
-        const validEntryIds = entryIdsByRoutine.get(routineId);
-        if (!validEntryIds || !Array.isArray(checkedEntryIds) || !checkedEntryIds.length) return false;
-        if (!checkedEntryIds.every((id) => typeof id === "string" && validEntryIds.has(id))) return false;
-        if (new Set(checkedEntryIds).size !== checkedEntryIds.length) return false;
-        checkedCount += checkedEntryIds.length;
-      }
-      if (!session.routineIds.length && !checkedCount && !session.note) return false;
-    } else if (!session.routineIds.length && !session.note) {
-      return false;
+    if (!isRecord(session.checkedEntryIdsByRoutine)) return false;
+    let checkedCount = 0;
+    for (const [routineId, checkedEntryIds] of Object.entries(session.checkedEntryIdsByRoutine)) {
+      const validEntryIds = entryIdsByRoutine.get(routineId);
+      if (!validEntryIds || !Array.isArray(checkedEntryIds) || !checkedEntryIds.length) return false;
+      if (!checkedEntryIds.every((id) => typeof id === "string" && validEntryIds.has(id))) return false;
+      if (new Set(checkedEntryIds).size !== checkedEntryIds.length) return false;
+      checkedCount += checkedEntryIds.length;
     }
+    if (!session.routineIds.length && !checkedCount && !session.note) return false;
   }
   return true;
 }
 
-export function validateState(value) {
-  return validateStateVersion(value, SCHEMA_VERSION);
-}
-
-function hasValidLegacyExercise(exercise, exerciseIds) {
-  if (!isRecord(exercise) || typeof exercise.id !== "string" || !exercise.id) return false;
-  if (!hasUniqueAllowedStrings(exercise.primaryMuscles, legacyMuscles, 1, 1)) return false;
-  if (!hasUniqueAllowedStrings(exercise.secondaryMuscles, legacyMuscles)) return false;
-  if (exercise.primaryMuscles.some((target) => exercise.secondaryMuscles.includes(target))) return false;
-  if (!hasUniqueAllowedStrings(exercise.categories, legacyCategories)) return false;
-  if (!Array.isArray(exercise.alternativeExerciseIds)) return false;
-  return exercise.alternativeExerciseIds.every((id) => (
-    typeof id === "string"
-    && exerciseIds.has(id)
-    && id !== exercise.id
-  )) && new Set(exercise.alternativeExerciseIds).size === exercise.alternativeExerciseIds.length;
-}
-
-function mappedLegacyClassification(exercise) {
-  const primaryTargets = exercise.primaryMuscles.map((target) => legacyTargetMap.get(target)).filter(Boolean);
-  const secondaryTargets = exercise.secondaryMuscles
-    .map((target) => legacyTargetMap.get(target))
-    .filter((target) => target && !primaryTargets.includes(target));
-  const purpose = exercise.categories.includes("Rehab")
-    ? "rehab"
-    : exercise.categories.includes("Mobility")
-      ? "mobility"
-      : "strength";
-  return {
-    primaryTargets,
-    secondaryTargets: [...new Set(secondaryTargets)],
-    movementPattern: "",
-    equipment: [],
-    purpose,
-    style: "",
-    laterality: "",
-    support: "",
-    emphases: [],
-    typicalChallenge: "",
-    relatedExercises: [],
-  };
-}
-
-function normalizeRelatedExercises(exercises) {
-  const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]));
-  const pairs = new Map();
-  for (const exercise of exercises) {
-    for (const related of exercise.relatedExercises) {
-      if (!isRecord(related) || !supportedRelations.has(related.relation) || !exerciseById.has(related.exerciseId) || related.exerciseId === exercise.id) {
-        throw new Error("invalid state");
-      }
-      const [leftId, rightId] = [exercise.id, related.exerciseId].sort();
-      const relationFromLeft = exercise.id === leftId ? related.relation : inverseRelation[related.relation];
-      const key = `${leftId}\u0000${rightId}`;
-      if (pairs.has(key) && pairs.get(key).relation !== relationFromLeft) throw new Error("invalid state");
-      pairs.set(key, { leftId, rightId, relation: relationFromLeft });
-    }
-  }
-  for (const exercise of exercises) exercise.relatedExercises = [];
-  for (const { leftId, rightId, relation } of pairs.values()) {
-    exerciseById.get(leftId).relatedExercises.push({ exerciseId: rightId, relation });
-    exerciseById.get(rightId).relatedExercises.push({ exerciseId: leftId, relation: inverseRelation[relation] });
-  }
-  return exercises;
-}
-
-export function migrateState(value) {
-  if (!isRecord(value)) throw new Error("invalid state");
+function currentStateClone(value) {
   const next = clone(value);
-  if (next.version === 1) {
-    if (!Array.isArray(next.exercises)) throw new Error("invalid state");
-    next.exercises = next.exercises.map((exercise) => ({
-      ...exercise,
-      alternativeExerciseIds: [],
-    }));
-    next.version = 2;
-  }
-  if (next.version === 2) {
-    if (!Array.isArray(next.exercises) || !Array.isArray(next.routines) || !isRecord(next.sessions) || !isRecord(next.settings)) {
-      throw new Error("invalid state");
-    }
-    next.exercises = next.exercises.map((exercise) => {
-      const muscles = Array.isArray(exercise.muscles) ? exercise.muscles.filter((muscle) => typeof muscle === "string") : [];
-      const { muscles: _legacyMuscles, ...rest } = exercise;
-      return {
-        ...rest,
-        primaryMuscles: muscles.length ? [muscles[0]] : [],
-        secondaryMuscles: muscles.slice(1),
-      };
-    });
-    next.routines = next.routines
-      .filter((routine) => !(routine.id === "rest" && routine.name === "Rest" && routine.status === "rest" && Array.isArray(routine.entries) && routine.entries.length === 0))
-      .map((routine) => ({ ...routine, status: routine.status === "rest" ? "optional" : routine.status }));
-    const routineIds = new Set(next.routines.map((routine) => routine.id));
-    next.sessions = Object.fromEntries(Object.entries(next.sessions).flatMap(([dateKey, session]) => {
-      if (!isRecord(session)) return [];
-      const keptRoutineIds = Array.isArray(session.routineIds) ? session.routineIds.filter((id) => routineIds.has(id)) : [];
-      const note = typeof session.note === "string" ? session.note : "";
-      return keptRoutineIds.length || note ? [[dateKey, { routineIds: keptRoutineIds, note }]] : [];
-    }));
-    if (!routineIds.has(next.settings.activeRoutineId)) next.settings.activeRoutineId = next.routines[0]?.id || "";
-    next.version = 3;
-  }
-  if (next.version === 3) {
-    next.version = 4;
-  }
-  if (next.version === 4) {
-    if (!Array.isArray(next.exercises)) throw new Error("invalid state");
-    next.exercises = next.exercises.map((exercise) => {
-      const primaryMuscles = Array.isArray(exercise.primaryMuscles) ? exercise.primaryMuscles : [];
-      const secondaryMuscles = Array.isArray(exercise.secondaryMuscles) ? exercise.secondaryMuscles : [];
-      const categories = [...new Set([...primaryMuscles, ...secondaryMuscles].filter((value) => legacyCategories.has(value)))];
-      return {
-        ...exercise,
-        primaryMuscles: primaryMuscles.filter((value) => !legacyCategories.has(value)),
-        secondaryMuscles: secondaryMuscles.filter((value) => !legacyCategories.has(value)),
-        categories,
-      };
-    });
-    next.version = 5;
-  }
-  if (next.version === 5) {
-    if (!Array.isArray(next.routines) || !isRecord(next.settings)) throw new Error("invalid state");
-    const routineIds = next.routines.map((routine) => routine.id);
-    next.programs = [{
-      id: DEFAULT_PROGRAM_ID,
-      name: DEFAULT_PROGRAM_NAME,
-      routineIds,
-    }];
-    next.settings.activeProgramId = DEFAULT_PROGRAM_ID;
-    if (!routineIds.includes(next.settings.activeRoutineId)) next.settings.activeRoutineId = routineIds[0] || "";
-    next.version = 6;
-  }
-  if (next.version === 6) {
-    if (!Array.isArray(next.exercises)) throw new Error("invalid state");
-    const exerciseIds = new Set(next.exercises.map((exercise) => exercise?.id));
-    if (exerciseIds.size !== next.exercises.length || next.exercises.some((exercise) => !hasValidLegacyExercise(exercise, exerciseIds))) {
-      throw new Error("invalid state");
-    }
-    next.exercises = next.exercises.map((exercise) => {
-      const reviewed = getReviewedExerciseClassification(exercise.id);
-      const classification = reviewed || mappedLegacyClassification(exercise);
-      const relatedExercises = [...classification.relatedExercises];
-      for (const exerciseId of exercise.alternativeExerciseIds) {
-        if (!relatedExercises.some((related) => related.exerciseId === exerciseId)) {
-          relatedExercises.push({ exerciseId, relation: "similar" });
-        }
-      }
-      const {
-        primaryMuscles: _legacyPrimary,
-        secondaryMuscles: _legacySecondary,
-        categories: _legacyCategories,
-        alternativeExerciseIds: _legacyAlternatives,
-        ...rest
-      } = exercise;
-      return { ...rest, ...classification, relatedExercises };
-    });
-    normalizeRelatedExercises(next.exercises);
-    next.version = 7;
-  }
-  if (next.version === 7) {
-    if (!validateStateVersion(next, 7)) throw new Error("invalid state");
-    next.routines = next.routines.map((routine) => ({
-      ...routine,
-      entries: routine.entries.map((entry) => ({ ...entry, role: "main" })),
-    }));
-    next.sessions = Object.fromEntries(Object.entries(next.sessions).map(([dateKey, session]) => [
-      dateKey,
-      { ...session, checkedEntryIdsByRoutine: {} },
-    ]));
-    next.version = 8;
-  }
-  if (next.version !== SCHEMA_VERSION) throw new Error("unsupported state version");
+  if (!validateState(next)) throw new Error("unsupported state version");
   return next;
 }
 
@@ -415,17 +253,23 @@ export function createProgramInState(state, name) {
   const trimmedName = typeof name === "string" ? name.trim() : "";
   if (!trimmedName) return next;
   const id = freshId("program", new Set(next.programs.map((program) => program.id)));
-  next.programs.push({ id, name: trimmedName, routineIds: [] });
+  next.programs.push({ id, name: trimmedName, note: "", routineIds: [] });
   next.settings.activeProgramId = id;
   next.settings.activeRoutineId = "";
   return next;
 }
 
 export function renameProgramInState(state, programId, name) {
+  return updateProgramInState(state, programId, { name });
+}
+
+export function updateProgramInState(state, programId, updates) {
   const next = clone(state);
   const program = next.programs.find((item) => item.id === programId);
-  const trimmedName = typeof name === "string" ? name.trim() : "";
+  if (!program || !isRecord(updates)) return next;
+  const trimmedName = typeof updates.name === "string" ? updates.name.trim() : "";
   if (program && trimmedName) program.name = trimmedName;
+  if (typeof updates.note === "string") program.note = updates.note;
   return next;
 }
 
@@ -454,7 +298,8 @@ export function addRoutineToProgram(state, programId, routine) {
   if (next.settings.activeProgramId === programId && !next.settings.activeRoutineId) {
     next.settings.activeRoutineId = routine.id;
   }
-  return syncRoutineOrder(next);
+  syncRoutineOrder(next);
+  return validateState(next) ? next : clone(state);
 }
 
 export function updateRoutineInState(state, routineId, updates) {
@@ -465,6 +310,57 @@ export function updateRoutineInState(state, routineId, updates) {
   if (name) routine.name = name;
   if (["gym", "home"].includes(updates.group)) routine.group = updates.group;
   if (["required", "optional"].includes(updates.status)) routine.status = updates.status;
+  if (typeof updates.note === "string") routine.note = updates.note;
+  if (Object.hasOwn(updates, "blocks")) {
+    if (!Array.isArray(updates.blocks) || !updates.blocks.length) return clone(state);
+    const otherBlockIds = new Set(next.routines
+      .filter((item) => item.id !== routineId)
+      .flatMap((item) => item.blocks.map((block) => block.id)));
+    const blockIds = new Set();
+    for (const block of updates.blocks) {
+      if (!isRecord(block) || typeof block.id !== "string" || !block.id || typeof block.name !== "string") return clone(state);
+      if (Object.hasOwn(block, "entryIds") || otherBlockIds.has(block.id) || blockIds.has(block.id)) return clone(state);
+      blockIds.add(block.id);
+    }
+    if (routine.entries.some((entry) => !blockIds.has(entry.blockId))) return clone(state);
+    routine.blocks = clone(updates.blocks);
+  }
+  return validateState(next) ? next : clone(state);
+}
+
+export function addRoutineBlockInState(state, routineId, name = "") {
+  const next = clone(state);
+  const routine = next.routines.find((item) => item.id === routineId);
+  if (!routine || typeof name !== "string") return next;
+  const usedIds = new Set(next.routines.flatMap((item) => item.blocks.map((block) => block.id)));
+  routine.blocks.push({ id: freshId("block", usedIds), name });
+  return next;
+}
+
+export function updateRoutineBlockInState(state, routineId, blockId, name) {
+  const next = clone(state);
+  const routine = next.routines.find((item) => item.id === routineId);
+  const block = routine?.blocks.find((item) => item.id === blockId);
+  if (block && typeof name === "string") block.name = name;
+  return next;
+}
+
+export function reorderRoutineBlockInState(state, routineId, blockId, targetIndex) {
+  const next = clone(state);
+  const routine = next.routines.find((item) => item.id === routineId);
+  const sourceIndex = routine?.blocks.findIndex((block) => block.id === blockId) ?? -1;
+  if (!routine || sourceIndex < 0 || !Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= routine.blocks.length) return next;
+  const [block] = routine.blocks.splice(sourceIndex, 1);
+  routine.blocks.splice(targetIndex, 0, block);
+  return next;
+}
+
+export function removeRoutineBlockInState(state, routineId, blockId) {
+  const next = clone(state);
+  const routine = next.routines.find((item) => item.id === routineId);
+  if (!routine || routine.blocks.length <= 1) return next;
+  if (routine.entries.some((entry) => entry.blockId === blockId)) return next;
+  routine.blocks = routine.blocks.filter((block) => block.id !== blockId);
   return next;
 }
 
@@ -487,21 +383,27 @@ export function duplicateProgramInState(state, programId, name) {
 
   const programIds = new Set(next.programs.map((program) => program.id));
   const routineIds = new Set(next.routines.map((routine) => routine.id));
+  const blockIds = new Set(next.routines.flatMap((routine) => routine.blocks.map((block) => block.id)));
   const entryIds = new Set(next.routines.flatMap((routine) => routine.entries.map((entry) => entry.id)));
   const copiedRoutineIds = [];
   for (const routine of sourceRoutines) {
     const routineId = freshId("routine", routineIds);
+    const blockIdMap = new Map(routine.blocks.map((block) => [block.id, freshId("block", blockIds)]));
+    const blocks = routine.blocks.map((block) => ({ ...block, id: blockIdMap.get(block.id) }));
     const entries = routine.entries.map((entry) => ({
       ...entry,
       id: freshId("entry", entryIds),
+      blockId: blockIdMap.get(entry.blockId),
+      choices: entry.choices.map((choice) => ({ ...choice })),
     }));
-    next.routines.push({ ...routine, id: routineId, entries });
+    next.routines.push({ ...routine, id: routineId, blocks, entries });
     copiedRoutineIds.push(routineId);
   }
 
   const newProgram = {
     id: freshId("program", programIds),
     name: typeof name === "string" && name.trim() ? name.trim() : `${source.name} copy`,
+    note: source.note,
     routineIds: copiedRoutineIds,
   };
   next.programs.push(newProgram);
@@ -640,12 +542,29 @@ export function updateRoutineEntryInState(state, routineId, entryId, updates) {
   const index = routine?.entries.findIndex((item) => item.id === entryId) ?? -1;
   if (!routine || index < 0 || !isRecord(updates)) return next;
   const entry = routine.entries[index];
-  if (typeof updates.prescription === "string") entry.prescription = updates.prescription;
-  if (["main", "optional"].includes(updates.role) && updates.role !== entry.role) {
-    entry.role = updates.role;
-    routine.entries.splice(index, 1);
-    routine.entries.push(entry);
+  if (Object.hasOwn(updates, "choices")) {
+    if (!Array.isArray(updates.choices) || !updates.choices.length) return clone(state);
+    const choiceIds = new Set();
+    for (const choice of updates.choices) {
+      if (!isRecord(choice) || typeof choice.exerciseId !== "string" || typeof choice.prescription !== "string" || !choice.prescription.trim()) return clone(state);
+      if (!next.exercises.some((exercise) => exercise.id === choice.exerciseId) || choiceIds.has(choice.exerciseId)) return clone(state);
+      choiceIds.add(choice.exerciseId);
+    }
+    entry.choices = clone(updates.choices);
   }
+  if (Object.hasOwn(updates, "prescription")) {
+    if (typeof updates.prescription !== "string" || !updates.prescription.trim()) return clone(state);
+    entry.choices[0].prescription = updates.prescription;
+  }
+  if (Object.hasOwn(updates, "blockId")) {
+    if (typeof updates.blockId !== "string" || !routine.blocks.some((block) => block.id === updates.blockId)) return clone(state);
+    entry.blockId = updates.blockId;
+  }
+  if (Object.hasOwn(updates, "note")) {
+    if (typeof updates.note !== "string") return clone(state);
+    entry.note = updates.note;
+  }
+  if (["main", "optional"].includes(updates.role)) entry.role = updates.role;
   return next;
 }
 
@@ -654,8 +573,15 @@ export function addRoutineEntryInState(state, routineId, entry) {
   const routine = next.routines.find((item) => item.id === routineId);
   if (!routine || !isRecord(entry) || typeof entry.id !== "string" || !entry.id) return next;
   if (next.routines.some((item) => item.entries.some((candidate) => candidate.id === entry.id))) return next;
-  if (!next.exercises.some((exercise) => exercise.id === entry.exerciseId)) return next;
-  if (typeof entry.prescription !== "string" || !["main", "optional"].includes(entry.role)) return next;
+  if (!Array.isArray(entry.choices) || !entry.choices.length) return next;
+  if (!routine.blocks.some((block) => block.id === entry.blockId)) return next;
+  if (typeof entry.note !== "string" || !["main", "optional"].includes(entry.role)) return next;
+  const choiceIds = new Set();
+  for (const choice of entry.choices) {
+    if (!isRecord(choice) || typeof choice.exerciseId !== "string" || typeof choice.prescription !== "string" || !choice.prescription.trim()) return next;
+    if (!next.exercises.some((exercise) => exercise.id === choice.exerciseId) || choiceIds.has(choice.exerciseId)) return next;
+    choiceIds.add(choice.exerciseId);
+  }
   routine.entries.push(clone(entry));
   return next;
 }
@@ -691,11 +617,70 @@ export function setRelatedExercisesInState(state, exerciseId, relatedExercises) 
   return next;
 }
 
+export function upsertExerciseInState(state, exercise, relatedExercises = []) {
+  if (!isRecord(exercise) || typeof exercise.id !== "string" || !exercise.id) return state;
+  if (typeof exercise.name !== "string" || !exercise.name.trim() || !Array.isArray(exercise.aliases)) return state;
+  if (typeof exercise.defaultPrescription !== "string" || typeof exercise.instructions !== "string" || typeof exercise.videoId !== "string") return state;
+  if (!hasValidExerciseClassification(exercise)) return state;
+  if (!exercise.primaryTargets.length || !exercise.movementPattern || !exercise.equipment.length || !exercise.purpose) return state;
+  if (!Array.isArray(relatedExercises)) return state;
+
+  const identities = [exercise.name, ...exercise.aliases];
+  if (identities.some((identity) => typeof identity !== "string" || !identity.trim())) return state;
+  const normalizedIdentities = identities.map(normalizedExerciseIdentity);
+  if (normalizedIdentities.some((identity) => !identity) || new Set(normalizedIdentities).size !== normalizedIdentities.length) return state;
+
+  const targetIds = new Set();
+  for (const related of relatedExercises) {
+    if (!isRecord(related) || typeof related.exerciseId !== "string" || !supportedRelations.has(related.relation)) return state;
+    if (related.exerciseId === exercise.id || targetIds.has(related.exerciseId)) return state;
+    if (!state.exercises.some((candidate) => candidate.id === related.exerciseId)) return state;
+    targetIds.add(related.exerciseId);
+  }
+
+  const next = clone(state);
+  const index = next.exercises.findIndex((candidate) => candidate.id === exercise.id);
+  const candidate = {
+    ...clone(exercise),
+    relatedExercises: index >= 0 ? next.exercises[index].relatedExercises.map((related) => ({ ...related })) : [],
+  };
+  if (index >= 0) next.exercises[index] = candidate;
+  else next.exercises.push(candidate);
+
+  const reconciled = setRelatedExercisesInState(next, exercise.id, relatedExercises);
+  return validateState(reconciled) ? reconciled : state;
+}
+
+export function exerciseDeletionImpact(state, exerciseId) {
+  const exercise = state?.exercises?.find((item) => item.id === exerciseId);
+  if (!exercise) return null;
+  const impact = {
+    programmedUses: 0,
+    alternativeChoicesRemoved: 0,
+    preferredChoicesPromoted: 0,
+    slotsDeleted: 0,
+    relatedLinksRemoved: exercise.relatedExercises.length,
+  };
+  for (const routine of state.routines) {
+    for (const entry of routine.entries) {
+      const choiceIndex = entry.choices.findIndex((choice) => choice.exerciseId === exerciseId);
+      if (choiceIndex < 0) continue;
+      impact.programmedUses += 1;
+      if (entry.choices.length === 1) impact.slotsDeleted += 1;
+      else if (choiceIndex === 0) impact.preferredChoicesPromoted += 1;
+      else impact.alternativeChoicesRemoved += 1;
+    }
+  }
+  return impact;
+}
+
 export function removeExerciseFromState(state, exerciseId) {
   const next = clone(state);
   const removedEntryIdsByRoutine = new Map();
   for (const routine of next.routines) {
-    const removedEntryIds = routine.entries.filter((entry) => entry.exerciseId === exerciseId).map((entry) => entry.id);
+    const removedEntryIds = routine.entries
+      .filter((entry) => entry.choices.length === 1 && entry.choices[0].exerciseId === exerciseId)
+      .map((entry) => entry.id);
     if (removedEntryIds.length) removedEntryIdsByRoutine.set(routine.id, new Set(removedEntryIds));
   }
   next.exercises = next.exercises
@@ -706,7 +691,10 @@ export function removeExerciseFromState(state, exerciseId) {
     }));
   next.routines = next.routines.map((routine) => ({
     ...routine,
-    entries: routine.entries.filter((entry) => entry.exerciseId !== exerciseId),
+    entries: routine.entries.flatMap((entry) => {
+      const choices = entry.choices.filter((choice) => choice.exerciseId !== exerciseId);
+      return choices.length ? [{ ...entry, choices }] : [];
+    }),
   }));
   return cleanEntrySessions(next, removedEntryIdsByRoutine);
 }
@@ -730,51 +718,68 @@ export function moveItem(items, index, direction) {
   return next;
 }
 
-function reorderEntryWithinRole(routine, entryId, targetRoleIndex) {
+function reorderEntryWithinBlock(routine, entryId, targetBlockIndex) {
   const entry = routine.entries.find((item) => item.id === entryId);
-  if (!entry || !Number.isInteger(targetRoleIndex)) return false;
-  const roleEntries = routine.entries.filter((item) => item.role === entry.role);
-  const sourceRoleIndex = roleEntries.findIndex((item) => item.id === entryId);
-  if (sourceRoleIndex < 0 || targetRoleIndex < 0 || targetRoleIndex >= roleEntries.length) return false;
-  const [moved] = roleEntries.splice(sourceRoleIndex, 1);
-  roleEntries.splice(targetRoleIndex, 0, moved);
-  let roleIndex = 0;
+  if (!entry || !Number.isInteger(targetBlockIndex)) return false;
+  const blockEntries = routine.entries.filter((item) => item.blockId === entry.blockId);
+  const sourceBlockIndex = blockEntries.findIndex((item) => item.id === entryId);
+  if (sourceBlockIndex < 0 || targetBlockIndex < 0 || targetBlockIndex >= blockEntries.length) return false;
+  const [moved] = blockEntries.splice(sourceBlockIndex, 1);
+  blockEntries.splice(targetBlockIndex, 0, moved);
+  let blockIndex = 0;
   routine.entries = routine.entries.map((item) => (
-    item.role === entry.role ? roleEntries[roleIndex++] : item
+    item.blockId === entry.blockId ? blockEntries[blockIndex++] : item
   ));
   return true;
 }
 
-export function moveRoutineEntry(state, routineId, entryId, direction, prescription, role) {
+export function moveRoutineEntry(state, routineId, entryId, direction, updates = {}) {
   const next = clone(state);
   const routine = next.routines.find((item) => item.id === routineId);
   const index = routine?.entries.findIndex((entry) => entry.id === entryId) ?? -1;
-  if (!routine || index < 0) return next;
+  if (!routine || index < 0 || !isRecord(updates)) return next;
   const entry = routine.entries[index];
-  entry.prescription = prescription;
-  if (["main", "optional"].includes(role) && role !== entry.role) {
-    entry.role = role;
-    routine.entries.splice(index, 1);
-    routine.entries.push(entry);
+  if (Object.hasOwn(updates, "choices")) {
+    if (!Array.isArray(updates.choices) || !updates.choices.length) return clone(state);
+    const choiceIds = new Set();
+    for (const choice of updates.choices) {
+      if (!isRecord(choice) || typeof choice.exerciseId !== "string" || typeof choice.prescription !== "string" || !choice.prescription.trim()) return clone(state);
+      if (!next.exercises.some((exercise) => exercise.id === choice.exerciseId) || choiceIds.has(choice.exerciseId)) return clone(state);
+      choiceIds.add(choice.exerciseId);
+    }
+    entry.choices = clone(updates.choices);
   }
-  const roleEntries = routine.entries.filter((item) => item.role === entry.role);
-  const sourceRoleIndex = roleEntries.findIndex((item) => item.id === entryId);
-  reorderEntryWithinRole(routine, entryId, sourceRoleIndex + direction);
-  return next;
+  if (Object.hasOwn(updates, "prescription")) {
+    if (typeof updates.prescription !== "string" || !updates.prescription.trim()) return clone(state);
+    entry.choices[0].prescription = updates.prescription;
+  }
+  if (["main", "optional"].includes(updates.role)) entry.role = updates.role;
+  if (typeof updates.note === "string") entry.note = updates.note;
+  if (Object.hasOwn(updates, "blockId")) {
+    if (typeof updates.blockId !== "string" || !routine.blocks.some((block) => block.id === updates.blockId)) return clone(state);
+    entry.blockId = updates.blockId;
+  }
+  const blockEntries = routine.entries.filter((item) => item.blockId === entry.blockId);
+  const sourceBlockIndex = blockEntries.findIndex((item) => item.id === entryId);
+  reorderEntryWithinBlock(routine, entryId, sourceBlockIndex + direction);
+  return validateState(next) ? next : clone(state);
 }
 
-export function reorderRoutineEntryWithinRole(state, routineId, entryId, targetRoleIndex) {
+export function reorderRoutineEntryWithinBlock(state, routineId, entryId, targetBlockIndex) {
   const next = clone(state);
   const routine = next.routines.find((item) => item.id === routineId);
   if (!routine) return next;
-  reorderEntryWithinRole(routine, entryId, targetRoleIndex);
+  reorderEntryWithinBlock(routine, entryId, targetBlockIndex);
   return next;
 }
 
 export function parseImportedState(text) {
   try {
     const parsed = JSON.parse(text);
-    const candidate = migrateState(parsed?.data || parsed);
+    if (!isRecord(parsed) || parsed.schemaVersion !== SCHEMA_VERSION || !isRecord(parsed.data)) {
+      throw new Error("invalid backup envelope");
+    }
+    const candidate = currentStateClone(parsed.data);
     if (!validateState(candidate)) throw new Error("invalid state");
     return clone(candidate);
   } catch (_) {
@@ -831,16 +836,8 @@ export function createStore(storage) {
     }
     try {
       const parsed = JSON.parse(raw);
-      const migrated = migrateState(parsed);
-      if (!validateState(migrated)) throw new Error("invalid state");
-      state = clone(migrated);
-      if (parsed.version !== migrated.version) {
-        try {
-          storage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-        } catch (_) {
-          lastError = "Your data was upgraded for this session, but the upgrade could not be saved on this device.";
-        }
-      }
+      const current = currentStateClone(parsed);
+      state = clone(current);
       return getState();
     } catch (error) {
       try {

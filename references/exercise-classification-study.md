@@ -1,6 +1,8 @@
 # Exercise Classification Study
 
-Status: approved reference. The vocabulary entered production in schema 7 and remains current in schema 8.
+Status: approved reference. The vocabulary entered production in schema 7 and remains current in schema 9.
+
+The approved replacement catalog adds six narrowly scoped controlled values: targets `Neck` and `Feet/toes`, plus movements `Neck movement`, `Foot/toe control`, `Hip extension`, and `Shrug`. They are included in the schema 9 production contract.
 
 ## Decision
 
@@ -192,9 +194,9 @@ Cards show only the name, default prescription, dominant target, and one useful 
 
 ## Handling the existing 77 exercises
 
-Do not classify all exercises directly in production code by hand.
+Do not classify a large catalog ad hoc inside production code.
 
-The editable source is `artifacts/exports/Gym App Data.xlsx`. Slice 5:
+Historical Slice 5 used `artifacts/exports/Gym App Data.xlsx` to:
 
 1. Preserved all 77 IDs, names, prescriptions, notes/cues, and video IDs.
 2. Added the approved classification columns and exact lookup lists.
@@ -202,7 +204,7 @@ The editable source is `artifacts/exports/Gym App Data.xlsx`. Slice 5:
 4. Added only clear alternative/progression relationships, with reciprocal rows.
 5. Mechanically validated required values, target exclusion, controlled vocabularies, stable links, and blank optional uncertainty.
 
-The workbook remains local and editable. Historical Slice 6 converted its reviewed labels to stable IDs and completed the then-required migration without replacing user-owned names, prescriptions, notes/cues, or videos. That migration statement describes completed history, not current policy: later pre-release schemas may deliberately reset development data and must not add backward-compatibility work unless the owner asks.
+Historical Slice 6 converted that workbook’s reviewed labels to stable IDs and completed the then-required migration without replacing user-owned names, prescriptions, notes/cues, or videos. The old workbook is now an unused local artifact; the tracked PPLPPL 7 manifest is authoritative for the replacement catalog. This history is not current policy: later pre-release schemas may deliberately reset development data and must not add backward-compatibility work unless the owner asks.
 
 ## UI mapping
 

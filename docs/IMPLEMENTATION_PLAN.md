@@ -1,8 +1,8 @@
 # Ironworks Implementation Plan
 
-Status: PPLPPL 7 planning checkpoint repo-verified; Slice 10E-A awaiting owner start approval
-Current checkpoint: Slices 7–10 owner verified
-Next decision: approve Slice 10E-A after the planning checkpoint is committed
+Status: Slices 10G–11C owner/device verified; Slice 11D repository/runtime verified and device verification pending
+Current checkpoint: Slices 7–11C owner verified; Slice 11D implemented through its verifier gate
+Next action: owner verifies Slice 11D on the target iPhone and assesses the Slice 12A specification; do not continue without approval
 
 ## Goal
 
@@ -17,9 +17,9 @@ Finish the owner-approved Ironworks interface without changing the product hiera
 - `references/ui-concepts/ironworks-pplppl7.html`: approved PPLPPL 7 blocks, embedded Optional slot, programmed choices, scoped notes, Home Base, and editor extensions.
 - `references/ui-concepts/ironworks-flows.css`: shared reference-only Program and Log/Settings styles.
 - `references/exercise-classification-study.md`: approved classification vocabulary.
-- `references/pplppl7-data-study.md`: approved replacement-program identity, naming, note, routine-block, programmed-choice, and workbook contract.
+- `references/pplppl7-data-study.md`: approved replacement-program identity, naming, note, routine-block, programmed-choice, and evidence contract.
 
-Production should reproduce the approved dark-first charcoal/bone system, cobalt state/action color, compact rows, focused sheets, and self-hosted typography at 320 px and 393 px. For PPLPPL 7 flows, reproduce `ironworks-pplppl7.html` rather than inventing a parallel presentation. `PRODUCT.md` and the reviewed content manifest override stale illustrative copy preserved inside a reference.
+Production should reproduce the approved dark-first charcoal/bone system, cobalt state/action color, compact rows, focused sheets, and self-hosted typography at 320 px and 393 px. For PPLPPL 7 flows, reproduce `references/ui-concepts/ironworks-pplppl7.html` rather than inventing a parallel presentation. `PRODUCT.md` and the reviewed content manifest override stale illustrative copy preserved inside a reference.
 
 ## Architecture boundary
 
@@ -32,35 +32,35 @@ Production should reproduce the approved dark-first charcoal/bone system, cobalt
 - Do not add a framework, bundler, router, generic controller layer, backend, account, sync, analytics, or production dependency.
 - Do not split `app.js` for line count alone. Reassess ownership during final consolidation after the remaining views exist.
 - Pre-release data from older schemas is disposable. Do not add backward migrations unless the owner explicitly asks.
-- The next development schema may reset to reviewed defaults and add master aliases, scoped notes, routine blocks, and programmed entry choices. Define the complete shape once; do not create a migration ladder between unfinished development slices.
+- Schema 9 already introduced master aliases, scoped notes, routine blocks, and programmed entry choices in one deliberate development reset. Later UI slices use that shape without a migration ladder.
 
 ## Completed checkpoint
 
 The Ironworks foundation, Workout execution, reference/video flows, Program management, Library picker, routine-entry editor, and grouped role-scoped reorder are complete through Slice 10. Exact revision, schema/cache, and verification truth belong in `HANDOFF_STATUS.md`; detailed history belongs in Git.
 
-## Remaining sequence
+## Current and remaining sequence
 
 Each implementation slice stops after complete repository/runtime checks, a fresh bounded verifier, and owner assessment.
 
-1. **Slice 10E-A — Source inventory and canonical identities**
-2. **Slice 10E-B — Program, routine, and editorial mapping**
-3. **Slice 10E-C — Classification, relationships, and manifest sign-off**
-4. **Slice 10F — Replacement-program data contract**
-5. **Slice 10G — Routine blocks and scoped notes**
-6. **Slice 10H — Programmed exercise choices**
-7. **Slice 11A — Library browse and filters**
-8. **Slice 11B — Master exercise editor**
-9. **Slice 11C — Relationships and deletion**
-10. **Slice 11D — Replacement Library and program seed**
-11. **Slice 12A — Log and day editor**
-12. **Slice 12B — Settings and current-format data portability**
-13. **Slice 13 — Consolidate and release**
+1. **Slice 10G — Routine blocks and scoped notes** — owner/device verified
+2. **Slice 10H — Programmed exercise choices** — owner/device verified
+3. **Slice 11A — Library browse and filters** — owner/device verified
+4. **Slice 11B — Master exercise editor** — owner/device verified
+5. **Slice 11C — Relationships and deletion** — owner/device verified
+6. **Slice 11D — Replacement Library and program seed** — repository/runtime verified; device verification pending
+7. **Slice 12A — Log and day editor**
+8. **Slice 12B — Settings and current-format data portability**
+9. **Slice 13 — Consolidate and release**
+
+Slices 12A–13 are sequence placeholders, not implementation-ready specifications. Tighten each one against the approved Log/Settings references and current product contract before starting it; do not improvise it from the title.
 
 ## Replacement-program design brief
 
 ### Outcome
 
 Install the owner-provided `PPLPPL 7 — Glute Specialization` as the main reviewed program while keeping one non-redundant global Library. Preserve the source’s named blocks, order, Main/Optional meaning, programmed choices, bracketed instructions, capitalization, punctuation, prescriptions, and notes without turning contextual overlap into fake classification.
+
+PPLPPL 7 is one program, not the product architecture or app identity. Gym Schedule remains program-agnostic: future programs use the same editors, routine-entry model, and global Library without a new schema or program-specific code.
 
 The phone interface remains the approved restrained Ironworks system. New information is shown through compact typographic hierarchy and plain-text notes, not cards, dashboards, badges grids, or a scheduling engine.
 
@@ -75,7 +75,7 @@ The phone interface remains the approved restrained Ironworks system. New inform
 
 `routine.entries` remains the only entry-order source. A block owns no entry-ID list; `entry.blockId` supplies membership, and rendering walks ordered blocks while preserving the order of matching entries in `routine.entries`.
 
-The content manifest is reviewed in 10E-A through 10E-C. The complete next-schema shape is then introduced once in 10F; later slices activate its UI and content without additional schema bumps.
+The content manifest was reviewed in 10E-A through 10E-D. The complete schema shape was introduced once in 10F; later slices activate its UI and content without additional schema bumps.
 
 ### Implementation ownership
 
@@ -118,7 +118,7 @@ Before the concept becomes production truth, apply these behavior-preserving cor
 - In an Exercise Choices sheet, reference and video are separate actions. Do not put both meanings inside one button.
 - Choice ordering must support exact Earlier/Later movement as well as making a choice preferred. Block ordering keeps its existing accessible fallback.
 - Block management must support the template’s hold-drag interaction plus Earlier/Later fallback. It must preserve block membership, avoid text selection, split hold from scrolling, and retain 44 px targets at both supported widths.
-- The RDL/back-extension rotation and Bulgarian-split-squat/reverse-lunge alternative must become real programmed choices once 10E-B resolves their prescriptions; a preview note alone is insufficient.
+- The Bulgarian-split-squat/reverse-lunge alternative is a programmed choice. The 45° glute-biased back-extension rotation remains a note-only instruction on Romanian deadlift; do not add a second choice or invent a prescription.
 - Verify the approved layouts in both themes. The concept author reported dark-theme checks at both widths; production still requires the full light/dark gate.
 
 ### Prospective product-action map
@@ -127,13 +127,13 @@ Before the concept becomes production truth, apply these behavior-preserving cor
 
 | User action | Current path | Planned path |
 | --- | --- | --- |
-| Read shared program rules | No program-note path | One compact disclosure in Program; routine-specific views are not cluttered with repeated weekly rules |
-| Follow written routine structure | Main rows are regrouped before Optional rows | Named blocks and entries remain in source order; Optional is stated without moving the row |
+| Read shared program rules | One compact disclosure in Program; routine-specific views are not cluttered with repeated weekly rules | Unchanged |
+| Follow written routine structure | Named blocks and entries remain in stored order; Optional is stated without moving the row | Unchanged |
 | Mark work complete | Check one master-backed entry | Check one routine slot, regardless of how many programmed choices it offers |
-| Open exercise guidance | Row opens its single master reference | One-choice row opens directly; multi-choice row first opens `Exercise choices`; a selected choice opens that master with its choice prescription and shared entry note |
+| Open exercise guidance | One-choice row opens its master reference with the shared routine-entry note kept separate from master notes | One-choice row remains direct; multi-choice row first opens `Exercise choices`; a selected choice opens that master with its choice prescription and shared entry note |
 | Watch a video | Row uses its single master link/search | One-choice video is unchanged; a multi-choice row’s trailing video uses the preferred choice, while the sheet exposes a separate video action for every choice |
-| Reorder an entry | Hold-drag or Earlier/Later within one role | Hold-drag or Earlier/Later within one routine block |
-| Edit routine programming | Entry editor changes prescription and Main/Optional section | Entry editor changes Role, block, note, and ordered exercise/prescription choices |
+| Reorder an entry | Hold-drag or Earlier/Later within one routine block; Main and Optional can cross without changing role | Unchanged |
+| Edit routine programming | Entry editor changes prescription, Role, block, and note | Add ordered exercise/prescription choices |
 | Compare global exercises | Easier/Similar/Harder in the reference | Easier/Alternative/Harder; stored `similar` remains reciprocal |
 | Delete a master | Referencing entries are deleted | That choice is removed; the next choice becomes preferred, and the slot/checks are deleted only when no choice remains |
 
@@ -141,86 +141,19 @@ Before the concept becomes production truth, apply these behavior-preserving cor
 
 - `references/source-material/pplppl7-glute-specialization.txt` is the tracked verbatim owner source.
 - `references/data/pplppl7-manifest.json` is the tracked normalized review result and later seed input.
-- The ignored `artifacts/exports/Gym App Data.xlsx` is an owner-friendly editing and review view, not a second source of truth.
-- Workbook changes become durable only after validation and regeneration into the tracked JSON manifest.
-- The manifest catalog is the reviewed union of the current 77 masters and the new program’s independently selectable exercises. Existing unused masters remain unless the owner approves an identity merge or removal.
+- The old ignored `artifacts/exports/Gym App Data.xlsx` is unused and is never an implementation input. Generate a fresh workbook from the manifest only if the owner asks for one.
+- The manifest catalog is the reviewed deduplicated union of the owner source and the Stage-A inventory of the existing 77 masters. Every prior master is retained, cleanly renamed, merged, split, or retired; obsolete compound records and redundant placeholders do not survive merely because they existed.
+- Stage-A `currentMasters` records lineage only. Runtime receives one canonical master catalog, not current/new/workbook stores.
 
-### 10E-A. Source inventory and canonical identities
+### Completed content review (10E-A–10E-D)
 
-**Goal:** establish a durable, complete inventory and resolve what each written label represents before mapping program behavior.
+The source inventory, canonical identities, program/editorial mapping, classifications, relationships, and bounded external expansion are owner-approved. Their durable truth is the tracked raw source, validated manifest, two reference studies, and Git history—not a repeated completed-slice diary here.
 
-**Work:**
-
-- Preserve the supplied program verbatim in the tracked raw-source file.
-- Inventory all 155 numbered occurrences, all three embedded directives, and all candidate compound labels with their raw location and wording.
-- Compare those labels with the current 77-master Library and build one proposed canonical union.
-- Classify each candidate as an existing identity, alias, distinct variant, programmed choice, or unresolved owner decision. Do not resolve identity from punctuation alone.
-- Review canonical sentence-case names while preserving proper names, acronyms, `90/90`, `45°`, and meaningful compound hyphens.
-- Begin the tracked manifest with stable proposed master IDs, canonical names, aliases, raw-source mappings, and explicit review status.
-
-**Acceptance:**
-
-- Every raw occurrence and embedded directive has a stable inventory key and source location.
-- No existing master silently disappears merely because the new program does not use it.
-- Canonical-name and alias collisions are reported; uncertain identities remain explicit rather than guessed.
-- The owner reviews every ambiguous identity, merge, variant, and canonical name before 10E-B.
-
-**Out of scope:** production code, program structure, classification changes, relationship inference, or seed installation.
-
-### 10E-B. Program, routine, and editorial mapping
-
-**Goal:** map the reviewed identities into the complete written program without losing structure, wording, or prescription meaning.
-
-**Work:**
-
-- Record the program note, six gym routines, three Home Morning routines, Home Base, routine status, routine notes, ordered blocks, entry order, role, entry notes, and ordered `{ exercise, prescription }` choices.
-- Resolve all three embedded directives:
-  - Deficit reverse lunge as an alternative to supported Bulgarian split squat.
-  - Leg press or Smith squat as a separate Optional slot immediately after step-ups.
-  - 45° glute-biased back extension as a rotation choice for Romanian deadlift, retaining `Do not perform both automatically`.
-- Preserve choice-specific prescriptions, including timed Sorensen hold versus rep-based prone back extension.
-- Normalize prescriptions with `×`, en-dash ranges, and consistent `/side` or `/leg` suffixes.
-- Correct obvious source typos and accidental duplicate headings only in normalized data, recording every correction against the untouched source.
-- Keep program, routine, entry, and master notes in their defined scopes. Bracketed instructions preserve their meaning without becoming classifications.
-- Replace source-draft `New 6` wording with reviewed `Also programmed in` or `Related work elsewhere` notes. Use routine names and retain important distinctions; do not generate coverage claims.
-
-**Owner decisions:**
-
-- Confirm the complete routine-selector order, including where Home Base and the three Home Morning routines belong.
-- Confirm Required/Optional status of the Home Morning routines.
-- Confirm choice order, per-choice prescriptions, capitalization, punctuation, note wording, and every editorial correction.
-
-**Acceptance:**
-
-- Source order and every named block are reproducible from the manifest.
-- Every numbered occurrence and embedded directive resolves to a reviewed master, programmed choice, or deliberate separate slot.
-- The normalized program contains no `New 6`, all-caps `OR`, accidental duplicate heading, or unresolved note scope.
-- The owner can review the program without reading application code.
-
-**Out of scope:** production code, classification expansion, global relationship authoring, or seed installation.
-
-### 10E-C. Classification, relationships, and manifest sign-off
-
-**Goal:** finish one validated manifest that is safe to use as the 10F contract fixture and later 11D seed.
-
-**Work:**
-
-- Preserve and review current classifications, then classify new masters with the approved controlled vocabulary and only the documented minimal Neck and Feet/toes additions.
-- Record stable master notes and videos once per master.
-- Add only owner-reviewed global Easier/Alternative/Harder relationships. Do not infer relationships from programmed choices, shared classifications, or overlap notes.
-- Validate the tracked JSON and regenerate the ignored workbook review view from the same reviewed facts.
-- Reconcile every illustrative example in `ironworks-pplppl7.html` with the manifest, including names, per-choice prescriptions, normalized overlap notes, and embedded choices.
-
-**Acceptance:**
-
-- No unresolved occurrence or directive, dangling ID, duplicate canonical identity, duplicate alias, invalid controlled value, self-link, duplicate relationship, or duplicate programmed choice remains.
-- A generated integrity report gives occurrence, directive, master, alias, choice, relationship, routine, block, and entry counts.
-- The workbook and tracked JSON agree; the tracked JSON alone is sufficient for a fresh-clone handoff.
-- The completed manifest proves or adjusts the proposed 10F shape and receives owner sign-off before production code changes.
-
-**Out of scope:** production JavaScript/CSS, automatic medical or biomechanics correction, inferred alternatives, or installing the new defaults.
+Do not reopen those decisions unless the owner changes the program or records a confirmed content issue.
 
 ### 10F. Replacement-program data contract
+
+**Status:** Owner/device verified. Schema 9 and cache 38 implement this contract with schema-shaped development defaults.
 
 **Goal:** define and test the complete current development shape before adding new UI or source content.
 
@@ -254,6 +187,8 @@ Before the concept becomes production truth, apply these behavior-preserving cor
 
 ### 10G. Routine blocks and scoped notes
 
+**Status:** owner/device verified after repository/runtime verification with cache 39 and 71 passing checks.
+
 **Goal:** make the new structure readable and editable in Workout, Program, entry references, and existing management sheets.
 
 **Visible behavior:**
@@ -286,6 +221,8 @@ Before the concept becomes production truth, apply these behavior-preserving cor
 
 ### 10H. Programmed exercise choices
 
+**Status:** owner/device verified after repository/runtime verification with cache 40 and 72 passing checks.
+
 **Goal:** represent source lines such as `leg press or Smith squat` as one routine slot referencing several canonical Library masters.
 
 **Interaction:**
@@ -315,7 +252,7 @@ Before the concept becomes production truth, apply these behavior-preserving cor
 
 ### Outcome
 
-Reproduce the approved Library, filter sheet, and master-editor surfaces from `ironworks-classification.html`. This is a production-ready phone flow for one owner maintaining a reviewed and expanding reusable catalog, not a dashboard or database administration screen.
+Reproduce the approved Library, filter sheet, and master-editor surfaces from `references/ui-concepts/ironworks-classification.html`. This is a production-ready phone flow for one owner maintaining a reviewed and expanding reusable catalog, not a dashboard or database administration screen.
 
 The primary action is finding the right master exercise quickly and opening its completed reference before deliberately choosing to edit. The visual lane is the existing restrained Ironworks system: dark-first in a gym environment, compact typography and rows, cobalt only for selection and primary actions, and the same light theme already used elsewhere.
 
@@ -369,6 +306,8 @@ Every 11 sub-slice receives one production cache bump and stops after:
 
 ### 11A. Library browse and filters
 
+**Status:** owner/device verified after repository/runtime verification with cache 41 and 72 passing checks.
+
 **Goal:** reproduce the approved Library page and filter sheet without changing stored exercises or the completed reference/editor flows.
 
 **Visible result:**
@@ -407,6 +346,8 @@ Every 11 sub-slice receives one production cache bump and stops after:
 **Out of scope:** editor redesign, relationship editing, exercise mutation, storage/schema changes, or changes to the completed reference.
 
 ### 11B. Master exercise editor
+
+**Status:** owner/device verified after repository/runtime verification with cache 42 and 74 passing checks.
 
 **Goal:** reproduce the approved full-height master editor and make all current master fields maintainable through one atomic save path.
 
@@ -449,6 +390,8 @@ Every 11 sub-slice receives one production cache bump and stops after:
 
 ### 11C. Relationships and deletion
 
+**Status:** owner/device verified with cache 43 and 77 passing checks.
+
 **Goal:** finish master-data maintenance with a clear relationship editor and trustworthy destructive flow.
 
 **Relationship editor:**
@@ -478,12 +421,15 @@ Every 11 sub-slice receives one production cache bump and stops after:
 
 ### 11D. Replacement Library and program seed
 
+**Status:** repository/runtime verified with cache 44 and 78 passing checks; owner device verification pending.
+
 **Goal:** install the approved manifest as the new development starting state without duplicating masters or retaining unfinished legacy seed data.
 
 **Data behavior:**
 
-- Seed the manifest’s full canonical union of the current 77-master Library and the new program independently of routine membership so unused masters remain available.
+- Seed only the manifest’s approved canonical `masters` catalog independently of routine membership so valid unused masters remain available. Stage-A lineage and raw-source records never enter runtime state.
 - Install one `PPLPPL 7 — Glute Specialization` program containing the six ordered gym routines, three reusable Home Morning routines, and one optional-only Home Base routine. Add no Rest routine.
+- This is the sole restored starting program, not a schema special case. Future owner-created or client programs reuse the same global Library and generic Program/Routine/Entry model.
 - Reproduce approved program/routine notes, block order, entry order, Main/Optional roles, prescriptions, entry notes, and programmed-choice order exactly.
 - Home Base contains its seven named blocks and all 52 Optional entries. It never auto-completes.
 - Relationships remain global Library facts; routine choices remain local entry facts.
@@ -497,6 +443,7 @@ Every 11 sub-slice receives one production cache bump and stops after:
 **Acceptance:**
 
 - Every program, routine, block, entry, choice, alias, and relationship resolves to one stable canonical record.
+- The final `PRODUCT.md` hierarchy and data definitions describe ordered one-or-more exercise choices per routine entry and still make clear that masters remain global.
 - Renaming a master updates all routine titles derived from it; editing a routine entry never mutates the master.
 - Main completion, Optional checks, multiple routines on one date, delete/promotion cleanup, duplicate/remap behavior, and current-format round trips remain correct.
 - Library and Program match the approved manifest at both phone widths and themes; long Home Base and Library lists scroll correctly.

@@ -224,6 +224,7 @@ a:focus-visible,
 }
 
 .topbar {
+  grid-row: 1;
   min-height: calc(52px + env(safe-area-inset-top));
   padding: env(safe-area-inset-top) 10px 0 16px;
   background: var(--surface);
@@ -267,6 +268,7 @@ a:focus-visible,
 }
 
 #appMain {
+  grid-row: 2;
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -281,13 +283,20 @@ a:focus-visible,
 }
 
 body[data-current-view="workout"] .topbar,
-body[data-current-view="routines"] .topbar {
+body[data-current-view="routines"] .topbar,
+body[data-current-view="exercises"] .topbar {
   display: none;
 }
 
 body[data-current-view="workout"] #appMain,
-body[data-current-view="routines"] #appMain {
+body[data-current-view="routines"] #appMain,
+body[data-current-view="exercises"] #appMain {
   padding-inline: 0;
+}
+
+body[data-current-view="workout"] #appMain,
+body[data-current-view="exercises"] #appMain {
+  overflow: hidden;
 }
 
 .bottom-nav {

@@ -1,5 +1,5 @@
-import { classificationLabel } from "../data.js?v=37";
-import { escapeHtml } from "./shared.js?v=37";
+import { classificationLabel } from "../data.js?v=44";
+import { escapeHtml } from "./shared.js?v=44";
 
 const RELATION_ORDER = new Map([
   ["easier", 0],
@@ -79,7 +79,7 @@ function relationshipsMarkup(relatedExercises) {
     <div class="reference-ladder-head">Related exercises <span>alternative + progression</span></div>
     ${related.length ? related.map(({ relation, exercise }) => `
       <button class="reference-ladder-row" type="button" data-action="view-alternative" data-id="${escapeHtml(exercise.id)}">
-        <span>${escapeHtml(classificationLabel(relation))}</span>
+        <span>${escapeHtml(relation === "similar" ? "Alternative" : classificationLabel(relation))}</span>
         <strong>${escapeHtml(exercise.name)}</strong>
       </button>`).join("") : `<p class="reference-empty">No related exercises linked.</p>`}
   </div>`;
@@ -89,6 +89,8 @@ export function exerciseReferenceMarkup({
   exercise,
   prescription,
   relatedExercises,
+  routineName = "",
+  routineNote = "",
 }) {
   const contextLabel = prescription ? "Routine prescription" : "Default prescription";
   const shownPrescription = prescription || exercise.defaultPrescription || "No prescription";
@@ -107,12 +109,19 @@ export function exerciseReferenceMarkup({
     <div class="reference-sheet-scroll">
       <p class="reference-prescription">${escapeHtml(shownPrescription)}</p>
       ${meta ? `<p class="reference-meta">${escapeHtml(meta)}</p>` : ""}
+      ${routineNote.trim() ? `<section class="reference-note-group">
+        <p class="reference-group-label">For this routine${routineName ? ` — ${escapeHtml(routineName)}` : ""}</p>
+        <p class="reference-context-note">${escapeHtml(routineNote)}</p>
+      </section>` : ""}
       ${targetGroupsMarkup(exercise)}
       ${factsMarkup(exercise)}
       ${linkedVideoMarkup(exercise)}
       ${searchActionsMarkup(exercise)}
       ${relationshipsMarkup(relatedExercises)}
-      <p class="reference-notes ${exercise.instructions ? "" : "is-empty"}">${escapeHtml(notes)}</p>
+      <section class="reference-note-group exercise-note-group">
+        <p class="reference-group-label">Exercise notes</p>
+        <p class="reference-notes ${exercise.instructions ? "" : "is-empty"}">${escapeHtml(notes)}</p>
+      </section>
     </div>
     <footer class="reference-sheet-actions">
       <button class="button secondary" type="button" data-action="edit-master-exercise" data-id="${escapeHtml(exercise.id)}">Edit exercise</button>

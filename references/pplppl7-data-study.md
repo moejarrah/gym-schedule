@@ -1,6 +1,6 @@
 # PPLPPL 7 Program Data Study
 
-Status: approved planning contract; individual content decisions still require owner review during Slices 10E-A through 10E-C.
+Status: approved planning contract. Identity, program mapping, classification, relationships, and the bounded Slice 10E-D Library expansion are owner-approved.
 
 ## Source scope
 
@@ -17,12 +17,12 @@ The owner-provided program contains:
 - Three unnumbered programming directives that must be structured rather than left as detached prose:
   - Deficit reverse lunge as an alternative to supported Bulgarian split squat.
   - Leg press or Smith squat as a separate Optional slot immediately after step-ups.
-  - 45° glute-biased back extension as a rotation choice for Romanian deadlift, retaining `Do not perform both automatically`.
-- 27 candidate compound choice labels that require manual identity review.
+  - 45° glute-biased back extension as a note-only rotation instruction on Romanian deadlift, retaining `Do not perform both automatically` without adding another routine choice or inventing a prescription.
+- 27 candidate compound choice labels that received explicit identity review.
 
-Only 33 of the 132 labels exactly match current Library names after case and punctuation normalization. This is a safe overlap floor, not a count of required new masters. Aliases, variants, and compound choices must be reviewed before the final Library size is known.
+Only 33 of the 132 labels exactly matched development Library names after case and punctuation normalization. That was an overlap floor, not a required-new-master count; the completed identity review produced the approved 177-master catalog.
 
-The source wording is user-owned training content. Preserve its meaning and do not medically reinterpret or expand it. The reviewed manifest may correct obvious editorial defects such as `Rehan` to `Rehab`, but it must record each correction beside the untouched raw source for owner review.
+The source wording is user-owned training content. Preserve its meaning and do not medically reinterpret or expand it. The reviewed manifest corrects only recorded editorial defects such as `Rehan` to `Rehab`, with each correction kept beside the untouched raw source.
 
 ## One Library, no duplicate identities
 
@@ -38,7 +38,11 @@ Examples that require review rather than automatic merging:
 - Cable versus side-lying external rotation.
 - Barbell versus Smith machine hip thrust.
 
-The reviewed global catalog is the canonical union of the current 77-exercise Library and the new program. Preserve an existing master even when the new program does not use it, unless the owner explicitly approves an identity merge or removal. Seed the catalog independently of routine membership so an unassigned master remains available.
+The reviewed global catalog is the deduplicated union of exercise identities found in the current Library and the supplied program. Every current master is reviewed as retained, cleanly renamed, merged, split, or retired; an obsolete compound, alias record, or generic placeholder does not survive merely because it existed. A valid unused exercise remains available. Seed the catalog independently of routine membership so an unassigned master remains available.
+
+`currentMasters` in the review manifest is lineage only: it proves how each development-era record was handled. Only the approved canonical `masters` catalog and later program mapping feed seed data. There is no second Library and no old-data migration.
+
+The Library is not limited to exercises used by the seed program. Slice 10E-D added eight independently useful masters that fill named relationship gaps. They live in the same `masters` list, never in an external or program-specific catalog.
 
 ## Canonical names and aliases
 
@@ -90,6 +94,30 @@ Master relationships answer a different question: “How does this exercise gene
 Easier and Harder are directional inverses. Alternative is reciprocal. `Progression` is not a fourth relation.
 
 Do not infer relationships merely because the source contains `or`. A reviewed programmed choice may also receive an Alternative relationship, but the two facts remain independent. Text such as `covered by`, `same function`, or `overlap` is not automatically an alternative or progression.
+
+## Curated external Library expansion
+
+The approved expansion stops at eight additional masters:
+
+- Dynamic squat: Bodyweight squat, Goblet squat, and Barbell back squat.
+- Horizontal press: Push-up and Barbell bench press.
+- Shoulder equipment options: Dumbbell overhead press and Dumbbell lateral raise.
+- Hinge equipment option: Dumbbell Romanian deadlift.
+
+Each fills a concrete gap and has a direct relationship into the existing catalog. Dumbbell Romanian deadlift is retained because the existing Romanian-deadlift master explicitly means the barbell setup; equipment is a real selection and programming distinction in this Library. No row, arm, rehab, grip, stance, tempo, or partial-range variant is added merely for completeness.
+
+The eight additions create eight links: Bodyweight squat → Goblet squat → Barbell back squat as a conventional Harder navigation path; Barbell back squat ↔ Smith squat; Push-up ↔ Barbell bench press ↔ Flat dumbbell press; Dumbbell overhead press ↔ Machine overhead press; Dumbbell lateral raise ↔ Cable lateral raise; and Dumbbell Romanian deadlift ↔ Romanian deadlift. The squat direction is a useful default path, not a claim that difficulty is universal at every load.
+
+Five exact-family links improve the existing catalog without new masters: Short-lever side plank → Side plank, Serratus wall slide → Serratus wall slide with band, Supported split squat → Split squat, Band Pallof press ↔ Pallof press, and Band wood chop ↔ Cable wood chop. Standing and seated calf raises are deliberately not global alternatives because bent- versus straight-knee setup changes the training emphasis.
+
+Evidence remains narrow:
+
+- The NSCA [Foundations of Fitness Programming](https://www.nsca.com/contentassets/8323553f698a466a98220b21d9eb9a65/foundationsoffitnessprogramming_201508.pdf) and ACE exercise references support the compact squat family and its equipment identities.
+- A peer-reviewed [push-up and bench-press comparison](https://pubmed.ncbi.nlm.nih.gov/31508485/) supports Alternative rather than a universal Easier/Harder direction.
+- Peer-reviewed studies cover [dumbbell shoulder-press loading and position](https://pubmed.ncbi.nlm.nih.gov/23096062/) and [dumbbell versus cable lateral raises](https://pubmed.ncbi.nlm.nih.gov/40692697/).
+- ACE explicitly documents the [dumbbell setup for Romanian deadlifts](https://www.acefitness.org/resources/pros/expert-articles/7963/what-is-the-difference-between-romanian-deadlift-vs-deadlift/).
+
+Default prescriptions are editable editorial starting points, not research claims. Stable notes and video IDs remain blank until the owner supplies them.
 
 ## Note ownership
 
@@ -151,18 +179,20 @@ The owner will confirm Required or Optional status for the three morning routine
 
 ## Minimal vocabulary review
 
-The source exposes four clear gaps in the current controlled vocabulary:
+The complete catalog audit exposes six practical gaps in the current controlled vocabulary:
 
 - Target: Neck.
 - Target: Feet/toes.
 - Movement: Neck movement.
 - Movement: Foot/toe control.
+- Movement: Hip extension, for cable kickback.
+- Movement: Shrug, for loaded dumbbell and machine shrugs.
 
-Keep these broad. Exercise names carry direction and setup detail. Existing Mobility classification can represent CARs and stretches. Do not add a cervical anatomy hierarchy, foot-muscle database, coverage category, Home category, or Optional purpose.
+Keep these broad. Without the final two movements, cable kickback would be mislabeled as Hip thrust/bridge and loaded shrugs as Scapular control. Exercise names still carry direction and setup detail. Existing Mobility classification can represent CARs and stretches. Do not add a cervical anatomy hierarchy, foot-muscle database, coverage category, Home category, or Optional purpose.
 
-## Reviewed workbook contract
+## Reviewed manifest contract
 
-During review, the local workbook must represent:
+The tracked manifest must represent:
 
 - Canonical masters and aliases.
 - Controlled classification.
@@ -174,9 +204,19 @@ During review, the local workbook must represent:
 
 Every one of the 155 numbered source occurrences and all three embedded directives must resolve to a reviewed master, programmed choice, or deliberate separate Optional slot. Every candidate compound label must be marked as one identity, alias, real variant, or programmed choice.
 
-No production data changes until the owner reviews ambiguous identities, choice order, relationship direction, routine status, capitalization, punctuation, prescriptions, and notes.
+The owner review of identities, choice order, relationship direction, routine status, capitalization, punctuation, prescriptions, and notes is complete.
 
-After review, `references/data/pplppl7-manifest.json` is the tracked durable manifest consumed by later implementation. The ignored Excel workbook remains the owner-friendly editing view; it is not a competing production truth. Any later workbook change must be validated and regenerated into the tracked manifest before it affects seed data.
+`references/data/pplppl7-manifest.json` is the tracked durable manifest consumed by later implementation. The old ignored Excel workbook is unused. A new workbook may be generated from the manifest for owner review only if requested; it never becomes an implementation input.
+
+## Evidence boundary
+
+- The owner source controls programmed choices, prescriptions, notes, and intended routine meaning.
+- Use external research only for a genuinely ambiguous exercise identity, primary/secondary target, movement classification, or Easier/Harder claim.
+- Prefer peer-reviewed or authoritative primary material and record a short review note only for the disputed decision.
+- Evidence may inform a proposal but never rewrite rehabilitation or pain instructions, create medical advice, or generate a bulk alternative catalog.
+- Keep only decision-useful targets. Do not add activation percentages, tertiary stabilizers, anatomy trees, or speculative coverage.
+- Add Alternative only for a reviewed general substitute. Add Easier/Harder only when the direction is stable for the intended setup; otherwise leave the relationship absent.
+- Research notes and citations remain review material, not production exercise fields.
 
 ## Deliberately excluded
 

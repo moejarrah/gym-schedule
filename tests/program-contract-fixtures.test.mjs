@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+import { validateState } from "../storage.js";
 import { createProgramStateFixtures } from "./fixtures/program-states.mjs";
 
 function unique(values) {
@@ -15,9 +16,11 @@ test("Program contract fixtures cover the approved edge states and resolve every
     "emptyRoutine",
     "longNames",
     "crossProgramHistory",
+    "schemaShapes",
   ]);
 
   for (const [name, state] of Object.entries(fixtures)) {
+    assert.equal(validateState(state), true, `${name}: current schema`);
     const programIds = state.programs.map((program) => program.id);
     const routineIds = state.routines.map((routine) => routine.id);
     const exerciseIds = state.exercises.map((exercise) => exercise.id);
@@ -41,7 +44,11 @@ test("Program contract fixtures cover the approved edge states and resolve every
 
     for (const routine of state.routines) {
       for (const item of routine.entries) {
-        assert.equal(exerciseIds.includes(item.exerciseId), true, `${name}: missing exercise ${item.exerciseId}`);
+        assert.equal(routine.blocks.some((block) => block.id === item.blockId), true, `${name}: missing block ${item.blockId}`);
+        assert.equal(item.choices.length > 0, true, `${name}: entry choices`);
+        for (const choice of item.choices) {
+          assert.equal(exerciseIds.includes(choice.exerciseId), true, `${name}: missing exercise ${choice.exerciseId}`);
+        }
         assert.equal(["main", "optional"].includes(item.role), true, `${name}: entry role`);
       }
     }
@@ -95,6 +102,19 @@ test("Program contract fixtures cover the approved edge states and resolve every
   assert.equal(fixtures.longNames.programs[0].name.length > 60, true);
   assert.equal(fixtures.longNames.routines[0].name.length > 60, true);
   assert.equal(fixtures.longNames.exercises[0].name.length > 60, true);
+  assert.deepEqual(fixtures.schemaShapes.routines[0].blocks.map((block) => block.name), ["Main work", "Optional coverage"]);
+  assert.deepEqual(
+    fixtures.schemaShapes.routines[0].entries
+      .filter((entry) => entry.blockId === "structured-main-block")
+      .map((entry) => entry.role),
+    ["main", "optional"],
+  );
+  assert.equal(fixtures.schemaShapes.routines[0].entries[1].choices.length, 2);
+  assert.notEqual(
+    fixtures.schemaShapes.routines[0].entries[1].choices[0].prescription,
+    fixtures.schemaShapes.routines[0].entries[1].choices[1].prescription,
+  );
+  assert.equal(fixtures.schemaShapes.routines[1].entries.length, 52);
 
   const historicalRoutine = fixtures.crossProgramHistory.sessions["2026-07-11"].routineIds[0];
   const activeProgram = fixtures.crossProgramHistory.programs.find(

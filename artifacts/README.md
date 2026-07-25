@@ -8,4 +8,4 @@ This directory is not part of the deployed app.
 
 Exports, archive files, and test output are ignored by Git.
 
-`exports/Gym App Data.xlsx` is the reviewed classification workbook. Its Exercises and Related Exercises sheets are the friendly-label source for the current production classification introduced in schema 7; the other data sheets remain an earlier editable export snapshot.
+`exports/Gym App Data.xlsx` is an old generated review artifact. It is not read by the app, is not a source for the approved replacement data, and may be deleted without affecting the project. Generate a new workbook from the tracked manifest only if the owner later asks for one.

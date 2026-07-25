@@ -29,6 +29,27 @@ export function chevronIcon(direction) {
   return `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="${paths[direction] || paths.right}"/></svg>`;
 }
 
+export function entryPresentation(entry, state, exerciseById) {
+  const choices = entry.choices.map((choice) => {
+    const exercise = exerciseById(state, choice.exerciseId);
+    return {
+      choice,
+      exercise,
+      name: exercise?.name || "Missing exercise",
+      prescription: choice.prescription || "No prescription",
+    };
+  });
+  const prescriptions = choices.map((item) => item.prescription);
+  const sharedPrescription = prescriptions.length > 0
+    && prescriptions.every((prescription) => prescription === prescriptions[0]);
+  return {
+    choices,
+    preferred: choices[0] || null,
+    title: choices.map((item) => item.name).join(" or ") || "No exercise choices",
+    prescription: sharedPrescription ? prescriptions[0] : prescriptions.join(" or "),
+  };
+}
+
 export function routineTabsMarkup(routines, selectedId) {
   if (!routines.length) return "";
   return `<div class="routine-tabs" aria-label="Choose a routine">
