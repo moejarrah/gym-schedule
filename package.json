@@ -4,6 +4,6 @@
   "type": "module",
   "scripts": {
     "preview": "python3 -m http.server 4173",
-    "check": "node --check app.js && node --check data.js && node --check storage.js && node --check sw.js && node --test tests/*.test.mjs"
+    "check": "node --check app.js && node --check data.js && node --check storage.js && node --check sw.js && node --check ui/*.js && node --check tools/validate-pplppl7-manifest.mjs && node tools/validate-pplppl7-manifest.mjs && node --test tests/*.test.mjs"
   }
 }

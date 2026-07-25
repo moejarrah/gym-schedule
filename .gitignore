@@ -4,5 +4,8 @@
 # Generated runtime output
 artifacts/test-results/
 
+# Local editable data exports
+artifacts/exports/
+
 # Local historical archives
-artifacts/legacy/*.zip
+artifacts/legacy/

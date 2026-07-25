@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ironworks Classification Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700&family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  button, input, select { font: inherit; color: inherit; }
+  button { border: 0; cursor: pointer; }
+  :root {
+    --page: #232528;
+    --page-text: #eceef1;
+    --page-muted: #a4a8af;
+    --frame: #101114;
+  }
+  body {
+    background: var(--page);
+    color: var(--page-text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page-head {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 28px 24px 8px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 18px;
+  }
+  .page-head h1 { margin: 0; font-size: 15px; letter-spacing: .02em; }
+  .page-head p { margin: 0; color: var(--page-muted); font: 12px ui-monospace, "SF Mono", monospace; }
+  .page-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .page-actions a, .theme-switch {
+    min-height: 32px;
+    border: 1px solid #41444a;
+    border-radius: 8px;
+  }
+  .page-actions a {
+    padding: 6px 10px;
+    color: var(--page-muted);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 650;
+  }
+  .theme-switch { display: flex; overflow: hidden; }
+  .theme-switch button {
+    padding: 6px 12px;
+    background: transparent;
+    color: var(--page-muted);
+    font-size: 12px;
+    font-weight: 650;
+  }
+  .theme-switch button.on { background: #41444a; color: var(--page-text); }
+  .notes {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 10px 24px 0 42px;
+    color: var(--page-muted);
+    font-size: 13px;
+    line-height: 1.55;
+    columns: 2 420px;
+    column-gap: 42px;
+  }
+  .notes li { margin: 0 0 5px; break-inside: avoid; }
+  .frames {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 50px;
+    padding: 34px 22px 74px;
+  }
+  .frame-wrap { display: grid; justify-items: center; gap: 12px; }
+  .frame-cap {
+    max-width: 360px;
+    margin: 0;
+    color: var(--page-muted);
+    font: 11px/1.55 ui-monospace, "SF Mono", monospace;
+    text-align: center;
+  }
+
+  .phone {
+    width: 393px;
+    height: 852px;
+    overflow: hidden;
+    border: 10px solid var(--frame);
+    border-radius: 48px;
+    box-shadow: 0 30px 80px rgba(0,0,0,.5);
+    position: relative;
+  }
+  .screen {
+    --bg: #0f1114;
+    --surface: #15181d;
+    --surface-2: #1c2026;
+    --press: #20252c;
+    --line: rgba(235,238,245,.09);
+    --text: #e9ebee;
+    --muted: #9ca3ad;
+    --faint: #68707b;
+    --accent: #5a7cff;
+    --accent-soft: rgba(90,124,255,.15);
+    --rehab: #d9a62e;
+    --danger: #e76657;
+    --scrim: rgba(0,0,0,.58);
+    --label: "Barlow Condensed", "Arial Narrow", sans-serif;
+    --body: "Barlow", -apple-system, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.4;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .screen[data-theme="light"] {
+    --bg: #f3f4f5;
+    --surface: #fff;
+    --surface-2: #e9ebee;
+    --press: #e4e7eb;
+    --line: rgba(18,22,30,.11);
+    --text: #171a1f;
+    --muted: #646c77;
+    --faint: #9299a3;
+    --accent: #3b5bdb;
+    --accent-soft: rgba(59,91,219,.11);
+    --rehab: #9a6e12;
+    --danger: #c03b27;
+    --scrim: rgba(20,24,32,.34);
+  }
+  .statusbar {
+    flex: 0 0 auto;
+    padding: 14px 28px 2px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 650;
+  }
+  .statusbar svg { width: 78px; height: 14px; }
+  .appbar {
+    min-height: 52px;
+    padding: 0 10px 0 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .app-title {
+    min-width: 0;
+    flex: 1;
+    font-family: var(--label);
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+  }
+  .count { color: var(--muted); font: 11px var(--mono); letter-spacing: 0; }
+  .icon-btn {
+    width: 44px;
+    height: 44px;
+    background: transparent;
+    color: var(--muted);
+    display: grid;
+    place-items: center;
+  }
+  .icon-btn:active { background: var(--press); }
+  .icon-btn svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+  .scroll::-webkit-scrollbar, .hscroll::-webkit-scrollbar, .sheet-scroll::-webkit-scrollbar { display: none; }
+  .searchbar {
+    margin: 12px 14px 8px;
+    min-height: 46px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .searchbar svg { width: 18px; height: 18px; flex: 0 0 auto; stroke: var(--muted); fill: none; stroke-width: 2; }
+  .searchbar input {
+    min-width: 0;
+    width: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text);
+    font-size: 16px;
+  }
+  .searchbar input::placeholder { color: var(--muted); opacity: 1; }
+  .quickbar {
+    min-height: 46px;
+    padding: 0 14px 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hscroll {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    gap: 7px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, #000 88%, transparent);
+    mask-image: linear-gradient(to right, #000 88%, transparent);
+  }
+  .chip, .filter-button {
+    min-height: 38px;
+    padding: 0 13px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 13.5px;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .chip.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+  .filter-button {
+    min-width: 78px;
+    color: var(--text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+  }
+  .filter-button b {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--accent);
+    color: #fff;
+    font: 10px/18px var(--mono);
+  }
+  .result-head {
+    min-height: 34px;
+    padding: 6px 15px;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    color: var(--faint);
+    font-family: var(--label);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .result-head button { min-height: 30px; padding: 0 4px; background: transparent; color: var(--accent); font-family: var(--body); font-size: 12px; font-weight: 700; letter-spacing: 0; text-transform: none; }
+  .library-row {
+    width: 100%;
+    min-height: 67px;
+    padding: 9px 14px;
+    background: transparent;
+    color: var(--text);
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+  }
+  .library-row + .library-row::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; border-top: 1px solid var(--line); }
+  .library-row:active { background: var(--press); }
+  .row-copy { flex: 1; min-width: 0; }
+  .row-name { display: block; font-size: 15px; font-weight: 650; overflow-wrap: anywhere; }
+  .row-meta { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: 4px; color: var(--muted); font-size: 12.5px; }
+  .row-meta .rx { font-family: var(--mono); font-weight: 600; color: var(--text); }
+  .purpose {
+    min-height: 20px;
+    padding: 2px 7px;
+    background: rgba(217,166,46,.12);
+    color: var(--rehab);
+    font-family: var(--label);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+  }
+  .chev { width: 18px; height: 18px; flex: 0 0 auto; stroke: var(--faint); fill: none; stroke-width: 2; }
+  .tabbar {
+    flex: 0 0 auto;
+    padding: 4px 8px 20px;
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+  }
+  .tab {
+    min-height: 46px;
+    background: transparent;
+    color: var(--faint);
+    font-family: var(--label);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 3px;
+  }
+  .tab.on { color: var(--accent); }
+  .tab svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+  .scrim { position: absolute; inset: 0; background: var(--scrim); }
+  .sheet {
+    position: absolute;
+    inset: auto 0 0;
+    max-height: 84%;
+    background: var(--surface);
+    border-radius: 14px 14px 0 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .grab { flex: 0 0 auto; padding: 8px 0 2px; display: grid; place-items: center; }
+  .grab::before { content: ""; width: 36px; height: 5px; border-radius: 3px; background: var(--line); }
+  .sheet-head {
+    min-height: 48px;
+    padding: 4px 16px 8px 20px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .sheet-head h2 { flex: 1; margin: 0; font-size: 20px; line-height: 1.15; letter-spacing: -.01em; }
+  .sheet-scroll { min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 12px 20px 18px; }
+  .sheet-actions {
+    flex: 0 0 auto;
+    padding: 10px 20px 26px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    gap: 8px;
+  }
+  .button {
+    min-height: 46px;
+    padding: 0 16px;
+    background: var(--surface-2);
+    color: var(--text);
+    font-weight: 700;
+    flex: 1;
+  }
+  .button.primary { background: var(--accent); color: #fff; }
+  .button.text { flex: 0 0 auto; background: transparent; color: var(--muted); }
+  .section-label {
+    margin: 17px 0 7px;
+    color: var(--faint);
+    font-family: var(--label);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+  }
+  .section-label:first-child { margin-top: 0; }
+  .segment {
+    min-height: 44px;
+    padding: 3px;
+    background: var(--surface-2);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .segment button { background: transparent; color: var(--muted); font-size: 13.5px; font-weight: 650; }
+  .segment button.on { background: var(--surface); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
+  .option-grid { display: flex; flex-wrap: wrap; gap: 7px; }
+  .option-grid .chip { min-height: 40px; }
+  .disclosure {
+    width: 100%;
+    min-height: 46px;
+    margin-top: 12px;
+    padding: 0;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    background: transparent;
+    color: var(--text);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .disclosure span { color: var(--muted); font-size: 12px; font-weight: 600; }
+  .advanced-filter[hidden], .advanced-editor[hidden] { display: none; }
+  .select-row {
+    min-height: 46px;
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: 96px 1fr;
+    align-items: center;
+    gap: 10px;
+  }
+  .select-row label { color: var(--muted); font-size: 13px; }
+  .select-row select {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    text-align: right;
+    font-size: 14px;
+    font-weight: 650;
+  }
+
+  .big-rx { margin: 2px 0 0; font: 700 32px var(--mono); letter-spacing: -.02em; }
+  .meta-line { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+  .groups { margin-top: 14px; border-top: 1px solid var(--line); }
+  .group-label { margin: 0; padding: 10px 0 4px; color: var(--faint); font-family: var(--label); font-size: 12.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+  .group-label:not(:first-child) { border-top: 1px solid var(--line); margin-top: 2px; }
+  .muscle-row { min-height: 39px; padding: 7px 0; border-bottom: 1px solid var(--line); display: flex; align-items: baseline; gap: 10px; }
+  .muscle-row .num { flex: 0 0 16px; color: var(--faint); font: 600 11px var(--mono); }
+  .muscle-row strong { font-size: 14.5px; }
+  .muscle-row em { color: var(--muted); font-style: normal; font-weight: 500; }
+  .facts { margin-top: 14px; border-top: 1px solid var(--line); }
+  .fact { min-height: 40px; padding: 8px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 98px 1fr; gap: 10px; align-items: baseline; }
+  .fact span:first-child { color: var(--faint); font-family: var(--label); font-size: 12.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .fact strong { font-size: 14px; }
+  .notes-copy { margin: 14px 0 0; color: var(--text); font-size: 14.5px; line-height: 1.55; }
+  .ladder { margin-top: 16px; border-top: 1px solid var(--line); }
+  .ladder-head { min-height: 38px; color: var(--faint); font-family: var(--label); font-size: 12.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; display: flex; align-items: center; justify-content: space-between; }
+  .ladder-head span { font: 10px var(--mono); text-transform: none; letter-spacing: 0; }
+  .ladder-row { width: 100%; min-height: 44px; padding: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--text); text-align: left; display: flex; align-items: center; gap: 10px; }
+  .ladder-row .level { flex: 0 0 48px; color: var(--faint); font: 600 10px var(--mono); }
+  .ladder-row strong { flex: 1; font-size: 14px; }
+  .ladder-row.current strong, .ladder-row.current .current-tag { color: var(--accent); }
+  .current-tag { font-family: var(--label); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .reference-actions { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .reference-actions button { min-height: 44px; background: var(--surface-2); color: var(--text); font-size: 13.5px; font-weight: 700; }
+
+  .editor-title { display: grid; gap: 4px; }
+  .editor-title small { color: var(--muted); font-size: 12px; }
+  .form-group { margin-top: 13px; }
+  .form-group:first-child { margin-top: 0; }
+  .form-group > label, .form-title { display: block; margin: 0 0 6px; color: var(--muted); font-size: 12.5px; font-weight: 650; }
+  .field {
+    width: 100%;
+    min-height: 46px;
+    border: 1px solid var(--line);
+    border-radius: 0;
+    background: var(--surface-2);
+    padding: 10px 12px;
+    font-size: 15px;
+  }
+  .target-editor {
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .target-line { min-height: 48px; display: grid; grid-template-columns: 22px 1fr 44px; align-items: center; gap: 8px; }
+  .target-line + .target-line { border-top: 1px solid var(--line); }
+  .target-line .tn { color: var(--faint); font: 600 11px var(--mono); }
+  .target-line strong { font-size: 14px; }
+  .target-line button { width: 44px; height: 44px; background: transparent; color: var(--muted); font-size: 20px; }
+  .add-line { width: 100%; min-height: 44px; background: transparent; color: var(--accent); text-align: left; font-size: 13.5px; font-weight: 700; }
+  .editor-note { margin: 8px 0 0; color: var(--faint); font-size: 12px; line-height: 1.45; }
+  .routine-note { margin: 14px 0 0; padding: 10px 12px; background: var(--accent-soft); color: var(--text); font-size: 12.5px; line-height: 1.45; }
+
+  button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+  @media (max-width: 430px) {
+    .page-head, .notes { display: none; }
+    .frames { padding: 0; display: block; }
+    .frame-wrap { display: none; }
+    .frame-wrap:first-child { display: block; }
+    .phone { width: 100vw; height: 100dvh; border: 0; border-radius: 0; box-shadow: none; }
+    .frame-cap { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+<header class="page-head">
+  <h1>Ironworks · classification study</h1>
+  <p>library → filters → reference → editor</p>
+  <div class="page-actions">
+    <a href="ironworks.html">Original Ironworks</a>
+    <span class="theme-switch" role="group" aria-label="Theme">
+      <button type="button" data-theme="light">Light</button>
+      <button class="on" type="button" data-theme="dark">Dark</button>
+    </span>
+  </div>
+</header>
+
+<ul class="notes">
+  <li>The original workout screen and its exercise information remain intact.</li>
+  <li>Library rows show only decision-useful data; deeper classification stays behind the row.</li>
+  <li>Muscle filtering starts Primary only and can deliberately include secondary involvement.</li>
+  <li>Movement, equipment, and purpose are normal filters. Technical fields are under More filters.</li>
+  <li>Master exercise editing is separate from routine prescription and execution.</li>
+  <li>Push, Pull, Legs, and similar browse groups are derived, not another editable truth.</li>
+</ul>
+
+<main class="frames">
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar">
+          <span>9:41</span>
+          <svg viewBox="0 0 78 14" aria-hidden="true"><g fill="currentColor"><rect x="0" y="6" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="11" rx="1"/><path d="M30 7c2.6 0 4.7-2.1 4.7-4.7M30 10.4c4.1 0 7.4-3.3 7.4-7.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="30" cy="7" r="1.6"/><rect x="52" y="2" width="20" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="54" y="4" width="13" height="6" rx="1.5"/><rect x="73" y="5" width="2.5" height="4" rx="1" opacity=".5"/></g></svg>
+        </div>
+        <header class="appbar">
+          <div class="app-title">Library <span class="count">77</span></div>
+          <button class="icon-btn" type="button" aria-label="Add exercise">
+            <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </header>
+        <div class="scroll">
+          <label class="searchbar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+            <input type="search" placeholder="Exercise, target, or movement" aria-label="Search exercises">
+          </label>
+          <div class="quickbar">
+            <div class="hscroll" aria-label="Quick target filters">
+              <button class="chip on" type="button">All</button>
+              <button class="chip" type="button">Chest</button>
+              <button class="chip" type="button">Back</button>
+              <button class="chip" type="button">Shoulders</button>
+              <button class="chip" type="button">Glutes</button>
+            </div>
+            <button class="filter-button" type="button" data-open-filter>Filter <b>2</b></button>
+          </div>
+          <div class="result-head"><span>77 exercises</span><button type="button">Primary only</button></div>
+          <div>
+            <button class="library-row" type="button">
+              <span class="row-copy"><span class="row-name">Low incline dumbbell press</span><span class="row-meta"><span class="rx">3 × 8–12</span><span>Chest</span><span>Horizontal press</span></span></span>
+              <svg class="chev" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>
+            </button>
+            <button class="library-row" type="button">
+              <span class="row-copy"><span class="row-name">Romanian deadlift</span><span class="row-meta"><span class="rx">3 × 6–10</span><span>Hamstrings · Glute max</span><span>Hip hinge</span></span></span>
+              <svg class="chev" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>
+            </button>
+            <button class="library-row" type="button">
+              <span class="row-copy"><span class="row-name">Cable external rotation</span><span class="row-meta"><span class="rx">2 × 15–20/side</span><span>Rotator cuff</span><span class="purpose">Rehab</span></span></span>
+              <svg class="chev" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>
+            </button>
+            <button class="library-row" type="button">
+              <span class="row-copy"><span class="row-name">Pallof press</span><span class="row-meta"><span class="rx">2 × 10–15/side</span><span>Obliques</span><span>Anti-rotation</span></span></span>
+              <svg class="chev" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>
+            </button>
+            <button class="library-row" type="button">
+              <span class="row-copy"><span class="row-name">90/90 hip switches</span><span class="row-meta"><span class="rx">1–2 × 8–10</span><span>Glute med/min</span><span class="purpose">Mobility</span></span></span>
+              <svg class="chev" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+        <nav class="tabbar" aria-label="App tabs">
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M5 9v6M8.5 6.5v11M15.5 6.5v11M19 9v6M8.5 12h7M2.5 10.5v3M21.5 10.5v3"/></svg>Workout</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2"/></svg>Program</button>
+          <button class="tab on" type="button"><svg viewBox="0 0 24 24"><path d="M4 19V6a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1v13M4 19a2 2 0 0 0 2 2h13M9 9h6M9 13h6"/></svg>Library</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>Log</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg>Settings</button>
+        </nav>
+      </div>
+    </div>
+    <p class="frame-cap">Library. Compact rows use four stable facts: name, prescription, dominant target, movement. Purpose appears only when it changes the decision.</p>
+  </section>
+
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><span>● ● ●</span></div>
+        <header class="appbar"><div class="app-title">Library <span class="count">12 results</span></div></header>
+        <div class="scroll" aria-hidden="true">
+          <label class="searchbar"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><input placeholder="Exercise, target, or movement"></label>
+          <div class="result-head"><span>Filtered library</span></div>
+        </div>
+        <div class="scrim"></div>
+        <section class="sheet" role="dialog" aria-label="Exercise filters">
+          <div class="grab"></div>
+          <header class="sheet-head"><h2>Filter exercises</h2><button class="icon-btn" type="button" aria-label="Close filters">×</button></header>
+          <div class="sheet-scroll">
+            <p class="section-label">Target matching</p>
+            <div class="segment" role="group" aria-label="Target matching">
+              <button class="on" type="button" data-match>Primary only</button>
+              <button type="button" data-match>Primary + secondary</button>
+            </div>
+            <p class="section-label">Targets</p>
+            <div class="option-grid">
+              <button class="chip" type="button">Chest</button>
+              <button class="chip" type="button">Back</button>
+              <button class="chip" type="button">Shoulders</button>
+              <button class="chip on" type="button">Glute max</button>
+              <button class="chip" type="button">Glute med/min</button>
+              <button class="chip" type="button">Hamstrings</button>
+            </div>
+            <p class="section-label">Movement</p>
+            <div class="option-grid">
+              <button class="chip on" type="button">Hip hinge</button>
+              <button class="chip" type="button">Hip thrust</button>
+              <button class="chip" type="button">Split squat</button>
+              <button class="chip" type="button">Hip abduction</button>
+            </div>
+            <p class="section-label">Equipment</p>
+            <div class="option-grid">
+              <button class="chip on" type="button">Dumbbell</button>
+              <button class="chip" type="button">Barbell</button>
+              <button class="chip" type="button">Cable</button>
+              <button class="chip" type="button">Machine</button>
+              <button class="chip" type="button">Bodyweight</button>
+            </div>
+            <p class="section-label">Purpose</p>
+            <div class="option-grid">
+              <button class="chip on" type="button">Strength</button>
+              <button class="chip" type="button">Mobility</button>
+              <button class="chip" type="button">Rehab</button>
+            </div>
+            <button class="disclosure" type="button" data-filter-more><strong>More filters</strong><span data-closed="Style · side · emphasis · range">Style · side · emphasis · range</span></button>
+            <div class="advanced-filter" data-filter-advanced hidden>
+              <div class="select-row"><label for="styleFilter">Style</label><select id="styleFilter"><option>Any style</option><option>Compound</option><option>Isolation</option><option>Isometric</option></select></div>
+              <div class="select-row"><label for="sideFilter">Laterality</label><select id="sideFilter"><option>Any</option><option>Bilateral</option><option>Unilateral</option><option>Alternating</option></select></div>
+              <div class="select-row"><label for="rangeFilter">Challenge</label><select id="rangeFilter"><option>Any range</option><option>Lengthened / bottom</option><option>Middle</option><option>Shortened / top</option><option>Even</option><option>Variable</option></select></div>
+            </div>
+          </div>
+          <footer class="sheet-actions"><button class="button text" type="button">Clear</button><button class="button primary" type="button">Show 12 exercises</button></footer>
+        </section>
+      </div>
+    </div>
+    <p class="frame-cap">Filter sheet. Common facets stay visible. Optional interpretation-heavy fields are one level deeper. OR within a row, AND between sections.</p>
+  </section>
+
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><span>● ● ●</span></div>
+        <header class="appbar" aria-hidden="true"><div class="app-title">Push A</div></header>
+        <div class="scroll" aria-hidden="true"><div class="result-head"><span>Main</span></div><button class="library-row" type="button"><span class="row-copy"><span class="row-name">Low incline dumbbell press</span><span class="row-meta"><span class="rx">3 × 8–12</span></span></span></button></div>
+        <div class="scrim"></div>
+        <section class="sheet" role="dialog" aria-label="Exercise reference">
+          <div class="grab"></div>
+          <header class="sheet-head"><div class="editor-title"><h2>Low incline dumbbell press</h2><small>Routine prescription</small></div><button class="icon-btn" type="button" aria-label="Close exercise">×</button></header>
+          <div class="sheet-scroll">
+            <p class="big-rx">3 × 8–12</p>
+            <p class="meta-line">Horizontal press · Dumbbells + bench · Compound</p>
+            <div class="groups">
+              <p class="group-label">Primary targets</p>
+              <div class="muscle-row"><span class="num">1</span><strong>Chest <em>· upper emphasis</em></strong></div>
+              <p class="group-label">Secondary involvement</p>
+              <div class="muscle-row"><span class="num">1</span><strong>Triceps</strong></div>
+              <div class="muscle-row"><span class="num">2</span><strong>Front delts</strong></div>
+            </div>
+            <div class="facts">
+              <div class="fact"><span>Laterality</span><strong>Bilateral</strong></div>
+              <div class="fact"><span>Support</span><strong>Supported</strong></div>
+              <div class="fact"><span>Challenge</span><strong>Typically bottom to middle</strong></div>
+            </div>
+            <div class="reference-actions"><button type="button">Search YouTube</button><button type="button">Search alternatives</button></div>
+            <div class="ladder">
+              <div class="ladder-head">Related exercises <span>alternative + progression</span></div>
+              <button class="ladder-row" type="button"><span class="level">Easier</span><strong>Push-up</strong></button>
+              <button class="ladder-row" type="button"><span class="level">Similar</span><strong>Machine chest press</strong></button>
+              <button class="ladder-row" type="button"><span class="level">Harder</span><strong>Barbell bench press</strong></button>
+            </div>
+            <p class="notes-copy">Bench one notch up. Keep elbows around 45°. Control the bottom and avoid bouncing.</p>
+          </div>
+          <footer class="sheet-actions"><button class="button" type="button">Edit exercise</button></footer>
+        </section>
+      </div>
+    </div>
+    <p class="frame-cap">Reference sheet. Alternatives and progression share one related-exercise list: Easier, Similar, or Harder. Two web-search actions stay separate.</p>
+  </section>
+
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><span>● ● ●</span></div>
+        <header class="appbar"><button class="icon-btn" type="button" aria-label="Cancel editing">×</button><div class="app-title">Edit exercise</div></header>
+        <div class="scroll">
+          <div class="sheet-scroll">
+            <div class="form-group"><label for="exerciseName">Name</label><input class="field" id="exerciseName" value="Low incline dumbbell press"></div>
+            <div class="form-group"><label for="defaultRx">Default prescription</label><input class="field" id="defaultRx" value="3 × 8–12"></div>
+            <div class="form-group">
+              <p class="form-title">Primary targets · ordered</p>
+              <div class="target-editor">
+                <div class="target-line"><span class="tn">1</span><strong>Chest · upper emphasis</strong><button type="button" aria-label="Edit primary target">›</button></div>
+              </div>
+              <button class="add-line" type="button">+ Add second primary target</button>
+            </div>
+            <div class="form-group">
+              <p class="form-title">Secondary involvement</p>
+              <div class="target-editor">
+                <div class="target-line"><span class="tn">1</span><strong>Triceps</strong><button type="button" aria-label="Edit secondary target one">›</button></div>
+                <div class="target-line"><span class="tn">2</span><strong>Front delts</strong><button type="button" aria-label="Edit secondary target two">›</button></div>
+              </div>
+              <button class="add-line" type="button">+ Add secondary target</button>
+            </div>
+            <div class="form-group"><label for="movement">Movement pattern</label><select class="field" id="movement"><option>Horizontal press</option><option>Vertical press</option><option>Fly</option></select></div>
+            <div class="form-group"><label for="equipment">Equipment</label><input class="field" id="equipment" value="Dumbbells, Bench"></div>
+            <div class="form-group"><label for="purpose">Purpose</label><select class="field" id="purpose"><option>Strength</option><option>Mobility</option><option>Rehab</option></select></div>
+            <button class="disclosure" type="button" data-editor-more><strong>Optional classification</strong><span data-closed="Style · side · support · range">Style · side · support · range</span></button>
+            <div class="advanced-editor" data-editor-advanced hidden>
+              <div class="select-row"><label for="styleEdit">Style</label><select id="styleEdit"><option>Compound</option><option>Isolation</option><option>Isometric</option></select></div>
+              <div class="select-row"><label for="sideEdit">Laterality</label><select id="sideEdit"><option>Bilateral</option><option>Unilateral</option><option>Alternating</option></select></div>
+              <div class="select-row"><label for="supportEdit">Support</label><select id="supportEdit"><option>Supported</option><option>Unsupported</option><option>Not classified</option></select></div>
+              <div class="select-row"><label for="challengeEdit">Challenge</label><select id="challengeEdit"><option>Bottom to middle</option><option>Lengthened / bottom</option><option>Middle</option><option>Shortened / top</option><option>Variable</option><option>Not classified</option></select></div>
+            </div>
+            <p class="routine-note"><strong>Routine execution stays elsewhere.</strong> Sets, reps, tempo, pauses, and partial ROM can change per routine without changing this master exercise.</p>
+          </div>
+        </div>
+        <footer class="sheet-actions"><button class="button primary" type="button">Save exercise</button></footer>
+      </div>
+    </div>
+    <p class="frame-cap">Master editor. Essential classification comes first. Optional fields are progressive. Routine-specific execution is explicitly kept out of this form.</p>
+  </section>
+</main>
+
+<script>
+  const screens = document.querySelectorAll(".screen");
+  const themeButtons = document.querySelectorAll("[data-theme]");
+  const initialTheme = new URLSearchParams(window.location.search).get("theme");
+  if (initialTheme === "light" || initialTheme === "dark") {
+    themeButtons.forEach((item) => item.classList.toggle("on", item.dataset.theme === initialTheme));
+    screens.forEach((screen) => { screen.dataset.theme = initialTheme; });
+  }
+  themeButtons.forEach((button) => button.addEventListener("click", () => {
+    themeButtons.forEach((item) => item.classList.toggle("on", item === button));
+    screens.forEach((screen) => { screen.dataset.theme = button.dataset.theme; });
+  }));
+
+  document.querySelectorAll(".option-grid .chip, .hscroll .chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      if (chip.closest(".hscroll")) {
+        chip.closest(".hscroll").querySelectorAll(".chip").forEach((item) => item.classList.remove("on"));
+      }
+      chip.classList.toggle("on");
+    });
+  });
+
+  document.querySelectorAll("[data-match]").forEach((button) => {
+    button.addEventListener("click", () => {
+      button.parentElement.querySelectorAll("button").forEach((item) => item.classList.toggle("on", item === button));
+    });
+  });
+
+  const bindDisclosure = (triggerSelector, panelSelector) => {
+    const trigger = document.querySelector(triggerSelector);
+    const panel = document.querySelector(panelSelector);
+    if (!trigger || !panel) return;
+    trigger.addEventListener("click", () => {
+      panel.hidden = !panel.hidden;
+      const hint = trigger.querySelector("span");
+      if (hint) hint.textContent = panel.hidden ? hint.dataset.closed : "Hide";
+    });
+  };
+  bindDisclosure("[data-filter-more]", "[data-filter-advanced]");
+  bindDisclosure("[data-editor-more]", "[data-editor-advanced]");
+</script>
+</body>
+</html>

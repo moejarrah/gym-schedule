@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ironworks Program Flows</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700&family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="ironworks-flows.css">
+</head>
+<body>
+<header class="page-head">
+  <h1>Ironworks · Program flows</h1>
+  <p>program → routine → entry</p>
+  <div class="page-actions">
+    <a href="ironworks.html">Workout</a>
+    <a href="ironworks-classification.html">Library</a>
+    <a href="ironworks-log-settings.html">Log + Settings</a>
+    <span class="switcher" role="group" aria-label="Phone width">
+      <button class="on" type="button" data-size="393">393</button>
+      <button type="button" data-size="320">320</button>
+    </span>
+    <span class="switcher" role="group" aria-label="Theme">
+      <button type="button" data-theme="light">Light</button>
+      <button class="on" type="button" data-theme="dark">Dark</button>
+    </span>
+  </div>
+</header>
+
+<ul class="concept-notes">
+  <li>A program owns an ordered set of routines. PPL, home, rehab, and mobility days can live in one program.</li>
+  <li>The program selector is compact and contextual. It does not become another bottom tab.</li>
+  <li>Program, routine, routine-entry, and master-exercise editing remain separate.</li>
+  <li>Routine rows use direct hold-drag. The entry sheet keeps earlier/later fallback actions in production.</li>
+  <li>Create supports Empty or Duplicate without a wizard. Delete remains a distinct confirmation.</li>
+  <li>Errors stay inside the sheet that failed and never report a false save.</li>
+</ul>
+
+<main class="frames">
+  <!-- Program default -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮  ◉</span></div>
+        <header class="appbar">
+          <div class="app-title">Program</div>
+          <button class="app-action" type="button">+ Add routine</button>
+        </header>
+        <div class="programbar">
+          <button class="program-pick" type="button">
+            <span>Active</span><strong>PPL + Rehab</strong>
+            <svg viewBox="0 0 24 24"><path d="m7 9 5 5 5-5"/></svg>
+          </button>
+          <button class="icon-btn" type="button" aria-label="Manage programs">
+            <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          </button>
+        </div>
+        <div class="routine-tabs" aria-label="Choose routine">
+          <button class="routine-tab on" type="button">Push A</button>
+          <button class="routine-tab" type="button">Pull A</button>
+          <button class="routine-tab" type="button">Legs A</button>
+          <button class="routine-tab" type="button">Push B</button>
+          <button class="routine-tab" type="button">Pull B</button>
+          <button class="routine-tab" type="button">Legs B</button>
+          <button class="routine-tab" type="button">Home Daily</button>
+          <button class="routine-tab" type="button">Home Rehab</button>
+          <button class="routine-tab" type="button">Mobility</button>
+        </div>
+        <div class="viewbar">
+          <div class="viewbar-copy"><strong>Push A</strong><span>Gym · Required · 6 exercises</span></div>
+          <button class="icon-btn" type="button" aria-label="Edit Push A">
+            <svg viewBox="0 0 24 24"><path d="m4 20 4.2-1 10.6-10.6a2 2 0 0 0-2.8-2.8L5.4 16.2 4 20Z"/><path d="m14.5 7.1 2.8 2.8"/></svg>
+          </button>
+        </div>
+        <div class="scroll">
+          <div class="section-label">Main</div>
+          <button class="program-row" type="button"><span class="row-number">1</span><span class="row-copy"><strong>Low incline dumbbell press</strong><span class="rx">3 × 8–12</span></span><span class="grip" aria-hidden="true">⠿</span></button>
+          <button class="program-row" type="button"><span class="row-number">2</span><span class="row-copy"><strong>Machine chest press</strong><span class="rx">2 × 8–12</span></span><span class="grip" aria-hidden="true">⠿</span></button>
+          <button class="program-row" type="button"><span class="row-number">3</span><span class="row-copy"><strong>Rope pushdown</strong><span class="rx">2–3 × 10–15</span></span><span class="grip" aria-hidden="true">⠿</span></button>
+          <div class="section-label">Optional · Rehab</div>
+          <button class="program-row" type="button"><span class="row-number">4</span><span class="row-copy"><strong>Scaption raise</strong><span class="rx">2 × 12–20</span></span><span class="grip" aria-hidden="true">⠿</span></button>
+          <button class="program-row" type="button"><span class="row-number">5</span><span class="row-copy"><strong>Cable external rotation</strong><span class="rx">2 × 15–20/side</span></span><span class="grip" aria-hidden="true">⠿</span></button>
+          <button class="program-row" type="button"><span class="row-number">6</span><span class="row-copy"><strong>Cable serratus punch</strong><span class="rx">2 × 12–15/side</span></span><span class="grip" aria-hidden="true">⠿</span></button>
+          <button class="add-row" type="button">+ Add exercise</button>
+        </div>
+        <nav class="tabbar" aria-label="App tabs">
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M5 9v6M8.5 6.5v11M15.5 6.5v11M19 9v6M8.5 12h7M2.5 10.5v3M21.5 10.5v3"/></svg>Workout</button>
+          <button class="tab on" type="button"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2"/></svg>Program</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M4 19V6a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1v13M4 19a2 2 0 0 0 2 2h13M9 9h6M9 13h6"/></svg>Library</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>Log</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2"/></svg>Settings</button>
+        </nav>
+      </div>
+    </div>
+    <p class="frame-cap">Program. One compact selector owns the whole PPL + rehab block; routine tabs and direct hold-drag stay immediately below.</p>
+  </section>
+
+  <!-- Manage programs -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><span>● ● ●</span></div>
+        <header class="appbar" style="opacity:.5"><div class="app-title">Program</div></header>
+        <div class="scroll" style="opacity:.42"><div class="empty"><h2>PPL + Rehab</h2></div></div>
+        <div class="scrim"></div>
+        <section class="sheet" role="dialog" aria-label="Manage programs">
+          <div class="grab"></div>
+          <header class="sheet-head"><h2>Programs</h2><button class="icon-btn" type="button" aria-label="Close programs">×</button></header>
+          <div class="sheet-scroll">
+            <button class="list-row" type="button"><span class="active-dot"></span><span class="row-copy"><strong>PPL + Rehab</strong><small>9 routines · active</small></span><span class="row-end">›</span></button>
+            <button class="list-row" type="button"><span class="row-number"></span><span class="row-copy"><strong>Strength Block 2</strong><small>6 routines</small></span><span class="row-end">›</span></button>
+            <button class="list-row" type="button"><span class="row-number"></span><span class="row-copy"><strong>Travel / Home</strong><small>3 routines</small></span><span class="row-end">›</span></button>
+          </div>
+          <footer class="sheet-actions"><button class="button primary" type="button">Add program</button></footer>
+        </section>
+      </div>
+    </div>
+    <p class="frame-cap">Manage programs. Tap a program to switch or edit it. Only one clear active marker; no dashboard or archive machinery.</p>
+  </section>
+
+  <!-- Create program -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><span>● ● ●</span></div>
+        <header class="appbar" style="opacity:.5"><div class="app-title">Program</div></header>
+        <div class="scroll" style="opacity:.42"></div>
+        <div class="scrim"></div>
+        <section class="sheet" role="dialog" aria-label="Add program">
+          <div class="grab"></div>
+          <header class="sheet-head"><div><h2>Add program</h2><p>Create a new training block</p></div><button class="icon-btn" type="button" aria-label="Close add program">×</button></header>
+          <div class="sheet-scroll">
+            <label class="field"><span>Name</span><input class="control" value="Strength Block 2"></label>
+            <div class="field"><span class="form-label">Start with</span><div class="segment" data-segment data-start-mode><button class="on" type="button">Empty</button><button type="button">Duplicate</button></div></div>
+            <label class="field"><span>Duplicate from</span><select class="control" data-duplicate-source disabled><option>PPL + Rehab</option></select></label>
+            <p class="form-note">Duplicating copies routines and prescriptions. Exercises remain linked to the same Library.</p>
+          </div>
+          <footer class="sheet-actions"><button class="button text" type="button">Cancel</button><button class="button primary" type="button">Create program</button></footer>
+        </section>
+      </div>
+    </div>
+    <p class="frame-cap">Create. One name, one choice: Empty or Duplicate. No onboarding wizard, schedule, dates, or programming engine.</p>
+  </section>
+
+  <!-- Edit program -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><span>● ● ●</span></div>
+        <header class="appbar" style="opacity:.5"><div class="app-title">Program</div></header>
+        <div class="scroll" style="opacity:.42"></div>
+        <div class="scrim"></div>
+        <section class="sheet compact" role="dialog" aria-label="Edit program">
+          <div class="grab"></div>
+          <header class="sheet-head"><h2>Edit program</h2><button class="icon-btn" type="button" aria-label="Close edit program">×</button></header>
+          <div class="sheet-scroll">
+            <label class="field"><span>Name</span><input class="control" value="PPL + Rehab"></label>
+            <div class="action-list" style="margin-top:16px">
+              <button class="action-row" type="button">Duplicate program <span>›</span></button>
+              <button class="action-row danger" type="button">Delete program <span>›</span></button>
+            </div>
+          </div>
+          <footer class="sheet-actions"><button class="button primary" type="button">Save changes</button></footer>
+        </section>
+      </div>
+    </div>
+    <p class="frame-cap">Edit program. Rename is the normal action; duplicate and delete remain clear secondary paths.</p>
+  </section>
+
+  <!-- Delete confirmation -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><span>● ● ●</span></div>
+        <header class="appbar" style="opacity:.35"><div class="app-title">Program</div></header>
+        <div class="scroll" style="opacity:.3"></div>
+        <div class="scrim"></div>
+        <section class="sheet compact" role="alertdialog" aria-label="Delete PPL plus Rehab">
+          <div class="grab"></div>
+          <header class="sheet-head"><h2>Delete PPL + Rehab?</h2></header>
+          <div class="sheet-scroll">
+            <p class="confirm-copy">This removes <strong>9 routines</strong> and their completion history. Master exercises stay in the Library.</p>
+          </div>
+          <footer class="sheet-actions"><button class="button" type="button">Keep program</button><button class="button danger" type="button">Delete program</button></footer>
+        </section>
+      </div>
+    </div>
+    <p class="frame-cap">Delete confirmation. It names the affected routines and history, and states that the global Library remains intact.</p>
+  </section>
+
+  <!-- Edit routine -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><span>● ● ●</span></div>
+        <header class="appbar" style="opacity:.5"><div class="app-title">Program</div></header>
+        <div class="scroll" style="opacity:.42"></div>
+        <div class="scrim"></div>
+        <section class="sheet" role="dialog" aria-label="Edit routine">
+          <div class="grab"></div>
+          <header class="sheet-head"><h2>Edit Push A</h2><button class="icon-btn" type="button" aria-label="Close routine editor">×</button></header>
+          <div class="sheet-scroll">
+            <label class="field"><span>Name</span><input class="control" value="Push A"></label>
+            <div class="field"><span class="form-label">Location</span><div class="segment" data-segment><button class="on" type="button">Gym</button><button type="button">Home</button></div></div>
+            <div class="field"><span class="form-label">Status</span><div class="segment" data-segment><button class="on" type="button">Required</button><button type="button">Optional</button></div></div>
+            <div class="action-list" style="margin-top:16px">
+              <button class="action-row" type="button">Move routine earlier <span>↑</span></button>
+              <button class="action-row" type="button">Move routine later <span>↓</span></button>
+              <button class="action-row danger" type="button">Delete routine <span>›</span></button>
+            </div>
+          </div>
+          <footer class="sheet-actions"><button class="button primary" type="button">Save routine</button></footer>
+        </section>
+      </div>
+    </div>
+    <p class="frame-cap">Routine editor. Name, location, and status only. Reorder fallbacks and delete stay available without cluttering the routine list.</p>
+  </section>
+
+  <!-- Edit routine entry with error -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><span>● ● ●</span></div>
+        <header class="appbar" style="opacity:.5"><div class="app-title">Program</div></header>
+        <div class="scroll" style="opacity:.42"></div>
+        <div class="scrim"></div>
+        <section class="sheet" role="dialog" aria-label="Edit routine exercise">
+          <div class="grab"></div>
+          <header class="sheet-head"><div><h2>Scaption raise</h2><p>Push A entry</p></div><button class="icon-btn" type="button" aria-label="Close entry editor">×</button></header>
+          <div class="sheet-scroll">
+            <label class="field"><span>Prescription for Push A</span><input class="control" value="2 × 12–20"></label>
+            <div class="field"><span class="form-label">Section</span><div class="segment" data-segment><button type="button">Main</button><button class="on" type="button">Optional</button></div></div>
+            <p class="form-note">This changes only the Push A entry. The master exercise and its default prescription stay unchanged.</p>
+            <p class="form-error" role="alert">Couldn’t save. Your previous entry is still intact.</p>
+            <div class="action-list" style="margin-top:15px">
+              <button class="action-row" type="button">Move earlier <span>↑</span></button>
+              <button class="action-row" type="button">Move later <span>↓</span></button>
+              <button class="action-row danger" type="button">Remove from Push A <span>›</span></button>
+            </div>
+          </div>
+          <footer class="sheet-actions"><button class="button primary" type="button">Save entry</button></footer>
+        </section>
+      </div>
+    </div>
+    <p class="frame-cap">Entry editor and failed-save state. Prescription and Main/Optional role are routine-specific; the error remains in context.</p>
+  </section>
+
+  <!-- Empty routine -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮  ◉</span></div>
+        <header class="appbar"><div class="app-title">Program</div></header>
+        <div class="programbar">
+          <button class="program-pick" type="button"><span>Active</span><strong>Travel / Home</strong><svg viewBox="0 0 24 24"><path d="m7 9 5 5 5-5"/></svg></button>
+          <button class="icon-btn" type="button" aria-label="Manage programs"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+        </div>
+        <div class="routine-tabs" aria-label="Choose routine">
+          <button class="routine-tab on" type="button">Hotel full body</button>
+          <button class="routine-tab" type="button">Mobility</button>
+        </div>
+        <div class="viewbar">
+          <div class="viewbar-copy"><strong>Hotel full body</strong><span>Home · Required · 0 exercises</span></div>
+          <button class="icon-btn" type="button" aria-label="Edit Hotel full body"><svg viewBox="0 0 24 24"><path d="m4 20 4.2-1 10.6-10.6a2 2 0 0 0-2.8-2.8L5.4 16.2 4 20Z"/><path d="m14.5 7.1 2.8 2.8"/></svg></button>
+        </div>
+        <div class="scroll">
+          <div class="empty">
+            <h2>No exercises yet</h2>
+            <p>Add exercises from the shared Library to build this routine.</p>
+            <button class="button primary" type="button">Add exercise</button>
+          </div>
+        </div>
+        <nav class="tabbar" aria-label="App tabs">
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M5 9v6M8.5 6.5v11M15.5 6.5v11M19 9v6M8.5 12h7"/></svg>Workout</button>
+          <button class="tab on" type="button"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/></svg>Program</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M4 19V6h15v13M4 19a2 2 0 0 0 2 2h13"/></svg>Library</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/></svg>Log</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/></svg>Settings</button>
+        </nav>
+      </div>
+    </div>
+    <p class="frame-cap">Empty routine. The program and routine context stay visible, with one direct path to add exercises from the shared Library.</p>
+  </section>
+
+  <!-- Empty program -->
+  <section class="frame-wrap">
+    <div class="phone">
+      <div class="screen" data-theme="dark">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮  ◉</span></div>
+        <header class="appbar"><div class="app-title">Program</div></header>
+        <div class="programbar">
+          <button class="program-pick" type="button"><span>Active</span><strong>Strength Block 2</strong><svg viewBox="0 0 24 24"><path d="m7 9 5 5 5-5"/></svg></button>
+          <button class="icon-btn" type="button" aria-label="Manage programs"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+        </div>
+        <div class="scroll">
+          <div class="empty">
+            <h2>No routines yet</h2>
+            <p>Add the first workout day to this program. Exercises will still come from your shared Library.</p>
+            <button class="button primary" type="button">Add routine</button>
+          </div>
+        </div>
+        <nav class="tabbar" aria-label="App tabs">
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M5 9v6M8.5 6.5v11M15.5 6.5v11M19 9v6M8.5 12h7"/></svg>Workout</button>
+          <button class="tab on" type="button"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/></svg>Program</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><path d="M4 19V6h15v13M4 19a2 2 0 0 0 2 2h13"/></svg>Library</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/></svg>Log</button>
+          <button class="tab" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/></svg>Settings</button>
+        </nav>
+      </div>
+    </div>
+    <p class="frame-cap">Empty program. One useful action, no sample routines, schedule setup, wizard, or decorative empty-state art.</p>
+  </section>
+</main>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const screens = document.querySelectorAll(".screen");
+  const phones = document.querySelectorAll(".phone");
+  const themeButtons = document.querySelectorAll("[data-theme]");
+  const sizeButtons = document.querySelectorAll("[data-size]");
+
+  function applyTheme(theme) {
+    screens.forEach((screen) => { screen.dataset.theme = theme; });
+    themeButtons.forEach((button) => button.classList.toggle("on", button.dataset.theme === theme));
+  }
+  function applySize(size) {
+    phones.forEach((phone) => phone.classList.toggle("narrow", size === "320"));
+    sizeButtons.forEach((button) => button.classList.toggle("on", button.dataset.size === size));
+  }
+
+  applyTheme(params.get("theme") === "light" ? "light" : "dark");
+  applySize(params.get("size") === "320" ? "320" : "393");
+  themeButtons.forEach((button) => button.addEventListener("click", () => applyTheme(button.dataset.theme)));
+  sizeButtons.forEach((button) => button.addEventListener("click", () => applySize(button.dataset.size)));
+  document.querySelectorAll("[data-segment]").forEach((segment) => {
+    segment.querySelectorAll("button").forEach((button) => button.addEventListener("click", () => {
+      segment.querySelectorAll("button").forEach((item) => item.classList.toggle("on", item === button));
+      if (segment.hasAttribute("data-start-mode")) {
+        document.querySelector("[data-duplicate-source]").disabled = button.textContent.trim() !== "Duplicate";
+      }
+    }));
+  });
+</script>
+</body>
+</html>
