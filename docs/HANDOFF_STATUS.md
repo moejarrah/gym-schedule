@@ -8,10 +8,10 @@ Read this file first after an interruption, compaction, or handoff. It records o
 
 | State | Revision | Schema | Cache | Verification |
 | --- | --- | ---: | ---: | --- |
-| Published `origin/main` | `d40d481` | 9 | 46 | Slices 7–11D and Slice 13 owner/device verified and released |
-| Local `agent/plan-slice-12` | `d40d481` plus uncommitted Slice 12A Log/day-editor work | 9 | 50 | Slice 12A repository/runtime verified; owner device verification pending |
+| Published `origin/main` | `1265f62` | 9 | 50 | Slices 7–11D and Slice 13 released; Slice 12A deployed with owner device verification pending |
+| Local `agent/plan-slice-12` | `cc98d7f` | 9 | 50 | Matches the merged Slice 12A content commit |
 
-The cumulative Slices 10E–11D work was committed, merged through PR #1, and published from `main`. The local untracked `.ai-skill-backups/` directory is tool-generated, is not production project content, and was deliberately excluded from the release.
+The cumulative Slices 10E–11D work was merged through PR #1. Slice 12A was committed as `cc98d7f`, merged through PR #2 as `1265f62`, and deployed successfully from `main`. The local untracked `.ai-skill-backups/` directory is tool-generated, is not production project content, and was deliberately excluded from the release.
 
 `docs/AUDIT.md` has no confirmed open issue.
 
@@ -61,6 +61,7 @@ The cumulative Slices 10E–11D work was committed, merged through PR #1, and pu
 - The owner verified Slices 7–11D on the target iPhone in Safari and the installed PWA.
 - The owner confirmed schema 9/cache 38 on the target iPhone. Slice 10F is device verified and accepted.
 - PR #1 merged as `4146de1`; GitHub Pages built that revision successfully, and the owner accepted the published cache-44 app on the target iPhone.
+- PR #2 merged Slice 12A as `1265f62`; GitHub Pages deployed cache 50 successfully. Owner verification in Safari and the installed PWA is pending.
 - Slice 13 manifest parsing/validation, syntax, cache assertions, `git diff --check`, and all 80 dependency-free checks pass.
 - Slice 13 was runtime-regressed at 320 × 700 and 393 × 852 in both themes. Evidence covers all five primary surfaces, long Home Base/Program/Library scrolling, Settings/rules, routine/master/filter/reference/day/choice dialogs, focus containment and textarea focus, 44 px navigation, safe viewport geometry, browser-error monitoring, and cache-46 controlled navigation with the preview server stopped.
 - A fresh read-only Slice 13 verifier found one stale status-document issue. After correction, the same verifier rechecked the diff, passed 29 focused PWA checks, and found no remaining correctness, regression, data-loss, accessibility, acceptance, cache/version, documentation, or scope issue.
