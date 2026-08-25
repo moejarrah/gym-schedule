@@ -1,12 +1,12 @@
 # Ironworks Implementation Plan
 
-Status: Slices 7–11D owner/device verified and released; Slices 12A–12B planned and deliberately deferred; Slice 13 repository/runtime and fresh-verifier gates complete with device verification pending
-Current checkpoint: Local schema 9/cache 46 current-state consolidation and retrospective hardening
-Next action: publish cache 46 for owner device verification
+Status: Slices 7–11D and Slice 13 owner/device verified and released; Slice 12A repository/runtime verified with owner device verification pending; Slice 12B deliberately deferred
+Current checkpoint: Local schema 9/cache 50 Slice 12A Log and day editor
+Next action: owner verification of Slice 12A, then close it before beginning Slice 12B
 
 ## Goal
 
-Deliver the owner-approved Ironworks interface in bounded slices without changing the product hierarchy or introducing unnecessary architecture. The current-scope release completes the accepted Workout, Program, and Library work through Slice 11D while preserving the functional Log/Settings foundation; the fully specified Ironworks Log/Settings work remains deliberately deferred. The durable behavior contract lives in `PRODUCT.md`; the work method and verification gates live in `WORKFLOW.md`.
+Deliver the owner-approved Ironworks interface in bounded slices without changing the product hierarchy or introducing unnecessary architecture. The accepted Workout, Program, and Library work runs through Slice 11D; Slice 12A now applies the approved Log/day-editor design while Slice 12B Settings remains deferred. The durable behavior contract lives in `PRODUCT.md`; the work method and verification gates live in `WORKFLOW.md`.
 
 ## Approved sources
 
@@ -48,11 +48,11 @@ Each implementation slice stops after complete repository/runtime checks, a fres
 4. **Slice 11B — Master exercise editor** — owner/device verified
 5. **Slice 11C — Relationships and deletion** — owner/device verified
 6. **Slice 11D — Replacement Library and program seed** — owner/device verified and released
-7. **Slice 12A — Log and day editor** — implementation-ready specification; deliberately deferred
+7. **Slice 12A — Log and day editor** — repository/runtime verified; owner device verification pending
 8. **Slice 12B — Settings and current-format data portability** — implementation-ready specification; deliberately deferred
-9. **Slice 13 — Current-state consolidation and release** — repository/runtime and fresh-verifier gates complete; device verification pending
+9. **Slice 13 — Current-state consolidation and release** — owner/device verified and released
 
-Deferring Slice 12 leaves the current functional Log, day editor, Settings, theme, export/import, restore, and training-rule paths in production. Slice 13 may consolidate and release that accepted current scope, but it does not certify the deferred Ironworks Log/Settings presentation as complete. If Slice 12 resumes later, its implementation and release gates run after the current Slice 13 checkpoint.
+Slice 12A resumed after the accepted Slice 13 release. Slice 12B remains deferred, so the current functional Settings, theme, export/import, restore, and training-rule paths stay in production until that narrow slice begins.
 
 ## Replacement-program design brief
 
@@ -457,7 +457,7 @@ Every 11 sub-slice receives one production cache bump and stops after:
 
 Finish the existing functional Log and Settings flows in the approved Ironworks presentation without changing their local-first meaning. `references/ui-concepts/ironworks-log-settings.html` supplies the visual and interaction direction; `PRODUCT.md` controls completion, history, reset, and data-replacement behavior.
 
-Slice 12 is deliberately deferred after specification. Until it resumes, the current calendar, day editor, Settings dialog, theme switch, backup import/export, restore, and training-rule paths remain supported production behavior.
+Slice 12A resumed after the accepted Slice 13 release and now owns the Log/day-editor implementation. Slice 12B remains deferred, so the current Settings dialog, theme switch, backup import/export, restore, and training-rule paths remain supported production behavior.
 
 ### Shared data and architecture boundary
 
@@ -470,7 +470,7 @@ Slice 12 is deliberately deferred after specification. Until it resumes, the cur
 
 ### 12A. Log and day editor
 
-**Status:** implementation-ready specification; deliberately deferred.
+**Status:** repository/runtime verified at schema 9/cache 50; owner device verification pending.
 
 **Goal:** make dated workout history quick to scan and safe to edit while preserving current completion and check semantics.
 
@@ -567,7 +567,7 @@ Slice 12 is deliberately deferred after specification. Until it resumes, the cur
 
 ## Slice 13. Current-state consolidation and release
 
-**Status:** repository/runtime and fresh-verifier gates complete with cache 46 and 80 passing checks; owner device verification pending.
+**Status:** owner/device verified and released with schema 9/cache 46.
 
 **Goal:** reduce confirmed superseded implementation residue and certify the currently accepted Slices 7–11D product without implementing deferred Slice 12 behavior.
 

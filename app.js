@@ -10,7 +10,7 @@ import {
   MOVEMENT_PATTERNS,
   RULES,
   classificationLabel,
-} from "./data.js?v=46";
+} from "./data.js?v=50";
 import {
   addRoutineEntryInState,
   addRoutineToProgram,
@@ -37,7 +37,7 @@ import {
   updateProgramInState,
   updateRoutineInState,
   updateRoutineEntryInState,
-} from "./storage.js?v=46";
+} from "./storage.js?v=50";
 import {
   availableLibraryBrowseGroups,
   classificationOptionPickerMarkup,
@@ -51,32 +51,32 @@ import {
   libraryRowsMarkup,
   normalizedExerciseSearch,
   relationshipEditorMarkup,
-} from "./ui/library.js?v=46";
+} from "./ui/library.js?v=50";
 import {
   calendarMarkup,
   dayEditorMarkup,
   rulesMarkup,
-} from "./ui/log-settings.js?v=46";
+} from "./ui/log-settings.js?v=50";
 import {
   entryPresentation,
   escapeHtml,
-} from "./ui/shared.js?v=46";
+} from "./ui/shared.js?v=50";
 import {
   entryChoicesEditorMarkup,
   pickerListMarkup,
   programMarkup,
   programsListMarkup,
   routineBlocksEditorMarkup,
-} from "./ui/program.js?v=46";
+} from "./ui/program.js?v=50";
 import {
   exerciseReferenceMarkup,
   exerciseVideoSearchMarkup,
-} from "./ui/exercise-reference.js?v=46";
+} from "./ui/exercise-reference.js?v=50";
 import {
   entryChoicesMarkup,
   workoutBlocksMarkup,
   workoutMarkup,
-} from "./ui/workout.js?v=46";
+} from "./ui/workout.js?v=50";
 
 const store = createStore();
 const main = document.querySelector("#appMain");
@@ -130,6 +130,7 @@ let pickerDialogFocusReturn = null;
 let routineBlockDialogFocusReturn = null;
 let entryChoiceDialogFocusReturn = null;
 let entryChoicesDialogFocusReturn = null;
+let dayDialogFocusReturn = null;
 
 const ENTRY_HOLD_DELAY = 340;
 const ENTRY_HOLD_TOLERANCE = 10;
@@ -167,9 +168,9 @@ function clearActionError() {
   if (error) error.textContent = "";
 }
 
-function saveResult(result, successMessage) {
+function saveResult(result, successMessage, failureMessage = "") {
   if (!result.ok) {
-    showActionError(result.error || "Changes could not be saved.");
+    showActionError(failureMessage || result.error || "Changes could not be saved.");
     return false;
   }
   clearActionError();
@@ -226,7 +227,7 @@ function updateHeader(state) {
   const labels = {
     routines: ["Program", program ? `Manage ${programRoutineCount} ${programRoutineCount === 1 ? "routine" : "routines"}` : "No program selected"],
     exercises: ["Library", `${state.exercises.length} ${state.exercises.length === 1 ? "exercise" : "exercises"}`],
-    calendar: ["Log", "Tap a day to edit"],
+    calendar: ["Log", "Month and recent history"],
   };
   const [title, meta] = currentView === "workout"
     ? [routine?.name || "Workout", routine ? `${routine.group === "home" ? "Home" : "Gym"} · ${routine.entries.length} ${routine.entries.length === 1 ? "slot" : "slots"} · ${routine.status}` : program ? `${program.name} · No routine selected` : "No program selected"]
@@ -373,15 +374,18 @@ function openExerciseVideoSearch(exerciseId) {
   document.querySelector("#exerciseVideoDialog").showModal();
 }
 
-function changeCalendarMonth(offset) {
+function changeCalendarMonth(offset, focusAction) {
   calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + offset, 1);
   render();
+  main.scrollTop = 0;
+  requestAnimationFrame(() => main.querySelector(`[data-action="${focusAction}"]`)?.focus());
 }
 
-function openDayEditor(dateKey) {
+function openDayEditor(dateKey, focusReturn = document.activeElement) {
   const state = store.getState();
   const session = state.sessions[dateKey] || { routineIds: [], checkedEntryIdsByRoutine: {}, note: "" };
   const date = dateFromKey(dateKey);
+  dayDialogFocusReturn = focusReturn instanceof HTMLElement ? focusReturn : null;
   document.querySelector("#dayDialogContent").innerHTML = dayEditorMarkup({
     state,
     session,
@@ -390,7 +394,9 @@ function openDayEditor(dateKey) {
     formatDate,
     getRoutineProgram,
   });
-  document.querySelector("#dayDialog").showModal();
+  const dialog = document.querySelector("#dayDialog");
+  dialog.showModal();
+  requestAnimationFrame(() => dialog.querySelector('[data-close-dialog="dayDialog"]')?.focus());
 }
 
 function saveDay(form) {
@@ -398,7 +404,7 @@ function saveDay(form) {
   const routineIds = [...form.querySelectorAll('input[name="routine"]:checked')].map((input) => input.value);
   const note = form.querySelector("#dayNote").value.trim();
   const result = store.replace(setDayInState(store.getState(), dateKey, routineIds, note));
-  if (!saveResult(result, "Day updated.")) return;
+  if (!saveResult(result, "Day updated.", "Changes could not be saved on this device. Nothing changed.")) return;
   document.querySelector("#dayDialog").close();
   render();
 }
@@ -1866,9 +1872,9 @@ main.addEventListener("click", (event) => {
   }
   else if (action === "open-workout-video") openExerciseVideoSearch(id);
   else if (action === "view-alternative") openExerciseDetails(id);
-  else if (action === "previous-month") changeCalendarMonth(-1);
-  else if (action === "next-month") changeCalendarMonth(1);
-  else if (action === "open-day") openDayEditor(button.dataset.date);
+  else if (action === "previous-month") changeCalendarMonth(-1, action);
+  else if (action === "next-month") changeCalendarMonth(1, action);
+  else if (action === "open-day") openDayEditor(button.dataset.date, button);
 });
 
 main.addEventListener("touchstart", (event) => {
@@ -2173,6 +2179,18 @@ document.querySelector("#dayDialog").addEventListener("submit", (event) => {
   saveDay(event.target);
 });
 
+document.querySelector("#dayDialog").addEventListener("close", () => {
+  requestAnimationFrame(() => {
+    const returnDate = dayDialogFocusReturn?.dataset.date;
+    const renderedDateButton = returnDate
+      ? main.querySelector(`[data-action="open-day"][data-date="${returnDate}"]`)
+      : null;
+    const target = dayDialogFocusReturn?.isConnected ? dayDialogFocusReturn : renderedDateButton || main;
+    target?.focus?.({ preventScroll: true });
+    dayDialogFocusReturn = null;
+  });
+});
+
 document.addEventListener("click", (event) => {
   const button = event.target.closest("[data-close-dialog]");
   if (!button) return;
@@ -2462,7 +2480,7 @@ if ("serviceWorker" in navigator) {
     }
   });
   navigator.serviceWorker
-    .register("sw.js?v=46", { updateViaCache: "none" })
+    .register("sw.js?v=50", { updateViaCache: "none" })
     .then((registration) => registration.update())
     .catch(() => showToast("Offline mode could not be started."));
 }

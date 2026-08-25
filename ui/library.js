@@ -10,8 +10,8 @@ import {
   MOVEMENT_PATTERNS,
   RELATED_EXERCISE_RELATIONS,
   classificationLabel,
-} from "../data.js?v=46";
-import { chevronIcon, escapeHtml } from "./shared.js?v=46";
+} from "../data.js?v=50";
+import { chevronIcon, escapeHtml } from "./shared.js?v=50";
 
 export function createLibraryFilters() {
   return {
