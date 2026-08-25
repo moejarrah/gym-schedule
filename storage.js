@@ -11,7 +11,7 @@ import {
   RELATED_EXERCISE_RELATIONS,
   SCHEMA_VERSION,
   createDefaultState,
-} from "./data.js?v=46";
+} from "./data.js?v=50";
 
 export const STORAGE_KEY = "gymAppStateV1";
 

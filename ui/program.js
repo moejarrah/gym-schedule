@@ -5,8 +5,8 @@ import {
   entryPresentation,
   escapeHtml,
   routineTabsMarkup,
-} from "./shared.js?v=46";
-import { classificationLabel } from "../data.js?v=46";
+} from "./shared.js?v=50";
+import { classificationLabel } from "../data.js?v=50";
 
 function programAppBarMarkup(program, routines) {
   return `<header class="program-appbar">

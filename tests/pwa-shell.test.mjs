@@ -64,7 +64,7 @@ test("HTML keeps zoom enabled and uses external production assets", () => {
   const viewport = html.match(/<meta name="viewport" content="([^"]+)">/)?.[1] || "";
   assert.match(viewport, /viewport-fit=cover/);
   assert.doesNotMatch(viewport, /user-scalable=no|maximum-scale=1/);
-  assert.match(html, /<script type="module" src="app\.js\?v=46"><\/script>/);
+  assert.match(html, /<script type="module" src="app\.js\?v=50"><\/script>/);
   assert.match(html, /rel="apple-touch-icon"[^>]+app-icon-180\.png/);
   assert.match(html, /<h1 id="viewTitle">Workout<\/h1>/);
   assert.match(html, /<p id="viewMetaLine">Loading saved data<\/p>/);
@@ -72,9 +72,9 @@ test("HTML keeps zoom enabled and uses external production assets", () => {
   assert.doesNotMatch(html, /\sonclick=/);
 });
 
-test("only the approved Log and Settings concept remains tracked", () => {
+test("Log reference concepts remain tracked", () => {
   assert.equal(existsSync(new URL("../references/ui-concepts/ironworks-log-settings.html", import.meta.url)), true);
-  assert.equal(existsSync(new URL("../references/ui-concepts/ironworks-logging.html", import.meta.url)), false);
+  assert.equal(existsSync(new URL("../references/ui-concepts/ironworks-logging.html", import.meta.url)), true);
 });
 
 test("offline shell lists every production module and icon", () => {
@@ -83,9 +83,9 @@ test("offline shell lists every production module and icon", () => {
     assert.match(worker, new RegExp(asset.replaceAll(".", "\\.")));
   }
   assert.match(worker, /event\.request\.mode === "navigate"/);
-  assert.match(worker, /gym-schedule-v46/);
-  assert.match(worker, /styles\.css\?v=46/);
-  assert.match(worker, /app\.js\?v=46/);
+  assert.match(worker, /gym-schedule-v50/);
+  assert.match(worker, /styles\.css\?v=50/);
+  assert.match(worker, /app\.js\?v=50/);
 });
 
 test("Ironworks fonts are self-hosted and available to the offline shell", () => {
@@ -168,7 +168,7 @@ test("the behavior-neutral source split keeps render modules pure and CSS order 
   const modulePaths = ["ui/shared.js", "ui/workout.js", "ui/exercise-reference.js", "ui/program.js", "ui/library.js", "ui/log-settings.js"];
 
   assert.deepEqual(
-    [...stylesheet.matchAll(/@import url\("(.+?\.css)\?v=46"\);/g)].map((match) => match[1]),
+    [...stylesheet.matchAll(/@import url\("(.+?\.css)\?v=50"\);/g)].map((match) => match[1]),
     ["./styles/base.css", "./styles/components.css", "./styles/views.css"],
   );
   for (const path of modulePaths) {
@@ -180,12 +180,12 @@ test("the behavior-neutral source split keeps render modules pure and CSS order 
   assert.match(app, /libraryPageShellMarkup\(/);
   assert.match(app, /calendarMarkup\(/);
   assert.match(base, /\.app-shell\s*\{/);
-  assert.doesNotMatch(base, /\.(?:icon-button|program-page-bar|library-page|calendar-grid|dialog-form|toast)\b/);
+  assert.doesNotMatch(base, /\.(?:icon-button|program-page-bar|library-page|log-calendar|dialog-form|toast)\b/);
   for (const selector of ["icon-button", "dialog-form", "confirm-dialog", "toast"]) {
     assert.match(components, new RegExp(`\\.${selector}\\b`));
   }
-  assert.doesNotMatch(components, /\.(?:program-page-bar|library-page|calendar-grid|settings-section)\b/);
-  for (const selector of ["program-page-bar", "library-page", "calendar-grid", "settings-section"]) {
+  assert.doesNotMatch(components, /\.(?:program-page-bar|library-page|log-calendar|settings-section)\b/);
+  for (const selector of ["program-page-bar", "library-page", "log-calendar", "settings-section"]) {
     assert.match(views, new RegExp(`\\.${selector}\\b`));
   }
   assert.doesNotMatch(views, /\.(?:icon-button|dialog-form|confirm-dialog|toast)\b/);
@@ -216,7 +216,8 @@ test("small action and status text use AA-safe color tokens", () => {
   assert.match(components, /\.button\.primary\s*\{[^}]*background:\s*var\(--accent-fill\);[^}]*color:\s*#fff;/);
   assert.match(views, /\.library-chip\[aria-pressed="true"\]\s*\{[^}]*color:\s*var\(--accent-on-soft\);/);
   assert.match(views, /\.library-filter-button b\s*\{[^}]*background:\s*var\(--accent-fill\);[^}]*color:\s*#fff;/);
-  assert.match(views, /\.day-count\s*\{[^}]*background:\s*var\(--accent-fill\);[^}]*color:\s*#fff;/);
+  assert.match(views, /\.day-check-box\s*\{[^}]*color:\s*#fff;/);
+  assert.match(views, /\.day-check-row:has\(input:checked\) \.day-check-box\s*\{[^}]*background:\s*var\(--accent-fill\);/);
 });
 
 test("removed legacy CSS classes stay absent", () => {
@@ -1416,10 +1417,11 @@ test("failed modal actions have compact in-dialog alert targets", () => {
   for (const id of ["exerciseFormError", "programsFormError", "programFormError", "routineFormError", "pickerFormError", "entryFormError", "settingsFormError"]) {
     assert.match(html, new RegExp(`id="${id}"[^>]+role="alert"[^>]+data-dialog-error`));
   }
-  assert.match(log, /id="dayFormError" role="alert" data-dialog-error/);
+  assert.match(log, /id="dayFormError" role="alert"[^>]+data-dialog-error/);
   assert.match(app, /function activeDialogError\(\)/);
   assert.match(app, /error\.scrollIntoView\(\{ block: "nearest" \}\)/);
-  assert.match(app, /showActionError\(result\.error \|\| "Changes could not be saved\."\)/);
+  assert.match(app, /showActionError\(failureMessage \|\| result\.error \|\| "Changes could not be saved\."\)/);
+  assert.match(app, /Changes could not be saved on this device\. Nothing changed\./);
   assert.match(app, /showActionError\(error\.message \|\| "This file could not be imported\."\)/);
   assert.match(app, /showActionError\("App data could not be exported\."\)/);
   assert.match(css, /\.form-error:empty\s*\{[^}]*display:\s*none;/);

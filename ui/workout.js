@@ -3,7 +3,7 @@ import {
   entryPresentation,
   escapeHtml,
   routineTabsMarkup,
-} from "./shared.js?v=46";
+} from "./shared.js?v=50";
 
 function programBar(program) {
   if (!program) {

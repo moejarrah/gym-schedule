@@ -82,7 +82,9 @@ Every redesign or navigation change must keep these actions clearly reachable. B
 
 - Move between calendar months.
 - See which dates have completed routines or a note.
-- Open any date, select completed routines, edit its note, and save it.
+- Reopen any of the eight most recent nonempty dates from the list below the calendar.
+- Open any date, select completed routines from the active program in stored order, edit its note, and save it.
+- A past date also exposes routines already recorded from another saved program, clearly labeled as inactive. It does not offer new completions from inactive programs.
 - Clearing all entry checks, completions, and the note removes that empty day record.
 
 ### Settings
