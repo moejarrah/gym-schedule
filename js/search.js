@@ -19,12 +19,12 @@ export function createLibraryFilters() {
   };
 }
 
-export function exerciseTargets(exercise) {
+function exerciseTargets(exercise) {
   return [...(exercise?.primaryTargets || []), ...(exercise?.secondaryTargets || [])];
 }
 
 // Everything a search can match besides the name: aliases and classification labels.
-export function exerciseSearchTerms(exercise) {
+function exerciseSearchTerms(exercise) {
   return [
     ...(exercise?.aliases || []),
     ...[

@@ -4,7 +4,7 @@
 // to the entry being edited.
 
 import { mainElement, onStart, render, store } from "../context.js";
-import { $, $$, chevronIcon, clearError, closeDialog, confirmAction, escapeHtml, openDialog, plural, report, showError } from "../dom.js";
+import { $, bindSegment, chevronIcon, clearError, closeDialog, confirmAction, escapeHtml, openDialog, plural, report, segmentValue, setSegment, showError } from "../dom.js";
 import { activeRoutine, addEntry, entryNumber, exerciseById, moveEntryInBlock, removeEntry, routineById, updateEntry } from "../model.js";
 import { searchExercises } from "../search.js";
 import { label } from "../vocab.js";
@@ -68,13 +68,6 @@ function renderChoiceDraft() {
   $("#entryExerciseName").textContent = entryPresentation({ choices: entryEditor.choices }, state).title;
 }
 
-function setEntryRole(role) {
-  $("#entryRole").value = role;
-  for (const button of $$("#entryRoleOptions [data-entry-role]")) {
-    button.setAttribute("aria-pressed", String(button.dataset.entryRole === role));
-  }
-}
-
 // The entry's position among the entries of blockId. Saving an entry into
 // another block puts it last there (see model.updateEntry).
 function positionInBlock(routine, entryId, blockId) {
@@ -103,7 +96,7 @@ export function openEntryEditor(entryId, returnFocus = document.activeElement) {
   $("#entryNote").value = entry.note;
   $("#entryFormNote").textContent = `Choices, role, block, and note change only the ${routine.name} entry. The master exercises stay unchanged.`;
   $("#removeEntryButton").firstChild.textContent = `Remove from ${routine.name} `;
-  setEntryRole(entry.role);
+  setSegment("#entryRoleOptions", entry.role);
   updateEntryMoveButtons();
   renderChoiceDraft();
   $("#entryFormError").textContent = "";
@@ -111,7 +104,7 @@ export function openEntryEditor(entryId, returnFocus = document.activeElement) {
 }
 
 function entryChanges() {
-  return { choices: entryEditor.choices, role: $("#entryRole").value, blockId: $("#entryBlock").value, note: $("#entryNote").value };
+  return { choices: entryEditor.choices, role: segmentValue("#entryRoleOptions"), blockId: $("#entryBlock").value, note: $("#entryNote").value };
 }
 
 function saveEntry() {
@@ -286,10 +279,7 @@ onStart(() => {
     event.preventDefault();
     saveEntry();
   });
-  $("#entryRoleOptions").addEventListener("click", (event) => {
-    const button = event.target.closest("[data-entry-role]");
-    if (button) setEntryRole(button.dataset.entryRole);
-  });
+  bindSegment("#entryRoleOptions");
   $("#entryBlock").addEventListener("change", updateEntryMoveButtons);
   $("#moveEntryEarlierButton").addEventListener("click", () => moveEntry(-1));
   $("#moveEntryLaterButton").addEventListener("click", () => moveEntry(1));

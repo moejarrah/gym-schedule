@@ -143,11 +143,14 @@ async function saveFile(file) {
 
 const jsonFile = (text, name) => new File([text], name, { type: "application/json" });
 
-// Caches are unavailable outside a secure context (e.g. the LAN preview).
+// The newest offline cache that actually holds the app (a failed download leaves an
+// empty one). Caches don't exist outside a secure context, e.g. the LAN preview.
 async function installedVersion() {
   const keys = (await globalThis.caches?.keys().catch(() => null)) || [];
-  const key = keys.findLast((name) => name.startsWith(CACHE_PREFIX));
-  return key ? `Version ${key.slice(CACHE_PREFIX.length)}` : "Offline copy not installed yet";
+  for (const key of keys.filter((name) => name.startsWith(CACHE_PREFIX)).reverse()) {
+    if (await (await caches.open(key)).match("./index.html")) return `Version ${key.slice(CACHE_PREFIX.length)}`;
+  }
+  return "Offline copy not installed yet";
 }
 
 async function refreshVersion() {
@@ -199,7 +202,7 @@ async function importData(file) {
   if (!confirmed) return;
   const result = store.replace(next);
   if (!result.ok) {
-    showDataError(`${result.error} Nothing changed.`);
+    showDataError(result.error);
     return;
   }
   rulesEditor.draft = null;
@@ -212,15 +215,16 @@ async function restoreStartingData() {
   clearDataError();
   const confirmed = await confirmAction({
     title: "Restore starting data",
-    message: "Replace all current routines, exercises, and history with the starting program?",
+    message: "Replace all current routines, exercises, and history with the starting program? Your theme and training rules stay.",
     confirmLabel: "Restore data",
   });
   if (!confirmed) return;
+  const { theme, trainingRules } = store.getState().settings;
   const next = createDefaultState();
-  next.settings.theme = store.getState().settings.theme;
+  Object.assign(next.settings, { theme, trainingRules });
   const result = store.replace(next);
   if (!result.ok) {
-    showDataError(`${result.error} Nothing changed.`);
+    showDataError(result.error);
     return;
   }
   rulesEditor.draft = null;

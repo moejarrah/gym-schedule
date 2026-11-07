@@ -47,7 +47,6 @@ export function runAction(name, button, event) {
   return true;
 }
 
-export const currentView = () => current;
 export const mainElement = () => document.querySelector("#appMain");
 
 export function render() {

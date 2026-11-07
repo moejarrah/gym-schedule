@@ -21,7 +21,7 @@ const MIGRATIONS = {
   },
 };
 
-export function clone(value) {
+function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
@@ -201,12 +201,8 @@ export function stateProblem(state) {
   return "";
 }
 
-export function validateState(state) {
-  return stateProblem(state) === "";
-}
-
 // Upgrades a parsed state to the current version. Throws if it can't be read.
-export function migrate(raw) {
+function migrate(raw) {
   if (!isRecord(raw) || !Number.isInteger(raw.version)) throw new Error("not app data");
   const state = clone(raw);
   while (state.version < SCHEMA_VERSION) {
@@ -246,6 +242,9 @@ export function createStore(storage = safeLocalStorage()) {
   let state;
   let lastError = "";
   let unreadable = "";
+  // Set when unreadable data couldn't be copied aside: ordinary saves would overwrite
+  // it, so only an explicit import or restore (replace) may write.
+  let protectUnreadable = false;
 
   function write(next) {
     const problem = stateProblem(next);
@@ -257,7 +256,7 @@ export function createStore(storage = safeLocalStorage()) {
       if (!storage) throw new Error("no storage");
       storage.setItem(STORAGE_KEY, JSON.stringify(next));
     } catch (_) {
-      return { ok: false, error: "Changes couldn't be saved on this device." };
+      return { ok: false, error: "Changes couldn't be saved on this device. Nothing changed." };
     }
     state = clone(next);
     lastError = "";
@@ -291,7 +290,7 @@ export function createStore(storage = safeLocalStorage()) {
         storage.setItem(RECOVERY_KEY, raw);
         write(state);
       } catch (_) {
-        // No room for a copy: leave the original under STORAGE_KEY untouched until the user saves something.
+        protectUnreadable = true;
       }
       lastError = "Saved data couldn't be read, so the starting program is open. The old data can be downloaded from Settings.";
     }
@@ -302,6 +301,7 @@ export function createStore(storage = safeLocalStorage()) {
   return {
     getState: () => clone(state),
     update(fn) {
+      if (protectUnreadable) return { ok: false, error: "Download the unreadable data in Settings first; saving now would overwrite it." };
       const draft = clone(state);
       try {
         fn(draft);
@@ -310,8 +310,11 @@ export function createStore(storage = safeLocalStorage()) {
         return { ok: false, error: error?.message || "That change couldn't be saved." };
       }
     },
-    replace: (next) => write(clone(next)),
-    reset: () => write(createDefaultState()),
+    replace(next) {
+      const result = write(clone(next));
+      if (result.ok) protectUnreadable = false;
+      return result;
+    },
     getLastError: () => lastError,
     recoveryData() {
       if (unreadable) return unreadable;

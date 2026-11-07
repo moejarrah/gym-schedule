@@ -164,7 +164,7 @@ export function openExerciseEditor({ exerciseId = "", duplicate = false, returnF
   openDialog("#exerciseDialog", {
     returnFocus,
     fallbackFocus: () => (
-      (editor.returnId && $(`.library-row[data-id="${CSS.escape(editor.returnId)}"]`, mainElement()))
+      (editor.returnId && $(`[data-id="${CSS.escape(editor.returnId)}"]`, mainElement()))
       || $(".library-add-button", mainElement())
       || mainElement()
     ),

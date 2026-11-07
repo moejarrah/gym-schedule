@@ -3,10 +3,11 @@
 // "find a video" sheet. Both hand over to the master exercise editor.
 
 import { onStart, store } from "../context.js";
-import { $, closeDialog, escapeHtml, openDialog } from "../dom.js";
+import { $, closeDialog, escapeHtml, openDialog, playIcon } from "../dom.js";
 import { exerciseById } from "../model.js";
 import { RELATIONS, label } from "../vocab.js";
 import { openExerciseEditor } from "./exercise-editor.js";
+import { videoUrl } from "./shared.js";
 
 // What opened each sheet, so the exercise editor can return focus there.
 const openers = { reference: null, video: null };
@@ -19,7 +20,7 @@ function externalIcon() {
   return `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></svg>`;
 }
 
-export function exerciseSearchUrls(exerciseName) {
+function exerciseSearchUrls(exerciseName) {
   return {
     youtube: `https://www.youtube.com/results?search_query=${encodeURIComponent(`${exerciseName} exercise`)}`,
     alternatives: `https://www.google.com/search?q=${encodeURIComponent(`${exerciseName} exercise alternatives`)}`,
@@ -36,8 +37,8 @@ function searchActionsMarkup(exercise) {
 
 function linkedVideoMarkup(exercise) {
   if (!exercise.videoId) return "";
-  return `<a class="reference-video-link" href="https://www.youtube.com/watch?v=${encodeURIComponent(exercise.videoId)}" target="_blank" rel="noopener noreferrer">
-    <span class="reference-video-mark"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg></span>
+  return `<a class="reference-video-link" href="${videoUrl(exercise.videoId)}" target="_blank" rel="noopener noreferrer">
+    <span class="reference-video-mark">${playIcon()}</span>
     <strong>Watch linked video</strong>
     ${externalIcon()}
   </a>`;
