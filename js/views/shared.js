@@ -28,7 +28,7 @@ export function routineTabsMarkup(routines, selectedId) {
   if (!routines.length) return "";
   return `<div class="routine-tabs" aria-label="Choose a routine">
     ${routines.map((routine) => `
-      <button class="routine-tab ${routine.group === "home" ? "home" : ""}" type="button"
+      <button class="routine-tab" type="button"
         aria-label="${escapeHtml(routine.name)}, ${locationLabel(routine.group)}" aria-pressed="${routine.id === selectedId}" data-action="select-routine" data-id="${escapeHtml(routine.id)}">
         <span class="routine-dot" aria-hidden="true"></span>${escapeHtml(routine.name)}
       </button>`).join("")}
@@ -42,7 +42,7 @@ export function revealSelectedTab(root) {
   if (!tab || !strip) return;
   const stripBox = strip.getBoundingClientRect();
   const tabBox = tab.getBoundingClientRect();
-  const margin = 32; // room for the strip's fade-out edge
+  const margin = Math.ceil(strip.clientWidth * 0.12); // the strip's fade-out edge (12%, see .routine-tabs)
   if (tabBox.left < stripBox.left) strip.scrollLeft -= stripBox.left - tabBox.left + margin;
   else if (tabBox.right > stripBox.right) strip.scrollLeft += tabBox.right - stripBox.right + margin;
 }
