@@ -25,8 +25,8 @@ export function editIcon() {
   return `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m4 20 4.2-1 10.6-10.6a2 2 0 0 0-2.8-2.8L5.4 16.2 4 20Z"/><path d="m14.5 7.1 2.8 2.8"/></svg>`;
 }
 
-export function downIcon() {
-  return `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>`;
+export function playIcon() {
+  return `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg>`;
 }
 
 export function chevronIcon(direction) {
@@ -158,6 +158,29 @@ export function initDialogs() {
   });
 }
 
+// ---------- segmented controls ----------
+// A `.segment` group of buttons with `data-value`; the chosen value is kept on the group.
+
+const element = (target) => (typeof target === "string" ? $(target) : target);
+
+export function setSegment(group, value) {
+  group = element(group);
+  group.dataset.value = value;
+  for (const button of $$("button[data-value]", group)) button.setAttribute("aria-pressed", String(button.dataset.value === value));
+}
+
+export const segmentValue = (group) => element(group).dataset.value;
+
+export function bindSegment(group, onChange = () => {}) {
+  group = element(group);
+  group.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-value]");
+    if (!button || button.disabled) return;
+    setSegment(group, button.dataset.value);
+    onChange(button.dataset.value);
+  });
+}
+
 // ---------- confirmation ----------
 
 export function confirmAction({ title, message, confirmLabel, cancelLabel = "Keep it", variant = "" }) {
@@ -187,14 +210,14 @@ export function confirmAction({ title, message, confirmLabel, cancelLabel = "Kee
 //   scroller()      element to auto-scroll near its edges
 //   canStart(row)   optional guard
 //   onDrop(row, toIndex) called with the new 0-based index when the position changed
-// Returns { cancel() }. A click right after a drag is swallowed so it doesn't open the row.
+// Returns { cancel() }. The click that ends a drag is swallowed so it doesn't open the row.
 
 const HOLD_DELAY = 340;
 const HOLD_TOLERANCE = 10;
 
 export function enableHoldDrag(container, { rowSelector, listSelector, placeholderClass, activeBodyClass, scroller, canStart = () => true, onDrop }) {
   let drag = null;
-  let suppressClickUntil = 0;
+  let swallowNextClick = false;
   const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function point(event) {
@@ -267,6 +290,8 @@ export function enableHoldDrag(container, { rowSelector, listSelector, placehold
     row.before(drag.placeholder);
     drag.active = true;
     window.getSelection()?.removeAllRanges();
+    // A focused field would make the browser scroll it back into view as the finger moves.
+    if (document.activeElement?.matches?.("input, textarea, select")) document.activeElement.blur();
     row.classList.add("is-dragging");
     Object.assign(row.style, { left: `${bounds.left}px`, top: `${bounds.top}px`, width: `${bounds.width}px`, height: `${bounds.height}px` });
     // Inside an open dialog the row must stay in the dialog, or the backdrop hides it.
@@ -278,6 +303,7 @@ export function enableHoldDrag(container, { rowSelector, listSelector, placehold
   }
 
   function start(row, x, y, pointerId) {
+    swallowNextClick = false;
     if (drag || !row || !canStart(row)) return;
     const list = row.closest(listSelector);
     if (!list) return;
@@ -313,7 +339,7 @@ export function enableHoldDrag(container, { rowSelector, listSelector, placehold
     }
     current.settling = true;
     cancelAnimationFrame(current.frame);
-    suppressClickUntil = performance.now() + 600;
+    swallowNextClick = true;
     if (!save) {
       const rows = $$(rowSelector, current.list).filter((row) => row !== current.row);
       const reference = rows[current.originIndex] || null;
@@ -350,11 +376,12 @@ export function enableHoldDrag(container, { rowSelector, listSelector, placehold
   container.addEventListener("selectstart", (event) => {
     if (event.target.closest?.(rowSelector)) event.preventDefault();
   });
+  // The release that ends a drag can produce a click on the row; it shouldn't open it.
   container.addEventListener("click", (event) => {
-    if (performance.now() < suppressClickUntil) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-    }
+    if (!swallowNextClick) return;
+    swallowNextClick = false;
+    event.preventDefault();
+    event.stopImmediatePropagation();
   }, true);
   window.addEventListener("touchmove", move, { passive: false });
   window.addEventListener("touchend", (event) => {

@@ -187,12 +187,11 @@
       <label class="field"><span>Name</span><input class="control" id="programName" required maxlength="60" autocomplete="off"></label>
       <label class="field"><span>Program note</span><textarea class="control" id="programNote" placeholder="Weekly layout and rules"></textarea></label>
       <div id="programCreateFields">
-        <input id="programStartMode" type="hidden" value="empty">
         <div class="field">
           <span class="form-label">Start with</span>
           <div class="segment" id="programStartModeOptions" role="group" aria-label="Choose how to start">
-            <button type="button" data-action="choose-program-start-mode" data-mode="empty" aria-pressed="true">Empty</button>
-            <button type="button" data-action="choose-program-start-mode" data-mode="duplicate" aria-pressed="false">Duplicate</button>
+            <button type="button" data-value="empty" aria-pressed="true">Empty</button>
+            <button type="button" data-value="duplicate" aria-pressed="false">Duplicate</button>
           </div>
         </div>
         <label class="field" id="programDuplicateSourceField"><span>Duplicate from</span><select class="control" id="programDuplicateSource"></select></label>
@@ -218,20 +217,18 @@
       </header>
       <div class="routine-sheet-scroll">
         <label class="field"><span>Name</span><input class="control" id="routineName" required maxlength="50" autocomplete="off"></label>
-        <input type="hidden" id="routineGroup" value="gym">
         <div class="field">
           <span class="form-label">Location</span>
           <div class="segment" id="routineGroupOptions" role="group" aria-label="Routine location">
-            <button type="button" data-routine-group="gym" aria-pressed="true">Gym</button>
-            <button type="button" data-routine-group="home" aria-pressed="false">Home</button>
+            <button type="button" data-value="gym" aria-pressed="true">Gym</button>
+            <button type="button" data-value="home" aria-pressed="false">Home</button>
           </div>
         </div>
-        <input type="hidden" id="routineStatus" value="required">
         <div class="field">
           <span class="form-label">Status</span>
           <div class="segment" id="routineStatusOptions" role="group" aria-label="Routine status">
-            <button type="button" data-routine-status="required" aria-pressed="true">Required</button>
-            <button type="button" data-routine-status="optional" aria-pressed="false">Optional</button>
+            <button type="button" data-value="required" aria-pressed="true">Required</button>
+            <button type="button" data-value="optional" aria-pressed="false">Optional</button>
           </div>
         </div>
         <label class="field"><span>Routine note</span><textarea class="control" id="routineNote" placeholder="Optional context for this day"></textarea></label>
@@ -304,12 +301,11 @@
           </div>
           <div id="entryChoicesList" class="entry-choice-list"></div>
         </section>
-        <input id="entryRole" type="hidden" value="main">
         <div class="field">
           <span class="form-label">Role</span>
           <div class="segment" id="entryRoleOptions" role="group" aria-label="Routine entry role">
-            <button type="button" data-entry-role="main" aria-pressed="true">Main</button>
-            <button type="button" data-entry-role="optional" aria-pressed="false">Optional</button>
+            <button type="button" data-value="main" aria-pressed="true">Main</button>
+            <button type="button" data-value="optional" aria-pressed="false">Optional</button>
           </div>
         </div>
         <label class="field"><span>Routine block</span><select class="control" id="entryBlock"></select></label>

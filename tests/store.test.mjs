@@ -115,6 +115,11 @@ test("unreadable saved data isn't overwritten when its recovery copy can't be st
   const store = createStore(storage);
   assert.equal(storage.getItem(STORAGE_KEY), raw);
   assert.equal(store.recoveryData(), raw);
+  // Ordinary saves would overwrite it, so they're refused until an explicit restore or import.
+  assert.equal(store.update((draft) => { draft.settings.theme = "dark"; }).ok, false);
+  assert.equal(storage.getItem(STORAGE_KEY), raw);
+  assert.equal(store.replace(createDefaultState()).ok, true);
+  assert.equal(store.update((draft) => { draft.settings.theme = "dark"; }).ok, true);
 });
 
 test("storage that can't be read opens the starting data without writing", () => {
@@ -129,8 +134,8 @@ test("storage that can't be read opens the starting data without writing", () =>
 test("a failed write reports the error and changes neither memory nor storage", () => {
   const { store, storage } = freshStore(V9_AS_V10);
   storage.failWrites = true;
-  refuse(store, (draft) => { draft.programs[0].name = "Lost"; }, "Changes couldn't be saved on this device.");
-  assert.equal(store.reset().ok, false);
+  refuse(store, (draft) => { draft.programs[0].name = "Lost"; }, "Changes couldn't be saved on this device. Nothing changed.");
+  assert.equal(store.replace(createDefaultState()).ok, false);
   assert.deepEqual(store.getState(), V9_AS_V10);
   assert.deepEqual(storage.saved(), V9_AS_V10);
 });

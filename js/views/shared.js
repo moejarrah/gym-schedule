@@ -3,6 +3,10 @@
 import { escapeHtml } from "../dom.js";
 import { exerciseById } from "../model.js";
 
+export const locationLabel = (group) => (group === "home" ? "Home" : "Gym");
+
+export const videoUrl = (videoId) => `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
+
 // Display data for a routine entry: its choices with names, the derived title,
 // and one prescription line ("3 × 8" or "3 × 8 or 2 × 12").
 export function entryPresentation(entry, state) {
@@ -25,7 +29,7 @@ export function routineTabsMarkup(routines, selectedId) {
   return `<div class="routine-tabs" aria-label="Choose a routine">
     ${routines.map((routine) => `
       <button class="routine-tab ${routine.group === "home" ? "home" : ""}" type="button"
-        aria-label="${escapeHtml(routine.name)}, ${routine.group === "home" ? "Home" : "Gym"}" aria-pressed="${routine.id === selectedId}" data-action="select-routine" data-id="${escapeHtml(routine.id)}">
+        aria-label="${escapeHtml(routine.name)}, ${locationLabel(routine.group)}" aria-pressed="${routine.id === selectedId}" data-action="select-routine" data-id="${escapeHtml(routine.id)}">
         <span class="routine-dot" aria-hidden="true"></span>${escapeHtml(routine.name)}
       </button>`).join("")}
   </div>`;

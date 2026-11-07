@@ -6,17 +6,18 @@
 import { mainElement, onStart, registerActions, registerView, render, runAction, store } from "../context.js";
 import {
   $,
-  $$,
+  bindSegment,
   chevronIcon,
   closeDialog,
   confirmAction,
-  downIcon,
   editIcon,
   enableHoldDrag,
   escapeHtml,
   openDialog,
   plural,
   report,
+  segmentValue,
+  setSegment,
   showError,
 } from "../dom.js";
 import {
@@ -38,7 +39,7 @@ import {
   updateRoutine,
 } from "../model.js";
 import { openEntryEditor, openPicker } from "./entry-editor.js";
-import { entryPresentation, revealSelectedTab, routineTabsMarkup } from "./shared.js";
+import { entryPresentation, locationLabel, revealSelectedTab, routineTabsMarkup } from "./shared.js";
 
 // The program open in the program editor ("" while adding one).
 const programEditor = { id: "" };
@@ -62,7 +63,7 @@ function programBarMarkup(program) {
     <button class="program-page-pick" type="button" data-action="open-programs" aria-label="${program ? `Choose active program, currently ${escapeHtml(name)}` : "Open programs"}">
       <span>Active</span>
       <strong>${escapeHtml(name)}</strong>
-      ${downIcon()}
+      ${chevronIcon("down")}
     </button>
     <button class="program-page-manage" type="button" data-action="open-programs" aria-label="Manage programs">
       <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
@@ -171,7 +172,7 @@ function programMarkup(state) {
       <div class="program-viewbar">
         <div class="program-viewbar-copy">
           <strong>${escapeHtml(routine.name)}</strong>
-          <span>${routine.group === "home" ? "Home" : "Gym"} · ${routine.status === "optional" ? "Optional" : "Required"} · ${plural(routine.entries.length, "slot")} · ${plural(routine.blocks.length, "block")}</span>
+          <span>${locationLabel(routine.group)} · ${routine.status === "optional" ? "Optional" : "Required"} · ${plural(routine.entries.length, "slot")} · ${plural(routine.blocks.length, "block")}</span>
         </div>
         <button class="program-view-edit" type="button" data-action="edit-routine" data-id="${escapeHtml(routine.id)}" aria-label="Edit ${escapeHtml(routine.name)}">${editIcon()}</button>
       </div>
@@ -204,10 +205,7 @@ function selectProgram(id) {
 }
 
 function setProgramStartMode(mode) {
-  $("#programStartMode").value = mode;
-  for (const button of $$("#programStartModeOptions [data-mode]")) {
-    button.setAttribute("aria-pressed", String(button.dataset.mode === mode));
-  }
+  setSegment("#programStartModeOptions", mode);
   const source = $("#programDuplicateSource");
   source.disabled = mode !== "duplicate";
   $("#programDuplicateSourceField").classList.toggle("is-disabled", source.disabled);
@@ -226,7 +224,7 @@ function openProgramEditor(id = "", { duplicateSourceId = "", returnFocus = docu
   const sourceSelect = $("#programDuplicateSource");
   sourceSelect.innerHTML = state.programs.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("");
   if (state.programs.length) sourceSelect.value = source?.id || state.settings.activeProgramId || state.programs[0].id;
-  $('#programStartModeOptions [data-mode="duplicate"]').disabled = !state.programs.length;
+  $('#programStartModeOptions [data-value="duplicate"]').disabled = !state.programs.length;
   setProgramStartMode(source ? "duplicate" : "empty");
 
   $("#programDialogTitle").textContent = program ? "Edit program" : "Add program";
@@ -257,7 +255,7 @@ function saveProgram() {
     showError("A program with this name already exists.");
     return;
   }
-  const sourceId = $("#programStartMode").value === "duplicate" ? $("#programDuplicateSource").value : "";
+  const sourceId = segmentValue("#programStartModeOptions") === "duplicate" ? $("#programDuplicateSource").value : "";
   const result = store.update((draft) => {
     if (id) updateProgram(draft, id, { name, note });
     else if (sourceId) duplicateProgram(draft, sourceId, { name, note });
@@ -273,8 +271,7 @@ function saveProgram() {
 async function deleteProgram() {
   const { id } = programEditor;
   const program = store.getState().programs.find((item) => item.id === id);
-  // The confirmation replaces the editor; keeping the program brings the editor back.
-  closeDialog("#programDialog", { restoreFocus: false });
+  // The confirmation opens over the editor, so "Keep program" returns to the unsaved draft.
   const confirmed = await confirmAction({
     title: `Delete ${program.name}?`,
     message: `This removes ${plural(program.routineIds.length, "routine")} and their saved checks. Past completions stay in Log, and master exercises stay in the Library.`,
@@ -282,17 +279,10 @@ async function deleteProgram() {
     cancelLabel: "Keep program",
     variant: "program-delete",
   });
-  if (!confirmed) {
-    openProgramEditor(id, { returnFocus: null });
-    return;
-  }
+  if (!confirmed) return;
   const result = store.update((draft) => removeProgram(draft, id));
-  if (!result.ok) {
-    openProgramEditor(id, { returnFocus: null });
-    report(result);
-    return;
-  }
-  report(result, "Program deleted.");
+  if (!report(result, "Program deleted.")) return;
+  closeDialog("#programDialog", { restoreFocus: false });
   render();
   mainElement().scrollTop = 0;
   programFocusFallback().focus({ preventScroll: true });
@@ -304,14 +294,6 @@ function routineFocusFallback() {
   const main = mainElement();
   const edit = routineEditor.id && $(`.program-view-edit[data-id="${CSS.escape(routineEditor.id)}"]`, main);
   return edit || $(".program-app-action, [data-action='new-routine'], .program-page-manage", main) || main;
-}
-
-function setRoutineOption(kind, value) {
-  const key = kind === "group" ? "Group" : "Status";
-  $(`#routine${key}`).value = value;
-  for (const button of $$(`#routine${key}Options button`)) {
-    button.setAttribute("aria-pressed", String(button.dataset[`routine${key}`] === value));
-  }
 }
 
 function updateRoutineMoveButtons() {
@@ -328,8 +310,8 @@ function openRoutineEditor(id = "", returnFocus = document.activeElement) {
   $("#routineDialogTitle").textContent = routine ? `Edit ${routine.name}` : "Add routine";
   $("#routineName").value = routine?.name || "";
   $("#routineNote").value = routine?.note || "";
-  setRoutineOption("group", routine?.group || "gym");
-  setRoutineOption("status", routine?.status || "required");
+  setSegment("#routineGroupOptions", routine?.group || "gym");
+  setSegment("#routineStatusOptions", routine?.status || "required");
   $("#routineFormError").textContent = "";
   $("#routineEditActions").hidden = !routine;
   updateRoutineMoveButtons();
@@ -367,8 +349,8 @@ function saveRoutine() {
   }
   const fields = {
     name,
-    group: $("#routineGroup").value,
-    status: $("#routineStatus").value,
+    group: segmentValue("#routineGroupOptions"),
+    status: segmentValue("#routineStatusOptions"),
     note: $("#routineNote").value,
     blocks: routineEditor.blocks,
   };
@@ -385,8 +367,7 @@ function saveRoutine() {
 async function deleteRoutine() {
   const { id } = routineEditor;
   const routine = routineById(store.getState(), id);
-  // The confirmation replaces the editor; keeping the routine brings the editor back.
-  closeDialog("#routineDialog", { restoreFocus: false });
+  // The confirmation opens over the editor, so "Keep routine" returns to the unsaved draft.
   const confirmed = await confirmAction({
     title: `Delete ${routine.name}?`,
     message: "This removes the routine and its saved checks. Past completions stay in Log, and master exercises stay in the Library.",
@@ -394,17 +375,10 @@ async function deleteRoutine() {
     cancelLabel: "Keep routine",
     variant: "routine-delete",
   });
-  if (!confirmed) {
-    openRoutineEditor(id, null);
-    return;
-  }
+  if (!confirmed) return;
   const result = store.update((draft) => removeRoutine(draft, id));
-  if (!result.ok) {
-    openRoutineEditor(id, null);
-    report(result);
-    return;
-  }
-  report(result, "Routine deleted.");
+  if (!report(result, "Routine deleted.")) return;
+  closeDialog("#routineDialog", { restoreFocus: false });
   render();
   const main = mainElement();
   const target = $(".routine-tab[aria-pressed='true']", main)
@@ -533,10 +507,7 @@ onStart(() => {
     if (button) runAction(button.dataset.action, button, event);
   });
   $("#newProgramButton").addEventListener("click", (event) => openProgramEditor("", { returnFocus: event.currentTarget }));
-  $("#programStartModeOptions").addEventListener("click", (event) => {
-    const button = event.target.closest("[data-mode]");
-    if (button && !button.disabled) setProgramStartMode(button.dataset.mode);
-  });
+  bindSegment("#programStartModeOptions", setProgramStartMode);
   $("#programForm").addEventListener("submit", (event) => {
     event.preventDefault();
     saveProgram();
@@ -544,14 +515,8 @@ onStart(() => {
   $("#duplicateProgramButton").addEventListener("click", () => openProgramEditor("", { duplicateSourceId: programEditor.id }));
   $("#deleteProgramButton").addEventListener("click", deleteProgram);
 
-  $("#routineGroupOptions").addEventListener("click", (event) => {
-    const button = event.target.closest("[data-routine-group]");
-    if (button) setRoutineOption("group", button.dataset.routineGroup);
-  });
-  $("#routineStatusOptions").addEventListener("click", (event) => {
-    const button = event.target.closest("[data-routine-status]");
-    if (button) setRoutineOption("status", button.dataset.routineStatus);
-  });
+  bindSegment("#routineGroupOptions");
+  bindSegment("#routineStatusOptions");
   $("#routineForm").addEventListener("submit", (event) => {
     event.preventDefault();
     saveRoutine();

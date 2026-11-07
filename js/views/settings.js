@@ -199,7 +199,7 @@ async function importData(file) {
   if (!confirmed) return;
   const result = store.replace(next);
   if (!result.ok) {
-    showDataError(`${result.error} Nothing changed.`);
+    showDataError(result.error);
     return;
   }
   rulesEditor.draft = null;
@@ -212,15 +212,16 @@ async function restoreStartingData() {
   clearDataError();
   const confirmed = await confirmAction({
     title: "Restore starting data",
-    message: "Replace all current routines, exercises, and history with the starting program?",
+    message: "Replace all current routines, exercises, and history with the starting program? Your theme and training rules stay.",
     confirmLabel: "Restore data",
   });
   if (!confirmed) return;
+  const { theme, trainingRules } = store.getState().settings;
   const next = createDefaultState();
-  next.settings.theme = store.getState().settings.theme;
+  Object.assign(next.settings, { theme, trainingRules });
   const result = store.replace(next);
   if (!result.ok) {
-    showDataError(`${result.error} Nothing changed.`);
+    showDataError(result.error);
     return;
   }
   rulesEditor.draft = null;

@@ -8,15 +8,14 @@
 import { mainElement, onStart, registerActions, registerView, render, store } from "../context.js";
 import { $, $$, chevronIcon, closeDialog, escapeHtml, formatDate, openDialog, report } from "../dom.js";
 import { activeProgram, dateFromKey, localDateKey, programRoutines, routineById, routineProgram, sessionFor, setDay } from "../model.js";
+import { locationLabel } from "./shared.js";
 
-const SAVE_FAILED = "Changes couldn't be saved on this device. Nothing changed.";
 const LONG_DATE = { weekday: "long", month: "long", day: "numeric", year: "numeric" };
 const RECENT_LIMIT = 8;
 
 const monthStart = (date, offset = 0) => new Date(date.getFullYear(), date.getMonth() + offset, 1);
 const calendar = { month: monthStart(new Date()) };
 
-const groupLabel = (group) => (group === "home" ? "Home" : "Gym");
 const deletedLabel = (count) => (count === 1 ? "Deleted routine" : `${count} deleted routines`);
 
 // ---------- calendar and recent list ----------
@@ -123,7 +122,7 @@ function routineRowMarkup(state, session, routine, inactive = false) {
   const mainIds = routine.entries.filter((entry) => entry.role === "main").map((entry) => entry.id);
   const checkedMain = mainIds.filter((id) => checkedIds.has(id)).length;
   const completion = selected && mainIds.length ? `${checkedMain}/${mainIds.length} main` : "";
-  const context = [routineProgram(state, routine.id).name, groupLabel(routine.group), inactive ? "Inactive" : "", completion].filter(Boolean).join(" · ");
+  const context = [routineProgram(state, routine.id).name, locationLabel(routine.group), inactive ? "Inactive" : "", completion].filter(Boolean).join(" · ");
   return checkRowMarkup({ routineId: routine.id, checked: selected, name: routine.name, context });
 }
 
@@ -181,8 +180,7 @@ function saveDay(form) {
   const routineIds = $$('input[name="routine"]:checked', form).map((input) => input.value);
   const note = $("#dayNote", form).value.trim();
   const result = store.update((draft) => setDay(draft, form.dataset.date, routineIds, note));
-  // Whatever failed, the saved day is untouched, and the sheet says so.
-  if (!report(result.ok ? result : { ok: false, error: SAVE_FAILED }, "Day updated.")) return;
+  if (!report(result, "Day updated.")) return;
   closeDialog("#dayDialog");
   render();
 }

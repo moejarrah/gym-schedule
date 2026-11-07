@@ -10,6 +10,7 @@ import "./views/log.js";
 import "./views/settings.js";
 import { applyTheme, mainElement, navigate, render, runAction, start, store } from "./context.js";
 import { initDialogs, toast } from "./dom.js";
+import { STORAGE_KEY } from "./store.js";
 
 initDialogs();
 start();
@@ -42,7 +43,7 @@ document.addEventListener("visibilitychange", () => {
 
 // Another tab saved data: reload so both don't overwrite each other.
 window.addEventListener("storage", (event) => {
-  if (event.key === "gymAppStateV1") location.reload();
+  if (event.key === STORAGE_KEY) location.reload();
 });
 
 if ("serviceWorker" in navigator) {

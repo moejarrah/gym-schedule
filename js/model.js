@@ -74,12 +74,6 @@ export function entryNumber(routine, entryId) {
   return orderedEntries(routine).findIndex((entry) => entry.id === entryId) + 1;
 }
 
-// "Squat or Leg press" — derived from the current master names.
-export function entryTitle(state, entry) {
-  const names = entry.choices.map((choice) => exerciseById(state, choice.exerciseId)?.name).filter(Boolean);
-  return names.join(" or ") || "Missing exercise";
-}
-
 export function sessionFor(state, dateKey) {
   const session = state.sessions[dateKey];
   return {

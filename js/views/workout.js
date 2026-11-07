@@ -3,7 +3,7 @@
 // the selected routine, and the exercise-choices sheet of multi-choice slots.
 
 import { afterRender, mainElement, onStart, registerActions, registerView, render, store } from "../context.js";
-import { $, chevronIcon, closeDialog, escapeHtml, openDialog, report } from "../dom.js";
+import { $, chevronIcon, closeDialog, escapeHtml, openDialog, playIcon, report } from "../dom.js";
 import {
   activeProgram,
   activeRoutine,
@@ -16,7 +16,7 @@ import {
   toggleEntryCheck,
 } from "../model.js";
 import { openExerciseReference, openExerciseVideo } from "./reference.js";
-import { entryPresentation, revealSelectedTab, routineTabsMarkup } from "./shared.js";
+import { entryPresentation, revealSelectedTab, routineTabsMarkup, videoUrl } from "./shared.js";
 
 // The exercise list is one element reused across renders, so checking an entry
 // keeps the list where the user scrolled it.
@@ -26,10 +26,6 @@ const list = { rows: null };
 const choicesSheet = { routineId: "", entryId: "" };
 
 // ---------- markup ----------
-
-function playIcon() {
-  return `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg>`;
-}
 
 function programBarMarkup(program) {
   if (!program) {
@@ -85,7 +81,7 @@ function entryMarkup(state, routine, entry, { checked, showOptionalRole }) {
   const note = entry.note.trim();
   const multiChoice = entry.choices.length > 1;
   const videoControl = preferred.exercise.videoId
-    ? `<a class="workout-video is-linked" href="https://www.youtube.com/watch?v=${escapeHtml(preferred.exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for preferred choice ${escapeHtml(preferred.name)}"><span class="workout-video-mark">${playIcon()}</span></a>`
+    ? `<a class="workout-video is-linked" href="${videoUrl(preferred.exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for preferred choice ${escapeHtml(preferred.name)}"><span class="workout-video-mark">${playIcon()}</span></a>`
     : `<button class="workout-video" type="button" data-action="open-workout-video" data-id="${escapeHtml(exerciseId)}" aria-label="Find a video for preferred choice ${escapeHtml(preferred.name)}"><span class="workout-video-mark">${playIcon()}</span></button>`;
 
   return `<article class="workout-item ${checked ? "is-done" : ""}">
@@ -126,7 +122,7 @@ function blockMarkup(state, routine, block, todayKey) {
 function entryChoicesMarkup(state, routine, entry) {
   const rows = entryPresentation(entry, state).choices.map((item, index) => {
     const video = item.exercise.videoId
-      ? `<a class="entry-choice-video is-linked" href="https://www.youtube.com/watch?v=${escapeHtml(item.exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for ${escapeHtml(item.name)}"><span>${playIcon()}</span></a>`
+      ? `<a class="entry-choice-video is-linked" href="${videoUrl(item.exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for ${escapeHtml(item.name)}"><span>${playIcon()}</span></a>`
       : `<button class="entry-choice-video" type="button" data-action="open-choice-video" data-index="${index}" aria-label="Find a video for ${escapeHtml(item.name)}"><span>${playIcon()}</span></button>`;
     return `<div class="entry-choice-view-row">
       <button class="entry-choice-reference" type="button" data-action="open-choice-reference" data-index="${index}" aria-label="Open reference for ${escapeHtml(item.name)}">
@@ -183,8 +179,6 @@ registerActions({
     if (!report(result)) return;
     list.rows.scrollTop = 0; // a different routine starts at its first exercise
     render();
-    // Re-rendering resets the tab strip's scroll; this also covers the Program screen.
-    revealSelectedTab(mainElement());
   },
   "toggle-entry-check": (button) => {
     const { routineId, id } = button.dataset;
