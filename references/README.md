@@ -7,6 +7,7 @@ Nothing in this directory is loaded by the deployed PWA.
 - `ui-concepts/ironworks-program.html` covers Program management and routine editing.
 - `ui-concepts/ironworks-log-settings.html` covers Log, day editing, and Settings.
 - `ui-concepts/ironworks-logging.html` is a preserved exploratory per-set logging and progress concept; it is not current production direction.
+- `ui-concepts/ironworks-setlog-flow.html` is a draft candidate template for the compact/expand/fill set-log flow (row expansion, unit-aware set values, drop chain); not approved direction and not loaded by the PWA.
 - `ui-concepts/ironworks-pplppl7.html` is the approved extension for named routine blocks, scoped notes, programmed choices, the embedded Optional slot, Home Base, and related editors.
 - `ui-concepts/ironworks-flows.css` is shared only by the Program and Log/Settings concepts.
 - `ui-concepts/club-card.html` and `ui-concepts/signal.html` are comparison companions linked from the preserved base concept; they are not production direction.
