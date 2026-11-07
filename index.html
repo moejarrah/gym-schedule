@@ -8,17 +8,29 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Gym Schedule">
   <title>Gym Schedule</title>
-  <link rel="manifest" href="manifest.json?v=50">
+  <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/app-icon-180.png">
-  <link rel="stylesheet" href="styles.css?v=50">
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/views.css">
+  <script>
+    // Apply the saved theme before the first paint so dark mode doesn't flash light.
+    try {
+      const theme = JSON.parse(localStorage.getItem("gymAppStateV1"))?.settings?.theme;
+      if (theme === "dark") {
+        document.documentElement.dataset.theme = "dark";
+        document.querySelector('meta[name="theme-color"]').content = "#0f1114";
+      }
+    } catch (_) {}
+  </script>
 </head>
-<body>
+<body data-current-view="workout">
   <div class="app-shell">
     <header class="topbar">
       <div class="topbar-title">
         <h1 id="viewTitle">Workout</h1>
-        <p id="viewMetaLine">Loading saved data</p>
+        <p id="viewMetaLine"></p>
       </div>
     </header>
 
@@ -41,7 +53,7 @@
         <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
         <span>Log</span>
       </button>
-      <button type="button" id="settingsButton" aria-label="Open settings">
+      <button type="button" data-view="settings">
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
         <span>Settings</span>
       </button>
@@ -110,7 +122,7 @@
     </form>
   </dialog>
 
-  <dialog id="exerciseFilterDialog" class="sheet-dialog tall-dialog library-filter-dialog" aria-labelledby="exerciseFilterDialogTitle">
+  <dialog id="exerciseFilterDialog" data-dismissable class="sheet-dialog tall-dialog library-filter-dialog" aria-labelledby="exerciseFilterDialogTitle">
     <div class="library-filter-sheet">
       <header class="dialog-header">
         <h2 id="exerciseFilterDialogTitle">Filter exercises</h2>
@@ -155,7 +167,7 @@
     </div>
   </dialog>
 
-  <dialog id="programsDialog" class="sheet-dialog programs-dialog" aria-labelledby="programsDialogTitle">
+  <dialog id="programsDialog" data-dismissable class="sheet-dialog programs-dialog" aria-labelledby="programsDialogTitle">
     <div class="dialog-form programs-sheet">
       <header class="dialog-header">
         <h2 id="programsDialogTitle">Programs</h2>
@@ -171,7 +183,7 @@
     <form method="dialog" id="programForm" class="dialog-form program-sheet" novalidate>
       <header class="dialog-header">
         <div><h2 id="programDialogTitle">Add program</h2><p id="programDialogSubtitle">Create a new training block</p></div>
-        <button class="icon-button" value="cancel" aria-label="Close program editor" type="submit" formnovalidate>×</button>
+        <button class="icon-button" data-close-dialog="programDialog" aria-label="Close program editor" type="button">×</button>
       </header>
       <input id="programId" type="hidden">
       <label class="field"><span>Name</span><input class="control" id="programName" required maxlength="60" autocomplete="off"></label>
@@ -194,7 +206,7 @@
       </div>
       <p class="form-error" id="programFormError" role="alert" data-dialog-error></p>
       <footer class="dialog-actions">
-        <button class="button text" id="programCancelButton" type="submit" value="cancel" formnovalidate>Cancel</button>
+        <button class="button text" id="programCancelButton" data-close-dialog="programDialog" type="button">Cancel</button>
         <button class="button primary" id="programSaveButton" type="submit" value="save">Create program</button>
       </footer>
     </form>
@@ -204,7 +216,7 @@
     <form method="dialog" id="routineForm" class="dialog-form routine-sheet" novalidate>
       <header class="dialog-header">
         <h2 id="routineDialogTitle">Add routine</h2>
-        <button class="icon-button" value="cancel" aria-label="Close routine editor" type="submit" formnovalidate>×</button>
+        <button class="icon-button" data-close-dialog="routineDialog" aria-label="Close routine editor" type="button">×</button>
       </header>
       <input type="hidden" id="routineId">
       <div class="routine-sheet-scroll">
@@ -251,7 +263,7 @@
     <form method="dialog" id="routineBlockForm" class="dialog-form" novalidate>
       <header class="dialog-header">
         <div><h2 id="routineBlockDialogTitle">Edit block</h2><p id="routineBlockDialogSubtitle">Routine block</p></div>
-        <button class="icon-button" value="cancel" aria-label="Close block editor" type="submit" formnovalidate>×</button>
+        <button class="icon-button" data-close-dialog="routineBlockDialog" aria-label="Close block editor" type="button">×</button>
       </header>
       <input id="routineBlockId" type="hidden">
       <label class="field"><span>Name</span><input class="control" id="routineBlockName" autocomplete="off" placeholder="Untitled block"></label>
@@ -265,7 +277,7 @@
     </form>
   </dialog>
 
-  <dialog id="pickerDialog" class="sheet-dialog tall-dialog picker-dialog" aria-labelledby="pickerDialogTitle">
+  <dialog id="pickerDialog" data-dismissable class="sheet-dialog tall-dialog picker-dialog" aria-labelledby="pickerDialogTitle">
     <div class="dialog-form picker-sheet">
       <header class="dialog-header">
         <div><h2 id="pickerDialogTitle">Add exercise</h2><p id="pickerRoutineContext">Routine · Library</p></div>
@@ -286,7 +298,7 @@
     <form method="dialog" id="entryForm" class="dialog-form entry-sheet" novalidate>
       <header class="dialog-header">
         <div><h2 id="entryExerciseName">Edit routine entry</h2><p id="entryRoutineContext">Routine entry</p></div>
-        <button class="icon-button" value="cancel" aria-label="Close entry editor" type="submit" formnovalidate>×</button>
+        <button class="icon-button" data-close-dialog="entryDialog" aria-label="Close entry editor" type="button">×</button>
       </header>
       <input id="entryId" type="hidden">
       <div class="entry-sheet-scroll">
@@ -323,7 +335,7 @@
     <form method="dialog" id="entryChoiceForm" class="dialog-form" novalidate>
       <header class="dialog-header">
         <div><h2 id="entryChoiceDialogTitle">Edit choice</h2><p id="entryChoiceDialogSubtitle">Routine choice</p></div>
-        <button class="icon-button" value="cancel" aria-label="Close choice editor" type="submit" formnovalidate>×</button>
+        <button class="icon-button" data-close-dialog="entryChoiceDialog" aria-label="Close choice editor" type="button">×</button>
       </header>
       <input id="entryChoiceIndex" type="hidden">
       <label class="field"><span>Prescription for this choice</span><input class="control" id="entryChoicePrescription" required maxlength="60" autocomplete="off"></label>
@@ -338,48 +350,20 @@
     </form>
   </dialog>
 
-  <dialog id="entryChoicesDialog" class="sheet-dialog entry-choices-dialog" aria-labelledby="entryChoicesTitle">
+  <dialog id="entryChoicesDialog" data-dismissable class="sheet-dialog entry-choices-dialog" aria-labelledby="entryChoicesTitle">
     <div id="entryChoicesContent"></div>
   </dialog>
 
-  <dialog id="exerciseDetailDialog" class="sheet-dialog reference-dialog" aria-labelledby="detailExerciseName">
+  <dialog id="exerciseDetailDialog" data-dismissable class="sheet-dialog reference-dialog" aria-labelledby="detailExerciseName">
     <div id="exerciseDetailContent"></div>
   </dialog>
 
-  <dialog id="exerciseVideoDialog" class="sheet-dialog reference-dialog video-search-dialog" aria-labelledby="videoExerciseName">
+  <dialog id="exerciseVideoDialog" data-dismissable class="sheet-dialog reference-dialog video-search-dialog" aria-labelledby="videoExerciseName">
     <div id="exerciseVideoContent"></div>
   </dialog>
 
   <dialog id="dayDialog" class="sheet-dialog day-dialog" aria-labelledby="dayDialogTitle">
     <div id="dayDialogContent"><h2 id="dayDialogTitle" class="visually-hidden">Day editor</h2></div>
-  </dialog>
-
-  <dialog id="settingsDialog" class="sheet-dialog tall-dialog" aria-labelledby="settingsDialogTitle">
-    <div class="dialog-form">
-      <header class="dialog-header">
-        <div><p class="dialog-kicker">Gym Schedule</p><h2 id="settingsDialogTitle">Settings</h2></div>
-        <button class="icon-button" data-close-dialog="settingsDialog" aria-label="Close settings" type="button">×</button>
-      </header>
-      <section class="settings-section">
-        <h3>Appearance</h3>
-        <button class="selection-row" id="settingsThemeButton" type="button"><span><strong>Theme</strong><small id="settingsThemeValue">Light</small></span><span aria-hidden="true">›</span></button>
-      </section>
-      <section class="settings-section">
-        <h3>App data</h3>
-        <p>Export a copy, import a compatible file, or restore the starting routine.</p>
-        <div class="stacked-actions">
-          <button class="button secondary" id="exportButton" type="button">Export app data</button>
-          <button class="button secondary" id="importButton" type="button">Import app data</button>
-          <button class="button secondary danger-text" id="resetButton" type="button">Restore starting data</button>
-        </div>
-        <input id="importFile" type="file" accept="application/json,.json" hidden>
-      </section>
-      <details class="settings-rules">
-        <summary>Training rules</summary>
-        <section id="rulesContent" class="rules-list"></section>
-      </details>
-      <p class="form-error" id="settingsFormError" role="alert" data-dialog-error></p>
-    </div>
   </dialog>
 
   <dialog id="confirmDialog" class="confirm-dialog" aria-labelledby="confirmTitle">
@@ -394,6 +378,7 @@
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="app.js?v=50"></script>
+  <input id="importFile" type="file" accept="application/json,.json" hidden>
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>

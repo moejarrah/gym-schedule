@@ -1,12 +1,31 @@
-const CACHE_PREFIX = "gym-schedule-";
-const CACHE = "gym-schedule-v50";
-const APP_SHELL = [
-  "./",
+// Offline support: every app file is cached, and the app runs from that cache.
+// `npm run check` rewrites VERSION and FILES below (tools/check.mjs). A new
+// VERSION makes installed apps download the new files and reload once.
+
+const VERSION = "38f1ccfea4"; // stamped
+const FILES = [
   "./index.html",
-  "./styles.css?v=50",
-  "./styles/base.css?v=50",
-  "./styles/components.css?v=50",
-  "./styles/views.css?v=50",
+  "./manifest.json",
+  "./styles/base.css",
+  "./styles/components.css",
+  "./styles/views.css",
+  "./js/app.js",
+  "./js/context.js",
+  "./js/dom.js",
+  "./js/model.js",
+  "./js/search.js",
+  "./js/seed.js",
+  "./js/store.js",
+  "./js/views/entry-editor.js",
+  "./js/views/exercise-editor.js",
+  "./js/views/library.js",
+  "./js/views/log.js",
+  "./js/views/program.js",
+  "./js/views/reference.js",
+  "./js/views/settings.js",
+  "./js/views/shared.js",
+  "./js/views/workout.js",
+  "./js/vocab.js",
   "./fonts/barlow-500-latin.woff2",
   "./fonts/barlow-600-latin.woff2",
   "./fonts/barlow-700-latin.woff2",
@@ -15,66 +34,37 @@ const APP_SHELL = [
   "./fonts/ibm-plex-mono-500-latin.woff2",
   "./fonts/ibm-plex-mono-600-latin.woff2",
   "./fonts/ibm-plex-mono-700-latin.woff2",
-  "./data.js?v=50",
-  "./storage.js?v=50",
-  "./ui/shared.js?v=50",
-  "./ui/workout.js?v=50",
-  "./ui/exercise-reference.js?v=50",
-  "./ui/program.js?v=50",
-  "./ui/library.js?v=50",
-  "./ui/log-settings.js?v=50",
-  "./app.js?v=50",
-  "./manifest.json?v=50",
-  "./icons/app-icon.svg",
   "./icons/app-icon-180.png",
   "./icons/app-icon-192.png",
   "./icons/app-icon-512.png",
-];
+  "./icons/app-icon.svg"
+]; // stamped
+
+const CACHE_PREFIX = "gym-schedule-";
+const CACHE = `${CACHE_PREFIX}${VERSION}`;
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL)));
+  event.waitUntil(
+    caches.open(CACHE).then((cache) => cache.addAll(FILES.map((file) => new Request(file, { cache: "reload" })))),
+  );
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(
-        keys
-          .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE)
-          .map((key) => caches.delete(key)),
-      ))
+      // Other apps can share this origin, so only this app's old caches are removed.
+      .then((keys) => Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE).map((key) => caches.delete(key))))
       .then(() => self.clients.claim()),
   );
 });
 
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
-  const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin) return;
-
-  if (event.request.mode === "navigate") {
-    event.respondWith(
-      fetch(event.request, { cache: "no-store" })
-        .then((response) => {
-          if (response.ok) {
-            const copy = response.clone();
-            event.waitUntil(caches.open(CACHE).then((cache) => cache.put(event.request, copy)));
-          }
-          return response;
-        })
-        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html"))),
-    );
+  const { request } = event;
+  if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin) return;
+  if (request.mode === "navigate") {
+    event.respondWith(caches.match("./index.html").then((cached) => cached || fetch(request)));
     return;
   }
-
-  event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
-      if (response.ok) {
-        const copy = response.clone();
-        event.waitUntil(caches.open(CACHE).then((cache) => cache.put(event.request, copy)));
-      }
-      return response;
-    })),
-  );
+  event.respondWith(caches.match(request).then((cached) => cached || fetch(request)));
 });
