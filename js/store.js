@@ -239,12 +239,13 @@ export function parseBackup(text) {
   }
 }
 
-// One store per page. `update(fn)` hands fn a copy of the state to change in place;
-// fn may throw an Error with a message for the user. Nothing is saved unless the
+// One store per page. `update(fn)` hands fn a copy of the state to change in place
+// (its return value is ignored); fn may throw an Error with a message for the user. Nothing is saved unless the
 // whole new state is valid and the write succeeds.
 export function createStore(storage = safeLocalStorage()) {
   let state;
   let lastError = "";
+  let unreadable = "";
 
   function write(next) {
     const problem = stateProblem(next);
@@ -284,13 +285,14 @@ export function createStore(storage = safeLocalStorage()) {
       if (parsed.version !== SCHEMA_VERSION) write(state);
     } catch (error) {
       console.error("Saved data couldn't be read:", error.message);
+      unreadable = raw;
+      state = createDefaultState();
       try {
         storage.setItem(RECOVERY_KEY, raw);
+        write(state);
       } catch (_) {
-        // Keep going with the starting data; the original stays under STORAGE_KEY until the next save.
+        // No room for a copy: leave the original under STORAGE_KEY untouched until the user saves something.
       }
-      state = createDefaultState();
-      write(state);
       lastError = "Saved data couldn't be read, so the starting program is open. The old data can be downloaded from Settings.";
     }
   }
@@ -302,8 +304,8 @@ export function createStore(storage = safeLocalStorage()) {
     update(fn) {
       const draft = clone(state);
       try {
-        const returned = fn(draft);
-        return write(returned && typeof returned === "object" ? returned : draft);
+        fn(draft);
+        return write(draft);
       } catch (error) {
         return { ok: false, error: error?.message || "That change couldn't be saved." };
       }
@@ -312,6 +314,7 @@ export function createStore(storage = safeLocalStorage()) {
     reset: () => write(createDefaultState()),
     getLastError: () => lastError,
     recoveryData() {
+      if (unreadable) return unreadable;
       try {
         return storage?.getItem(RECOVERY_KEY) || "";
       } catch (_) {
