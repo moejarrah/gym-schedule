@@ -80,11 +80,42 @@ export function sessionFor(state, dateKey) {
     routineIds: [...(session?.routineIds || [])],
     checkedEntryIdsByRoutine: structuredClone(session?.checkedEntryIdsByRoutine || {}),
     note: session?.note || "",
+    logs: structuredClone(session?.logs || {}),
   };
 }
 
 export function isEntryChecked(state, dateKey, routineId, entryId) {
   return Boolean(state.sessions[dateKey]?.checkedEntryIdsByRoutine?.[routineId]?.includes(entryId));
+}
+
+// The sets logged for a routine slot on a date: { routineId, exerciseId, sets } or null.
+export function entryLog(state, dateKey, entryId) {
+  return state.sessions[dateKey]?.logs?.[entryId] || null;
+}
+
+// Logged sessions of a master exercise from any routine, newest first:
+// [{ dateKey, routineId, sets }]. `beforeDateKey` leaves out that day and later.
+export function exerciseHistory(state, exerciseId, { beforeDateKey = "", limit = Infinity } = {}) {
+  const items = [];
+  for (const dateKey of Object.keys(state.sessions).sort().reverse()) {
+    if (items.length >= limit) break;
+    if (beforeDateKey && dateKey >= beforeDateKey) continue;
+    for (const log of Object.values(state.sessions[dateKey].logs)) {
+      if (log.exerciseId === exerciseId) items.push({ dateKey, routineId: log.routineId, sets: log.sets });
+    }
+  }
+  return items.slice(0, limit);
+}
+
+// How many set rows a prescription plans: "3 × 8–12" → 3, "1–2 × 15–25/side" → 2. Otherwise 1.
+export function plannedSetCount(prescription) {
+  const match = /^\s*(\d+)\s*(?:[–-]\s*(\d+))?\s*[×x]/i.exec(prescription);
+  return match ? Math.min(10, Math.max(1, Number(match[2] || match[1]))) : 1;
+}
+
+// Timed work ("2 × 15–30 sec/side", "3 × 45s") is logged in seconds instead of reps.
+export function isTimedPrescription(prescription) {
+  return /\d\s*(?:s|secs?|seconds?)\b/i.test(prescription);
 }
 
 export function exerciseDeletionImpact(state, exerciseId) {
@@ -112,10 +143,10 @@ function writeSession(state, dateKey, session) {
       .filter(([, entryIds]) => entryIds.length)
       .map(([routineId, entryIds]) => [routineId, [...new Set(entryIds)]]),
   );
-  if (!session.routineIds.length && !Object.keys(checked).length && !session.note) {
+  if (!session.routineIds.length && !Object.keys(checked).length && !session.note && !Object.keys(session.logs).length) {
     delete state.sessions[dateKey];
   } else {
-    state.sessions[dateKey] = { routineIds: [...new Set(session.routineIds)], checkedEntryIdsByRoutine: checked, note: session.note };
+    state.sessions[dateKey] = { routineIds: [...new Set(session.routineIds)], checkedEntryIdsByRoutine: checked, note: session.note, logs: session.logs };
   }
 }
 
@@ -143,16 +174,17 @@ function repairActiveSelection(state) {
 
 // ---------- workout and log ----------
 
-// Checks or unchecks an entry for a date. A routine is complete when it has at
-// least one Main entry and every Main entry is checked; Optional entries never block.
-export function toggleEntryCheck(state, routineId, entryId, dateKey = localDateKey()) {
+// Marks an entry done (Done in the logging sheet) or not done for a date. A routine
+// is complete when it has at least one Main entry and every Main entry is done;
+// Optional entries never block.
+export function setEntryChecked(state, routineId, entryId, done, dateKey = localDateKey()) {
   const routine = routineById(state, routineId);
   const entry = routine?.entries.find((item) => item.id === entryId);
   if (!entry || !isDateKey(dateKey)) fail("That exercise is no longer in this routine.");
   const session = sessionFor(state, dateKey);
   const checked = new Set(session.checkedEntryIdsByRoutine[routineId] || []);
-  if (checked.has(entryId)) checked.delete(entryId);
-  else checked.add(entryId);
+  if (done) checked.add(entryId);
+  else checked.delete(entryId);
   session.checkedEntryIdsByRoutine[routineId] = [...checked];
   if (entry.role === "main") {
     const mainIds = routine.entries.filter((item) => item.role === "main").map((item) => item.id);
@@ -162,7 +194,36 @@ export function toggleEntryCheck(state, routineId, entryId, dateKey = localDateK
       : session.routineIds.filter((id) => id !== routineId);
   }
   writeSession(state, dateKey, session);
-  return checked.has(entryId);
+}
+
+function cleanKg(value) {
+  if (value === null || value === undefined || String(value).trim() === "") return null;
+  const kg = Number(String(value).replace(",", "."));
+  if (!Number.isFinite(kg) || kg < 0 || kg > 1000) fail("Enter a weight between 0 and 1000 kg.");
+  return Math.round(kg * 100) / 100;
+}
+
+function cleanReps(value) {
+  const reps = Number(String(value ?? "").trim());
+  if (String(value ?? "").trim() === "" || !Number.isInteger(reps) || reps < 0 || reps > 1000) fail("Enter whole reps for each ticked set.");
+  return reps;
+}
+
+// Saves the ticked sets for a routine slot on a date: [{ kg, reps, drops: [{ kg, reps }] }].
+// kg may be blank (no weight used). An empty list removes the log.
+export function saveEntrySets(state, { routineId, entryId, exerciseId, sets, dateKey = localDateKey() }) {
+  const { entry } = findEntry(state, routineId, entryId);
+  if (!entry.choices.some((choice) => choice.exerciseId === exerciseId)) fail("That exercise isn't a choice in this slot any more.");
+  if (!isDateKey(dateKey)) fail("That date isn't valid.");
+  const clean = sets.map((set) => ({
+    kg: cleanKg(set.kg),
+    reps: cleanReps(set.reps),
+    drops: (set.drops || []).map((drop) => ({ kg: cleanKg(drop.kg), reps: cleanReps(drop.reps) })),
+  }));
+  const session = sessionFor(state, dateKey);
+  if (clean.length) session.logs[entryId] = { routineId, exerciseId, sets: clean };
+  else delete session.logs[entryId];
+  writeSession(state, dateKey, session);
 }
 
 // Log editor: sets the completed routines and note for a date. Newly marked
@@ -388,6 +449,14 @@ export function removeExercise(state, exerciseId) {
     });
   }
   dropChecks(state, (_, entryId) => deletedEntries.has(entryId));
+  // Its logged sets go too: history is shown per exercise, and it no longer exists.
+  for (const [dateKey, saved] of Object.entries(state.sessions)) {
+    const session = sessionFor(state, dateKey);
+    for (const [entryId, log] of Object.entries(saved.logs)) {
+      if (log.exerciseId === exerciseId) delete session.logs[entryId];
+    }
+    writeSession(state, dateKey, session);
+  }
 }
 
 // ---------- settings ----------

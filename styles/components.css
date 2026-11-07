@@ -290,6 +290,8 @@ textarea::placeholder {
 /* Grab handle at the top of every bottom sheet. */
 .sheet-dialog .dialog-form::before,
 .reference-sheet::before,
+.log-sheet::before,
+.history-sheet::before,
 .entry-choices-sheet::before,
 .library-filter-sheet::before,
 .day-sheet::before {
@@ -1116,4 +1118,60 @@ textarea::placeholder {
     margin: auto;
     border-radius: 16px;
   }
+}
+
+/* ---------- logged sets ---------- */
+
+.set-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.set-chip {
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--surface-2);
+  color: var(--text);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.set-chip small {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.set-chip-x {
+  margin: 0 1px;
+  color: var(--faint);
+  font-weight: 500;
+}
+
+.set-chip.is-drop {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.set-chip-tag {
+  margin-right: 3px;
+  color: var(--accent-on-soft);
+  font-family: var(--font-label);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.set-chips-more {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
 }

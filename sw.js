@@ -2,7 +2,7 @@
 // `npm run check` rewrites VERSION and FILES below (tools/check.mjs). A new
 // VERSION makes installed apps download the new files and reload once.
 
-const VERSION = "ec916b0a35"; // stamped
+const VERSION = "762efd2f4f"; // stamped
 const FILES = [
   "./index.html",
   "./manifest.json",
@@ -18,8 +18,10 @@ const FILES = [
   "./js/store.js",
   "./js/views/entry-editor.js",
   "./js/views/exercise-editor.js",
+  "./js/views/history.js",
   "./js/views/library.js",
   "./js/views/log.js",
+  "./js/views/logger.js",
   "./js/views/program.js",
   "./js/views/reference.js",
   "./js/views/settings.js",

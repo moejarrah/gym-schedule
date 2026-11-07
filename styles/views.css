@@ -254,7 +254,27 @@
 }
 
 .workout-page .row-main {
-  gap: 3px;
+  gap: 4px;
+}
+
+.workout-page .row-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 8px;
+  row-gap: 1px;
+}
+
+/* A slot with sets logged today: number box and video sit level with the name. */
+.workout-item.has-sets .workout-check,
+.workout-item.has-sets .workout-video {
+  place-items: start center;
+  padding-top: 19px;
+}
+
+.workout-item.has-sets:not(.is-done) .workout-check-mark {
+  border-color: var(--accent);
+  color: var(--accent-on-soft);
 }
 
 .workout-page .row-title {
@@ -2413,4 +2433,467 @@ body.routine-block-drag-active {
   margin-bottom: 2px;
   color: var(--text);
   display: block;
+}
+
+/* ---------- logging sheet ---------- */
+
+.log-dialog {
+  overflow: hidden;
+}
+
+.log-sheet {
+  max-height: min(88dvh, 860px);
+  padding: 0 var(--space-4) max(var(--space-4), env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+}
+
+.log-head,
+.log-actions {
+  flex: 0 0 auto;
+}
+
+.log-scroll {
+  min-height: 0;
+  padding-block: var(--space-3);
+  flex: 1;
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.log-actions {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.log-choices {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.log-choices button {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.log-choices button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-on-soft);
+}
+
+.log-history {
+  padding: 0 12px 8px;
+  background: var(--surface-2);
+}
+
+.log-history .set-chip {
+  background: var(--surface);
+}
+
+.log-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.log-history-head h3,
+.log-row-head {
+  margin: 0;
+  color: var(--faint);
+  font-family: var(--font-label);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.log-history-head h3 {
+  color: var(--text-muted);
+}
+
+.log-history-row {
+  min-height: 40px;
+  padding: 3px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.log-history-date {
+  min-width: 0;
+  flex: 0 0 82px;
+  display: grid;
+}
+
+.log-history-date strong {
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.log-history-date small {
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.log-history-empty {
+  margin: 0 0 4px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.log-table {
+  display: grid;
+  gap: 2px;
+}
+
+.log-row {
+  min-height: 46px;
+  padding: 0 4px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 84px 60px 44px;
+  column-gap: 6px;
+  align-items: center;
+}
+
+.log-row-head {
+  min-height: 24px;
+}
+
+.log-row-head span:nth-child(3),
+.log-row-head span:nth-child(4) {
+  text-align: center;
+}
+
+.log-set-label {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.log-row.is-drop .log-set-label {
+  color: var(--accent-on-soft);
+  font-family: var(--font-label);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.log-last {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.log-last.is-empty {
+  color: var(--faint);
+}
+
+.log-field {
+  height: 38px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.log-field:focus-within {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.log-field input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: 600 16px/1 var(--font-body);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.log-field input::placeholder {
+  color: var(--faint);
+}
+
+.log-field span {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.log-row.is-done {
+  background: var(--accent-soft);
+}
+
+.log-row.is-done .log-field {
+  background: transparent;
+}
+
+.log-set.has-drops .log-row.is-drop.is-done {
+  background: color-mix(in srgb, var(--accent-soft) 55%, transparent);
+}
+
+.log-tick {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  display: grid;
+  place-items: center;
+}
+
+.log-tick svg {
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  border: 2px solid var(--border-strong);
+  border-radius: 7px;
+  fill: none;
+  stroke: transparent;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.log-tick[aria-pressed="true"] svg {
+  border-color: var(--accent-fill);
+  background: var(--accent-fill);
+  stroke: #ffffff;
+}
+
+.log-add {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: var(--accent-on-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.log-set > .log-add {
+  min-height: 40px;
+  margin-left: 40px;
+}
+
+.log-add svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 2.6;
+}
+
+.log-set {
+  display: grid;
+}
+
+@media (max-width: 359px) {
+  .log-row {
+    grid-template-columns: 26px minmax(0, 1fr) 72px 52px 44px;
+    column-gap: 4px;
+  }
+
+  .log-history-date {
+    flex-basis: 70px;
+  }
+}
+
+/* ---------- exercise history sheet ---------- */
+
+.history-sheet {
+  height: 100%;
+  padding: 0 var(--space-4) max(var(--space-4), env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+}
+
+.history-sheet .dialog-header {
+  flex: 0 0 auto;
+}
+
+.history-scroll {
+  min-height: 0;
+  padding-block: var(--space-3);
+  flex: 1;
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.history-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.history-stat {
+  min-width: 0;
+  padding: 10px;
+  background: var(--surface-2);
+  display: grid;
+  gap: 2px;
+}
+
+.history-stat span,
+.history-trend figcaption {
+  color: var(--text-muted);
+  font-family: var(--font-label);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.history-stat strong {
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.history-stat.up strong,
+.history-change.up {
+  color: var(--up);
+}
+
+.history-stat.down strong,
+.history-change.down {
+  color: var(--down);
+}
+
+.history-trend {
+  margin: 0;
+  padding: 10px 12px 8px;
+  background: var(--surface-2);
+  display: grid;
+  gap: 4px;
+}
+
+.history-trend svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.history-trend polyline {
+  fill: none;
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+}
+
+.history-trend circle {
+  fill: var(--accent);
+}
+
+.history-trend-ends {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--faint);
+  font-size: 0.75rem;
+}
+
+.history-sessions {
+  display: grid;
+  gap: 6px;
+}
+
+.history-session {
+  padding: 10px 12px;
+  background: var(--surface-2);
+  display: grid;
+  gap: 6px;
+}
+
+.history-session .set-chip {
+  background: var(--surface);
+}
+
+.history-session header {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.history-session header strong {
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.history-session header span {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-change {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-style: normal;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.history-empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+/* ---------- day editor: logged sets ---------- */
+
+.day-log-list {
+  display: grid;
+  gap: 10px;
+}
+
+.day-log-row {
+  display: grid;
+  gap: 4px;
+}
+
+.day-log-row strong {
+  font-size: 0.88rem;
 }

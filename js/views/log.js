@@ -1,5 +1,6 @@
 // Log screen: the month calendar, the recent-history list, and the day editor
-// sheet (#dayDialog) that sets a date's completed routines and note.
+// sheet (#dayDialog) that sets a date's completed routines and note and shows
+// the sets logged that day.
 //
 // History outlives programs: a session can still name a routine that has since
 // been deleted. Those days count as completed and the editor lists them as
@@ -7,8 +8,8 @@
 
 import { mainElement, onStart, registerActions, registerView, render, store } from "../context.js";
 import { $, $$, chevronIcon, closeDialog, escapeHtml, formatDate, openDialog, report } from "../dom.js";
-import { activeProgram, dateFromKey, localDateKey, programRoutines, routineById, routineProgram, sessionFor, setDay } from "../model.js";
-import { locationLabel } from "./shared.js";
+import { activeProgram, dateFromKey, exerciseById, localDateKey, programRoutines, routineById, routineProgram, sessionFor, setDay } from "../model.js";
+import { exerciseIsTimed, locationLabel, setChipsMarkup } from "./shared.js";
 
 const LONG_DATE = { weekday: "long", month: "long", day: "numeric", year: "numeric" };
 const RECENT_LIMIT = 8;
@@ -35,16 +36,19 @@ function calendarMarkup(state) {
     const key = localDateKey(date);
     const session = state.sessions[key];
     const completedCount = session?.routineIds.length || 0;
+    const loggedCount = Object.keys(session?.logs || {}).length;
+    const trained = Boolean(completedCount || loggedCount);
     const hasNote = Boolean(session?.note);
     const isToday = key === todayKey;
     const labelParts = [
       formatDate(date, LONG_DATE),
       isToday ? "today" : "",
       completedCount ? `${completedCount} completed ${completedCount === 1 ? "routine" : "routines"}` : "",
+      loggedCount ? `sets logged for ${loggedCount} ${loggedCount === 1 ? "exercise" : "exercises"}` : "",
       hasNote ? "note recorded" : "",
     ].filter(Boolean);
-    cells.push(`<button class="log-calendar-day ${completedCount ? "has-completion" : ""} ${hasNote ? "has-note" : ""} ${isToday ? "is-today" : ""}" type="button" data-action="open-day" data-date="${key}" aria-label="${escapeHtml(labelParts.join(", "))}"${isToday ? ` aria-current="date"` : ""}>
-      <span>${day}</span><span class="log-calendar-markers" aria-hidden="true">${completedCount ? `<i class="completion-marker"></i>` : ""}${hasNote ? `<i class="note-marker"></i>` : ""}</span>
+    cells.push(`<button class="log-calendar-day ${trained ? "has-completion" : ""} ${hasNote ? "has-note" : ""} ${isToday ? "is-today" : ""}" type="button" data-action="open-day" data-date="${key}" aria-label="${escapeHtml(labelParts.join(", "))}"${isToday ? ` aria-current="date"` : ""}>
+      <span>${day}</span><span class="log-calendar-markers" aria-hidden="true">${trained ? `<i class="completion-marker"></i>` : ""}${hasNote ? `<i class="note-marker"></i>` : ""}</span>
     </button>`);
   }
   const trailingBlanks = (7 - (cells.length % 7)) % 7;
@@ -80,9 +84,11 @@ function recentRowMarkup(state, dateKey) {
   const programs = [...new Set(routines.map((routine) => routineProgram(state, routine.id)))];
   const names = routines.map((routine) => routine.name);
   if (deletedCount) names.push(deletedLabel(deletedCount));
-  const title = names.length ? names.join(" · ") : session.note ? "Note only" : "Saved workout checks";
+  const loggedCount = Object.keys(session.logs).length;
+  const title = names.length ? names.join(" · ") : loggedCount ? "Logged sets" : session.note ? "Note only" : "Saved workout checks";
   const context = [
     programs.map((program) => program.name).join(" · "),
+    loggedCount ? `${loggedCount} ${loggedCount === 1 ? "exercise" : "exercises"} logged` : "",
     session.note ? "Note added" : "",
     programs.some((program) => program.id !== state.settings.activeProgramId) ? "Inactive program" : "",
   ].filter(Boolean);
@@ -130,6 +136,17 @@ function routineSectionMarkup(heading, rows) {
   return `<section class="day-routine-section"><p class="form-label">${escapeHtml(heading)}</p><div class="day-check-list">${rows.join("")}</div></section>`;
 }
 
+// What was lifted that day, one exercise per row. Read-only: sets are edited from Workout.
+function loggedSetsMarkup(state, session) {
+  const logs = Object.values(session.logs);
+  if (!logs.length) return "";
+  const rows = logs.map((log) => `<div class="day-log-row">
+    <strong>${escapeHtml(exerciseById(state, log.exerciseId)?.name || "Exercise")}</strong>
+    <span class="set-chips">${setChipsMarkup(log.sets, { timed: exerciseIsTimed(state, log.exerciseId) })}</span>
+  </div>`).join("");
+  return `<section class="day-routine-section"><p class="form-label">Logged sets</p><div class="day-log-list">${rows}</div></section>`;
+}
+
 function dayEditorMarkup(state, dateKey) {
   const session = sessionFor(state, dateKey);
   const program = activeProgram(state);
@@ -154,6 +171,7 @@ function dayEditorMarkup(state, dateKey) {
         ${deletedIds.length ? routineSectionMarkup("Deleted routines",
           deletedIds.map((routineId) => checkRowMarkup({ routineId, checked: true, name: "Deleted routine", context: "No longer in any program" }))) : ""}
         ${!program && !recordedIds.length ? `<p class="muted-copy">Add a program before logging a routine completion.</p>` : ""}
+        ${loggedSetsMarkup(state, session)}
         <label class="field day-note-field"><span>Note</span><textarea id="dayNote" rows="4" maxlength="500" placeholder="Optional note">${escapeHtml(session.note)}</textarea></label>
         <p class="form-error" id="dayFormError" role="alert" aria-live="polite" data-dialog-error></p>
       </div>

@@ -1,7 +1,7 @@
 // Markup pieces used by more than one screen.
 
-import { escapeHtml } from "../dom.js";
-import { exerciseById } from "../model.js";
+import { escapeHtml, formatDate } from "../dom.js";
+import { dateFromKey, exerciseById, isTimedPrescription } from "../model.js";
 
 export const locationLabel = (group) => (group === "home" ? "Home" : "Gym");
 
@@ -45,4 +45,41 @@ export function revealSelectedTab(root) {
   const margin = Math.ceil(strip.clientWidth * 0.12); // the strip's fade-out edge (12%, see .routine-tabs)
   if (tabBox.left < stripBox.left) strip.scrollLeft -= stripBox.left - tabBox.left + margin;
   else if (tabBox.right > stripBox.right) strip.scrollLeft += tabBox.right - stripBox.right + margin;
+}
+
+// ---------- logged sets ----------
+
+export const formatKg = (kg) => (kg === null || kg === undefined ? "" : String(kg));
+
+// A short date for history rows: "Sat 31 Oct", with the year when it isn't this year.
+export function shortDate(dateKey) {
+  const date = dateFromKey(dateKey);
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return formatDate(date, { weekday: "short", day: "numeric", month: "short", ...(sameYear ? {} : { year: "numeric" }) });
+}
+
+// Whether an exercise is done for time: any of its prescriptions in a routine says
+// seconds, or else its default prescription does.
+export function exerciseIsTimed(state, exerciseId) {
+  const prescriptions = state.routines.flatMap((routine) => routine.entries.flatMap((entry) => entry.choices))
+    .filter((choice) => choice.exerciseId === exerciseId).map((choice) => choice.prescription);
+  const exercise = exerciseById(state, exerciseId);
+  return (prescriptions.length ? prescriptions : [exercise?.defaultPrescription || ""]).some(isTimedPrescription);
+}
+
+// Plain text for one lift: "50 kg × 10", "12 reps" without weight, "45 s" when timed.
+export function liftText(lift, timed = false) {
+  const amount = timed ? `${lift.reps} s` : (lift.kg === null ? `${lift.reps} reps` : String(lift.reps));
+  return lift.kg === null ? amount : `${formatKg(lift.kg)} kg × ${amount}`;
+}
+
+function liftChip(lift, timed, kind = "") {
+  const amount = timed ? `${lift.reps}<small>s</small>` : (lift.kg === null ? `${lift.reps}<small>reps</small>` : String(lift.reps));
+  const weight = lift.kg === null ? "" : `${escapeHtml(formatKg(lift.kg))}<small>kg</small><span class="set-chip-x">×</span>`;
+  return `<span class="set-chip ${kind}">${kind ? `<span class="set-chip-tag">Drop</span>` : ""}${weight}${amount}</span>`;
+}
+
+// Small boxes for logged sets, each followed by its drops as outlined boxes.
+export function setChipsMarkup(sets, { timed = false, drops = true } = {}) {
+  return sets.map((set) => [liftChip(set, timed), ...(drops ? set.drops.map((drop) => liftChip(drop, timed, "is-drop")) : [])].join("")).join("");
 }

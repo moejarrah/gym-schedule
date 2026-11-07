@@ -8,7 +8,7 @@
 import { SEED } from "./seed.js";
 import { CHALLENGES, EMPHASES, EQUIPMENT, LATERALITIES, MOVEMENTS, PURPOSES, RELATIONS, STYLES, SUPPORTS, TARGETS } from "./vocab.js";
 
-export const SCHEMA_VERSION = 10;
+export const SCHEMA_VERSION = 11;
 export const STORAGE_KEY = "gymAppStateV1";
 export const RECOVERY_KEY = `${STORAGE_KEY}:unreadable`;
 
@@ -18,6 +18,10 @@ const DEFAULT_TRAINING_RULES = SEED.settings.trainingRules;
 const MIGRATIONS = {
   9(state) {
     state.settings.trainingRules = DEFAULT_TRAINING_RULES;
+  },
+  // Sets, weights and reps logged per exercise.
+  10(state) {
+    for (const session of Object.values(state.sessions)) session.logs = {};
   },
 };
 
@@ -75,6 +79,12 @@ function uniqueAllowed(values, set, min = 0, max = Infinity) {
 }
 
 const optionalAllowed = (value, set) => value === "" || set.has(value);
+
+// One logged lift: weight in kg (null when no weight is used) and whole reps (or seconds).
+const isLift = (lift) => isRecord(lift)
+  && (lift.kg === null || (Number.isFinite(lift.kg) && lift.kg >= 0 && lift.kg <= 1000))
+  && Number.isInteger(lift.reps) && lift.reps >= 0 && lift.reps <= 1000;
+const isLoggedSet = (set) => isLift(set) && Array.isArray(set.drops) && set.drops.every(isLift);
 
 // Returns a short description of the first problem found, or "" when the state is valid.
 export function stateProblem(state) {
@@ -196,7 +206,13 @@ export function stateProblem(state) {
       }
       checks += checked.length;
     }
-    if (!session.routineIds.length && !checks && !session.note) return `${where}: empty`;
+    // Logs stay in history after their routine or slot is deleted; they need their exercise.
+    if (!isRecord(session.logs)) return `${where}: logs`;
+    for (const [entryId, log] of Object.entries(session.logs)) {
+      if (!isId(entryId) || !isRecord(log) || !isId(log.routineId) || !exerciseById.has(log.exerciseId)) return `${where}: log ${entryId}`;
+      if (!Array.isArray(log.sets) || !log.sets.length || !log.sets.every(isLoggedSet)) return `${where}: sets for ${entryId}`;
+    }
+    if (!session.routineIds.length && !checks && !session.note && !Object.keys(session.logs).length) return `${where}: empty`;
   }
   return "";
 }

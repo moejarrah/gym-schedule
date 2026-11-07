@@ -9,11 +9,15 @@ import {
   duplicateProgram,
   entryNumber,
   exerciseById,
+  entryLog,
   exerciseDeletionImpact,
+  exerciseHistory,
   isEntryChecked,
+  isTimedPrescription,
   moveEntryInBlock,
   moveRoutine,
   orderedEntries,
+  plannedSetCount,
   programRoutines,
   removeEntry,
   removeExercise,
@@ -23,8 +27,9 @@ import {
   saveExercise,
   setActiveProgram,
   setActiveRoutine,
+  saveEntrySets,
   setDay,
-  toggleEntryCheck,
+  setEntryChecked,
   updateEntry,
   updateRoutine,
 } from "../js/model.js";
@@ -66,7 +71,11 @@ const newExercise = (overrides = {}) => ({
 test("a routine completes when every Main entry is checked, and Optional entries never block it", () => {
   const { store } = freshStore();
   const pull = routineById(store.getState(), "pull-a");
-  const toggle = (entryId) => save(store, (s) => toggleEntryCheck(s, "pull-a", entryId, DAY));
+  const toggle = (entryId) => {
+    const done = !isEntryChecked(store.getState(), DAY, "pull-a", entryId);
+    save(store, (s) => setEntryChecked(s, "pull-a", entryId, done, DAY));
+    return done;
+  };
 
   // Entry 001 offers two exercises but is one slot, so one check.
   assert.equal(pull.entries[0].choices.length, 2);
@@ -88,30 +97,31 @@ test("a routine completes when every Main entry is checked, and Optional entries
 test("a routine with only Optional entries never completes from checks, but stays complete once marked in the Log", () => {
   const { store } = freshStore();
   save(store, (s) => {
-    for (const entry of routineById(s, "home-base").entries) toggleEntryCheck(s, "home-base", entry.id, DAY);
+    for (const entry of routineById(s, "home-base").entries) setEntryChecked(s, "home-base", entry.id, true, DAY);
   });
   assert.equal(checks(store.getState(), "home-base").length, routineById(store.getState(), "home-base").entries.length);
   assert.deepEqual(day(store.getState()).routineIds, []);
 
   save(store, (s) => setDay(s, DAY, ["home-base"], ""));
-  save(store, (s) => toggleEntryCheck(s, "home-base", "home-base-entry-001", DAY));
+  save(store, (s) => setEntryChecked(s, "home-base", "home-base-entry-001", false, DAY));
   assert.deepEqual(day(store.getState()).routineIds, ["home-base"]);
 });
 
 test("setDay checks Main entries of newly marked routines, clears checks of unmarked ones, and deletes an empty day", () => {
   const { store } = freshStore();
   const push = routineById(store.getState(), PUSH);
-  save(store, (s) => toggleEntryCheck(s, PUSH, "push-a-glutes-entry-011", DAY));
+  save(store, (s) => setEntryChecked(s, PUSH, "push-a-glutes-entry-011", true, DAY));
 
   save(store, (s) => setDay(s, DAY, [PUSH, "home-base"], "Good day"));
   assert.deepEqual(day(store.getState()), {
     routineIds: [PUSH, "home-base"],
     checkedEntryIdsByRoutine: { [PUSH]: ["push-a-glutes-entry-011", ...mainIds(push)] },
     note: "Good day",
+    logs: {},
   });
 
   save(store, (s) => setDay(s, DAY, ["home-base"], "Good day"));
-  assert.deepEqual(day(store.getState()), { routineIds: ["home-base"], checkedEntryIdsByRoutine: {}, note: "Good day" });
+  assert.deepEqual(day(store.getState()), { routineIds: ["home-base"], checkedEntryIdsByRoutine: {}, note: "Good day", logs: {} });
 
   save(store, (s) => setDay(s, DAY, [], ""));
   assert.equal(day(store.getState()), undefined);
@@ -120,7 +130,7 @@ test("setDay checks Main entries of newly marked routines, clears checks of unma
 test("deleting a routine keeps it in past completions but drops its checks", () => {
   const { store } = freshStore();
   save(store, (s) => setDay(s, DAY, [PUSH, "pull-a"], "Both"));
-  save(store, (s) => toggleEntryCheck(s, PUSH, "push-a-glutes-entry-001", "2026-10-06"));
+  save(store, (s) => setEntryChecked(s, PUSH, "push-a-glutes-entry-001", true, "2026-10-06"));
 
   save(store, (s) => removeRoutine(s, PUSH));
   const state = store.getState();
@@ -138,7 +148,7 @@ test("deleting a program keeps its routines in past completions but drops their 
 
   save(store, (s) => removeProgram(s, copyId));
   const state = store.getState();
-  assert.deepEqual(day(state), { routineIds: [first], checkedEntryIdsByRoutine: {}, note: "" });
+  assert.deepEqual(day(state), { routineIds: [first], checkedEntryIdsByRoutine: {}, note: "", logs: {} });
   assert.equal(routineById(state, first), null);
   assert.deepEqual(active(state), [PROGRAM, PUSH]);
 });
@@ -149,7 +159,7 @@ test("deleting the last program leaves a valid empty app with history kept", () 
     removeProgram(s, PROGRAM);
   });
   assert.deepEqual([state.programs, state.routines, active(state)], [[], [], ["", ""]]);
-  assert.deepEqual(day(state), { routineIds: [PUSH], checkedEntryIdsByRoutine: {}, note: "Kept" });
+  assert.deepEqual(day(state), { routineIds: [PUSH], checkedEntryIdsByRoutine: {}, note: "Kept", logs: {} });
 });
 
 test("removing an entry drops its checks and keeps the recorded completion", () => {
@@ -318,4 +328,94 @@ test("switching programs keeps a valid active routine and repairs an invalid one
   assert.deepEqual(active(store.getState()), [PROGRAM, "legs-a"]);
   save(store, (s) => setActiveProgram(s, travel));
   assert.deepEqual(active(store.getState()), [travel, ""]);
+});
+
+// ---------- set logging ----------
+
+const CHEST = "push-a-glutes-entry-003";
+const chestExercise = (state) => routineById(state, PUSH).entries.find((entry) => entry.id === CHEST).choices[0].exerciseId;
+const logSets = (store, dateKey, sets, entryId = CHEST, routineId = PUSH) => save(store, (s) => {
+  const exerciseId = routineById(s, routineId).entries.find((entry) => entry.id === entryId).choices[0].exerciseId;
+  saveEntrySets(s, { routineId, entryId, exerciseId, sets, dateKey });
+});
+
+test("ticked sets are saved with weight, reps and drop chains, and cleaned up", () => {
+  const { store } = freshStore();
+  logSets(store, DAY, [
+    { kg: "50", reps: "10" },
+    { kg: "47,5", reps: 9, drops: [{ kg: 40, reps: "8" }, { kg: "32.5", reps: 7 }] },
+    { kg: "", reps: "12" },
+  ]);
+  const log = entryLog(store.getState(), DAY, CHEST);
+  assert.deepEqual(log, {
+    routineId: PUSH,
+    exerciseId: chestExercise(store.getState()),
+    sets: [
+      { kg: 50, reps: 10, drops: [] },
+      { kg: 47.5, reps: 9, drops: [{ kg: 40, reps: 8 }, { kg: 32.5, reps: 7 }] },
+      { kg: null, reps: 12, drops: [] },
+    ],
+  });
+  assert.equal(isEntryChecked(store.getState(), DAY, PUSH, CHEST), false, "logging doesn't mark the exercise done; Done does");
+
+  logSets(store, DAY, []);
+  assert.equal(day(store.getState()), undefined, "removing the only log removes the empty day");
+});
+
+test("bad set values are refused with a clear message", () => {
+  const { store } = freshStore();
+  const exerciseId = chestExercise(store.getState());
+  const attempt = (sets) => (s) => saveEntrySets(s, { routineId: PUSH, entryId: CHEST, exerciseId, sets, dateKey: DAY });
+  refuse(store, attempt([{ kg: "50", reps: "" }]), "Enter whole reps for each ticked set.");
+  refuse(store, attempt([{ kg: "50", reps: "8.5" }]), "Enter whole reps for each ticked set.");
+  refuse(store, attempt([{ kg: "heavy", reps: "8" }]), "Enter a weight between 0 and 1000 kg.");
+  refuse(store, (s) => saveEntrySets(s, { routineId: PUSH, entryId: CHEST, exerciseId: "deadlift", sets: [{ kg: 1, reps: 1 }], dateKey: DAY }), "That exercise isn't a choice in this slot any more.");
+});
+
+test("Done marks the exercise done for the day and the logged sets stay", () => {
+  const { store } = freshStore();
+  logSets(store, DAY, [{ kg: 50, reps: 10 }]);
+  save(store, (s) => setEntryChecked(s, PUSH, CHEST, true, DAY));
+  assert.equal(isEntryChecked(store.getState(), DAY, PUSH, CHEST), true);
+  save(store, (s) => setEntryChecked(s, PUSH, CHEST, false, DAY));
+  assert.equal(isEntryChecked(store.getState(), DAY, PUSH, CHEST), false);
+  assert.equal(entryLog(store.getState(), DAY, CHEST).sets.length, 1);
+});
+
+test("exercise history comes from any routine, newest first, and can leave out today", () => {
+  const { store } = freshStore();
+  const state = store.getState();
+  const exerciseId = chestExercise(state);
+  // The same master exercise in another routine.
+  const other = state.routines.find((routine) => routine.id !== PUSH);
+  const otherEntryId = save(store, (s) => addEntry(s, other.id, { exerciseId, blockId: other.blocks[0].id, prescription: "2 × 8–12" }));
+  logSets(store, "2026-10-01", [{ kg: 45, reps: 10 }]);
+  logSets(store, "2026-10-03", [{ kg: 47.5, reps: 10 }], otherEntryId, other.id);
+  logSets(store, DAY, [{ kg: 50, reps: 9 }]);
+
+  const all = exerciseHistory(store.getState(), exerciseId);
+  assert.deepEqual(all.map((item) => [item.dateKey, item.routineId, item.sets[0].kg]), [
+    [DAY, PUSH, 50],
+    ["2026-10-03", other.id, 47.5],
+    ["2026-10-01", PUSH, 45],
+  ]);
+  const before = exerciseHistory(store.getState(), exerciseId, { beforeDateKey: DAY, limit: 1 });
+  assert.deepEqual(before.map((item) => item.dateKey), ["2026-10-03"]);
+});
+
+test("logged sets survive deleting their slot or routine, but go with their exercise", () => {
+  const { store } = freshStore();
+  const exerciseId = chestExercise(store.getState());
+  logSets(store, DAY, [{ kg: 50, reps: 10 }]);
+  save(store, (s) => removeEntry(s, PUSH, CHEST));
+  assert.equal(exerciseHistory(store.getState(), exerciseId).length, 1, "removing the slot keeps the history");
+  save(store, (s) => removeRoutine(s, PUSH));
+  assert.equal(exerciseHistory(store.getState(), exerciseId).length, 1, "deleting the routine keeps the history");
+  save(store, (s) => removeExercise(s, exerciseId));
+  assert.equal(day(store.getState()), undefined, "deleting the exercise removes its sets and the now-empty day");
+});
+
+test("a prescription says how many set rows to show and whether it's timed", () => {
+  assert.deepEqual(["3 × 8–12", "1–2 × 15–25/side", "2 × 15–30 sec/side", "AMRAP"].map(plannedSetCount), [3, 2, 2, 1]);
+  assert.deepEqual(["3 × 8–12", "2 × 15–30 sec/side", "3 × 45s"].map(isTimedPrescription), [false, true, true]);
 });

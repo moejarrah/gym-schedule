@@ -2,7 +2,7 @@
 // Editing this file does not change data already saved on a device.
 
 export const SEED = {
-  "version": 10,
+  "version": 11,
   "exercises": [
     {
       "id": "45-degree-glute-biased-back-extension",

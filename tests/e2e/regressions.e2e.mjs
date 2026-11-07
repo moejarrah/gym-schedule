@@ -45,7 +45,7 @@ const mainArea = (page) => page.getByRole("main");
 // Dialog names are matched exactly so e.g. "Push-up plus" never also matches "Cable serratus punch or Push-up plus".
 const dialog = (page, name) => page.getByRole("dialog", { name, exact: typeof name === "string" });
 const routineTab = (page, name) => mainArea(page).getByRole("button", { name: new RegExp(`^${escapeRegExp(name)}, (Gym|Home)$`) });
-const checkButton = (page, title) => mainArea(page).getByRole("button", { name: new RegExp(`^(Check|Uncheck) ${escapeRegExp(title)} for today$`) });
+const numberButton = (page, title) => mainArea(page).getByRole("button", { name: new RegExp(`^Log sets for ${escapeRegExp(title)}(, .*)?$`) });
 const activeProgramButton = (page) => mainArea(page).getByRole("button", { name: /^Choose active program/ });
 const calendarDay = (page, fullDate) => mainArea(page).getByRole("button", { name: startsWith(fullDate) });
 const entryEditor = (page) => page.getByRole("dialog").filter({ has: page.getByRole("region", { name: "Choices — first is preferred" }) });
@@ -219,7 +219,7 @@ test("regression c: an offline launch with an installed service worker shows no 
     await server.close();
     await page.reload();
     await waitForApp(page);
-    await expect(mainArea(page).getByRole("button", { name: /^Check .* for today$/ }).first(), "offline shell still renders Workout").toBeVisible();
+    await expect(mainArea(page).getByRole("button", { name: /^Log sets for / }).first(), "offline shell still renders Workout").toBeVisible();
     await page.waitForTimeout(2_000);
     const toasts = await page.evaluate(() => window.__toasts);
     assert.ok(!toasts.includes("Offline mode could not be started."), `offline launch showed toasts: ${JSON.stringify(toasts)}`);
@@ -305,8 +305,9 @@ appTest("regression f: the Program picker finds 'Ab-wheel rollout' for 'ab wheel
 appTest("regression g: after midnight, returning to the page shows the new day's entries unchecked", {
   now: { year: 2026, month: 11, day: 4, hour: 23, minute: 58 },
 }, async ({ page }) => {
-  await checkButton(page, "Low-incline dumbbell press").click();
-  await expect(checkButton(page, "Low-incline dumbbell press")).toHaveAttribute("aria-pressed", "true");
+  await numberButton(page, "Low-incline dumbbell press").click();
+  await page.locator("#logDialog").getByRole("button", { name: "Done", exact: true }).click();
+  await expect(numberButton(page, "Low-incline dumbbell press")).toHaveAccessibleName(/, done$/);
   await page.clock.fastForward("03:00");
   assert.equal(await page.evaluate(() => new Date().getDate()), 5, "the page clock moved to the next day");
   await page.evaluate(() => {
@@ -318,7 +319,7 @@ appTest("regression g: after midnight, returning to the page shows the new day's
     setVisibility("hidden");
     setVisibility("visible");
   });
-  await expect(checkButton(page, "Low-incline dumbbell press"), "Nov 5 starts unchecked").toHaveAttribute("aria-pressed", "false");
+  await expect(numberButton(page, "Low-incline dumbbell press"), "Nov 5 starts not done").not.toHaveAccessibleName(/, done$/);
 });
 
 // ---------------------------------------------------------------------------------------------

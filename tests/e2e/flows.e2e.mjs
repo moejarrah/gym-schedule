@@ -73,7 +73,9 @@ const mainArea = (page) => page.getByRole("main");
 const dialog = (page, name) => page.getByRole("dialog", { name, exact: typeof name === "string" });
 const routineTab = (page, name) => mainArea(page).getByRole("button", { name: new RegExp(`^${escapeRegExp(name)}, (Gym|Home)$`) });
 const routineTabs = (page) => mainArea(page).getByRole("button", { name: /, (Gym|Home)$/ });
-const checkButton = (page, title) => mainArea(page).getByRole("button", { name: new RegExp(`^(Check|Uncheck) ${escapeRegExp(title)} for today$`) });
+// A slot's number on Workout: it opens the logging sheet, and its name ends ", done" once Done was tapped.
+const numberButton = (page, title) => mainArea(page).getByRole("button", { name: new RegExp(`^Log sets for ${escapeRegExp(title)}(, .*)?$`) });
+const logSheet = (page) => page.locator("#logDialog");
 const programRow = (page, title) => mainArea(page).getByRole("button", { name: startsWith(`${title}. Tap to edit.`) });
 const programRows = (page) => mainArea(page).getByRole("button", { name: /\. Tap to edit\. / });
 const calendarDay = (page, fullDate) => mainArea(page).getByRole("button", { name: startsWith(fullDate) });
@@ -83,10 +85,27 @@ const libraryRows = (page) => mainArea(page).getByRole("button", { name: /^View 
 const libraryCount = (page) => mainArea(page).getByText(/^\d+ exercises?$/);
 const activeProgramButton = (page) => mainArea(page).getByRole("button", { name: /^Choose active program/ });
 
+async function expectDone(page, title, done) {
+  if (done) await expect(numberButton(page, title)).toHaveAccessibleName(/, done$/);
+  else await expect(numberButton(page, title)).not.toHaveAccessibleName(/, done$/);
+}
+
+// Marks a slot done (Done in its logging sheet) or not done (Not done, then Close).
 async function setChecked(page, title, checked) {
-  const button = checkButton(page, title);
-  if ((await button.getAttribute("aria-pressed")) !== String(checked)) await button.click();
-  await expect(checkButton(page, title)).toHaveAttribute("aria-pressed", String(checked));
+  const isDone = /, done$/.test(await numberButton(page, title).getAttribute("aria-label"));
+  if (isDone !== checked) {
+    await numberButton(page, title).click();
+    const sheet = logSheet(page);
+    await expect(sheet).toBeVisible();
+    if (checked) {
+      await sheet.getByRole("button", { name: "Done", exact: true }).click();
+    } else {
+      await sheet.getByRole("button", { name: "Not done" }).click();
+      await sheet.getByRole("button", { name: "Close", exact: true }).click();
+    }
+    await expect(sheet).toBeHidden();
+  }
+  await expectDone(page, title, checked);
 }
 
 async function todayLabel(page) {
@@ -160,8 +179,8 @@ describe("Workout", () => {
     const glute = await main.getByText("Glute block", { exact: true }).boundingBox();
     const upper = await main.getByText("Upper-body work", { exact: true }).boundingBox();
     assert.ok(upper.y < glute.y, "Upper-body work is above Glute block");
-    await expect(checkButton(page, "Single-leg hip thrust")).toHaveText("4");
-    await expect(checkButton(page, PUSH_A_OPTIONAL[0])).toHaveText("11");
+    await expect(numberButton(page, "Single-leg hip thrust")).toHaveText("4");
+    await expect(numberButton(page, PUSH_A_OPTIONAL[0])).toHaveText("11");
     // Routine prescription and compact programming-note preview are on the row.
     await expect(main.getByRole("button", { name: "View Cable kickback details" })).toContainText("2 × 12–20/leg");
     await expect(main.getByRole("button", { name: "View Cable kickback details" })).toContainText("Alternate straight-back");
@@ -203,16 +222,13 @@ describe("Workout", () => {
     assert.equal(Math.round(after.y), Math.round(before.y), "routine note did not move while the list scrolled");
   });
 
-  appTest("workout: check and uncheck entries for today; checks persist after reload", async ({ page, reload }) => {
+  appTest("workout: Done marks an exercise done for today, Not done undoes it, and it persists after reload", async ({ page, reload }) => {
     await setChecked(page, "Low-incline dumbbell press", true);
-    await expect(toast(page)).toHaveText("Exercise checked.");
     await setChecked(page, "Machine chest press", true);
     await setChecked(page, "Machine chest press", false);
-    await expect(toast(page)).toHaveText("Exercise unchecked.");
     await reload();
-    await expect(checkButton(page, "Low-incline dumbbell press")).toHaveAttribute("aria-pressed", "true");
-    await expect(checkButton(page, "Low-incline dumbbell press")).toHaveAccessibleName("Uncheck Low-incline dumbbell press for today");
-    await expect(checkButton(page, "Machine chest press")).toHaveAttribute("aria-pressed", "false");
+    await expect(numberButton(page, "Low-incline dumbbell press")).toHaveAccessibleName("Log sets for Low-incline dumbbell press, done");
+    await expectDone(page, "Machine chest press", false);
     // A partially checked day is saved but is not a completion.
     await goToView(page, "Log");
     await expect(calendarDay(page, TODAY)).not.toHaveAccessibleName(/completed/);
@@ -246,10 +262,9 @@ describe("Workout", () => {
 
   appTest("workout: Optional-only routines never auto-complete but their checks are saved", async ({ page }) => {
     await routineTab(page, "Home Base").click();
-    const first = mainArea(page).getByRole("button", { name: /^Check .* for today$/ }).first();
-    const name = (await first.getAttribute("aria-label")).replace(/^Check | for today$/g, "");
-    await first.click();
-    await expect(checkButton(page, name)).toHaveAttribute("aria-pressed", "true");
+    const first = mainArea(page).getByRole("button", { name: /^Log sets for / }).first();
+    const name = (await first.getAttribute("aria-label")).replace(/^Log sets for /, "");
+    await setChecked(page, name, true);
     await goToView(page, "Log");
     await expect(calendarDay(page, TODAY)).not.toHaveAccessibleName(/completed/);
     await expect(recentRows(page).first()).toContainText("Saved workout checks");
@@ -269,7 +284,7 @@ describe("Workout", () => {
     await reference.getByRole("button", { name: "Close exercise reference" }).click();
     await expect(reference).toBeHidden();
     // Tapping the row did not change completion.
-    await expect(checkButton(page, "Cable kickback")).toHaveAttribute("aria-pressed", "false");
+    await expectDone(page, "Cable kickback", false);
   });
 
   appTest("workout: related exercise reference and deliberate master-editor entry from a reference", async ({ page }) => {
@@ -597,7 +612,7 @@ describe("Program", () => {
 
     await reload();
     await goToView(page, "Workout");
-    await expect(checkButton(page, "Barbell hip thrust")).toHaveText("7");
+    await expect(numberButton(page, "Barbell hip thrust")).toHaveText("7");
     await expect(mainArea(page).getByRole("button", { name: "View Barbell hip thrust details" })).toContainText("3 × 6–10");
   });
 
@@ -951,15 +966,15 @@ describe("Log", () => {
     await saveDay(page, TODAY, { routines: { "Pull A": true } });
     await goToView(page, "Workout");
     await routineTab(page, "Pull A").click();
-    await expect(checkButton(page, "Neutral-grip pull-up or Assisted neutral-grip pull-up")).toHaveAttribute("aria-pressed", "true");
-    await expect(checkButton(page, "Pallof press")).toHaveAttribute("aria-pressed", "true");
-    await expect(checkButton(page, "Radial deviation")).toHaveAttribute("aria-pressed", "false");
+    await expectDone(page, "Neutral-grip pull-up or Assisted neutral-grip pull-up", true);
+    await expectDone(page, "Pallof press", true);
+    await expectDone(page, "Radial deviation", false);
     await setChecked(page, "Radial deviation", true);
 
     await saveDay(page, TODAY, { routines: { "Pull A": false } });
     await goToView(page, "Workout");
-    await expect(checkButton(page, "Pallof press")).toHaveAttribute("aria-pressed", "false");
-    await expect(checkButton(page, "Radial deviation")).toHaveAttribute("aria-pressed", "false");
+    await expectDone(page, "Pallof press", false);
+    await expectDone(page, "Radial deviation", false);
   });
 
   appTest("log: clearing all completions, checks and the note removes the day record", async ({ page }) => {

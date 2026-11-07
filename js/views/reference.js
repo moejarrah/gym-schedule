@@ -1,12 +1,14 @@
 // Exercise reference sheets: the read-only reference for a master exercise
 // (optionally showing a routine slot's prescription and note) and the
-// "find a video" sheet. Both hand over to the master exercise editor.
+// "find a video" sheet. Both hand over to the master exercise editor; the
+// reference also opens the exercise's logged history.
 
 import { onStart, store } from "../context.js";
 import { $, closeDialog, escapeHtml, openDialog, playIcon } from "../dom.js";
 import { exerciseById } from "../model.js";
 import { RELATIONS, label } from "../vocab.js";
 import { openExerciseEditor } from "./exercise-editor.js";
+import { openExerciseHistory } from "./history.js";
 import { videoUrl } from "./shared.js";
 
 // What opened each sheet, so the exercise editor can return focus there.
@@ -120,6 +122,7 @@ function referenceMarkup(state, exercise, { prescription, routineName, routineNo
       </section>
     </div>
     <footer class="reference-sheet-actions">
+      <button class="button secondary" type="button" data-action="view-history" data-id="${escapeHtml(exercise.id)}">History</button>
       <button class="button secondary" type="button" data-action="edit-master-exercise" data-id="${escapeHtml(exercise.id)}">Edit exercise</button>
     </footer>
   </article>`;
@@ -178,6 +181,7 @@ onStart(() => {
     const button = event.target.closest("[data-action]");
     if (button?.dataset.action === "view-alternative") openExerciseReference(button.dataset.id);
     else if (button?.dataset.action === "edit-master-exercise") editExercise(referenceDialog, button.dataset.id, openers.reference);
+    else if (button?.dataset.action === "view-history") openExerciseHistory(button.dataset.id, button);
   });
 
   const videoDialog = $("#exerciseVideoDialog");

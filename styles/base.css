@@ -73,6 +73,8 @@
   --rehab: #765000;
   --danger: #c03b27;
   --danger-soft: rgb(192 59 39 / 10%);
+  --up: #17764c;
+  --down: #a8520a;
   --scrim: rgb(20 24 32 / 34%);
   --shadow-sheet: 0 -18px 48px rgb(20 24 32 / 18%);
   --shadow-lift: 0 10px 24px rgb(20 24 32 / 20%);
@@ -118,6 +120,8 @@
   --rehab: #d9a62e;
   --danger: #e76657;
   --danger-soft: rgb(231 102 87 / 12%);
+  --up: #5fd3a8;
+  --down: #f2a65a;
   --scrim: rgb(0 0 0 / 58%);
   --shadow-sheet: none;
   --shadow-lift: 0 10px 24px rgb(0 0 0 / 38%);

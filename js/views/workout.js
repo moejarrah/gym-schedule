@@ -1,22 +1,25 @@
 // Workout screen: the active-program bar, the routine tabs (whose "select-routine"
-// action also serves the Program screen's identical strip), today's checklist for
-// the selected routine, and the exercise-choices sheet of multi-choice slots.
+// action also serves the Program screen's identical strip), today's list for the
+// selected routine (a slot's number opens its logging sheet; today's sets show
+// under its name), and the exercise-choices sheet of multi-choice slots.
 
 import { afterRender, mainElement, onStart, registerActions, registerView, render, store } from "../context.js";
-import { $, chevronIcon, closeDialog, escapeHtml, openDialog, playIcon, report } from "../dom.js";
+import { $, chevronIcon, closeDialog, escapeHtml, openDialog, playIcon, plural, report } from "../dom.js";
 import {
   activeProgram,
   activeRoutine,
+  entryLog,
   entryNumber,
   isEntryChecked,
+  isTimedPrescription,
   localDateKey,
   programRoutines,
   routineById,
   setActiveRoutine,
-  toggleEntryCheck,
 } from "../model.js";
+import { openLogger } from "./logger.js";
 import { openExerciseReference, openExerciseVideo } from "./reference.js";
-import { entryPresentation, revealSelectedTab, routineTabsMarkup, videoUrl } from "./shared.js";
+import { entryPresentation, revealSelectedTab, routineTabsMarkup, setChipsMarkup, videoUrl } from "./shared.js";
 
 // The exercise list is one element reused across renders, so checking an entry
 // keeps the list where the user scrolled it.
@@ -75,17 +78,26 @@ function pageMarkup(state, program, routine) {
   </section>`;
 }
 
-function entryMarkup(state, routine, entry, { checked, showOptionalRole }) {
+// Today's sets as small boxes; drops are counted rather than shown.
+function loggedSetsMarkup(entry, log) {
+  if (!log) return "";
+  const choice = entry.choices.find((item) => item.exerciseId === log.exerciseId) || entry.choices[0];
+  const drops = log.sets.reduce((count, set) => count + set.drops.length, 0);
+  return `<span class="set-chips workout-sets">${setChipsMarkup(log.sets, { timed: isTimedPrescription(choice.prescription), drops: false })}${drops ? `<span class="set-chips-more">+ ${drops} drop${drops === 1 ? "" : "s"}</span>` : ""}</span>`;
+}
+
+function entryMarkup(state, routine, entry, { checked, log, showOptionalRole }) {
   const { preferred, title: name, prescription } = entryPresentation(entry, state);
   const exerciseId = preferred.exercise.id;
   const note = entry.note.trim();
   const multiChoice = entry.choices.length > 1;
+  const status = checked ? ", done" : log ? `, ${plural(log.sets.length, "set")} logged` : "";
   const videoControl = preferred.exercise.videoId
     ? `<a class="workout-video is-linked" href="${videoUrl(preferred.exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for preferred choice ${escapeHtml(preferred.name)}"><span class="workout-video-mark">${playIcon()}</span></a>`
     : `<button class="workout-video" type="button" data-action="open-workout-video" data-id="${escapeHtml(exerciseId)}" aria-label="Find a video for preferred choice ${escapeHtml(preferred.name)}"><span class="workout-video-mark">${playIcon()}</span></button>`;
 
-  return `<article class="workout-item ${checked ? "is-done" : ""}">
-    <button class="workout-check" type="button" data-action="toggle-entry-check" data-routine-id="${escapeHtml(routine.id)}" data-id="${escapeHtml(entry.id)}" aria-label="${checked ? "Uncheck" : "Check"} ${escapeHtml(name)} for today" aria-pressed="${checked}">
+  return `<article class="workout-item ${checked ? "is-done" : ""} ${log ? "has-sets" : ""}">
+    <button class="workout-check" type="button" data-action="open-logger" data-routine-id="${escapeHtml(routine.id)}" data-id="${escapeHtml(entry.id)}" aria-label="Log sets for ${escapeHtml(name)}${status}">
       <span class="workout-check-mark" aria-hidden="true">
         <span class="workout-check-number">${entryNumber(routine, entry.id)}</span>
         <svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
@@ -93,8 +105,8 @@ function entryMarkup(state, routine, entry, { checked, showOptionalRole }) {
     </button>
     <button class="workout-row" type="button" data-action="${multiChoice ? "open-entry-choices" : "open-workout-exercise"}" data-id="${escapeHtml(exerciseId)}" data-entry-id="${escapeHtml(entry.id)}" data-routine-id="${escapeHtml(routine.id)}" data-prescription="${escapeHtml(prescription)}" aria-label="${multiChoice ? `Open exercise choices for ${escapeHtml(name)}` : `View ${escapeHtml(name)} details`}">
       <span class="row-main">
-        <span class="row-title">${escapeHtml(name)}</span>
-        <span class="row-meta">${escapeHtml(prescription)}${showOptionalRole ? `<span class="entry-role-tag">Optional</span>` : ""}</span>
+        <span class="row-line"><span class="row-title">${escapeHtml(name)}</span><span class="row-meta">${escapeHtml(prescription)}${showOptionalRole ? `<span class="entry-role-tag">Optional</span>` : ""}</span></span>
+        ${loggedSetsMarkup(entry, log)}
         ${note ? `<span class="entry-note-preview">${escapeHtml(note)}</span>` : ""}
       </span>
     </button>
@@ -114,6 +126,7 @@ function blockMarkup(state, routine, block, todayKey) {
     ${(name || optionalOnly) ? `<div class="workout-section-label"><span>${escapeHtml(name)}</span>${optionalOnly ? `<span class="workout-block-role">Optional</span>` : ""}</div>` : ""}
     ${entries.map((entry) => entryMarkup(state, routine, entry, {
       checked: isEntryChecked(state, todayKey, routine.id, entry.id),
+      log: entryLog(state, todayKey, entry.id),
       showOptionalRole: mixedRoles && entry.role === "optional",
     })).join("")}
   </section>`;
@@ -142,7 +155,7 @@ function entryChoicesMarkup(state, routine, entry) {
     </header>
     <div class="entry-choices-scroll">
       ${rows}
-      <p class="entry-choices-context">${entry.note.trim() ? `${escapeHtml(entry.note)}\n\n` : ""}Checking the row completes this routine slot, not an individual choice.</p>
+      <p class="entry-choices-context">${entry.note.trim() ? `${escapeHtml(entry.note)}\n\n` : ""}Log it from the slot's number on Workout, where you pick which choice you did.</p>
     </div>
   </div>`;
 }
@@ -180,13 +193,7 @@ registerActions({
     list.rows.scrollTop = 0; // a different routine starts at its first exercise
     render();
   },
-  "toggle-entry-check": (button) => {
-    const { routineId, id } = button.dataset;
-    const todayKey = localDateKey();
-    const wasChecked = isEntryChecked(store.getState(), todayKey, routineId, id);
-    const result = store.update((draft) => toggleEntryCheck(draft, routineId, id, todayKey));
-    if (report(result, wasChecked ? "Exercise unchecked." : "Exercise checked.")) render();
-  },
+  "open-logger": (button) => openLogger(button.dataset.routineId, button.dataset.id, button),
   "open-entry-choices": openEntryChoices,
   "open-workout-exercise": openRowReference,
   "open-workout-video": (button) => openExerciseVideo(button.dataset.id),
