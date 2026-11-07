@@ -357,6 +357,7 @@ export function saveExercise(state, exercise, relatedExercises) {
   const others = state.exercises.filter((item) => item.id !== exercise.id);
   const taken = new Set(others.flatMap((item) => [item.name, ...item.aliases]).map(normalizedName));
   const identities = [exercise.name, ...exercise.aliases].map(normalizedName);
+  if (identities.some((identity) => !identity)) fail("Names and aliases need at least one letter or number.");
   if (new Set(identities).size !== identities.length) fail("The name and aliases must each be unique.");
   if (taken.has(identities[0])) fail("An exercise with this name already exists.");
   if (identities.some((identity) => taken.has(identity))) fail("An alias is already used by another exercise.");

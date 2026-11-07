@@ -104,6 +104,8 @@ function focusWithoutScroll(element) {
 
 function handleDialogClose(event) {
   const dialog = event.currentTarget;
+  // "close" is dispatched later; if the dialog was reopened meanwhile, this event is stale.
+  if (dialog.open) return;
   const entry = dialogState.get(dialog);
   dialogState.delete(dialog);
   if (!entry) return;
