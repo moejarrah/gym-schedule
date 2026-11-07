@@ -133,6 +133,19 @@ const SHOTS = [
     await dialog(page, "Low-incline dumbbell press").getByRole("button", { name: "Alternative Machine chest press" }).click();
     await shown(dialog(page, "Machine chest press"));
   }],
+  ["dialog-log", async (page) => {
+    await main(page).getByRole("button", { name: "Log sets for Machine chest press" }).click();
+    await page.locator("#logDialog").getByLabel("Weight for set 1, kg").fill("50");
+    await page.locator("#logDialog").getByLabel("Reps for set 1").fill("10");
+    await page.locator("#logDialog").getByRole("button", { name: "Tick set 1" }).click();
+    await page.locator("#logDialog").getByRole("button", { name: "Drop set" }).click();
+    await shown(page.locator("#logDialog"));
+  }],
+  ["dialog-history", async (page) => {
+    await main(page).getByRole("button", { name: "View Machine chest press details" }).click();
+    await page.locator("#exerciseDetailDialog").getByRole("button", { name: "History" }).click();
+    await shown(page.locator("#historyDialog"));
+  }],
   ["dialog-choice-sheet", async (page) => {
     await main(page).getByRole("button", { name: "Open exercise choices for Cable serratus punch or Push-up plus" }).click();
     await shown(dialog(page, "Exercise choices"));
@@ -253,10 +266,16 @@ const SHOTS = [
 async function seedState(page, theme, tempDir) {
   await page.goto(page.__appUrl);
   await waitForApp(page);
-  // Two checks on today's Push A.
-  for (const title of ["Low-incline dumbbell press", "Machine overhead press"]) {
-    await main(page).getByRole("button", { name: `Check ${title} for today` }).click();
-    await expect(main(page).getByRole("button", { name: `Uncheck ${title} for today` })).toBeVisible();
+  // Two exercises logged and done on today's Push A.
+  for (const [title, sets] of [["Low-incline dumbbell press", [["22.5", "10"], ["22.5", "9"], ["22.5", "8"]]], ["Machine overhead press", [["35", "12"], ["35", "10"]]]]) {
+    await main(page).getByRole("button", { name: `Log sets for ${title}` }).click();
+    const sheet = await shown(page.locator("#logDialog"));
+    for (const [index, [kg, reps]] of sets.entries()) {
+      await sheet.getByLabel(`Weight for set ${index + 1}, kg`).fill(kg);
+      await sheet.getByLabel(`Reps for set ${index + 1}`).fill(reps);
+    }
+    await sheet.getByRole("button", { name: "Done", exact: true }).click();
+    await expect(main(page).getByRole("button", { name: `Log sets for ${title}, done` })).toBeVisible();
   }
   // Log history: a completed routine with a note, and a note-only day.
   await goToView(page, "Log");

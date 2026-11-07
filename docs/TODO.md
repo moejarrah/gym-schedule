@@ -8,10 +8,15 @@ Things a desktop browser can't fully confirm:
 - [ ] Tapping a text field in an editor doesn't zoom the page.
 - [ ] Pressing Go/Enter on the keyboard in an editor saves.
 - [ ] After an update, the installed app reloads once and shows the new version in Settings.
+- [ ] Logging sheet: the number keypad appears for weight and reps, and the sheet stays usable with the keyboard open.
 
 ## Next
 
-- **Per-set logging** (weight and reps per set, progress over time). Concepts: `references/ui-concepts/ironworks-logging.html` and `ironworks-setlog-flow.html`. This changes the saved shape of days: bump the schema, migrate existing days, and add a fixture test (see AGENTS.md).
+- **Week numbers** in history ("Week 6 · Sat 31 Oct"). Undecided: how a week is counted (from a program start date? the first workout?). The owner will decide; until then history shows dates only.
+
+## Decided against (for now)
+
+- A rest timer. The owner doesn't want one.
 
 ## Maybe later
 
