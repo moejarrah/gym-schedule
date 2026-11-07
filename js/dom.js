@@ -269,7 +269,8 @@ export function enableHoldDrag(container, { rowSelector, listSelector, placehold
     window.getSelection()?.removeAllRanges();
     row.classList.add("is-dragging");
     Object.assign(row.style, { left: `${bounds.left}px`, top: `${bounds.top}px`, width: `${bounds.width}px`, height: `${bounds.height}px` });
-    document.body.append(row);
+    // Inside an open dialog the row must stay in the dialog, or the backdrop hides it.
+    (drag.list.closest("dialog") || document.body).append(row);
     document.body.classList.add(activeBodyClass);
     row.style.transition = "transform 140ms ease, box-shadow 140ms ease";
     row.style.transform = "translate3d(0, 0, 0) scale(1.015)";

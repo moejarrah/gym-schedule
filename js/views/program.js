@@ -277,7 +277,7 @@ async function deleteProgram() {
   closeDialog("#programDialog", { restoreFocus: false });
   const confirmed = await confirmAction({
     title: `Delete ${program.name}?`,
-    message: `This removes ${plural(program.routineIds.length, "routine")} and their completion history. Master exercises stay in the Library.`,
+    message: `This removes ${plural(program.routineIds.length, "routine")} and their saved checks. Past completions stay in Log, and master exercises stay in the Library.`,
     confirmLabel: "Delete program",
     cancelLabel: "Keep program",
     variant: "program-delete",
@@ -389,7 +389,7 @@ async function deleteRoutine() {
   closeDialog("#routineDialog", { restoreFocus: false });
   const confirmed = await confirmAction({
     title: `Delete ${routine.name}?`,
-    message: "This removes the routine and its completion history. Master exercises stay in the Library.",
+    message: "This removes the routine and its saved checks. Past completions stay in Log, and master exercises stay in the Library.",
     confirmLabel: "Delete routine",
     cancelLabel: "Keep routine",
     variant: "routine-delete",

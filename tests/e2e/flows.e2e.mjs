@@ -405,16 +405,16 @@ describe("Program", () => {
     programs = await openProgramsFromProgram(page);
     await programs.getByRole("button", { name: "Edit Travel block v2" }).click();
     await dialog(page, "Edit program").getByRole("button", { name: "Delete program" }).click();
-    await expect(dialog(page, "Delete Travel block v2?").getByText(/removes 1 routine and their completion history/)).toBeVisible();
+    await expect(dialog(page, "Delete Travel block v2?").getByText(/removes 1 routine and their saved checks\. Past completions stay in Log/)).toBeVisible();
     await confirm(page, "Delete Travel block v2?", "Keep program");
     await expect(dialog(page, "Edit program")).toBeVisible();
     await dialog(page, "Edit program").getByRole("button", { name: "Delete program" }).click();
     await confirm(page, "Delete Travel block v2?", "Delete program");
     await expect(toast(page)).toHaveText("Program deleted.");
     await expect(activeProgramButton(page)).toHaveAccessibleName(`Choose active program, currently ${PROGRAM}`);
+    // History is kept: the deleted program's completion still shows in Log.
     await goToView(page, "Log");
-    await expect(calendarDay(page, TODAY)).not.toHaveAccessibleName(/completed/);
-    await expect(mainArea(page).getByText("No history yet")).toBeVisible();
+    await expect(calendarDay(page, TODAY)).toHaveAccessibleName(/1 completed routine/);
     await goToView(page, "Library");
     await expect(libraryRow(page, "Wall angel")).toBeVisible();
     await expect(libraryCount(page)).toHaveText("177 exercises");
