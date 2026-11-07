@@ -116,10 +116,13 @@ export function plannedSetCount(prescription) {
   return match ? Math.min(10, Math.max(1, Number(match[2] || match[1]))) : 1;
 }
 
-// Timed work ("2 × 15–30 sec/side", "3 × 45s", "5 × 8–10-sec holds") is logged in
-// seconds instead of reps: the amount after "×" is in seconds.
+// Timed work is logged in seconds instead of reps: the amount after "×" is in
+// seconds ("2 × 15–30 sec/side", "5 × 8–10-sec holds", not "2 × 8–12 with 3-sec
+// holds" or "3 × 8 (2s pause)"), or, without "×", any amount is ("2 rounds · 30–60 sec").
 export function isTimedPrescription(prescription) {
-  return /[×x]\s*\d+(?:\s*[–-]\s*\d+)?[\s-]*(?:s|secs?|seconds?)\b/i.test(prescription);
+  const seconds = /^\d+(?:\s*[–-]\s*\d+)?[\s-]*(?:s|secs?|seconds?)\b/i;
+  const amount = /\d\s*[×x]\s*(.+)$/i.exec(prescription);
+  return amount ? seconds.test(amount[1]) : /\d[\s-]*(?:s|secs?|seconds?)\b/i.test(prescription);
 }
 
 export function exerciseDeletionImpact(state, exerciseId) {
@@ -230,7 +233,9 @@ export function saveEntrySets(state, { routineId, entryId, exerciseId, sets, dat
   // Sets logged earlier today for an exercise that has since left the slot stay in history.
   const earlier = session.logs[entryId];
   if (earlier && !entry.choices.some((item) => item.exerciseId === earlier.exerciseId)) {
-    session.logs[`${entryId}:${earlier.exerciseId}`] = earlier;
+    let key = `${entryId}:${earlier.exerciseId}`;
+    for (let n = 2; session.logs[key]; n += 1) key = `${entryId}:${earlier.exerciseId}:${n}`;
+    session.logs[key] = earlier;
     delete session.logs[entryId];
   }
   if (clean.length) {

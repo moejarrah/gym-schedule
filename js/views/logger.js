@@ -21,8 +21,9 @@ import { openExerciseHistory } from "./history.js";
 import { entryPresentation, formatKg, liftText, setChipsMarkup, shortDate } from "./shared.js";
 
 // The slot being logged and the rows on screen. Row values are the text in the
-// fields. A ticked set is saved with its ticked drops; unticking a set keeps its
-// drops' ticks so ticking it again brings them back.
+// fields; `edited` marks rows typed in since they were last saved or unticked. A
+// ticked set is saved with its ticked drops; unticking a set keeps its drops'
+// ticks so ticking it again brings them back.
 const sheet = { routineId: "", entryId: "", dateKey: "", choiceIndex: 0, rows: [], lastTicked: -1 };
 
 const checkIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>`;
@@ -95,6 +96,10 @@ function saveRows() {
     routineId: sheet.routineId, entryId: sheet.entryId, exerciseId: choice.exerciseId, sets, dateKey: sheet.dateKey,
   }));
   if (!report(result)) return false;
+  for (const row of sheet.rows) {
+    if (row.done) row.edited = false;
+    for (const drop of row.drops) if (row.done && drop.done) drop.edited = false;
+  }
   // Show the values as saved ("47,5" becomes "47.5").
   const saved = store.getState().sessions[sheet.dateKey]?.logs[sheet.entryId]?.sets || [];
   sheet.rows.filter((row) => row.done).forEach((row, index) => {
@@ -218,6 +223,11 @@ function tick(setIndex, dropIndex) {
   const before = structuredClone(row);
   if (!row.done) fillRow(setIndex, dropIndex);
   row.done = !row.done;
+  // An unticked row isn't "typed in": Done and Close leave it out.
+  if (!row.done) {
+    row.edited = false;
+    row.drops?.forEach((drop) => { drop.edited = false; });
+  }
   if (!saveRows()) {
     Object.assign(row, before);
     return;
@@ -249,16 +259,16 @@ function useLast(setIndex, dropIndex) {
 // Switching to another choice moves today's sets to that exercise. With nothing
 // ticked yet, the rows follow the new choice's prescription.
 function choose(index) {
+  if (index === sheet.choiceIndex) return;
   const previous = sheet.choiceIndex;
   sheet.choiceIndex = index;
-  if (!sheet.rows.some((row) => row.done)) {
-    loadRows(store.getState());
-  } else {
-    while (sheet.rows.length < plannedSetCount(current(store.getState()).choice.prescription)) sheet.rows.push({ kg: "", reps: "", done: false, drops: [] });
-    if (!saveRows()) {
-      sheet.choiceIndex = previous;
-      return;
-    }
+  const planned = plannedSetCount(current(store.getState()).choice.prescription);
+  // Untouched extra rows go; typed rows stay.
+  while (sheet.rows.length > planned && !sheet.rows.at(-1).done && !sheet.rows.at(-1).kg && !sheet.rows.at(-1).reps) sheet.rows.pop();
+  while (sheet.rows.length < planned) sheet.rows.push({ kg: "", reps: "", done: false, drops: [] });
+  if (sheet.rows.some((row) => row.done) && !saveRows()) {
+    sheet.choiceIndex = previous;
+    return;
   }
   refresh(`[data-log-action="choose"][data-index="${index}"]`);
 }
@@ -266,11 +276,12 @@ function choose(index) {
 // Done (or Close once the slot is done) also saves rows that were typed in but not
 // ticked, then marks the slot done.
 function finish() {
+  const typedIn = (row) => row.edited && (row.kg.trim() || row.reps.trim());
   const typed = [];
   sheet.rows.forEach((row, setIndex) => {
-    if (!row.done && (row.kg.trim() || row.reps.trim())) typed.push([setIndex, -1]);
+    if (!row.done && typedIn(row)) typed.push([setIndex, -1]);
     if (row.done || typed.some(([index]) => index === setIndex)) {
-      row.drops.forEach((drop, dropIndex) => { if (!drop.done && (drop.kg.trim() || drop.reps.trim())) typed.push([setIndex, dropIndex]); });
+      row.drops.forEach((drop, dropIndex) => { if (!drop.done && typedIn(drop)) typed.push([setIndex, dropIndex]); });
     }
   });
   if (typed.length) {
@@ -340,7 +351,9 @@ onStart(() => {
   content.addEventListener("input", (event) => {
     const field = event.target.dataset.field;
     if (!field) return;
-    rowAt(Number(event.target.dataset.set), Number(event.target.dataset.drop))[field] = event.target.value;
+    const row = rowAt(Number(event.target.dataset.set), Number(event.target.dataset.drop));
+    row[field] = event.target.value;
+    row.edited = true;
   });
   content.addEventListener("change", (event) => {
     const { field, set, drop } = event.target.dataset;

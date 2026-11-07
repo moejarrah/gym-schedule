@@ -170,3 +170,18 @@ appTest("logging: once done, the sheet's Close also saves rows typed in but not 
   await expect(sheet).toBeHidden();
   assert.deepEqual((await savedLog(page, "push-a-glutes-entry-002")).sets, [{ kg: 35, reps: 12, drops: [] }, { kg: 35, reps: 10, drops: [] }]);
 });
+
+appTest("logging: a set unticked before Done stays out of the log", async ({ page }) => {
+  await numberButton(page, "Machine overhead press").click();
+  const sheet = sheetOf(page);
+  for (const [index, kg, reps] of [[1, "35", "12"], [2, "35", "10"]]) {
+    await sheet.getByLabel(`Weight for set ${index}, kg`).fill(kg);
+    await sheet.getByLabel(`Reps for set ${index}`).fill(reps);
+    await sheet.getByRole("button", { name: `Set ${index} done`, exact: true }).click();
+  }
+  await sheet.getByRole("button", { name: "Drop set" }).click();
+  await sheet.getByRole("button", { name: "Drop 1 after set 2 done" }).click();
+  await sheet.getByRole("button", { name: "Set 2 done", exact: true }).click();
+  await sheet.getByRole("button", { name: "Done", exact: true }).click();
+  assert.deepEqual((await savedLog(page, "push-a-glutes-entry-002")).sets, [{ kg: 35, reps: 12, drops: [] }]);
+});

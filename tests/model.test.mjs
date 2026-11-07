@@ -430,6 +430,13 @@ test("sets logged for an exercise that left the slot stay in history when the sl
   assert.equal(entryLog(store.getState(), DAY, CHEST).exerciseId, newId);
   assert.equal(exerciseHistory(store.getState(), oldId)[0].sets[0].kg, 50, "the earlier sets are still in the old exercise's history");
   assert.equal(Object.keys(day(store.getState()).logs).length, 2);
+
+  // Swapping back and forth again keeps every earlier log.
+  save(store, (s) => updateEntry(s, PUSH, CHEST, { choices: [{ exerciseId: oldId, prescription: "3 × 10" }] }));
+  logSets(store, DAY, [{ kg: 55, reps: 8 }]);
+  save(store, (s) => updateEntry(s, PUSH, CHEST, { choices: [{ exerciseId: newId, prescription: "3 × 10" }] }));
+  logSets(store, DAY, [{ kg: 22.5, reps: 12 }]);
+  assert.deepEqual(exerciseHistory(store.getState(), oldId).map((item) => item.sets[0].kg).sort(), [50, 55]);
 });
 
 test("the unit is saved with the sets: seconds for a timed prescription", () => {
@@ -444,7 +451,8 @@ test("the unit is saved with the sets: seconds for a timed prescription", () => 
 test("a prescription says how many set rows to show and whether it's timed", () => {
   assert.deepEqual(["3 × 8–12", "1–2 × 15–25/side", "2 × 15–30 sec/side", "AMRAP"].map(plannedSetCount), [3, 2, 2, 1]);
   assert.deepEqual(
-    ["3 × 8–12", "2 × 15–30 sec/side", "3 × 45s", "5 × 8–10-sec holds", "3 × 8 (2s pause)", "3 x 10 @ 3s tempo"].map(isTimedPrescription),
-    [false, true, true, true, false, false],
+    ["3 × 8–12", "2 × 15–30 sec/side", "3 × 45s", "5 × 8–10-sec holds", "3 × 8 (2s pause)", "3 x 10 @ 3s tempo",
+      "2 × 8–12 with 3-sec holds", "2 rounds/side · 30–60 sec", "Max hold 30s"].map(isTimedPrescription),
+    [false, true, true, true, false, false, false, true, true],
   );
 });
