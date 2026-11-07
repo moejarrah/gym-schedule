@@ -25,14 +25,6 @@
 @font-face {
   font-family: "Barlow Condensed";
   font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url("../fonts/barlow-condensed-500-latin.woff2") format("woff2");
-}
-
-@font-face {
-  font-family: "Barlow Condensed";
-  font-style: normal;
   font-weight: 600;
   font-display: swap;
   src: url("../fonts/barlow-condensed-600-latin.woff2") format("woff2");
@@ -67,10 +59,8 @@
   --bg: #f3f4f5;
   --surface: #ffffff;
   --surface-2: #e9ebee;
-  --surface-muted: var(--surface-2);
   --press: #e4e7eb;
   --line: rgb(18 22 30 / 11%);
-  --border: var(--line);
   --border-strong: rgb(18 22 30 / 18%);
   --text: #171a1f;
   --text-muted: #646c77;
@@ -79,18 +69,10 @@
   --accent-fill: #3b5bdb;
   --accent-on-soft: #314dc1;
   --accent-soft: rgb(59 91 219 / 11%);
-  --gym: var(--accent);
-  --gym-strong: var(--accent);
   --gym-active: #314dc1;
-  --gym-soft: var(--accent-soft);
-  --home: var(--accent);
-  --home-strong: var(--accent);
-  --home-soft: var(--accent-soft);
   --rehab: #765000;
   --danger: #c03b27;
   --danger-soft: rgb(192 59 39 / 10%);
-  --success: #267548;
-  --focus: var(--accent);
   --scrim: rgb(20 24 32 / 34%);
   --shadow-sheet: 0 -18px 48px rgb(20 24 32 / 18%);
   --shadow-lift: 0 10px 24px rgb(20 24 32 / 20%);
@@ -108,6 +90,11 @@
   --z-nav: 20;
   --z-drag: 80;
   --z-toast: 100;
+  /* Aliases: defined once, they follow the theme's values. */
+  --border: var(--line);
+  --focus: var(--accent);
+  --home: var(--accent);
+  --home-soft: var(--accent-soft);
   font-family: var(--font-body);
   font-synthesis: none;
 }
@@ -117,10 +104,8 @@
   --bg: #0f1114;
   --surface: #15181d;
   --surface-2: #1c2026;
-  --surface-muted: var(--surface-2);
   --press: #20252c;
   --line: rgb(235 238 245 / 9%);
-  --border: var(--line);
   --border-strong: rgb(235 238 245 / 16%);
   --text: #e9ebee;
   --text-muted: #9ca3ad;
@@ -129,18 +114,10 @@
   --accent-fill: #4266e4;
   --accent-on-soft: #8299ff;
   --accent-soft: rgb(90 124 255 / 15%);
-  --gym: var(--accent);
-  --gym-strong: var(--accent);
   --gym-active: #4868e2;
-  --gym-soft: var(--accent-soft);
-  --home: var(--accent);
-  --home-strong: var(--accent);
-  --home-soft: var(--accent-soft);
   --rehab: #d9a62e;
   --danger: #e76657;
   --danger-soft: rgb(231 102 87 / 12%);
-  --success: #6dbf8a;
-  --focus: var(--accent);
   --scrim: rgb(0 0 0 / 58%);
   --shadow-sheet: none;
   --shadow-lift: 0 10px 24px rgb(0 0 0 / 38%);
@@ -199,8 +176,7 @@ button {
   appearance: none;
 }
 
-button,
-[role="button"] {
+button {
   touch-action: manipulation;
 }
 
@@ -208,8 +184,7 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
-a:focus-visible,
-[role="button"]:focus-visible {
+a:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
@@ -227,16 +202,32 @@ a:focus-visible,
   overflow: hidden;
 }
 
-.topbar {
-  grid-row: 1;
+/* App bars: the shell's topbar and the Program and Library screens' own bars. */
+.topbar,
+.program-appbar,
+.library-appbar {
   min-height: calc(52px + env(safe-area-inset-top));
   padding: env(safe-area-inset-top) 10px 0 16px;
   background: var(--surface);
   border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 9px;
+}
+
+.topbar-title h1,
+.program-appbar h1,
+.library-app-title {
+  font-family: var(--font-label);
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.topbar {
+  grid-row: 1;
+  justify-content: space-between;
   z-index: var(--z-topbar);
 }
 
@@ -263,12 +254,7 @@ a:focus-visible,
 
 .topbar-title h1 {
   max-width: min(68vw, 440px);
-  font-family: var(--font-label);
-  font-size: 1.2rem;
-  font-weight: 600;
   line-height: 1.1;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
 }
 
 #appMain {
@@ -279,10 +265,38 @@ a:focus-visible,
   overscroll-behavior-y: contain;
   padding: 0 var(--space-4) calc(var(--nav-height) + env(safe-area-inset-bottom) + var(--space-5));
   scroll-padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + var(--space-5));
+}
+
+/* Scroll areas that hide their scrollbar. */
+#appMain,
+.routine-tabs,
+.workout-rows,
+.entry-choices-scroll,
+.picker-sheet .picker-list,
+.reference-sheet-scroll,
+.routine-sheet-scroll,
+.entry-sheet-scroll,
+.programs-list,
+.library-scroll,
+.library-quick-scroll,
+.library-filter-scroll,
+.day-sheet-scroll {
   scrollbar-width: none;
 }
 
-#appMain::-webkit-scrollbar {
+#appMain::-webkit-scrollbar,
+.routine-tabs::-webkit-scrollbar,
+.workout-rows::-webkit-scrollbar,
+.entry-choices-scroll::-webkit-scrollbar,
+.picker-sheet .picker-list::-webkit-scrollbar,
+.reference-sheet-scroll::-webkit-scrollbar,
+.routine-sheet-scroll::-webkit-scrollbar,
+.entry-sheet-scroll::-webkit-scrollbar,
+.programs-list::-webkit-scrollbar,
+.library-scroll::-webkit-scrollbar,
+.library-quick-scroll::-webkit-scrollbar,
+.library-filter-scroll::-webkit-scrollbar,
+.day-sheet-scroll::-webkit-scrollbar {
   display: none;
 }
 
@@ -294,7 +308,8 @@ body[data-current-view="exercises"] .topbar {
 
 body[data-current-view="workout"] #appMain,
 body[data-current-view="routines"] #appMain,
-body[data-current-view="exercises"] #appMain {
+body[data-current-view="exercises"] #appMain,
+body[data-current-view="calendar"] #appMain {
   padding-inline: 0;
 }
 
@@ -339,9 +354,7 @@ body[data-current-view="exercises"] #appMain {
   background: var(--press);
 }
 
-.bottom-nav button[aria-current="page"],
-.bottom-nav button[data-view="exercises"][aria-current="page"],
-.bottom-nav button[data-view="calendar"][aria-current="page"] {
+.bottom-nav button[aria-current="page"] {
   color: var(--accent);
 }
 

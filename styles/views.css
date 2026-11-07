@@ -7,9 +7,11 @@
   overflow: hidden;
 }
 
-.workout-programbar {
-  min-height: calc(45px + env(safe-area-inset-top));
-  padding: env(safe-area-inset-top) 8px 0 15px;
+/* The active-program bar, shared by Workout and Program. */
+.workout-programbar,
+.program-page-bar {
+  min-height: 45px;
+  padding: 0 8px 0 15px;
   border-bottom: 1px solid var(--line);
   background: var(--bg);
   display: flex;
@@ -17,7 +19,13 @@
   gap: 8px;
 }
 
-.workout-program-pick {
+.workout-programbar {
+  min-height: calc(45px + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
+}
+
+.workout-program-pick,
+.program-page-pick {
   min-width: 0;
   min-height: 44px;
   padding: 0;
@@ -29,22 +37,7 @@
   align-items: center;
   gap: 8px;
   text-align: left;
-}
-
-.workout-program-pick > strong {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.workout-program-pick > span {
-  color: var(--accent);
-  font-family: var(--font-label);
-  font-size: 0.66rem;
-  font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  cursor: pointer;
 }
 
 .workout-program-empty {
@@ -54,24 +47,33 @@
   gap: 8px;
 }
 
+.workout-program-pick > strong,
+.program-page-pick > strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workout-program-pick > strong,
+.program-page-pick > strong,
+.workout-program-empty > strong {
+  font-size: 0.88rem;
+}
+
+.workout-program-pick > span,
+.program-page-pick > span,
 .workout-program-empty > span {
   color: var(--accent);
   font-family: var(--font-label);
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
 
-.workout-program-empty > strong {
-  font-size: 0.88rem;
-}
-
-.workout-program-pick > strong {
-  font-size: 0.88rem;
-}
-
-.workout-program-pick > svg {
+.workout-program-pick > svg,
+.program-page-pick > svg {
   width: 15px;
   height: 15px;
   flex: 0 0 auto;
@@ -82,7 +84,8 @@
   stroke-width: 2;
 }
 
-.workout-manage-program {
+.workout-manage-program,
+.program-page-manage {
   width: 44px;
   min-height: 44px;
   padding: 0;
@@ -93,18 +96,27 @@
   place-items: center;
 }
 
-.workout-manage-program svg {
-  width: 20px;
-  height: 20px;
+.workout-manage-program svg,
+.program-page-manage svg {
+  width: 21px;
+  height: 21px;
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
+  stroke-linejoin: round;
   stroke-width: 1.8;
 }
 
-.workout-page .routine-tabs {
-  margin: 0;
-  padding-inline: var(--space-4) 4px;
+.workout-manage-program svg {
+  width: 20px;
+  height: 20px;
+}
+
+.workout-program-pick:active,
+.program-page-pick:active,
+.workout-manage-program:active,
+.program-page-manage:active {
+  background: var(--press);
 }
 
 .workout-rows {
@@ -114,11 +126,6 @@
   align-content: start;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: none;
-}
-
-.workout-rows::-webkit-scrollbar {
-  display: none;
 }
 
 .workout-section {
@@ -152,7 +159,7 @@
 .program-block-role {
   flex: 0 0 auto;
   font-family: var(--font-mono);
-  font-size: 0.59rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.06em;
 }
@@ -177,7 +184,8 @@
 }
 
 .workout-check,
-.workout-video {
+.workout-video,
+.entry-choice-video {
   width: 44px;
   min-height: 60px;
   padding: 0;
@@ -255,7 +263,6 @@
 }
 
 .workout-page .row-meta {
-  color: var(--text-muted);
   font-family: var(--font-mono);
   font-size: 0.78rem;
   font-weight: 600;
@@ -277,7 +284,7 @@
   border: 1px solid var(--line);
   color: var(--faint);
   font-family: var(--font-label);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.1em;
   line-height: 1.25;
@@ -313,16 +320,6 @@
   flex-direction: column;
 }
 
-.entry-choices-sheet::before {
-  content: "";
-  width: 36px;
-  height: 5px;
-  margin: -8px auto 10px;
-  border-radius: 3px;
-  background: var(--line);
-  flex: 0 0 auto;
-}
-
 .entry-choices-sheet .dialog-header {
   flex: 0 0 auto;
 }
@@ -332,11 +329,6 @@
   flex: 1;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: none;
-}
-
-.entry-choices-scroll::-webkit-scrollbar {
-  display: none;
 }
 
 .entry-choice-view-row {
@@ -360,19 +352,11 @@
   text-align: left;
 }
 
-.entry-choice-reference .row-main {
-  min-width: 0;
-  flex: 1;
-  display: grid;
-  gap: 2px;
-}
-
 .entry-choice-reference .row-title {
   font-size: 0.9rem;
 }
 
 .entry-choice-reference .row-meta {
-  color: var(--text-muted);
   font-family: var(--font-mono);
   font-size: 0.73rem;
   font-weight: 600;
@@ -387,19 +371,6 @@
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 2;
-}
-
-.entry-choice-video {
-  width: 44px;
-  min-height: 60px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--faint);
-  flex: 0 0 44px;
-  display: grid;
-  place-items: center;
-  text-decoration: none;
 }
 
 .entry-choice-video > span {
@@ -421,7 +392,7 @@
   flex: 0 0 auto;
   color: var(--accent);
   font-family: var(--font-label);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -530,9 +501,7 @@
 
 .workout-check:active,
 .workout-row:active,
-.workout-video:active,
-.workout-program-pick:active,
-.workout-manage-program:active {
+.workout-video:active {
   background: var(--press);
 }
 
@@ -541,27 +510,12 @@
   padding-top: 0;
 }
 
-.program-appbar {
-  min-height: calc(52px + env(safe-area-inset-top));
-  padding: env(safe-area-inset-top) 10px 0 16px;
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-
 .program-appbar h1 {
   min-width: 0;
   margin: 0;
   color: var(--text);
   flex: 1;
-  font-family: var(--font-label);
-  font-size: 1.2rem;
-  font-weight: 600;
-  letter-spacing: 0.07em;
   line-height: 1.1;
-  text-transform: uppercase;
 }
 
 .program-app-action {
@@ -578,88 +532,8 @@
   background: var(--press);
 }
 
-.program-page-bar {
-  min-height: 45px;
-  padding: 0 8px 0 15px;
-  border-bottom: 1px solid var(--line);
-  background: var(--bg);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.program-page-pick {
-  min-width: 0;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--text);
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.program-page-pick > strong {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.88rem;
-}
-
-.program-page-pick > span {
-  color: var(--accent);
-  font-family: var(--font-label);
-  font-size: 0.66rem;
-  font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-
-.program-page-pick > svg {
-  width: 15px;
-  height: 15px;
-  flex: 0 0 auto;
-  fill: none;
-  stroke: var(--text-muted);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
-}
-
-.program-page-manage {
-  width: 44px;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--text-muted);
-  display: grid;
-  place-items: center;
-}
-
-.program-page-manage svg {
-  width: 21px;
-  height: 21px;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.8;
-}
-
-.program-page-pick:active,
-.program-page-manage:active {
-  background: var(--press);
-}
-
 .program-page .routine-tabs {
-  margin: 0;
-  padding: 0 14px;
+  padding-left: 14px;
 }
 
 .program-page .routine-dot {
@@ -936,40 +810,6 @@ body.entry-drag-active {
   white-space: nowrap;
 }
 
-.routine-sheet {
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.routine-sheet .dialog-header,
-.routine-sheet .dialog-actions {
-  flex: 0 0 auto;
-}
-
-.routine-sheet-scroll {
-  min-height: 0;
-  padding-block: var(--space-3);
-  flex: 1;
-  display: grid;
-  align-content: start;
-  gap: var(--space-4);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: none;
-}
-
-.routine-sheet-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-.routine-sheet .dialog-actions {
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
-}
-
 .routine-block-editor {
   min-width: 0;
 }
@@ -1100,48 +940,10 @@ body.routine-block-drag-active {
   overflow: hidden;
 }
 
-.entry-sheet {
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.entry-sheet .dialog-header,
-.entry-sheet .dialog-actions {
-  flex: 0 0 auto;
-}
-
 .entry-sheet .dialog-header h2 {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.entry-sheet-scroll {
-  min-height: 0;
-  padding-block: var(--space-3);
-  flex: 1;
-  display: grid;
-  align-content: start;
-  gap: var(--space-4);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: none;
-}
-
-.entry-sheet-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-.entry-sheet-actions-list {
-  margin-top: 0;
-}
-
-.entry-sheet .dialog-actions {
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
 }
 
 .entry-choice-list {
@@ -1239,23 +1041,18 @@ body.routine-block-drag-active {
   cursor: default;
 }
 
-#programCreateFields,
-.programs-list {
+#programCreateFields {
   display: grid;
   gap: var(--space-3);
 }
 
 .programs-list {
   min-height: 0;
-  gap: 0;
+  flex: 1;
+  display: grid;
   align-content: start;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: none;
-}
-
-.programs-list::-webkit-scrollbar {
-  display: none;
 }
 
 .program-choice-row {
@@ -1353,24 +1150,6 @@ body.routine-block-drag-active {
   overflow: hidden;
 }
 
-.programs-sheet {
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.programs-sheet .dialog-header,
-.programs-sheet .dialog-actions,
-.programs-sheet .form-error {
-  flex: 0 0 auto;
-}
-
-.programs-sheet .programs-list {
-  flex: 1;
-}
-
 .program-dialog.compact-dialog {
   max-height: min(66dvh, 560px);
 }
@@ -1384,12 +1163,6 @@ body.routine-block-drag-active {
 }
 
 .library-appbar {
-  min-height: calc(52px + env(safe-area-inset-top));
-  padding: env(safe-area-inset-top) 10px 0 16px;
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
-  display: flex;
-  align-items: center;
   gap: 10px;
   flex: 0 0 auto;
 }
@@ -1397,11 +1170,6 @@ body.routine-block-drag-active {
 .library-app-title {
   min-width: 0;
   flex: 1;
-  font-family: var(--font-label);
-  font-size: 1.2rem;
-  font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
 }
 
 .library-app-title span {
@@ -1418,16 +1186,8 @@ body.routine-block-drag-active {
 
 .library-scroll {
   min-height: 0;
-  padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + var(--space-5));
   overflow-y: auto;
   overscroll-behavior-y: contain;
-  scrollbar-width: none;
-}
-
-.library-scroll::-webkit-scrollbar,
-.library-quick-scroll::-webkit-scrollbar,
-.library-filter-scroll::-webkit-scrollbar {
-  display: none;
 }
 
 .library-search {
@@ -1464,11 +1224,6 @@ body.routine-block-drag-active {
   font-size: 1rem;
 }
 
-.library-search input::placeholder {
-  color: var(--text-muted);
-  opacity: 1;
-}
-
 .library-search:focus-within {
   border-color: var(--focus);
   outline: 3px solid var(--focus);
@@ -1489,7 +1244,6 @@ body.routine-block-drag-active {
   display: flex;
   gap: 7px;
   overflow-x: auto;
-  scrollbar-width: none;
   -webkit-mask-image: linear-gradient(to right, #000 88%, transparent);
   mask-image: linear-gradient(to right, #000 88%, transparent);
 }
@@ -1501,7 +1255,7 @@ body.routine-block-drag-active {
   background: var(--surface);
   color: var(--text-muted);
   font-size: 0.84rem;
-  font-weight: 650;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -1523,7 +1277,7 @@ body.routine-block-drag-active {
   justify-content: center;
   gap: 7px;
   font-size: 0.84rem;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .library-filter-button b {
@@ -1606,7 +1360,7 @@ body.routine-block-drag-active {
 .library-row-name {
   display: block;
   font-size: 0.94rem;
-  font-weight: 650;
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
 
@@ -1680,16 +1434,6 @@ body.routine-block-drag-active {
   flex-direction: column;
 }
 
-.library-filter-sheet::before {
-  content: "";
-  width: 36px;
-  height: 5px;
-  margin: 8px auto 2px;
-  border-radius: 3px;
-  background: var(--line);
-  flex: 0 0 auto;
-}
-
 .library-filter-sheet .dialog-header {
   min-height: 52px;
   padding: 4px 16px 8px 20px;
@@ -1702,7 +1446,6 @@ body.routine-block-drag-active {
   padding: 12px 20px 18px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: none;
 }
 
 .library-filter-label {
@@ -1776,19 +1519,6 @@ body.routine-block-drag-active {
   flex: 0 0 auto;
 }
 
-.workout-row:active {
-  background: var(--press);
-}
-
-.workout-row .row-title,
-.workout-row .row-meta {
-  display: block;
-}
-
-body[data-current-view="calendar"] #appMain {
-  padding-inline: 0;
-}
-
 .log-page {
   max-width: none;
   padding-top: 0;
@@ -1820,7 +1550,7 @@ body[data-current-view="calendar"] #appMain {
   padding-bottom: 5px;
   color: var(--faint);
   font-family: var(--font-label);
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-align: center;
@@ -2004,16 +1734,6 @@ body[data-current-view="calendar"] #appMain {
   flex-direction: column;
 }
 
-.day-sheet::before {
-  content: "";
-  width: 36px;
-  height: 5px;
-  margin: 8px auto 2px;
-  border-radius: 3px;
-  background: var(--line);
-  flex: 0 0 auto;
-}
-
 .day-sheet-header {
   min-height: 56px;
   margin: 0;
@@ -2037,11 +1757,6 @@ body[data-current-view="calendar"] #appMain {
   padding: 12px var(--space-4) 18px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: none;
-}
-
-.day-sheet-scroll::-webkit-scrollbar {
-  display: none;
 }
 
 .day-routine-section + .day-routine-section {
@@ -2142,73 +1857,6 @@ body[data-current-view="calendar"] #appMain {
   }
 }
 
-.rules-list,
-.settings-section {
-  display: grid;
-  gap: var(--space-3);
-}
-
-.rule-section {
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--border);
-}
-
-.rule-section h3,
-.settings-section h3 {
-  margin: 0 0 6px;
-  font-size: 0.95rem;
-}
-
-.settings-rules {
-  border-top: 1px solid var(--border);
-}
-
-.settings-rules summary {
-  min-height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.9rem;
-  font-weight: 750;
-  cursor: pointer;
-  list-style: none;
-}
-
-.settings-rules summary::-webkit-details-marker {
-  display: none;
-}
-
-.settings-rules summary::after {
-  content: "+";
-  color: var(--text-muted);
-  font-size: 1.2rem;
-  font-weight: 400;
-}
-
-.settings-rules[open] summary::after {
-  content: "−";
-}
-
-.settings-rules .rules-list {
-  padding-top: var(--space-2);
-}
-
-.rule-section ul,
-.settings-section p {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.84rem;
-}
-
-.rule-section ul {
-  padding-left: 20px;
-}
-
-.stacked-actions {
-  display: grid;
-  gap: var(--space-2);
-}
-
 .exercise-editor-dialog {
   width: min(100%, 680px);
   height: 100dvh;
@@ -2252,7 +1900,7 @@ body[data-current-view="calendar"] #appMain {
   color: var(--faint);
   font-family: var(--font-label);
   font-size: 0.64rem;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -2307,7 +1955,7 @@ body[data-current-view="calendar"] #appMain {
 .exercise-editor-section-head > span {
   color: var(--faint);
   font-size: 0.68rem;
-  font-weight: 650;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -2352,7 +2000,7 @@ body[data-current-view="calendar"] #appMain {
   border-radius: 0;
   background: var(--surface-2);
   color: var(--text);
-  font-size: 0.92rem;
+  font-size: 1rem;
 }
 
 .exercise-editor-selection {
@@ -2561,7 +2209,7 @@ body[data-current-view="calendar"] #appMain {
   margin: 0;
   font-family: var(--font-label);
   font-size: 0.78rem;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -2610,8 +2258,8 @@ body[data-current-view="calendar"] #appMain {
   border-radius: 0;
   background: var(--surface-2);
   color: var(--text);
-  font-size: 0.82rem;
-  font-weight: 650;
+  font-size: 1rem;
+  font-weight: 700;
 }
 
 .relationship-remove {
@@ -2713,13 +2361,40 @@ body[data-current-view="calendar"] #appMain {
   margin-block: -12px;
 }
 
-.settings-page .settings-rules {
-  border-top: 0;
+.settings-section,
+.rules-list {
+  display: grid;
+  gap: var(--space-3);
 }
 
-/* Under 16px, iOS zooms the page in when the field is focused. */
-.settings-page .field textarea {
-  font-size: 1rem;
+.settings-section p,
+.rule-section ul {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+}
+
+.stacked-actions {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.settings-rules .rules-list {
+  padding-top: var(--space-2);
+}
+
+.rule-section {
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.rule-section h3 {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+}
+
+.rule-section ul {
+  padding-left: 20px;
 }
 
 .rule-section > :not(h3) + :not(h3) {
