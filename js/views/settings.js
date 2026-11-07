@@ -143,11 +143,14 @@ async function saveFile(file) {
 
 const jsonFile = (text, name) => new File([text], name, { type: "application/json" });
 
-// Caches are unavailable outside a secure context (e.g. the LAN preview).
+// The newest offline cache that actually holds the app (a failed download leaves an
+// empty one). Caches don't exist outside a secure context, e.g. the LAN preview.
 async function installedVersion() {
   const keys = (await globalThis.caches?.keys().catch(() => null)) || [];
-  const key = keys.findLast((name) => name.startsWith(CACHE_PREFIX));
-  return key ? `Version ${key.slice(CACHE_PREFIX.length)}` : "Offline copy not installed yet";
+  for (const key of keys.filter((name) => name.startsWith(CACHE_PREFIX)).reverse()) {
+    if (await (await caches.open(key)).match("./index.html")) return `Version ${key.slice(CACHE_PREFIX.length)}`;
+  }
+  return "Offline copy not installed yet";
 }
 
 async function refreshVersion() {
