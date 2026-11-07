@@ -2,7 +2,7 @@
 // `npm run check` rewrites VERSION and FILES below (tools/check.mjs). A new
 // VERSION makes installed apps download the new files and reload once.
 
-const VERSION = "f13d13918c"; // stamped
+const VERSION = "6356361043"; // stamped
 const FILES = [
   "./index.html",
   "./manifest.json",
@@ -32,9 +32,6 @@ const FILES = [
   "./fonts/barlow-600-latin.woff2",
   "./fonts/barlow-700-latin.woff2",
   "./fonts/barlow-condensed-600-latin.woff2",
-  "./fonts/ibm-plex-mono-500-latin.woff2",
-  "./fonts/ibm-plex-mono-600-latin.woff2",
-  "./fonts/ibm-plex-mono-700-latin.woff2",
   "./icons/app-icon-180.png",
   "./icons/app-icon-192.png",
   "./icons/app-icon-512.png",

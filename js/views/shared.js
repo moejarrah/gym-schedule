@@ -30,7 +30,7 @@ export function routineTabsMarkup(routines, selectedId) {
     ${routines.map((routine) => `
       <button class="routine-tab" type="button"
         aria-label="${escapeHtml(routine.name)}, ${locationLabel(routine.group)}" aria-pressed="${routine.id === selectedId}" data-action="select-routine" data-id="${escapeHtml(routine.id)}">
-        <span class="routine-dot" aria-hidden="true"></span>${escapeHtml(routine.name)}
+        ${escapeHtml(routine.name)}
       </button>`).join("")}
   </div>`;
 }

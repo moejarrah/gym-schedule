@@ -208,7 +208,7 @@ registerView("calendar", {
   render(state, main) {
     main.innerHTML = calendarMarkup(state);
   },
-  header: () => ["Log", "Month and recent history"],
+  title: "Log",
 });
 
 registerActions({

@@ -258,7 +258,7 @@ registerView("settings", {
     main.innerHTML = settingsMarkup(state);
     refreshVersion();
   },
-  header: () => ["Settings", "Appearance, data and training rules"],
+  title: "Settings",
 });
 
 registerActions({

@@ -10,8 +10,8 @@ const actions = new Map();
 const afterRenderHooks = [];
 let current = "workout";
 
-// registerView("workout", { render(state, main), header?(state) → [title, meta] })
-// A view without a header hides the top bar (see base.css).
+// registerView("calendar", { render(state, main), title? })
+// Views without a title draw their own bar; base.css hides the shared top bar for them.
 export function registerView(id, view) {
   views.set(id, view);
 }
@@ -58,9 +58,7 @@ export function render() {
     else button.removeAttribute("aria-current");
   }
   view.render(state, mainElement());
-  const [title = "", meta = ""] = view.header?.(state) || [];
-  document.querySelector("#viewTitle").textContent = title;
-  document.querySelector("#viewMetaLine").textContent = meta;
+  document.querySelector("#viewTitle").textContent = view.title || "";
   for (const hook of afterRenderHooks) hook(state);
 }
 
@@ -76,5 +74,5 @@ export function navigate(id) {
 export function applyTheme(theme) {
   const dark = theme === "dark";
   document.documentElement.dataset.theme = dark ? "dark" : "light";
-  document.querySelector('meta[name="theme-color"]').content = dark ? "#0f1114" : "#f3f4f5";
+  document.querySelector('meta[name="theme-color"]').content = dark ? "#0d0f12" : "#f3f4f6";
 }

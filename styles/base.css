@@ -30,46 +30,28 @@
   src: url("../fonts/barlow-condensed-600-latin.woff2") format("woff2");
 }
 
-@font-face {
-  font-family: "IBM Plex Mono";
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url("../fonts/ibm-plex-mono-500-latin.woff2") format("woff2");
-}
-
-@font-face {
-  font-family: "IBM Plex Mono";
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url("../fonts/ibm-plex-mono-600-latin.woff2") format("woff2");
-}
-
-@font-face {
-  font-family: "IBM Plex Mono";
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url("../fonts/ibm-plex-mono-700-latin.woff2") format("woff2");
-}
-
 :root {
   color-scheme: light;
-  --bg: #f3f4f5;
+  --bg: #f3f4f6;
   --surface: #ffffff;
-  --surface-2: #e9ebee;
-  --press: #e4e7eb;
-  --line: rgb(18 22 30 / 11%);
-  --border-strong: rgb(18 22 30 / 18%);
-  --text: #171a1f;
-  --text-muted: #646c77;
-  --faint: #68707b;
-  --accent: #3b5bdb;
-  --accent-fill: #3b5bdb;
-  --accent-on-soft: #314dc1;
-  --accent-soft: rgb(59 91 219 / 11%);
-  --gym-active: #314dc1;
+  --surface-2: #eceef2;
+  --press: #e2e5ea;
+  --line: rgb(18 22 30 / 10%);
+  --line-soft: rgb(18 22 30 / 7%);
+  --border-strong: rgb(18 22 30 / 24%);
+  --text: #14171c;
+  --text-muted: #5d6571;
+  --faint: #67707b;
+  --accent: #3550d0;
+  --accent-fill: #3d5ce0;
+  --accent-on-soft: #2f4ac4;
+  --accent-soft: rgb(61 92 224 / 11%);
+  --field: #eceef2;
+  --chip-raised: #ffffff;
+  --badge-bg: #e2e7ff;
+  --badge-text: #2c47b8;
+  --gym-active: #314fcf;
+  --nav-bg: #ffffff;
   --rehab: #765000;
   --danger: #c03b27;
   --danger-soft: rgb(192 59 39 / 10%);
@@ -80,14 +62,19 @@
   --shadow-lift: 0 10px 24px rgb(20 24 32 / 20%);
   --font-body: "Barlow", -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
   --font-label: "Barlow Condensed", "Arial Narrow", sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 24px;
   --space-6: 32px;
-  --nav-height: 54px;
+  /* Corner radii: chips, small squares (number boxes, ticks), controls, cards, sheets. */
+  --radius-chip: 7px;
+  --radius-sm: 9px;
+  --radius-control: 12px;
+  --radius-card: 16px;
+  --radius-sheet: 22px;
+  --nav-height: 58px;
   --z-topbar: 10;
   --z-nav: 20;
   --z-drag: 80;
@@ -103,20 +90,26 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0f1114;
-  --surface: #15181d;
-  --surface-2: #1c2026;
-  --press: #20252c;
-  --line: rgb(235 238 245 / 9%);
-  --border-strong: rgb(235 238 245 / 16%);
-  --text: #e9ebee;
-  --text-muted: #9ca3ad;
-  --faint: #7f8792;
-  --accent: #5a7cff;
-  --accent-fill: #4266e4;
-  --accent-on-soft: #8299ff;
-  --accent-soft: rgb(90 124 255 / 15%);
-  --gym-active: #4868e2;
+  --bg: #0d0f12;
+  --surface: #16191e;
+  --surface-2: #1e2228;
+  --press: #23272e;
+  --line: #22262d;
+  --line-soft: #1e2228;
+  --border-strong: #3a404a;
+  --text: #f3f5f8;
+  --text-muted: #a0a8b4;
+  --faint: #858e9b;
+  --accent: #8ea2ff;
+  --accent-fill: #4a68f0;
+  --accent-on-soft: #8ea2ff;
+  --accent-soft: rgb(74 104 240 / 16%);
+  --field: #262a31;
+  --chip-raised: #2a2f37;
+  --badge-bg: #22305e;
+  --badge-text: #b3c0ff;
+  --gym-active: #3f5ce0;
+  --nav-bg: #111317;
   --rehab: #d9a62e;
   --danger: #e76657;
   --danger-soft: rgb(231 102 87 / 12%);
@@ -163,6 +156,7 @@ body {
   font-family: var(--font-body);
   font-size: 15px;
   line-height: 1.4;
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
 }
@@ -210,10 +204,9 @@ a:focus-visible {
 .topbar,
 .program-appbar,
 .library-appbar {
-  min-height: calc(52px + env(safe-area-inset-top));
-  padding: env(safe-area-inset-top) 10px 0 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--line);
+  min-height: calc(60px + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) 12px 0 20px;
+  background: var(--bg);
   display: flex;
   align-items: center;
   gap: 9px;
@@ -222,11 +215,9 @@ a:focus-visible {
 .topbar-title h1,
 .program-appbar h1,
 .library-app-title {
-  font-family: var(--font-label);
-  font-size: 1.2rem;
-  font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
 }
 
 .topbar {
@@ -240,20 +231,11 @@ a:focus-visible {
   flex: 1;
 }
 
-.topbar-title p,
 .topbar-title h1 {
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.topbar-title p {
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 0.67rem;
-  font-weight: 500;
-  line-height: 1.2;
 }
 
 .topbar-title h1 {
@@ -327,7 +309,7 @@ body[data-current-view="exercises"] #appMain {
   inset: auto 0 0;
   min-height: calc(var(--nav-height) + env(safe-area-inset-bottom));
   padding: 4px max(8px, env(safe-area-inset-right)) max(4px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
-  background: var(--surface);
+  background: var(--nav-bg);
   border-top: 1px solid var(--line);
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -336,18 +318,19 @@ body[data-current-view="exercises"] #appMain {
 
 .bottom-nav button {
   min-width: 0;
-  min-height: 46px;
+  min-height: 50px;
   padding: 0;
   border: 0;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--faint);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 4px;
   font-family: var(--font-label);
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -363,8 +346,8 @@ body[data-current-view="exercises"] #appMain {
 }
 
 .bottom-nav svg {
-  width: 21px;
-  height: 21px;
+  width: 22px;
+  height: 22px;
 }
 
 .page {
@@ -398,7 +381,7 @@ body[data-current-view="exercises"] #appMain {
   }
 
   .topbar-title h1 {
-    font-size: 1.12rem;
+    font-size: 1.55rem;
   }
 }
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f3f4f5">
+  <meta name="theme-color" content="#f3f4f6">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Gym Schedule">
@@ -20,7 +20,7 @@
       const theme = JSON.parse(localStorage.getItem("gymAppStateV1"))?.settings?.theme;
       if (theme === "dark") {
         document.documentElement.dataset.theme = "dark";
-        document.querySelector('meta[name="theme-color"]').content = "#0f1114";
+        document.querySelector('meta[name="theme-color"]').content = "#0d0f12";
       }
     } catch (_) {}
   </script>
@@ -30,7 +30,6 @@
     <header class="topbar">
       <div class="topbar-title">
         <h1 id="viewTitle">Workout</h1>
-        <p id="viewMetaLine"></p>
       </div>
     </header>
 

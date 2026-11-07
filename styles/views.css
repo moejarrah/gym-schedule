@@ -10,9 +10,8 @@
 /* The active-program bar, shared by Workout and Program. */
 .workout-programbar,
 .program-page-bar {
-  min-height: 45px;
-  padding: 0 8px 0 15px;
-  border-bottom: 1px solid var(--line);
+  min-height: 52px;
+  padding: 4px 8px 0 20px;
   background: var(--bg);
   display: flex;
   align-items: center;
@@ -20,16 +19,17 @@
 }
 
 .workout-programbar {
-  min-height: calc(45px + env(safe-area-inset-top));
-  padding-top: env(safe-area-inset-top);
+  min-height: calc(56px + env(safe-area-inset-top));
+  padding-top: calc(6px + env(safe-area-inset-top));
 }
 
 .workout-program-pick,
 .program-page-pick {
   min-width: 0;
   min-height: 44px;
-  padding: 0;
+  padding: 0 8px 0 0;
   border: 0;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--text);
   flex: 1;
@@ -58,17 +58,24 @@
 .workout-program-pick > strong,
 .program-page-pick > strong,
 .workout-program-empty > strong {
-  font-size: 0.88rem;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
+/* The "Active" badge before the program name. */
 .workout-program-pick > span,
 .program-page-pick > span,
 .workout-program-empty > span {
-  color: var(--accent);
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--badge-bg);
+  color: var(--badge-text);
   font-family: var(--font-label);
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.1em;
+  line-height: 1.3;
   text-transform: uppercase;
 }
 
@@ -90,6 +97,7 @@
   min-height: 44px;
   padding: 0;
   border: 0;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--text-muted);
   display: grid;
@@ -133,40 +141,37 @@
 }
 
 .workout-section-label {
-  min-height: 32px;
-  padding: 10px var(--space-4) 6px;
-  border-top: 1px solid var(--line);
+  min-height: 34px;
+  padding: 16px 20px 4px;
   color: var(--faint);
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 10px;
   font-family: var(--font-label);
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.1em;
   line-height: 1;
   text-transform: uppercase;
 }
 
 .workout-section:first-child > .workout-section-label {
-  min-height: 26px;
-  padding-top: 4px;
-  border-top: 0;
+  min-height: 30px;
+  padding-top: 12px;
 }
 
 .workout-block-role,
 .program-block-role {
   flex: 0 0 auto;
-  font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
 }
 
 .workout-item {
-  min-height: 60px;
-  padding: 0 2px 0 6px;
+  min-height: 56px;
+  padding: 0 10px 0 12px;
   display: flex;
   align-items: stretch;
   position: relative;
@@ -175,8 +180,8 @@
 .workout-item + .workout-item::before {
   content: "";
   position: absolute;
-  inset: 0 0 auto 45px;
-  border-top: 1px solid var(--line);
+  inset: 0 20px auto 20px;
+  border-top: 1px solid var(--line-soft);
 }
 
 .workout-item:active {
@@ -187,7 +192,7 @@
 .workout-video,
 .entry-choice-video {
   width: 44px;
-  min-height: 60px;
+  min-height: 56px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -199,34 +204,34 @@
 }
 
 .workout-check-mark {
-  width: 22px;
-  height: 22px;
-  border: 1.5px solid var(--faint);
+  width: 30px;
+  height: 30px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
   display: grid;
   place-items: center;
-  color: var(--faint);
+  color: var(--text-muted);
 }
 
 .workout-check-number {
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.88rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
 .workout-check-mark svg {
   display: none;
-  width: 13px;
-  height: 13px;
+  width: 15px;
+  height: 15px;
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 2.6;
+  stroke-width: 3;
 }
 
 .workout-item.is-done .workout-check-mark {
-  border-color: var(--accent);
+  border-color: var(--accent-fill);
   background: var(--accent-fill);
   color: #ffffff;
 }
@@ -241,8 +246,8 @@
 
 .workout-row {
   min-width: 0;
-  min-height: 60px;
-  padding: 8px 0;
+  min-height: 56px;
+  padding: 7px 0 7px 4px;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -265,27 +270,22 @@
   row-gap: 1px;
 }
 
-/* A slot with sets logged today: number box and video sit level with the name. */
-.workout-item.has-sets .workout-check,
-.workout-item.has-sets .workout-video {
-  place-items: start center;
-  padding-top: 19px;
-}
-
+/* A slot with sets logged today but not done yet: an accent outline on its number. */
 .workout-item.has-sets:not(.is-done) .workout-check-mark {
-  border-color: var(--accent);
+  border: 2px solid var(--accent-fill);
   color: var(--accent-on-soft);
+  font-weight: 700;
 }
 
 .workout-page .row-title {
-  font-size: 0.91rem;
+  font-size: 0.94rem;
+  font-weight: 600;
   letter-spacing: -0.005em;
 }
 
 .workout-page .row-meta {
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   display: flex;
   align-items: center;
@@ -293,15 +293,10 @@
   flex-wrap: wrap;
 }
 
-.workout-item.is-done .row-title,
-.workout-item.is-done .row-meta,
-.workout-item.is-done .entry-note-preview {
-  color: var(--faint);
-}
-
 .entry-role-tag {
-  padding: 1px 6px;
+  padding: 1px 7px;
   border: 1px solid var(--line);
+  border-radius: 6px;
   color: var(--faint);
   font-family: var(--font-label);
   font-size: 0.75rem;
@@ -312,15 +307,15 @@
 }
 
 .entry-note-preview {
-  color: var(--text-muted);
+  color: var(--faint);
   display: -webkit-box;
   overflow: hidden;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 500;
   line-height: 1.4;
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
 }
 
 .entry-choices-dialog {
@@ -377,8 +372,7 @@
 }
 
 .entry-choice-reference .row-meta {
-  font-family: var(--font-mono);
-  font-size: 0.73rem;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -394,9 +388,9 @@
 }
 
 .entry-choice-video > span {
-  width: 27px;
-  height: 27px;
-  border: 1px solid currentColor;
+  width: 30px;
+  height: 30px;
+  border: 1.5px solid var(--border-strong);
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -429,8 +423,10 @@
 .routine-note-disclosure,
 .program-routine-note {
   flex: 0 0 auto;
-  border-bottom: 1px solid var(--line);
+  margin: 12px 16px 0;
+  border-radius: 14px;
   background: var(--surface);
+  overflow: hidden;
 }
 
 .routine-note-disclosure summary,
@@ -496,18 +492,18 @@
 }
 
 .workout-video-mark {
-  width: 26px;
-  height: 26px;
-  border: 1.5px solid var(--faint);
+  width: 30px;
+  height: 30px;
+  border: 1.5px solid var(--border-strong);
   border-radius: 50%;
-  color: var(--faint);
+  color: var(--text-muted);
   display: grid;
   place-items: center;
 }
 
 .workout-video-mark svg {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   margin-left: 1px;
   fill: currentColor;
   stroke: none;
@@ -517,6 +513,12 @@
   border-color: transparent;
   background: var(--accent-fill);
   color: #ffffff;
+}
+
+.workout-check,
+.workout-row,
+.workout-video {
+  border-radius: var(--radius-control);
 }
 
 .workout-check:active,
@@ -540,34 +542,31 @@
 
 .program-app-action {
   min-height: 44px;
-  padding: 0 2px;
+  padding: 0 14px;
   border: 0;
-  background: transparent;
-  color: var(--accent);
-  font-size: 0.82rem;
-  font-weight: 700;
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.94rem;
+  font-weight: 600;
 }
 
 .program-app-action:active {
   background: var(--press);
 }
 
-.program-page .routine-tabs {
-  padding-left: 14px;
-}
 
-.program-page .routine-dot {
-  display: none;
-}
 
 .program-note-disclosure {
-  border-bottom: 1px solid var(--line);
+  margin: 4px 16px 12px;
+  border-radius: var(--radius-card);
   background: var(--surface);
+  overflow: hidden;
 }
 
 .program-note-disclosure summary {
-  min-height: 48px;
-  padding: 6px 12px 6px 16px;
+  min-height: 56px;
+  padding: 8px 12px 8px 16px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -590,7 +589,7 @@
 }
 
 .program-note-copy strong {
-  font-size: 0.82rem;
+  font-size: 0.94rem;
 }
 
 .program-note-copy small {
@@ -603,9 +602,8 @@
 }
 
 .program-viewbar {
-  min-height: 42px;
-  padding: 0 9px 0 15px;
-  border-bottom: 1px solid var(--line);
+  min-height: 52px;
+  padding: 4px 10px 0 20px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -625,13 +623,13 @@
 }
 
 .program-viewbar-copy strong {
-  font-size: 0.88rem;
+  font-size: 1.05rem;
   line-height: 1.25;
 }
 
 .program-viewbar-copy span {
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: 0.8rem;
 }
 
 .program-view-edit {
@@ -639,6 +637,7 @@
   height: 44px;
   padding: 0;
   border: 0;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--text-muted);
   flex: 0 0 44px;
@@ -667,23 +666,22 @@
 }
 
 .program-section-label {
-  min-height: 30px;
-  padding: 8px 15px 5px;
-  border-top: 1px solid var(--line);
+  min-height: 34px;
+  padding: 16px 20px 4px;
   color: var(--faint);
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 10px;
   font-family: var(--font-label);
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .program-section:first-child .program-section-label {
-  border-top: 0;
+  padding-top: 8px;
 }
 
 .program-row,
@@ -694,10 +692,10 @@
 
 .program-row {
   width: 100%;
-  min-height: 62px;
-  padding: 8px 12px 8px 14px;
+  min-height: 60px;
+  padding: 8px 14px 8px 20px;
   border: 0;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--line-soft);
   background: transparent;
   color: var(--text);
   display: flex;
@@ -745,10 +743,10 @@ button.program-row:active:not(.is-dragging) {
   position: fixed;
   z-index: var(--z-drag);
   margin: 0;
-  padding-inline: 8px;
+  padding-inline: 12px;
   border: 0;
-  border-radius: 0;
-  background: var(--surface);
+  border-radius: 14px;
+  background: var(--surface-2);
   box-shadow: var(--shadow-lift);
   cursor: grabbing;
   pointer-events: none;
@@ -758,8 +756,10 @@ button.program-row:active:not(.is-dragging) {
 }
 
 .program-row-placeholder {
-  min-height: 62px;
-  border-bottom: 1px solid var(--line);
+  min-height: 60px;
+  margin: 2px 12px;
+  border: 1.5px dashed var(--accent);
+  border-radius: 14px;
   background: var(--accent-soft);
 }
 
@@ -772,20 +772,20 @@ body.entry-drag-active {
 .add-row-button {
   width: 100%;
   min-height: 48px;
-  padding: 0 15px;
+  padding: 0 20px;
   border: 0;
-  border-bottom: 1px solid var(--line);
   background: transparent;
   color: var(--accent);
   text-align: left;
-  font-weight: 700;
+  font-size: 0.94rem;
+  font-weight: 600;
 }
 
 .program-block-empty {
   min-height: 44px;
   margin: 0;
-  padding: 12px 15px;
-  border-bottom: 1px solid var(--line);
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line-soft);
   color: var(--text-muted);
   font-size: 0.8rem;
 }
@@ -924,15 +924,15 @@ body.entry-drag-active {
 
 .routine-block-edit small {
   color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.75rem;
 }
 
 .routine-block-row.is-dragging {
   position: fixed;
   z-index: var(--z-drag);
   border: 0;
-  background: var(--surface);
+  border-radius: 14px;
+  background: var(--surface-2);
   box-shadow: var(--shadow-lift);
   pointer-events: none;
   transform-origin: center;
@@ -941,7 +941,8 @@ body.entry-drag-active {
 
 .routine-block-placeholder {
   min-height: 56px;
-  border-bottom: 1px solid var(--line);
+  border: 1.5px dashed var(--accent);
+  border-radius: 14px;
   background: var(--accent-soft);
 }
 
@@ -983,8 +984,7 @@ body.routine-block-drag-active {
   width: 20px;
   flex: 0 0 20px;
   color: var(--faint);
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -1006,8 +1006,7 @@ body.routine-block-drag-active {
 
 .entry-choice-copy small {
   color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -1016,6 +1015,7 @@ body.routine-block-drag-active {
   min-height: 44px;
   padding: 0;
   border: 0;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--text-muted);
   flex: 0 0 44px;
@@ -1094,6 +1094,7 @@ body.routine-block-drag-active {
   min-height: 62px;
   padding: 8px 0 8px 14px;
   border: 0;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--text);
   flex: 1;
@@ -1143,6 +1144,7 @@ body.routine-block-drag-active {
   min-height: 44px;
   padding: 0;
   border: 0;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--faint);
   flex: 0 0 44px;
@@ -1193,15 +1195,17 @@ body.routine-block-drag-active {
 }
 
 .library-app-title span {
-  margin-left: 3px;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
+  margin-left: 4px;
+  color: var(--faint);
+  font-size: 0.9rem;
+  font-weight: 500;
   letter-spacing: 0;
 }
 
 .library-add-button {
   flex: 0 0 44px;
+  background: var(--surface-2);
+  color: var(--text);
 }
 
 .library-scroll {
@@ -1211,10 +1215,11 @@ body.routine-block-drag-active {
 }
 
 .library-search {
-  min-height: 46px;
-  margin: 12px 14px 8px;
-  padding: 0 12px;
+  min-height: 50px;
+  margin: 4px 16px 10px;
+  padding: 0 14px;
   border: 1px solid var(--line);
+  border-radius: 14px;
   background: var(--surface);
   display: flex;
   align-items: center;
@@ -1252,7 +1257,7 @@ body.routine-block-drag-active {
 
 .library-quickbar {
   min-height: 52px;
-  padding: 0 14px 8px;
+  padding: 0 16px 8px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1268,36 +1273,40 @@ body.routine-block-drag-active {
   mask-image: linear-gradient(to right, #000 88%, transparent);
 }
 
+/* Pill chips: Library quick groups and the filter sheet's options. */
 .library-chip {
   min-height: 44px;
-  padding: 0 13px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--text-muted);
-  font-size: 0.84rem;
-  font-weight: 700;
+  padding: 0 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 22px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 500;
   white-space: nowrap;
 }
 
 .library-chip[aria-pressed="true"] {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent-on-soft);
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 600;
 }
 
 .library-filter-button {
   min-width: 78px;
   min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--text);
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 22px;
+  background: transparent;
+  color: var(--accent);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
-  font-size: 0.84rem;
-  font-weight: 700;
+  font-size: 0.92rem;
+  font-weight: 600;
 }
 
 .library-filter-button b {
@@ -1307,21 +1316,19 @@ body.routine-block-drag-active {
   border-radius: 9px;
   background: var(--accent-fill);
   color: #fff;
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   line-height: 18px;
 }
 
 .library-result-head {
   min-height: 44px;
-  padding: 5px 15px;
-  border-top: 1px solid var(--line);
+  padding: 5px 20px;
   border-bottom: 1px solid var(--line);
   color: var(--faint);
   font-family: var(--font-label);
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   display: flex;
   align-items: center;
@@ -1337,8 +1344,8 @@ body.routine-block-drag-active {
   background: transparent;
   color: var(--accent);
   font-family: var(--font-body);
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: 0.88rem;
+  font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
 }
@@ -1349,8 +1356,8 @@ body.routine-block-drag-active {
 
 .library-row {
   width: 100%;
-  min-height: 67px;
-  padding: 9px 14px;
+  min-height: 66px;
+  padding: 10px 16px 10px 20px;
   border: 0;
   background: transparent;
   color: var(--text);
@@ -1364,8 +1371,8 @@ body.routine-block-drag-active {
 .library-row + .library-row::before {
   content: "";
   position: absolute;
-  inset: 0 0 auto 14px;
-  border-top: 1px solid var(--line);
+  inset: 0 20px auto 20px;
+  border-top: 1px solid var(--line-soft);
 }
 
 .library-row:active {
@@ -1379,29 +1386,29 @@ body.routine-block-drag-active {
 
 .library-row-name {
   display: block;
-  font-size: 0.94rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 
 .library-row-meta {
-  margin-top: 4px;
+  margin-top: 3px;
   color: var(--text-muted);
   display: flex;
   flex-wrap: wrap;
   gap: 4px 8px;
-  font-size: 0.78rem;
+  font-size: 0.84rem;
 }
 
 .library-row-rx {
   color: var(--text);
-  font-family: var(--font-mono);
   font-weight: 600;
 }
 
 .library-purpose {
   min-height: 20px;
   padding: 2px 7px;
+  border-radius: 6px;
   background: rgb(217 166 46 / 12%);
   color: var(--rehab);
   font-family: var(--font-label);
@@ -1429,8 +1436,7 @@ body.routine-block-drag-active {
 }
 
 .library-empty {
-  padding: 42px 16px;
-  border-bottom: 1px solid var(--line);
+  padding: 42px 20px;
 }
 
 .library-empty-actions {
@@ -1545,9 +1551,8 @@ body.routine-block-drag-active {
 }
 
 .log-monthbar {
-  min-height: 51px;
-  padding: 0 8px 0 var(--space-4);
-  border-bottom: 1px solid var(--line);
+  min-height: 52px;
+  padding: 0 8px 0 20px;
   display: flex;
   align-items: center;
 }
@@ -1555,19 +1560,24 @@ body.routine-block-drag-active {
 .log-monthbar > strong {
   min-width: 0;
   flex: 1;
-  font-size: 1rem;
+  font-size: 1.1rem;
+  font-weight: 700;
 }
 
+/* The weekday row and the days share one rounded card. */
 .log-weekdays,
 .log-calendar {
-  padding-inline: 10px;
+  margin-inline: 16px;
+  padding-inline: 8px;
+  background: var(--surface);
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
 .log-weekdays {
-  padding-top: 9px;
-  padding-bottom: 5px;
+  padding-top: 12px;
+  padding-bottom: 4px;
+  border-radius: 18px 18px 0 0;
   color: var(--faint);
   font-family: var(--font-label);
   font-size: 0.75rem;
@@ -1579,6 +1589,7 @@ body.routine-block-drag-active {
 
 .log-calendar {
   padding-bottom: 10px;
+  border-radius: 0 0 18px 18px;
 }
 
 .log-calendar-day,
@@ -1590,17 +1601,25 @@ body.routine-block-drag-active {
 .log-calendar-day {
   padding: 0;
   border: 0;
+  border-radius: var(--radius-control);
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text);
   display: grid;
   place-items: center;
   align-content: center;
-  gap: 3px;
+  gap: 2px;
   position: relative;
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.94rem;
+  font-weight: 500;
   cursor: pointer;
+}
+
+.log-calendar-day > span:first-child {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
 }
 
 .log-calendar-day:active {
@@ -1611,9 +1630,10 @@ body.routine-block-drag-active {
   outline-offset: -3px;
 }
 
-.log-calendar-day.is-today {
-  color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent);
+.log-calendar-day.is-today > span:first-child {
+  background: var(--accent-fill);
+  color: #ffffff;
+  font-weight: 700;
 }
 
 .log-calendar-markers {
@@ -1639,33 +1659,34 @@ body.routine-block-drag-active {
 }
 
 .log-section-label {
-  min-height: 30px;
-  padding: 8px var(--space-4) 5px;
-  border-top: 1px solid var(--line);
+  min-height: 34px;
+  padding: 22px 20px 8px;
   color: var(--faint);
   font-family: var(--font-label);
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
+/* Recent workouts: one rounded card each. */
 .log-recent-list {
-  margin: 0 var(--space-4) var(--space-4);
-  border-top: 1px solid var(--line);
+  margin: 0 16px var(--space-4);
+  display: grid;
+  gap: 8px;
 }
 
 .log-recent-row {
   width: 100%;
-  min-height: 52px;
-  padding: 6px 0;
+  min-height: 64px;
+  padding: 10px 14px 10px 16px;
   border: 0;
-  border-bottom: 1px solid var(--line);
-  background: transparent;
+  border-radius: var(--radius-card);
+  background: var(--surface);
   color: var(--text);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   text-align: left;
 }
 
@@ -1676,9 +1697,8 @@ body.routine-block-drag-active {
 .log-recent-date {
   width: 44px;
   flex: 0 0 44px;
-  color: var(--faint);
-  font-family: var(--font-mono);
-  font-size: 0.69rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
   font-weight: 600;
 }
 
@@ -1690,14 +1710,15 @@ body.routine-block-drag-active {
 }
 
 .log-recent-copy strong {
-  font-size: 0.86rem;
+  font-size: 0.98rem;
+  font-weight: 600;
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
 
 .log-recent-copy small {
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
@@ -1722,9 +1743,10 @@ body.routine-block-drag-active {
 
 .log-recent-empty {
   min-height: 90px;
-  margin: 0 var(--space-4) var(--space-4);
-  padding: var(--space-4) 0;
-  border-top: 1px solid var(--line);
+  margin: 0 16px var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--surface);
   color: var(--text-muted);
   display: grid;
   align-content: center;
@@ -1809,10 +1831,11 @@ body.routine-block-drag-active {
 }
 
 .day-check-box {
-  width: 22px;
-  height: 22px;
-  flex: 0 0 22px;
-  border: 1.5px solid var(--faint);
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 8px;
   color: #fff;
   display: grid;
   place-items: center;
@@ -1873,7 +1896,8 @@ body.routine-block-drag-active {
 @media (max-width: 359px) {
   .log-weekdays,
   .log-calendar {
-    padding-inline: 6px;
+    margin-inline: 12px;
+    padding-inline: 4px;
   }
 }
 
@@ -1900,7 +1924,7 @@ body.routine-block-drag-active {
   min-height: calc(56px + env(safe-area-inset-top));
   padding: env(safe-area-inset-top) var(--space-3) 0 var(--space-2);
   border-bottom: 1px solid var(--line);
-  background: var(--surface);
+  background: var(--bg);
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -1919,14 +1943,15 @@ body.routine-block-drag-active {
 .exercise-editor-appbar p {
   color: var(--faint);
   font-family: var(--font-label);
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .exercise-editor-appbar h2 {
-  font-size: 1rem;
+  font-size: 1.15rem;
+  font-weight: 700;
   line-height: 1.25;
 }
 
@@ -1967,14 +1992,13 @@ body.routine-block-drag-active {
 
 .exercise-editor-section-head h3 {
   margin: 0;
-  font-family: var(--font-label);
-  font-size: 0.86rem;
-  letter-spacing: 0.03em;
+  font-size: 0.98rem;
+  font-weight: 700;
 }
 
 .exercise-editor-section-head > span {
   color: var(--faint);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -2008,16 +2032,15 @@ body.routine-block-drag-active {
 
 .exercise-target-number {
   color: var(--faint);
-  font-family: var(--font-mono);
   font-size: 0.78rem;
   text-align: center;
 }
 
 .exercise-primary-field .control {
-  min-height: 44px;
-  padding: 8px 10px;
+  min-height: 46px;
+  padding: 8px 12px;
   border: 1px solid var(--line);
-  border-radius: 0;
+  border-radius: var(--radius-control);
   background: var(--surface-2);
   color: var(--text);
   font-size: 1rem;
@@ -2083,8 +2106,8 @@ body.routine-block-drag-active {
 
 .exercise-routine-boundary {
   margin: 0;
-  padding: var(--space-3);
-  border-left: 3px solid var(--home);
+  padding: var(--space-3) 14px;
+  border-radius: var(--radius-control);
   background: var(--home-soft);
   color: var(--text-muted);
   font-size: 0.78rem;
@@ -2235,8 +2258,7 @@ body.routine-block-drag-active {
 }
 
 .relationship-group-head span {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 
 .relationship-linked-row {
@@ -2273,9 +2295,9 @@ body.routine-block-drag-active {
 .relationship-relation select {
   min-width: 132px;
   min-height: 44px;
-  padding: 7px 30px 7px 10px;
+  padding: 7px 30px 7px 12px;
   border: 1px solid var(--line);
-  border-radius: 0;
+  border-radius: var(--radius-control);
   background: var(--surface-2);
   color: var(--text);
   font-size: 1rem;
@@ -2336,7 +2358,7 @@ body.routine-block-drag-active {
     height: min(92dvh, 860px);
     max-height: min(92dvh, 860px);
     margin: auto;
-    border-radius: 16px;
+    border-radius: var(--radius-sheet);
   }
 }
 
@@ -2353,19 +2375,26 @@ body.routine-block-drag-active {
 /* Settings screen */
 
 .settings-page {
+  padding: var(--space-4) 4px 0;
   display: grid;
   gap: var(--space-6);
-  padding-top: var(--space-4);
 }
 
 .settings-page h2 {
   margin: 0;
   color: var(--faint);
   font-family: var(--font-label);
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.settings-page .selection-row {
+  padding: 8px 14px 8px 16px;
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--surface);
 }
 
 .settings-heading {
@@ -2391,7 +2420,7 @@ body.routine-block-drag-active {
 .rule-section ul {
   margin: 0;
   color: var(--text-muted);
-  font-size: 0.84rem;
+  font-size: 0.88rem;
 }
 
 .stacked-actions {
@@ -2404,13 +2433,15 @@ body.routine-block-drag-active {
 }
 
 .rule-section {
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--border);
+  padding: 14px 16px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
 }
 
 .rule-section h3 {
   margin: 0 0 6px;
-  font-size: 0.95rem;
+  font-size: 1rem;
+  font-weight: 700;
 }
 
 .rule-section ul {
@@ -2422,8 +2453,9 @@ body.routine-block-drag-active {
 }
 
 .settings-recovery {
-  padding: var(--space-3);
+  padding: 14px 16px;
   border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
   background: var(--surface);
   display: grid;
   gap: var(--space-3);
@@ -2443,7 +2475,7 @@ body.routine-block-drag-active {
 
 .log-sheet {
   max-height: min(88dvh, 860px);
-  padding: 0 var(--space-4) max(var(--space-4), env(safe-area-inset-bottom));
+  padding: 0 20px max(var(--space-4), env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
 }
@@ -2465,7 +2497,7 @@ body.routine-block-drag-active {
 }
 
 .log-actions {
-  padding-top: 10px;
+  padding-top: 12px;
   border-top: 1px solid var(--line);
 }
 
@@ -2477,28 +2509,36 @@ body.routine-block-drag-active {
 
 .log-choices button {
   min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--line);
+  padding: 0 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 22px;
   background: transparent;
-  color: var(--text-muted);
-  font-size: 0.82rem;
-  font-weight: 600;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 500;
   white-space: nowrap;
 }
 
 .log-choices button[aria-pressed="true"] {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent-on-soft);
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 600;
 }
 
 .log-history {
-  padding: 0 12px 8px;
+  padding: 2px 14px 10px;
+  border-radius: 14px;
   background: var(--surface-2);
 }
 
 .log-history .set-chip {
-  background: var(--surface);
+  padding: 3px 7px;
+  background: var(--chip-raised);
+}
+
+.log-history .set-chip.is-drop {
+  background: transparent;
 }
 
 .log-history-head {
@@ -2512,9 +2552,9 @@ body.routine-block-drag-active {
   margin: 0;
   color: var(--faint);
   font-family: var(--font-label);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -2523,8 +2563,8 @@ body.routine-block-drag-active {
 }
 
 .log-history-row {
-  min-height: 40px;
-  padding: 3px 0;
+  min-height: 42px;
+  padding: 4px 0;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -2537,7 +2577,7 @@ body.routine-block-drag-active {
 }
 
 .log-history-date strong {
-  font-size: 0.8rem;
+  font-size: 0.86rem;
   white-space: nowrap;
 }
 
@@ -2557,20 +2597,22 @@ body.routine-block-drag-active {
 
 .log-table {
   display: grid;
-  gap: 2px;
+  gap: 4px;
 }
 
 .log-row {
-  min-height: 48px;
+  min-height: 50px;
   padding: 0 4px;
+  border-radius: 12px;
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 84px 60px 44px;
+  grid-template-columns: 44px minmax(0, 1fr) 84px 60px 44px;
   column-gap: 6px;
   align-items: center;
 }
 
 .log-row-head {
   min-height: 24px;
+  white-space: nowrap;
 }
 
 .log-row-head span:nth-child(3),
@@ -2580,28 +2622,63 @@ body.routine-block-drag-active {
 
 .log-set-label {
   color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.94rem;
   font-weight: 600;
   text-align: center;
 }
 
-.log-row.is-drop .log-set-label {
+.log-last-cell {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.log-drop-tag {
+  flex: none;
   color: var(--accent-on-soft);
   font-family: var(--font-label);
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+.log-remove {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+}
+
+.log-remove svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 2.2;
+}
+
+.log-remove:active {
+  background: var(--press);
 }
 
 .log-last {
   justify-self: start;
   min-height: 44px;
   padding: 0;
+  display: inline-flex;
+  align-items: center;
   border: 0;
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.88rem;
+  font-size: 0.94rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   text-align: left;
@@ -2615,8 +2692,8 @@ body.routine-block-drag-active {
 .log-field {
   height: 44px;
   padding: 0 8px;
-  border-radius: 6px;
-  background: var(--surface-2);
+  border-radius: 10px;
+  background: var(--field);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2630,12 +2707,13 @@ body.routine-block-drag-active {
 .log-field input {
   width: 100%;
   min-width: 0;
+  flex: 1 1 auto;
   padding: 0;
   border: 0;
   outline: none;
   background: transparent;
   color: var(--text);
-  font: 600 16px/1 var(--font-body);
+  font: 600 17px/1 var(--font-body);
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
@@ -2649,6 +2727,13 @@ body.routine-block-drag-active {
   font-size: 0.75rem;
 }
 
+/* Weight fields keep the number next to its "kg". */
+.log-field:has(span) input {
+  width: auto;
+  flex: 0 1 2.7em;
+  text-align: right;
+}
+
 .log-row.is-done {
   background: var(--accent-soft);
 }
@@ -2657,8 +2742,18 @@ body.routine-block-drag-active {
   background: transparent;
 }
 
+/* A set with drops reads as one rounded group: the set on top, its drops below. */
+.log-set.has-drops {
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent-soft) 50%, transparent);
+}
+
+.log-set.has-drops > .log-row:first-child {
+  border-radius: 12px 12px 0 0;
+}
+
 .log-set.has-drops .log-row.is-drop.is-done {
-  background: color-mix(in srgb, var(--accent-soft) 55%, transparent);
+  background: transparent;
 }
 
 .log-tick {
@@ -2671,12 +2766,16 @@ body.routine-block-drag-active {
   place-items: center;
 }
 
+.log-tick {
+  border-radius: var(--radius-control);
+}
+
 .log-tick svg {
-  width: 28px;
-  height: 28px;
-  padding: 5px;
+  width: 30px;
+  height: 30px;
+  padding: 6px;
   border: 2px solid var(--border-strong);
-  border-radius: 7px;
+  border-radius: 8px;
   fill: none;
   stroke: transparent;
   stroke-linecap: round;
@@ -2701,12 +2800,12 @@ body.routine-block-drag-active {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.88rem;
+  font-size: 0.94rem;
   font-weight: 600;
 }
 
 .log-set > .log-add {
-  margin-left: 40px;
+  margin-left: 50px;
 }
 
 .log-add svg {
@@ -2724,7 +2823,7 @@ body.routine-block-drag-active {
 
 @media (max-width: 359px) {
   .log-row {
-    grid-template-columns: 26px minmax(0, 1fr) 72px 52px 44px;
+    grid-template-columns: 44px minmax(0, 1fr) 70px 50px 44px;
     column-gap: 4px;
   }
 
@@ -2737,7 +2836,7 @@ body.routine-block-drag-active {
 
 .history-sheet {
   height: 100%;
-  padding: 0 var(--space-4) max(var(--space-4), env(safe-area-inset-bottom));
+  padding: 0 20px max(var(--space-4), env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
 }
@@ -2760,15 +2859,16 @@ body.routine-block-drag-active {
 .history-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  gap: 8px;
 }
 
 .history-stat {
   min-width: 0;
-  padding: 10px;
+  padding: 12px;
+  border-radius: 14px;
   background: var(--surface-2);
   display: grid;
-  gap: 2px;
+  gap: 4px;
 }
 
 .history-stat span,
@@ -2782,7 +2882,8 @@ body.routine-block-drag-active {
 }
 
 .history-stat strong {
-  font-size: 0.95rem;
+  font-size: 1.05rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
@@ -2798,10 +2899,11 @@ body.routine-block-drag-active {
 
 .history-trend {
   margin: 0;
-  padding: 10px 12px 8px;
+  padding: 14px 16px 10px;
+  border-radius: var(--radius-card);
   background: var(--surface-2);
   display: grid;
-  gap: 4px;
+  gap: 6px;
 }
 
 .history-trend svg {
@@ -2832,18 +2934,26 @@ body.routine-block-drag-active {
 
 .history-sessions {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .history-session {
-  padding: 10px 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-card);
   background: var(--surface-2);
   display: grid;
-  gap: 6px;
+  gap: 10px;
 }
 
 .history-session .set-chip {
-  background: var(--surface);
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--chip-raised);
+  font-size: 0.86rem;
+}
+
+.history-session .set-chip.is-drop {
+  background: transparent;
 }
 
 .history-session header {
@@ -2854,7 +2964,7 @@ body.routine-block-drag-active {
 }
 
 .history-session header strong {
-  font-size: 0.9rem;
+  font-size: 0.98rem;
   white-space: nowrap;
 }
 
