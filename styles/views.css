@@ -2681,3 +2681,61 @@ body[data-current-view="calendar"] #appMain {
     padding-inline: var(--space-3);
   }
 }
+
+/* Settings screen */
+
+.settings-page {
+  display: grid;
+  gap: var(--space-6);
+  padding-top: var(--space-4);
+}
+
+.settings-page h2 {
+  margin: 0;
+  color: var(--faint);
+  font-family: var(--font-label);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.settings-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* A full 44px tap target that doesn't make this heading taller than the others. */
+.settings-heading .text-button {
+  min-width: 44px;
+  margin-block: -12px;
+}
+
+.settings-page .settings-rules {
+  border-top: 0;
+}
+
+/* Under 16px, iOS zooms the page in when the field is focused. */
+.settings-page .field textarea {
+  font-size: 1rem;
+}
+
+.rule-section > :not(h3) + :not(h3) {
+  margin-top: var(--space-1);
+}
+
+.settings-recovery {
+  padding: var(--space-3);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.settings-recovery strong {
+  margin-bottom: 2px;
+  color: var(--text);
+  display: block;
+}
