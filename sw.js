@@ -41,6 +41,7 @@ const FILES = [
 
 const CACHE_PREFIX = "gym-schedule-";
 const CACHE = `${CACHE_PREFIX}${VERSION}`;
+const APP_PAGES = [new URL("./", self.location).href, new URL("./index.html", self.location).href];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -62,6 +63,10 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin) return;
   if (request.mode === "navigate") {
+    // Only the app's own address opens the cached app; other pages (the phone
+    // preview in tools/) load normally.
+    const { origin, pathname } = new URL(request.url);
+    if (!APP_PAGES.includes(origin + pathname)) return;
     event.respondWith(caches.match("./index.html").then((cached) => cached || fetch(request)));
     return;
   }

@@ -25,7 +25,7 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 | `styles/` | `base.css` (tokens, layout), `components.css`, `views.css` |
 | `sw.js` | Offline cache; its file list and version are stamped by `npm run check` |
 | `tests/` | Unit tests (`*.test.mjs`) and browser tests (`e2e/`) |
-| `tools/` | Check, preview server, screenshots and visual diff |
+| `tools/` | Check, preview server, the owner's phone preview page, screenshots and visual diff |
 | `references/` | Design mock-ups and the starting program's source; not loaded by the app |
 
 ## Rules
@@ -42,7 +42,7 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 
 - `npm run check` — stamps `sw.js`, syntax-checks every script, runs the unit tests. Run it before every commit and commit the stamped `sw.js`.
 - `npm run e2e` — browser tests of every screen (one-time setup: `npm install` and `npx playwright install chromium`).
-- `npm run preview` — serves the app at `http://127.0.0.1:4173/`. `npm run preview -- --lan` also prints an address a phone on the same Wi-Fi can open.
+- `npm run preview` — serves the app at `http://127.0.0.1:4173/`. `npm run preview -- --lan` also prints an address a phone on the same Wi-Fi can open. The owner watches changes at `/tools/iphone-preview.html`, which refreshes after every save; keep it working.
 - For UI changes, look at the result at 393 × 852 and 320 × 700 in both themes (`npm run screenshots -- <folder>` captures every screen and dialog; `tools/visual-diff.mjs` compares two runs).
 
 ## Releasing

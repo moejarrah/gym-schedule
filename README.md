@@ -13,6 +13,8 @@ npm run preview          # open http://127.0.0.1:4173/
 npm run preview -- --lan # also prints an address your phone can open on the same Wi-Fi
 ```
 
+While it runs, http://127.0.0.1:4173/tools/iphone-preview.html shows the app in an iPhone-sized frame that refreshes by itself whenever you save a change. Stop the preview with Ctrl+C in the terminal.
+
 ## Checking changes
 
 ```bash
