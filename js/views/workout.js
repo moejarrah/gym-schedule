@@ -181,6 +181,7 @@ registerActions({
   "select-routine": (button) => {
     const result = store.update((draft) => setActiveRoutine(draft, button.dataset.id));
     if (!report(result)) return;
+    list.rows.scrollTop = 0; // a different routine starts at its first exercise
     render();
     // Re-rendering resets the tab strip's scroll; this also covers the Program screen.
     revealSelectedTab(mainElement());
