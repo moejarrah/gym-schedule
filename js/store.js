@@ -206,11 +206,12 @@ export function stateProblem(state) {
       }
       checks += checked.length;
     }
-    // Logs stay in history after their routine or slot is deleted; they need their exercise.
+    // Logs are history: they stay after their routine, slot or exercise is deleted,
+    // so they carry the exercise's name and the unit they were logged in.
     if (!isRecord(session.logs)) return `${where}: logs`;
-    for (const [entryId, log] of Object.entries(session.logs)) {
-      if (!isId(entryId) || !isRecord(log) || !isId(log.routineId) || !exerciseById.has(log.exerciseId)) return `${where}: log ${entryId}`;
-      if (!Array.isArray(log.sets) || !log.sets.length || !log.sets.every(isLoggedSet)) return `${where}: sets for ${entryId}`;
+    for (const [key, log] of Object.entries(session.logs)) {
+      if (!isId(key) || !isRecord(log) || !isId(log.routineId) || !isId(log.exerciseId) || !isName(log.exerciseName) || !["reps", "sec"].includes(log.unit)) return `${where}: log ${key}`;
+      if (!Array.isArray(log.sets) || !log.sets.length || !log.sets.every(isLoggedSet)) return `${where}: sets for ${key}`;
     }
     if (!session.routineIds.length && !checks && !session.note && !Object.keys(session.logs).length) return `${where}: empty`;
   }

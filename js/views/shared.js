@@ -1,7 +1,7 @@
 // Markup pieces used by more than one screen.
 
 import { escapeHtml, formatDate } from "../dom.js";
-import { dateFromKey, exerciseById, isTimedPrescription } from "../model.js";
+import { dateFromKey, exerciseById } from "../model.js";
 
 export const locationLabel = (group) => (group === "home" ? "Home" : "Gym");
 
@@ -56,15 +56,6 @@ export function shortDate(dateKey) {
   const date = dateFromKey(dateKey);
   const sameYear = date.getFullYear() === new Date().getFullYear();
   return formatDate(date, { weekday: "short", day: "numeric", month: "short", ...(sameYear ? {} : { year: "numeric" }) });
-}
-
-// Whether an exercise is done for time: any of its prescriptions in a routine says
-// seconds, or else its default prescription does.
-export function exerciseIsTimed(state, exerciseId) {
-  const prescriptions = state.routines.flatMap((routine) => routine.entries.flatMap((entry) => entry.choices))
-    .filter((choice) => choice.exerciseId === exerciseId).map((choice) => choice.prescription);
-  const exercise = exerciseById(state, exerciseId);
-  return (prescriptions.length ? prescriptions : [exercise?.defaultPrescription || ""]).some(isTimedPrescription);
 }
 
 // Plain text for one lift: "50 kg × 10", "12 reps" without weight, "45 s" when timed.

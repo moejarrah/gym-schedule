@@ -260,7 +260,7 @@ function exerciseDeletionMessage(exercise, impact) {
     `Delete “${exercise.name}”?`,
     `Programmed use: ${plural(impact.programmedUses, "slot")}.`,
     routineCleanup,
-    `Related links removed: ${impact.relatedLinksRemoved}. This cannot be undone.`,
+    `Related links removed: ${impact.relatedLinksRemoved}. Its logged sets stay in Log. This cannot be undone.`,
   ].join(" ");
 }
 

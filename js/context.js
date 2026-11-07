@@ -16,7 +16,7 @@ export function registerView(id, view) {
   views.set(id, view);
 }
 
-// registerActions({ "toggle-entry-check": (button, event) => … })
+// registerActions({ "open-logger": (button, event) => … })
 // Any element inside the main area with data-action="name" runs that handler on click.
 export function registerActions(map) {
   for (const [name, handler] of Object.entries(map)) {

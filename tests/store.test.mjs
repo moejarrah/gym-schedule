@@ -56,11 +56,14 @@ test("validation catches structural problems that would corrupt data", async (t)
     "an empty session": [/empty/, (s) => { s.sessions["2026-10-01"] = { routineIds: [], checkedEntryIdsByRoutine: {}, note: "", logs: {} }; }],
     "an impossible date key": [/session 2026-02-30/, (s) => { s.sessions["2026-02-30"] = { routineIds: [], checkedEntryIdsByRoutine: {}, note: "x", logs: {} }; }],
     "a session without a set log": [/logs/, (s) => { s.sessions["2026-10-01"] = { routineIds: [], checkedEntryIdsByRoutine: {}, note: "x" }; }],
-    "a log of an unknown exercise": [/log e1/, (s) => {
-      s.sessions["2026-10-01"] = { routineIds: [], checkedEntryIdsByRoutine: {}, note: "", logs: { e1: { routineId: "r", exerciseId: "nope", sets: [{ kg: 1, reps: 1, drops: [] }] } } };
+    "a log without the exercise's name": [/log e1/, (s) => {
+      s.sessions["2026-10-01"] = { routineIds: [], checkedEntryIdsByRoutine: {}, note: "", logs: { e1: { routineId: "r", exerciseId: "x", unit: "reps", sets: [{ kg: 1, reps: 1, drops: [] }] } } };
+    }],
+    "a log with an unknown unit": [/log e1/, (s) => {
+      s.sessions["2026-10-01"] = { routineIds: [], checkedEntryIdsByRoutine: {}, note: "", logs: { e1: { routineId: "r", exerciseId: "x", exerciseName: "X", unit: "lb", sets: [{ kg: 1, reps: 1, drops: [] }] } } };
     }],
     "a logged set with fractional reps": [/sets for e1/, (s) => {
-      s.sessions["2026-10-01"] = { routineIds: [], checkedEntryIdsByRoutine: {}, note: "", logs: { e1: { routineId: "r", exerciseId: s.exercises[0].id, sets: [{ kg: 1, reps: 1.5, drops: [] }] } } };
+      s.sessions["2026-10-01"] = { routineIds: [], checkedEntryIdsByRoutine: {}, note: "", logs: { e1: { routineId: "r", exerciseId: "x", exerciseName: "X", unit: "reps", sets: [{ kg: 1, reps: 1.5, drops: [] }] } } };
     }],
   };
   for (const [name, [problem, breakIt]] of Object.entries(broken)) {

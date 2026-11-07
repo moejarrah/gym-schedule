@@ -88,20 +88,23 @@ export function isEntryChecked(state, dateKey, routineId, entryId) {
   return Boolean(state.sessions[dateKey]?.checkedEntryIdsByRoutine?.[routineId]?.includes(entryId));
 }
 
-// The sets logged for a routine slot on a date: { routineId, exerciseId, sets } or null.
+// The sets logged today-or-any-date for a routine slot, as long as they belong to
+// one of the slot's current choices: { routineId, exerciseId, exerciseName, unit, sets } or null.
 export function entryLog(state, dateKey, entryId) {
-  return state.sessions[dateKey]?.logs?.[entryId] || null;
+  const log = state.sessions[dateKey]?.logs?.[entryId];
+  const entry = state.routines.flatMap((routine) => routine.entries).find((item) => item.id === entryId);
+  return log && entry?.choices.some((choice) => choice.exerciseId === log.exerciseId) ? log : null;
 }
 
 // Logged sessions of a master exercise from any routine, newest first:
-// [{ dateKey, routineId, sets }]. `beforeDateKey` leaves out that day and later.
+// [{ dateKey, routineId, unit, sets }]. `beforeDateKey` leaves out that day and later.
 export function exerciseHistory(state, exerciseId, { beforeDateKey = "", limit = Infinity } = {}) {
   const items = [];
   for (const dateKey of Object.keys(state.sessions).sort().reverse()) {
     if (items.length >= limit) break;
     if (beforeDateKey && dateKey >= beforeDateKey) continue;
     for (const log of Object.values(state.sessions[dateKey].logs)) {
-      if (log.exerciseId === exerciseId) items.push({ dateKey, routineId: log.routineId, sets: log.sets });
+      if (log.exerciseId === exerciseId) items.push({ dateKey, routineId: log.routineId, unit: log.unit, sets: log.sets });
     }
   }
   return items.slice(0, limit);
@@ -113,9 +116,10 @@ export function plannedSetCount(prescription) {
   return match ? Math.min(10, Math.max(1, Number(match[2] || match[1]))) : 1;
 }
 
-// Timed work ("2 × 15–30 sec/side", "3 × 45s") is logged in seconds instead of reps.
+// Timed work ("2 × 15–30 sec/side", "3 × 45s", "5 × 8–10-sec holds") is logged in
+// seconds instead of reps: the amount after "×" is in seconds.
 export function isTimedPrescription(prescription) {
-  return /\d\s*(?:s|secs?|seconds?)\b/i.test(prescription);
+  return /[×x]\s*\d+(?:\s*[–-]\s*\d+)?[\s-]*(?:s|secs?|seconds?)\b/i.test(prescription);
 }
 
 export function exerciseDeletionImpact(state, exerciseId) {
@@ -205,15 +209,17 @@ function cleanKg(value) {
 
 function cleanReps(value) {
   const reps = Number(String(value ?? "").trim());
-  if (String(value ?? "").trim() === "" || !Number.isInteger(reps) || reps < 0 || reps > 1000) fail("Enter whole reps for each ticked set.");
+  if (String(value ?? "").trim() === "" || !Number.isInteger(reps) || reps < 0 || reps > 1000) fail("Enter whole reps for each set.");
   return reps;
 }
 
 // Saves the ticked sets for a routine slot on a date: [{ kg, reps, drops: [{ kg, reps }] }].
 // kg may be blank (no weight used). An empty list removes the log.
+// The unit is fixed when the sets are saved, so later prescription edits don't
+// change what old sets meant.
 export function saveEntrySets(state, { routineId, entryId, exerciseId, sets, dateKey = localDateKey() }) {
   const { entry } = findEntry(state, routineId, entryId);
-  if (!entry.choices.some((choice) => choice.exerciseId === exerciseId)) fail("That exercise isn't a choice in this slot any more.");
+  const choice = entry.choices.find((item) => item.exerciseId === exerciseId) || fail("That exercise isn't a choice in this slot any more.");
   if (!isDateKey(dateKey)) fail("That date isn't valid.");
   const clean = sets.map((set) => ({
     kg: cleanKg(set.kg),
@@ -221,8 +227,18 @@ export function saveEntrySets(state, { routineId, entryId, exerciseId, sets, dat
     drops: (set.drops || []).map((drop) => ({ kg: cleanKg(drop.kg), reps: cleanReps(drop.reps) })),
   }));
   const session = sessionFor(state, dateKey);
-  if (clean.length) session.logs[entryId] = { routineId, exerciseId, sets: clean };
-  else delete session.logs[entryId];
+  // Sets logged earlier today for an exercise that has since left the slot stay in history.
+  const earlier = session.logs[entryId];
+  if (earlier && !entry.choices.some((item) => item.exerciseId === earlier.exerciseId)) {
+    session.logs[`${entryId}:${earlier.exerciseId}`] = earlier;
+    delete session.logs[entryId];
+  }
+  if (clean.length) {
+    const exerciseName = exerciseById(state, exerciseId).name;
+    session.logs[entryId] = { routineId, exerciseId, exerciseName, unit: isTimedPrescription(choice.prescription) ? "sec" : "reps", sets: clean };
+  } else {
+    delete session.logs[entryId];
+  }
   writeSession(state, dateKey, session);
 }
 
@@ -433,6 +449,7 @@ export function saveExercise(state, exercise, relatedExercises) {
 
 // Deletes a master exercise: removes it from every choice list (promoting the
 // next choice), deletes slots left with no choice, and removes related links.
+// Logged sets of it stay in history.
 export function removeExercise(state, exerciseId) {
   if (!exerciseById(state, exerciseId)) fail("That exercise no longer exists.");
   const deletedEntries = new Set();
@@ -448,15 +465,8 @@ export function removeExercise(state, exerciseId) {
       return false;
     });
   }
+  // Its logged sets stay in Log under the name it had.
   dropChecks(state, (_, entryId) => deletedEntries.has(entryId));
-  // Its logged sets go too: history is shown per exercise, and it no longer exists.
-  for (const [dateKey, saved] of Object.entries(state.sessions)) {
-    const session = sessionFor(state, dateKey);
-    for (const [entryId, log] of Object.entries(saved.logs)) {
-      if (log.exerciseId === exerciseId) delete session.logs[entryId];
-    }
-    writeSession(state, dateKey, session);
-  }
 }
 
 // ---------- settings ----------

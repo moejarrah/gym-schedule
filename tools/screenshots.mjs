@@ -137,7 +137,7 @@ const SHOTS = [
     await main(page).getByRole("button", { name: "Log sets for Machine chest press" }).click();
     await page.locator("#logDialog").getByLabel("Weight for set 1, kg").fill("50");
     await page.locator("#logDialog").getByLabel("Reps for set 1").fill("10");
-    await page.locator("#logDialog").getByRole("button", { name: "Tick set 1" }).click();
+    await page.locator("#logDialog").getByRole("button", { name: "Set 1 done", exact: true }).click();
     await page.locator("#logDialog").getByRole("button", { name: "Drop set" }).click();
     await shown(page.locator("#logDialog"));
   }],

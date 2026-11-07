@@ -8,7 +8,7 @@ Things a desktop browser can't fully confirm:
 - [ ] Tapping a text field in an editor doesn't zoom the page.
 - [ ] Pressing Go/Enter on the keyboard in an editor saves.
 - [ ] After an update, the installed app reloads once and shows the new version in Settings.
-- [ ] Logging sheet: the number keypad appears for weight and reps, and the sheet stays usable with the keyboard open.
+- [ ] Logging sheet: the number keypad appears for weight and reps, and the sheet stays usable with the keyboard open. (The iPhone number keypad has no Return key, so a set is ticked with its tick button.)
 
 ## Next
 

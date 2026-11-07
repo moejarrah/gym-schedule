@@ -46,14 +46,14 @@ appTest("logging: last 3 times, suggested values, drop chains, and Done shows th
   await expect(history).not.toContainText("Oct 7");
 
   // One row per planned set (2 × 8–12), with last time's values in grey.
-  await expect(sheet.getByRole("button", { name: /^Tick set \d$/ })).toHaveCount(2);
+  await expect(sheet.getByRole("button", { name: /^Set \d done$/ })).toHaveCount(2);
   await expect(sheet.getByLabel("Weight for set 1, kg")).toHaveAttribute("placeholder", "50");
   await expect(sheet.getByLabel("Reps for set 2")).toHaveAttribute("placeholder", "9");
-  await expect(sheet.getByRole("button", { name: "Use last time for set 1: 50 kg × 10" })).toBeVisible();
+  await expect(sheet.getByRole("button", { name: "50 × 10, copy last time to set 1" })).toBeVisible();
 
   // Ticking an empty row takes the suggestion; Enter in a field ticks its row.
-  await sheet.getByRole("button", { name: "Tick set 1" }).click();
-  await expect(sheet.getByRole("button", { name: "Untick set 1" })).toHaveAttribute("aria-pressed", "true");
+  await sheet.getByRole("button", { name: "Set 1 done", exact: true }).click();
+  await expect(sheet.getByRole("button", { name: "Set 1 done", exact: true })).toHaveAttribute("aria-pressed", "true");
   await sheet.getByLabel("Weight for set 2, kg").fill("52,5");
   await sheet.getByLabel("Reps for set 2").fill("8");
   await sheet.getByLabel("Reps for set 2").press("Enter");
@@ -63,7 +63,7 @@ appTest("logging: last 3 times, suggested values, drop chains, and Done shows th
   // here, so it's the suggestion; a drop beyond last time's suggests ~80% of the one before.
   await sheet.getByRole("button", { name: "Drop set" }).click();
   await expect(sheet.getByLabel("Weight for drop 1 after set 2, kg")).toHaveAttribute("placeholder", "40");
-  await sheet.getByRole("button", { name: "Tick drop 1 after set 2" }).click();
+  await sheet.getByRole("button", { name: "Drop 1 after set 2 done" }).click();
   await sheet.getByRole("button", { name: "Another drop" }).click();
   await expect(sheet.getByLabel("Weight for drop 2 after set 2, kg")).toHaveAttribute("placeholder", "32.5");
   await sheet.getByLabel("Weight for drop 2 after set 2, kg").fill("30");
@@ -89,22 +89,27 @@ appTest("logging: a tick needs reps, unticking a set removes it with its drops, 
   await numberButton(page, "Low-incline dumbbell press").click();
   const sheet = sheetOf(page);
   await expect(sheet.getByRole("region", { name: "Last 3 times" })).toContainText("No sets logged for this exercise yet.");
-  await expect(sheet.getByRole("button", { name: /^Tick set \d$/ })).toHaveCount(3);
+  await expect(sheet.getByRole("button", { name: /^Set \d done$/ })).toHaveCount(3);
 
-  await sheet.getByRole("button", { name: "Tick set 1" }).click();
-  await expect(sheet.getByRole("alert")).toHaveText("Enter whole reps for each ticked set.");
-  await expect(sheet.getByRole("button", { name: "Tick set 1" })).toHaveAttribute("aria-pressed", "false");
+  await sheet.getByRole("button", { name: "Set 1 done", exact: true }).click();
+  await expect(sheet.getByRole("alert")).toHaveText("Enter whole reps for each set.");
+  await expect(sheet.getByRole("button", { name: "Set 1 done", exact: true })).toHaveAttribute("aria-pressed", "false");
 
   await sheet.getByLabel("Weight for set 1, kg").fill("20");
   await sheet.getByLabel("Reps for set 1").fill("10");
-  await sheet.getByRole("button", { name: "Tick set 1" }).click();
+  await sheet.getByRole("button", { name: "Set 1 done", exact: true }).click();
   await expect(sheet.locator("[data-dialog-error]")).toBeEmpty();
   await sheet.getByRole("button", { name: "Drop set" }).click();
-  await sheet.getByRole("button", { name: "Tick drop 1 after set 1" }).click();
+  await sheet.getByRole("button", { name: "Drop 1 after set 1 done" }).click();
   assert.deepEqual((await savedLog(page, "push-a-glutes-entry-001")).sets, [{ kg: 20, reps: 10, drops: [{ kg: 15, reps: 10 }] }]);
 
-  await sheet.getByRole("button", { name: "Untick set 1" }).click();
+  // Unticking the set takes its drop out of the log; ticking it again brings the drop back.
+  await sheet.getByRole("button", { name: "Set 1 done", exact: true }).click();
   assert.equal(await savedLog(page, "push-a-glutes-entry-001"), null);
+  await expect(sheet.getByRole("button", { name: "Drop 1 after set 1 done" })).toHaveAttribute("aria-pressed", "false");
+  await sheet.getByRole("button", { name: "Set 1 done", exact: true }).click();
+  assert.deepEqual((await savedLog(page, "push-a-glutes-entry-001")).sets, [{ kg: 20, reps: 10, drops: [{ kg: 15, reps: 10 }] }]);
+  await sheet.getByRole("button", { name: "Set 1 done", exact: true }).click();
 
   await sheet.getByRole("button", { name: "Close", exact: true }).click();
   await expect(sheet).toBeHidden();
@@ -136,7 +141,7 @@ appTest("logging: a multi-choice slot logs the choice you did, and the Log day s
   await choices.getByRole("button", { name: "Assisted neutral-grip pull-up" }).click();
   await expect(sheet.getByRole("heading", { name: "Assisted neutral-grip pull-up" })).toBeVisible();
   await sheet.getByLabel("Reps for set 1").fill("8");
-  await sheet.getByRole("button", { name: "Tick set 1" }).click();
+  await sheet.getByRole("button", { name: "Set 1 done", exact: true }).click();
   await sheet.getByRole("button", { name: "Done", exact: true }).click();
   const log = await savedLog(page, "pull-a-entry-001");
   assert.equal(log.sets[0].kg, null, "no weight typed: a bodyweight set");
@@ -150,4 +155,18 @@ appTest("logging: a multi-choice slot logs the choice you did, and the Log day s
   await expect(day.getByText("Logged sets")).toBeVisible();
   await expect(day.locator(".day-log-row")).toContainText("Assisted neutral-grip pull-up");
   await expect(day.locator(".day-log-row")).toContainText(/8\s*reps/);
+});
+
+appTest("logging: once done, the sheet's Close also saves rows typed in but not ticked", async ({ page }) => {
+  await numberButton(page, "Machine overhead press").click();
+  const sheet = sheetOf(page);
+  await sheet.getByLabel("Weight for set 1, kg").fill("35");
+  await sheet.getByLabel("Reps for set 1").fill("12");
+  await sheet.getByRole("button", { name: "Done", exact: true }).click();
+  await numberButton(page, "Machine overhead press").click();
+  await expect(sheet.getByRole("button", { name: "Set 1 done", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await sheet.getByLabel("Reps for set 2").fill("10");
+  await sheet.locator(".log-actions").getByRole("button", { name: "Close", exact: true }).click();
+  await expect(sheet).toBeHidden();
+  assert.deepEqual((await savedLog(page, "push-a-glutes-entry-002")).sets, [{ kg: 35, reps: 12, drops: [] }, { kg: 35, reps: 10, drops: [] }]);
 });

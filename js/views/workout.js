@@ -11,7 +11,6 @@ import {
   entryLog,
   entryNumber,
   isEntryChecked,
-  isTimedPrescription,
   localDateKey,
   programRoutines,
   routineById,
@@ -79,11 +78,10 @@ function pageMarkup(state, program, routine) {
 }
 
 // Today's sets as small boxes; drops are counted rather than shown.
-function loggedSetsMarkup(entry, log) {
+function loggedSetsMarkup(log) {
   if (!log) return "";
-  const choice = entry.choices.find((item) => item.exerciseId === log.exerciseId) || entry.choices[0];
   const drops = log.sets.reduce((count, set) => count + set.drops.length, 0);
-  return `<span class="set-chips workout-sets">${setChipsMarkup(log.sets, { timed: isTimedPrescription(choice.prescription), drops: false })}${drops ? `<span class="set-chips-more">+ ${drops} drop${drops === 1 ? "" : "s"}</span>` : ""}</span>`;
+  return `<span class="set-chips workout-sets">${setChipsMarkup(log.sets, { timed: log.unit === "sec", drops: false })}${drops ? `<span class="set-chips-more">+ ${drops} drop${drops === 1 ? "" : "s"}</span>` : ""}</span>`;
 }
 
 function entryMarkup(state, routine, entry, { checked, log, showOptionalRole }) {
@@ -106,7 +104,7 @@ function entryMarkup(state, routine, entry, { checked, log, showOptionalRole }) 
     <button class="workout-row" type="button" data-action="${multiChoice ? "open-entry-choices" : "open-workout-exercise"}" data-id="${escapeHtml(exerciseId)}" data-entry-id="${escapeHtml(entry.id)}" data-routine-id="${escapeHtml(routine.id)}" data-prescription="${escapeHtml(prescription)}" aria-label="${multiChoice ? `Open exercise choices for ${escapeHtml(name)}` : `View ${escapeHtml(name)} details`}">
       <span class="row-main">
         <span class="row-line"><span class="row-title">${escapeHtml(name)}</span><span class="row-meta">${escapeHtml(prescription)}${showOptionalRole ? `<span class="entry-role-tag">Optional</span>` : ""}</span></span>
-        ${loggedSetsMarkup(entry, log)}
+        ${loggedSetsMarkup(log)}
         ${note ? `<span class="entry-note-preview">${escapeHtml(note)}</span>` : ""}
       </span>
     </button>

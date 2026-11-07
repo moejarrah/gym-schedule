@@ -21,7 +21,8 @@ import { openExerciseHistory } from "./history.js";
 import { entryPresentation, formatKg, liftText, setChipsMarkup, shortDate } from "./shared.js";
 
 // The slot being logged and the rows on screen. Row values are the text in the
-// fields; `done` rows are the ones saved.
+// fields. A ticked set is saved with its ticked drops; unticking a set keeps its
+// drops' ticks so ticking it again brings them back.
 const sheet = { routineId: "", entryId: "", dateKey: "", choiceIndex: 0, rows: [], lastTicked: -1 };
 
 const checkIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>`;
@@ -71,13 +72,16 @@ function rowAt(setIndex, dropIndex) {
 
 const lastSession = (state) => exerciseHistory(state, current(state).choice.exerciseId, { beforeDateKey: sheet.dateKey, limit: 1 })[0];
 
-// Empty fields of a row take their grey suggestion.
+// Empty fields of a row take the grey suggestion shown in them.
 function fillRow(setIndex, dropIndex) {
   const row = rowAt(setIndex, dropIndex);
-  const hint = suggestion(lastSession(store.getState()), setIndex, dropIndex);
-  row.kg = row.kg.trim() || hint.kg;
-  row.reps = row.reps.trim() || hint.reps;
+  for (const field of ["kg", "reps"]) {
+    const input = $(`[data-field="${field}"][data-set="${setIndex}"][data-drop="${dropIndex}"]`, $("#logContent"));
+    row[field] = row[field].trim() || input?.placeholder || "";
+  }
 }
+
+const isSaved = (setIndex, dropIndex) => rowAt(setIndex, dropIndex).done && sheet.rows[setIndex].done;
 
 // Saves every ticked row. Returns false (and shows why) when the store refused it.
 function saveRows() {
@@ -92,7 +96,7 @@ function saveRows() {
   }));
   if (!report(result)) return false;
   // Show the values as saved ("47,5" becomes "47.5").
-  const saved = entryLog(store.getState(), sheet.dateKey, sheet.entryId)?.sets || [];
+  const saved = store.getState().sessions[sheet.dateKey]?.logs[sheet.entryId]?.sets || [];
   sheet.rows.filter((row) => row.done).forEach((row, index) => {
     Object.assign(row, rowFromLift(saved[index]));
     row.drops.filter((drop) => drop.done).forEach((drop, dropIndex) => Object.assign(drop, rowFromLift(saved[index].drops[dropIndex])));
@@ -103,12 +107,12 @@ function saveRows() {
 
 // ---------- markup ----------
 
-function historyMarkup(state, history, timed) {
+function historyMarkup(state, history) {
   const rows = history.map((item) => {
     const routine = routineById(state, item.routineId);
     return `<div class="log-history-row">
       <span class="log-history-date"><strong>${escapeHtml(shortDate(item.dateKey))}</strong><small>${escapeHtml(routine?.name || "Deleted routine")}</small></span>
-      <span class="set-chips">${setChipsMarkup(item.sets, { timed })}</span>
+      <span class="set-chips">${setChipsMarkup(item.sets, { timed: item.unit === "sec" })}</span>
     </div>`;
   }).join("");
   return `<section class="log-history" aria-labelledby="logHistoryTitle">
@@ -126,15 +130,19 @@ function rowMarkup({ setIndex, dropIndex, row, last, timed }) {
   const lastLift = isDrop ? last?.sets[setIndex]?.drops[dropIndex] : last?.sets[setIndex];
   const hint = suggestion(last, setIndex, dropIndex);
   const data = `data-set="${setIndex}" data-drop="${dropIndex}"`;
+  const lastTimed = last?.unit === "sec";
+  const shown = lastLift ? liftText(lastLift, lastTimed).replace(" kg", "") : "";
   const lastCell = lastLift
-    ? `<button class="log-last" type="button" data-log-action="use-last" ${data} aria-label="Use last time for ${name}: ${escapeHtml(liftText(lastLift, timed))}">${escapeHtml(liftText(lastLift, timed).replace(" kg", ""))}</button>`
+    ? `<button class="log-last" type="button" data-log-action="use-last" ${data} aria-label="${escapeHtml(shown)}, copy last time to ${name}">${escapeHtml(shown)}</button>`
     : `<span class="log-last is-empty" aria-hidden="true">—</span>`;
-  return `<div class="log-row ${row.done ? "is-done" : ""} ${isDrop ? "is-drop" : ""}">
+  const saved = isSaved(setIndex, dropIndex);
+  const label = `${name[0].toUpperCase()}${name.slice(1)} done`;
+  return `<div class="log-row ${saved ? "is-done" : ""} ${isDrop ? "is-drop" : ""}">
     <span class="log-set-label" aria-hidden="true">${isDrop ? "Drop" : setIndex + 1}</span>
     ${lastCell}
     <label class="log-field"><input type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" data-field="kg" ${data} value="${escapeHtml(row.kg)}" placeholder="${escapeHtml(hint.kg)}" aria-label="Weight for ${name}, kg"><span aria-hidden="true">kg</span></label>
     <label class="log-field"><input type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" data-field="reps" ${data} value="${escapeHtml(row.reps)}" placeholder="${escapeHtml(hint.reps)}" aria-label="${timed ? "Seconds" : "Reps"} for ${name}"></label>
-    <button class="log-tick" type="button" data-log-action="tick" ${data} aria-pressed="${row.done}" aria-label="${row.done ? "Untick" : "Tick"} ${name}">${checkIcon}</button>
+    <button class="log-tick" type="button" data-log-action="tick" ${data} aria-pressed="${saved}" aria-label="${label}">${checkIcon}</button>
   </div>`;
 }
 
@@ -142,7 +150,7 @@ function tableMarkup(last, timed) {
   const groups = sheet.rows.map((row, setIndex) => {
     const drops = row.drops.map((drop, dropIndex) => rowMarkup({ setIndex, dropIndex, row: drop, last, timed })).join("");
     const lastRow = row.drops.at(-1) || row;
-    const dropLink = setIndex === sheet.lastTicked && lastRow.done
+    const dropLink = setIndex === sheet.lastTicked && row.done && lastRow.done
       ? `<button class="log-add" type="button" data-log-action="add-drop" data-set="${setIndex}">${plusIcon}${row.drops.length ? "Another drop" : "Drop set"}</button>`
       : "";
     return `<div class="log-set ${row.drops.length ? "has-drops" : ""}">${rowMarkup({ setIndex, dropIndex: -1, row, last, timed })}${drops}${dropLink}</div>`;
@@ -174,7 +182,7 @@ function sheetMarkup(state) {
     </header>
     <div class="log-scroll">
       ${choicesMarkup(entry, state)}
-      ${historyMarkup(state, history, timed)}
+      ${historyMarkup(state, history)}
       ${tableMarkup(history[0], timed)}
       <p class="form-error" role="alert" aria-live="polite" data-dialog-error></p>
     </div>
@@ -203,13 +211,12 @@ function refresh(focusSelector) {
 
 function tick(setIndex, dropIndex) {
   const row = rowAt(setIndex, dropIndex);
-  if (!row.done && dropIndex >= 0 && !sheet.rows[setIndex].done) {
+  if (dropIndex >= 0 && !sheet.rows[setIndex].done) {
     showError("Tick the set before its drops.");
     return;
   }
   const before = structuredClone(row);
   if (!row.done) fillRow(setIndex, dropIndex);
-  else if (dropIndex < 0) row.drops.forEach((drop) => { drop.done = false; });
   row.done = !row.done;
   if (!saveRows()) {
     Object.assign(row, before);
@@ -239,20 +246,26 @@ function useLast(setIndex, dropIndex) {
   refresh(`[data-log-action="tick"][data-set="${setIndex}"][data-drop="${dropIndex}"]`);
 }
 
-// Switching to another choice moves today's sets to that exercise.
+// Switching to another choice moves today's sets to that exercise. With nothing
+// ticked yet, the rows follow the new choice's prescription.
 function choose(index) {
+  const previous = sheet.choiceIndex;
   sheet.choiceIndex = index;
-  if (sheet.rows.some((row) => row.done) && !saveRows()) return;
+  if (!sheet.rows.some((row) => row.done)) {
+    loadRows(store.getState());
+  } else {
+    while (sheet.rows.length < plannedSetCount(current(store.getState()).choice.prescription)) sheet.rows.push({ kg: "", reps: "", done: false, drops: [] });
+    if (!saveRows()) {
+      sheet.choiceIndex = previous;
+      return;
+    }
+  }
   refresh(`[data-log-action="choose"][data-index="${index}"]`);
 }
 
-// Done also saves rows that were typed in but not ticked, then marks the slot done.
+// Done (or Close once the slot is done) also saves rows that were typed in but not
+// ticked, then marks the slot done.
 function finish() {
-  const state = store.getState();
-  if (isEntryChecked(state, sheet.dateKey, sheet.routineId, sheet.entryId)) {
-    closeDialog("#logDialog");
-    return;
-  }
   const typed = [];
   sheet.rows.forEach((row, setIndex) => {
     if (!row.done && (row.kg.trim() || row.reps.trim())) typed.push([setIndex, -1]);
@@ -271,8 +284,10 @@ function finish() {
       return;
     }
   }
-  const result = store.update((draft) => setEntryChecked(draft, sheet.routineId, sheet.entryId, true, sheet.dateKey));
-  if (!report(result)) return;
+  if (!isEntryChecked(store.getState(), sheet.dateKey, sheet.routineId, sheet.entryId)) {
+    const result = store.update((draft) => setEntryChecked(draft, sheet.routineId, sheet.entryId, true, sheet.dateKey));
+    if (!report(result)) return;
+  }
   closeDialog("#logDialog");
   render();
 }

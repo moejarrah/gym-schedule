@@ -9,7 +9,7 @@
 import { mainElement, onStart, registerActions, registerView, render, store } from "../context.js";
 import { $, $$, chevronIcon, closeDialog, escapeHtml, formatDate, openDialog, report } from "../dom.js";
 import { activeProgram, dateFromKey, exerciseById, localDateKey, programRoutines, routineById, routineProgram, sessionFor, setDay } from "../model.js";
-import { exerciseIsTimed, locationLabel, setChipsMarkup } from "./shared.js";
+import { locationLabel, setChipsMarkup } from "./shared.js";
 
 const LONG_DATE = { weekday: "long", month: "long", day: "numeric", year: "numeric" };
 const RECENT_LIMIT = 8;
@@ -136,13 +136,14 @@ function routineSectionMarkup(heading, rows) {
   return `<section class="day-routine-section"><p class="form-label">${escapeHtml(heading)}</p><div class="day-check-list">${rows.join("")}</div></section>`;
 }
 
-// What was lifted that day, one exercise per row. Read-only: sets are edited from Workout.
+// What was lifted that day, one exercise per row (by the name it had when logged if
+// it has since been deleted). Read-only: sets are logged from Workout.
 function loggedSetsMarkup(state, session) {
   const logs = Object.values(session.logs);
   if (!logs.length) return "";
   const rows = logs.map((log) => `<div class="day-log-row">
-    <strong>${escapeHtml(exerciseById(state, log.exerciseId)?.name || "Exercise")}</strong>
-    <span class="set-chips">${setChipsMarkup(log.sets, { timed: exerciseIsTimed(state, log.exerciseId) })}</span>
+    <strong>${escapeHtml(exerciseById(state, log.exerciseId)?.name || log.exerciseName)}</strong>
+    <span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec" })}</span>
   </div>`).join("");
   return `<section class="day-routine-section"><p class="form-label">Logged sets</p><div class="day-log-list">${rows}</div></section>`;
 }

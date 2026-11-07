@@ -350,6 +350,8 @@ test("ticked sets are saved with weight, reps and drop chains, and cleaned up", 
   assert.deepEqual(log, {
     routineId: PUSH,
     exerciseId: chestExercise(store.getState()),
+    exerciseName: "Machine chest press",
+    unit: "reps",
     sets: [
       { kg: 50, reps: 10, drops: [] },
       { kg: 47.5, reps: 9, drops: [{ kg: 40, reps: 8 }, { kg: 32.5, reps: 7 }] },
@@ -366,8 +368,8 @@ test("bad set values are refused with a clear message", () => {
   const { store } = freshStore();
   const exerciseId = chestExercise(store.getState());
   const attempt = (sets) => (s) => saveEntrySets(s, { routineId: PUSH, entryId: CHEST, exerciseId, sets, dateKey: DAY });
-  refuse(store, attempt([{ kg: "50", reps: "" }]), "Enter whole reps for each ticked set.");
-  refuse(store, attempt([{ kg: "50", reps: "8.5" }]), "Enter whole reps for each ticked set.");
+  refuse(store, attempt([{ kg: "50", reps: "" }]), "Enter whole reps for each set.");
+  refuse(store, attempt([{ kg: "50", reps: "8.5" }]), "Enter whole reps for each set.");
   refuse(store, attempt([{ kg: "heavy", reps: "8" }]), "Enter a weight between 0 and 1000 kg.");
   refuse(store, (s) => saveEntrySets(s, { routineId: PUSH, entryId: CHEST, exerciseId: "deadlift", sets: [{ kg: 1, reps: 1 }], dateKey: DAY }), "That exercise isn't a choice in this slot any more.");
 });
@@ -403,19 +405,46 @@ test("exercise history comes from any routine, newest first, and can leave out t
   assert.deepEqual(before.map((item) => item.dateKey), ["2026-10-03"]);
 });
 
-test("logged sets survive deleting their slot or routine, but go with their exercise", () => {
+test("logged sets survive deleting their slot, routine or exercise", () => {
   const { store } = freshStore();
   const exerciseId = chestExercise(store.getState());
   logSets(store, DAY, [{ kg: 50, reps: 10 }]);
   save(store, (s) => removeEntry(s, PUSH, CHEST));
   assert.equal(exerciseHistory(store.getState(), exerciseId).length, 1, "removing the slot keeps the history");
+  assert.equal(entryLog(store.getState(), DAY, CHEST), null, "but it's no longer today's log of a slot");
   save(store, (s) => removeRoutine(s, PUSH));
   assert.equal(exerciseHistory(store.getState(), exerciseId).length, 1, "deleting the routine keeps the history");
   save(store, (s) => removeExercise(s, exerciseId));
-  assert.equal(day(store.getState()), undefined, "deleting the exercise removes its sets and the now-empty day");
+  const [kept] = Object.values(day(store.getState()).logs);
+  assert.equal(kept.exerciseName, "Machine chest press", "deleting the exercise keeps its sets under its name");
+});
+
+test("sets logged for an exercise that left the slot stay in history when the slot logs its new choice", () => {
+  const { store } = freshStore();
+  const oldId = chestExercise(store.getState());
+  logSets(store, DAY, [{ kg: 50, reps: 10 }]);
+  const newId = store.getState().exercises.find((exercise) => exercise.id !== oldId).id;
+  save(store, (s) => updateEntry(s, PUSH, CHEST, { choices: [{ exerciseId: newId, prescription: "3 × 10" }] }));
+  assert.equal(entryLog(store.getState(), DAY, CHEST), null, "the old exercise's sets aren't shown as the new choice's");
+  logSets(store, DAY, [{ kg: 20, reps: 12 }]);
+  assert.equal(entryLog(store.getState(), DAY, CHEST).exerciseId, newId);
+  assert.equal(exerciseHistory(store.getState(), oldId)[0].sets[0].kg, 50, "the earlier sets are still in the old exercise's history");
+  assert.equal(Object.keys(day(store.getState()).logs).length, 2);
+});
+
+test("the unit is saved with the sets: seconds for a timed prescription", () => {
+  const { store } = freshStore();
+  const state = store.getState();
+  const routine = state.routines.find((item) => item.entries.some((entry) => isTimedPrescription(entry.choices[0].prescription)));
+  const entry = routine.entries.find((item) => isTimedPrescription(item.choices[0].prescription));
+  logSets(store, DAY, [{ kg: "", reps: 30 }], entry.id, routine.id);
+  assert.equal(entryLog(store.getState(), DAY, entry.id).unit, "sec");
 });
 
 test("a prescription says how many set rows to show and whether it's timed", () => {
   assert.deepEqual(["3 × 8–12", "1–2 × 15–25/side", "2 × 15–30 sec/side", "AMRAP"].map(plannedSetCount), [3, 2, 2, 1]);
-  assert.deepEqual(["3 × 8–12", "2 × 15–30 sec/side", "3 × 45s"].map(isTimedPrescription), [false, true, true]);
+  assert.deepEqual(
+    ["3 × 8–12", "2 × 15–30 sec/side", "3 × 45s", "5 × 8–10-sec holds", "3 × 8 (2s pause)", "3 x 10 @ 3s tempo"].map(isTimedPrescription),
+    [false, true, true, true, false, false],
+  );
 });

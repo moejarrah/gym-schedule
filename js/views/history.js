@@ -5,7 +5,7 @@
 import { store } from "../context.js";
 import { $, escapeHtml, openDialog, plural } from "../dom.js";
 import { exerciseById, exerciseHistory, routineById } from "../model.js";
-import { exerciseIsTimed, formatKg, liftText, setChipsMarkup, shortDate } from "./shared.js";
+import { formatKg, liftText, setChipsMarkup, shortDate } from "./shared.js";
 
 // The heaviest set of a session (most reps breaks a tie); sets without weight count as 0 kg.
 function topSet(sets) {
@@ -56,8 +56,9 @@ function trendMarkup(sessions) {
   </figure>`;
 }
 
-function statsMarkup(sessions, timed) {
+function statsMarkup(sessions) {
   const best = topSet(sessions.flatMap((item) => item.sets));
+  const timed = sessions.find((item) => item.sets.includes(best)).unit === "sec";
   const weights = sessions.flatMap((item) => item.sets.map((set) => set.kg)).filter((kg) => kg !== null);
   const since = sessions.length > 1 ? change(sessions[0].sets, sessions.at(-1).sets) : null;
   const tile = (label, value, kind = "") => `<div class="history-stat ${kind}"><span>${label}</span><strong>${escapeHtml(value)}</strong></div>`;
@@ -68,7 +69,7 @@ function statsMarkup(sessions, timed) {
   </div>`;
 }
 
-function sessionMarkup(state, item, older, timed) {
+function sessionMarkup(state, item, older) {
   const routine = routineById(state, item.routineId);
   const delta = older ? change(item.sets, older.sets) : null;
   return `<article class="history-session">
@@ -77,22 +78,21 @@ function sessionMarkup(state, item, older, timed) {
       <span>${escapeHtml(routine?.name || "Deleted routine")}</span>
       ${delta ? `<em class="history-change ${delta.kind}">${escapeHtml(delta.text)}</em>` : ""}
     </header>
-    <div class="set-chips">${setChipsMarkup(item.sets, { timed })}</div>
+    <div class="set-chips">${setChipsMarkup(item.sets, { timed: item.unit === "sec" })}</div>
   </article>`;
 }
 
 function historyMarkup(state, exerciseId) {
   const exercise = exerciseById(state, exerciseId);
   const sessions = exerciseHistory(state, exerciseId);
-  const timed = exerciseIsTimed(state, exerciseId);
   return `<div class="history-sheet">
     <header class="dialog-header">
       <div><h2 id="historyTitle">${escapeHtml(exercise?.name || "Exercise")}</h2><p>${sessions.length ? plural(sessions.length, "session") : "History"}</p></div>
       <button class="icon-button" type="button" data-close-dialog="historyDialog" aria-label="Close history">×</button>
     </header>
     <div class="history-scroll">
-      ${sessions.length ? `${statsMarkup(sessions, timed)}${trendMarkup(sessions)}
-        <section aria-label="Sessions" class="history-sessions">${sessions.map((item, index) => sessionMarkup(state, item, sessions[index + 1], timed)).join("")}</section>`
+      ${sessions.length ? `${statsMarkup(sessions)}${trendMarkup(sessions)}
+        <section aria-label="Sessions" class="history-sessions">${sessions.map((item, index) => sessionMarkup(state, item, sessions[index + 1])).join("")}</section>`
         : `<p class="history-empty">No sets logged for this exercise yet. Tap an exercise's number on Workout to log one.</p>`}
     </div>
   </div>`;

@@ -2561,7 +2561,7 @@ body.routine-block-drag-active {
 }
 
 .log-row {
-  min-height: 46px;
+  min-height: 48px;
   padding: 0 4px;
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) 84px 60px 44px;
@@ -2613,7 +2613,7 @@ body.routine-block-drag-active {
 }
 
 .log-field {
-  height: 38px;
+  height: 44px;
   padding: 0 8px;
   border-radius: 6px;
   background: var(--surface-2);
@@ -2692,6 +2692,7 @@ body.routine-block-drag-active {
 
 .log-add {
   justify-self: start;
+  min-width: 44px;
   min-height: 44px;
   padding: 0 2px;
   border: 0;
@@ -2705,7 +2706,6 @@ body.routine-block-drag-active {
 }
 
 .log-set > .log-add {
-  min-height: 40px;
   margin-left: 40px;
 }
 

@@ -31,7 +31,7 @@ Program
 - An **entry** is one tickable slot in a routine. It has ordered choices (the first is preferred), each with a non-blank prescription, plus its block, a programming note and a Main/Optional role. Its title is the choice names joined with "or".
 - A **master exercise** lives once in the Library and can be used by entries in any program. It has a name, aliases, a default prescription, one or two ordered primary targets, secondary targets, a movement, equipment, a purpose (Strength, Mobility or Rehab), optional style/laterality/support/emphasis/challenge, notes and cues, an optional YouTube video, and related exercises (Easier, Alternative, Harder). Editing the name never changes its identity.
 - A **day** in the history holds the routines completed that day, the entries marked done per routine, the sets logged per entry, and an optional note. Calendar and recent-history views are derived from days. A day with nothing in it isn't stored; "Rest" is just a day without a completion.
-- A **logged set** has a weight in kg (blank when no weight is used) and whole reps (seconds for timed prescriptions such as "2 × 30 sec"), plus any drop sets done straight after it, each with its own weight and reps. A log records which choice of the slot was done. History is per master exercise, from any routine.
+- A **logged set** has a weight in kg (blank when no weight is used) and whole reps, plus any drop sets done straight after it, each with its own weight and reps. A log records which choice of the slot was done, the exercise's name, and whether it was counted in reps or seconds (seconds when the prescription's amount after "×" is in seconds, e.g. "2 × 30 sec"), fixed when it's saved. History is per master exercise, from any routine.
 
 ## Completion rules
 
@@ -42,7 +42,8 @@ Program
 - Rehab exercises aren't automatically Optional; the role is set per entry.
 - On Workout, tapping the number box opens the logging sheet; tapping the rest of the row opens the exercise reference (or the choices sheet).
 - In Log, marking a routine complete for a date also ticks its Main entries; unmarking it clears that routine's ticks for the date.
-- Deleting a routine or program keeps its past completions and logged sets in the history (shown as "Deleted routine" when the routine is gone) but drops its done marks. Removing an entry drops only its done marks; its logged sets stay in the exercise's history. Deleting a master exercise also deletes its logged sets.
+- Deleting a routine or program keeps its past completions and logged sets in the history (shown as "Deleted routine" when the routine is gone) but drops its done marks. Removing an entry drops only its done marks; its logged sets stay in the exercise's history. Deleting a master exercise keeps its logged sets in Log under the name it had. If a slot's exercise is swapped in Program after sets were logged today, those sets stay in that exercise's history and the slot starts empty.
+- A day's sets belong to the date the logging sheet was opened on.
 
 ## Actions that must keep working
 
@@ -53,7 +54,7 @@ Program
 - See the routine note, its blocks and numbered slots with prescriptions and note previews.
 - Open a one-choice slot's reference directly. A multi-choice slot opens a sheet listing each choice with its own reference and video buttons.
 - In the reference, see the routine prescription and entry note separately from the master's targets, classification, notes, related exercises and video; open a related exercise; go to the master editor.
-- Log today's sets from a slot's number: the sheet shows the exercise's last 3 sessions (date, routine, every set and drop), one row per planned set (from the prescription's set count) with last time's set beside it, and grey suggestions that a tick takes when the fields are empty. Tap last time's set to copy it. Ticking saves straight away; unticking a set removes it and its drops; Enter in a field ticks its row. Add sets, and chain any number of drop sets under the set just ticked. Switch which choice a multi-choice slot is logging. Done marks the slot done (and saves rows that were typed but not ticked); Not done undoes it. There is no rest timer.
+- Log today's sets from a slot's number: the sheet shows the exercise's last 3 sessions (date, routine, every set and drop), one row per planned set (from the prescription's set count) with last time's set beside it, and grey suggestions that a tick takes when the fields are empty. Tap last time's set to copy it. Ticking saves straight away and a tick takes the grey value shown in an empty field; unticking a set takes it and its drops out of the log, and ticking it again brings the drops back; Enter in a field ticks its row (on a hardware keyboard). Add sets, and chain any number of drop sets under the set just ticked. Switch which choice a multi-choice slot is logging. Done marks the slot done, and Done or Close also save rows that were typed but not ticked; Not done undoes it; × closes without saving untyped changes. There is no rest timer.
 - See today's logged sets as small boxes under each slot's name, with drops counted.
 - Open an exercise's full history from the logging sheet or its reference: best set, heaviest weight, change since the first session, a small trend of the top set's weight, and every session with its change from the one before.
 - "Today" updates when the app is reopened on a new day.
