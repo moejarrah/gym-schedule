@@ -440,12 +440,18 @@
         // The app still works if the screen can't be restored.
       }
       reloading = false;
-      setStatus("", "Live preview connected");
+      if (lastFingerprint) setStatus("", "Live preview connected");
     });
 
     async function checkForChanges() {
       try {
         const response = await fetch(new URL("__changes", APP_URL), { cache: "no-store" });
+        // Opened on the published site (or another server): the phone works, refreshing doesn't.
+        if (response.status === 404) {
+          clearInterval(watcher);
+          setStatus("", "Published app: live refresh needs npm run preview");
+          return;
+        }
         if (!response.ok) throw new Error("No change feed");
         const { fingerprint } = await response.json();
         if (lastFingerprint && fingerprint !== lastFingerprint) await reloadFrame();
@@ -459,8 +465,8 @@
     document.querySelector("#reloadPreview").addEventListener("click", () => reloadFrame("Refreshing"));
     updateClock();
     setInterval(updateClock, 30000);
+    const watcher = setInterval(checkForChanges, 800);
     checkForChanges();
-    setInterval(checkForChanges, 800);
   </script>
 </body>
 </html>
