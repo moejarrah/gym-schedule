@@ -1,85 +1,54 @@
-# Gym App Working Agreement
+# Working on Gym Schedule
 
-## Start here
+A personal workout app for one person, used on an iPhone 15 Pro as an installed home-screen app. It runs fully offline; all data lives in the phone's browser storage. Plain HTML, CSS and JavaScript modules: no build step, no framework, no backend.
 
-- Read `docs/HANDOFF_STATUS.md` before meaningful work. It is the current truth after interruptions or context loss.
-- Read `docs/AUDIT.md` only when it lists a current owner-confirmed issue; `No confirmed open issues` means there is no queued work.
-- Read `docs/PRODUCT.md` before changing behavior, navigation, wording, or UI. Its user-action contract must remain reachable.
-- Follow `docs/WORKFLOW.md` for multi-file, storage-sensitive, redesign, release, or otherwise non-trivial work.
-- The newest user request controls scope. Do not revive older ideas unless they remain recorded as open work.
+## Before changing anything
 
-## Product
+- `docs/PRODUCT.md` says what the app does. Every action listed there must keep working unless the owner asks otherwise; update the file when behaviour changes.
+- `docs/TODO.md` holds planned work. The owner's newest request decides scope.
+- Each module starts with a comment saying what it owns. Read it before editing.
 
-- This is a personal, local-first phone PWA for following workouts and keeping lightweight history.
-- Optimize for correctness, local data integrity, quick one-handed use, and easy maintenance.
-- Keep the app build-free and understandable without specialized tooling.
+## Code map
 
-## Architecture boundaries
+| Path | Owns |
+| --- | --- |
+| `index.html` | Page shell, bottom navigation, every `<dialog>` |
+| `js/app.js` | Startup: loads the screens, navigation, service-worker registration |
+| `js/context.js` | The one `store`, screen and action registration, `render()`, `navigate()` |
+| `js/store.js` | Saved-data schema, validation, migrations, load/save, backups |
+| `js/model.js` | Reading data (selectors) and changing it (mutators) |
+| `js/search.js` | Exercise search and Library filters |
+| `js/vocab.js` | Fixed lists: targets, movements, equipment, … |
+| `js/seed.js` | Starting data (first launch and "Restore starting data") |
+| `js/dom.js` | DOM helpers: escaping, toasts, dialogs, confirmations, hold-to-drag |
+| `js/views/*.js` | One file per screen or editor, each with its markup and handlers |
+| `styles/` | `base.css` (tokens, layout), `components.css`, `views.css` |
+| `sw.js` | Offline cache; its file list and version are stamped by `npm run check` |
+| `tests/` | Unit tests (`*.test.mjs`) and browser tests (`e2e/`) |
+| `tools/` | Check, preview server, screenshots and visual diff |
+| `references/` | Design mock-ups and the starting program's source; not loaded by the app |
 
-- Production files are `index.html`, `styles.css`, `styles/`, `fonts/`, `data.js`, `storage.js`, `app.js`, `ui/`, `manifest.json`, `icons/`, and `sw.js`. `package.json` only identifies ES modules and exposes dependency-free checks; there is no build step.
-- Stay with vanilla HTML, CSS, and JavaScript. Do not add a framework, bundler, backend, account system, database, analytics, cloud sync, or production dependency unless the user explicitly asks.
-- Prefer a direct change over a new abstraction. Extract a helper or module only when it removes real duplication, isolates stateful logic, or makes testing materially easier.
-- If code is split, use a few plain CSS/JavaScript modules that run directly in the browser. Do not introduce a package manager solely for organization.
-- `tools/`, `references/`, and `artifacts/` are development aids or local artifacts, not production sources. Do not deploy them as app assets.
+## Rules
 
-## Data rules
+- **Saved data is the owner's real history.** Never reset or discard it. To change the saved shape: bump `SCHEMA_VERSION`, add a migration in `js/store.js`, and add a test that loads data from the previous version (see `tests/fixtures/`). Backups from older versions must keep importing.
+- Vocabulary IDs in `js/vocab.js` are stored in saved data. Labels can change; IDs change only with a migration.
+- Change data only through `store.update((draft) => mutator(draft, …))` with functions from `js/model.js`, and show the result with `report()`. Never report success after a failed save.
+- Workout content, notes and training rules are the owner's own words. Don't rewrite them.
+- Keep it simple. No framework, bundler, backend, accounts, analytics or production dependency without asking. Dev-only tools (Playwright) are fine. Add an abstraction only when it removes real duplication. Delete dead code.
+- Phone UI: works at 320 px wide; tap targets at least 44 × 44 px; form fields at least 16 px text (smaller makes iOS zoom in); light and dark themes; safe areas; pinch zoom stays on.
+- Editors don't close on a backdrop tap (only read-only sheets marked `data-dismissable` do), and Enter in a field saves.
 
-- During pre-release development, data from older schema versions is disposable. Do not add backward migrations or preserve old import formats unless the owner explicitly asks.
-- Protect current-schema saves and current-format export/import. Ordinary app actions must not clear, partially write, or silently reinterpret valid current data.
-- If a development schema change will reset current data, make that part of the slice scope instead of adding compatibility machinery.
-- Use stable IDs for persistent records. Display names are editable text, not identifiers.
-- Keep one source of truth for each fact. Derive calendar summaries and progress from completion/session records.
-- Surface failed saves or imports. Do not report success after a failed storage write.
-- Workout content, pain rules, and rehabilitation instructions are user-owned data. Do not rewrite or medically reinterpret them unless explicitly requested.
+## Checks
 
-## Change discipline
+- `npm run check` — stamps `sw.js`, syntax-checks every script, runs the unit tests. Run it before every commit and commit the stamped `sw.js`.
+- `npm run e2e` — browser tests of every screen (one-time setup: `npm install` and `npx playwright install chromium`).
+- `npm run preview` — serves the app at `http://127.0.0.1:4173/`. `npm run preview -- --lan` also prints an address a phone on the same Wi-Fi can open.
+- For UI changes, look at the result at 393 × 852 and 320 × 700 in both themes (`npm run screenshots -- <folder>` captures every screen and dialog; `tools/visual-diff.mjs` compares two runs).
 
-- Work on one narrow slice at a time. State its goal, acceptance criteria, and meaningful exclusions before editing.
-- Make the smallest complete change that solves the slice. Avoid unrelated refactors, redesigns, formatting churn, speculative edge cases, new dependencies, and optional abstractions.
-- Before a redesign, map every affected action in `docs/PRODUCT.md` from its old path to a clear new path. Visual simplification must not hide or remove behavior.
-- Preserve offline behavior, installability, light/dark themes, current data, workout meaning, completion semantics, and calendar history.
-- Do not broaden work into authentication or internet-facing security unless requested. Local data-loss prevention remains in scope.
-- Do not prioritize theoretical service-worker lifecycle cases that require the owner to deploy while actively editing. Defer them unless the owner reproduces the problem or explicitly requests that behavior.
-- Ask before adding a production dependency or changing the architecture boundary.
-- Put only reproducible issues the owner asks to track in `docs/AUDIT.md`; do not preserve rejected ideas or completed history there.
+## Releasing
 
-## Phone UI
+Pushing to `main` publishes the app on GitHub Pages. Installed apps download the new version the next time they're opened and reload once. Publish only after `npm run check` and `npm run e2e` pass; an unstamped `sw.js` means phones never see the update.
 
-- Design for the narrowest supported phone first, including 320 px width and standalone safe areas. The owner's target is iPhone 15 Pro on iOS 17.x.
-- Interactive targets should be at least 44 by 44 CSS pixels. Keep pinch zoom enabled and text comfortably readable.
-- Verify light and dark themes, visible focus, reduced motion, and status cues that do not rely on color alone.
-- Use familiar controls and plain language. Avoid decorative UI, gamification, dense dashboards, unnecessary animation, and space-wasting headings or controls.
+## Working style
 
-## Validation
-
-- Serve locally with `npm run preview` and test from `http://127.0.0.1:4173/`. `tools/iphone-preview.html` is the local iPhone-shaped interactive preview.
-- After JavaScript or manifest changes, run:
-
-  ```bash
-  node -e 'import("node:fs").then(f=>{JSON.parse(f.readFileSync("manifest.json","utf8"));console.log("manifest ok")})'
-  npm run check
-  ```
-
-- Manually exercise every changed flow. For storage work, test save, reload, undo/delete, export, import, and any explicitly approved reset as applicable.
-- For UI work, runtime-check 320 × 700 and 393 × 852, both themes, long-list scrolling, keyboard focus, safe areas, and every changed dialog/action. Static inspection is insufficient.
-- Actual Safari and installed-PWA behavior must be labeled `Device verification pending` until the owner checks it on the target iPhone.
-- When cached production assets change, update and verify the service-worker cache and offline fallback.
-- If tests are added, prefer Node's built-in `node:test`; do not add a test framework without demonstrated need.
-
-## Agents and review
-
-- Use subagents only for concrete, bounded, independent exploration or verification when requested or when the task genuinely benefits. Prefer read-only assignments.
-- Do not let multiple agents edit overlapping files. The main agent owns scope, decisions, integration, final checks, and status docs.
-- Verifiers report only correctness, regression, data-loss, accessibility, and unmet-requirement issues. Optional polish enters `docs/AUDIT.md` only when the owner asks to track it.
-
-## Definition of done
-
-- The acceptance criteria pass, existing data remains readable, every affected product action remains reachable, and unrelated behavior is unchanged.
-- Relevant automated and runtime checks pass. Device-only behavior is reported honestly and is not called done early.
-- Review the final diff, update only the docs whose truth changed, and report changed files, evidence, and remaining risks.
-
-## Maintaining these instructions
-
-- Keep this file short, practical, and stable. Add a rule only for a recurring mistake, non-obvious repository constraint, or exact verification command.
-- Put product meaning in `docs/PRODUCT.md`, work procedure in `docs/WORKFLOW.md`, current state in `docs/HANDOFF_STATUS.md`, approved future slices in `docs/IMPLEMENTATION_PLAN.md`, and open issues in `docs/AUDIT.md`. Completed history belongs in Git, not the plan or handoff.
-- Remove stale rules. Do not duplicate rules already enforced mechanically.
+Make one change at a time, in small commits with clear messages. Keep docs current; don't write status diaries, since Git has the history.

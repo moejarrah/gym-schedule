@@ -1,11 +1,15 @@
-# Local UI-tool state
+# Dependencies (dev-only: Playwright for browser tests)
+node_modules/
+
+# Local AI-tool state and backups
+.claude/
 .impeccable/
+.ai-skill-backups/
 
-# Generated runtime output
+# Generated output
 artifacts/test-results/
+test-results/
 
-# Local editable data exports
+# Local data exports and archives
 artifacts/exports/
-
-# Local historical archives
 artifacts/legacy/
