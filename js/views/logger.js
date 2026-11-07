@@ -28,6 +28,7 @@ const sheet = { routineId: "", entryId: "", dateKey: "", choiceIndex: 0, rows: [
 
 const checkIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>`;
 const plusIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>`;
+const removeIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17"/></svg>`;
 
 // ---------- data ----------
 
@@ -137,13 +138,18 @@ function rowMarkup({ setIndex, dropIndex, row, last, timed }) {
   const data = `data-set="${setIndex}" data-drop="${dropIndex}"`;
   const lastTimed = last?.unit === "sec";
   const shown = lastLift ? liftText(lastLift, lastTimed).replace(" kg", "") : "";
-  const lastCell = lastLift
+  const lastValue = lastLift
     ? `<button class="log-last" type="button" data-log-action="use-last" ${data} aria-label="${escapeHtml(shown)}, copy last time to ${name}">${escapeHtml(shown)}</button>`
     : `<span class="log-last is-empty" aria-hidden="true">—</span>`;
+  const lastCell = isDrop ? `<span class="log-last-cell"><span class="log-drop-tag">Drop</span>${lastValue}</span>` : lastValue;
+  // A drop row's first cell removes it; a set row's shows its number.
+  const firstCell = isDrop
+    ? `<button class="log-remove" type="button" data-log-action="remove-drop" ${data} aria-label="Remove ${name}">${removeIcon}</button>`
+    : `<span class="log-set-label" aria-hidden="true">${setIndex + 1}</span>`;
   const saved = isSaved(setIndex, dropIndex);
   const label = `${name[0].toUpperCase()}${name.slice(1)} done`;
   return `<div class="log-row ${saved ? "is-done" : ""} ${isDrop ? "is-drop" : ""}">
-    <span class="log-set-label" aria-hidden="true">${isDrop ? "Drop" : setIndex + 1}</span>
+    ${firstCell}
     ${lastCell}
     <label class="log-field"><input type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" data-field="kg" ${data} value="${escapeHtml(row.kg)}" placeholder="${escapeHtml(hint.kg)}" aria-label="Weight for ${name}, kg"><span aria-hidden="true">kg</span></label>
     <label class="log-field"><input type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" data-field="reps" ${data} value="${escapeHtml(row.reps)}" placeholder="${escapeHtml(hint.reps)}" aria-label="${timed ? "Seconds" : "Reps"} for ${name}"></label>
@@ -242,6 +248,20 @@ function addDrop(setIndex) {
   refresh(`[data-field="kg"][data-set="${setIndex}"][data-drop="${dropIndex}"]`);
 }
 
+// Removing a drop that was saved saves the set without it.
+function removeDrop(setIndex, dropIndex) {
+  const set = sheet.rows[setIndex];
+  const [removed] = set.drops.splice(dropIndex, 1);
+  if (removed.done && set.done && !saveRows()) {
+    set.drops.splice(dropIndex, 0, removed);
+    return;
+  }
+  const next = set.drops.length
+    ? `[data-log-action="remove-drop"][data-set="${setIndex}"][data-drop="${Math.min(dropIndex, set.drops.length - 1)}"]`
+    : `[data-log-action="tick"][data-set="${setIndex}"][data-drop="-1"]`;
+  refresh(next);
+}
+
 function addSet() {
   sheet.rows.push({ kg: "", reps: "", done: false, drops: [] });
   refresh(`[data-log-action="add-set"]`);
@@ -338,6 +358,7 @@ onStart(() => {
     const actions = {
       tick: () => tick(setIndex, dropIndex),
       "add-drop": () => addDrop(setIndex),
+      "remove-drop": () => removeDrop(setIndex, dropIndex),
       "add-set": addSet,
       "use-last": () => useLast(setIndex, dropIndex),
       choose: () => choose(Number(button.dataset.index)),

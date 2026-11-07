@@ -185,3 +185,21 @@ appTest("logging: a set unticked before Done stays out of the log", async ({ pag
   await sheet.getByRole("button", { name: "Done", exact: true }).click();
   assert.deepEqual((await savedLog(page, "push-a-glutes-entry-002")).sets, [{ kg: 35, reps: 12, drops: [] }]);
 });
+
+appTest("logging: a drop can be removed, ticked or not", async ({ page }) => {
+  await numberButton(page, "Machine overhead press").click();
+  const sheet = sheetOf(page);
+  await sheet.getByLabel("Weight for set 1, kg").fill("35");
+  await sheet.getByLabel("Reps for set 1").fill("12");
+  await sheet.getByRole("button", { name: "Set 1 done", exact: true }).click();
+  await sheet.getByRole("button", { name: "Drop set" }).click();
+  await sheet.getByRole("button", { name: "Drop 1 after set 1 done" }).click();
+  await sheet.getByRole("button", { name: "Another drop" }).click();
+  // An empty drop added by mistake goes away, and so does a ticked one.
+  await sheet.getByRole("button", { name: "Remove drop 2 after set 1" }).click();
+  await expect(sheet.getByRole("button", { name: "Drop 2 after set 1 done" })).toHaveCount(0);
+  assert.equal((await savedLog(page, "push-a-glutes-entry-002")).sets[0].drops.length, 1);
+  await sheet.getByRole("button", { name: "Remove drop 1 after set 1" }).click();
+  assert.deepEqual((await savedLog(page, "push-a-glutes-entry-002")).sets, [{ kg: 35, reps: 12, drops: [] }]);
+  await expect(sheet.getByRole("button", { name: "Drop set" })).toBeVisible();
+});
