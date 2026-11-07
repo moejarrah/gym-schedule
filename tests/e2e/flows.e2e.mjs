@@ -1085,11 +1085,11 @@ describe("Settings", () => {
     // Garbage is rejected with a visible message and nothing changes.
     await closeSettings(page);
     await importFile({ name: "garbage.json", mimeType: "application/json", buffer: Buffer.from("{ not json") });
-    await expect(settingsScopeAlert(page)).toHaveText("This backup is not compatible with this version of the app.");
+    await expect(settingsScopeAlert(page)).toHaveText("This file isn't a Gym Schedule backup.");
     await expect(dialog(page, "Import app data")).toBeHidden();
     await closeSettings(page);
     await importFile({ name: "wrong.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ schemaVersion: 1, data: {} })) });
-    await expect(settingsScopeAlert(page)).toHaveText("This backup is not compatible with this version of the app.");
+    await expect(settingsScopeAlert(page)).toHaveText("This backup couldn't be read by this version of the app.");
     assert.equal((await readState(page)).sessions["2026-11-02"].note, "After export");
     await closeSettings(page);
 
@@ -1127,13 +1127,21 @@ describe("Settings", () => {
     await expect(activeProgramButton(page)).toHaveAccessibleName(`Choose active program, currently ${PROGRAM}`);
   });
 
-  appTest("settings: owner-provided training rules are readable", async ({ page }) => {
-    const settings = await openSettings(page);
-    await expect(settings.getByRole("heading", { name: "Pain rule" })).toBeHidden();
-    await settings.getByText("Training rules").click();
+  appTest("settings: owner-provided training rules are readable and editable", async ({ page, reload }) => {
+    let settings = await openSettings(page);
     for (const heading of ["Progression", "Pain rule", "Unilateral rule", "Duplication rule"]) {
       await expect(settings.getByRole("heading", { name: heading })).toBeVisible();
     }
+    await settings.getByRole("button", { name: "Edit training rules" }).click();
+    const input = settings.getByRole("textbox", { name: "Training rules" });
+    await input.fill(`${await input.inputValue()}\n\nDeload rule\n- Every 8th week, halve the sets.`);
+    await settings.getByRole("button", { name: "Save rules" }).click();
+    await expect(toast(page)).toHaveText("Training rules saved.");
+    await reload();
+    settings = await openSettings(page);
+    await expect(settings.getByRole("heading", { name: "Deload rule" })).toBeVisible();
+    await expect(settings.getByText("Every 8th week, halve the sets.")).toBeVisible();
+    await expect(settings.getByRole("heading", { name: "Pain rule" })).toBeVisible();
   });
 });
 

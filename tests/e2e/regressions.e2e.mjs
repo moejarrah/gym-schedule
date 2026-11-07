@@ -375,10 +375,9 @@ appTest("regression j: with dark theme saved, the theme is dark before the app m
     const observer = new MutationObserver(() => {
       if (!document.body || window.__themeProbe) return;
       const main = document.querySelector("#appMain");
-      const meta = document.querySelector("#viewMetaLine");
       window.__themeProbe = {
         theme: document.documentElement.dataset.theme ?? null,
-        appRendered: Boolean(main?.children.length) || (meta ? meta.textContent !== "Loading saved data" : false),
+        appRendered: Boolean(main?.children.length),
       };
       observer.disconnect();
     });

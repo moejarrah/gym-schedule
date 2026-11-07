@@ -322,14 +322,12 @@ export async function goToView(page, label) {
   await navButton(page, label).click();
 }
 
-// --- Settings adaptation point -------------------------------------------------
-// Old app: the bottom-nav "Settings" button (aria-label "Open settings") opens <dialog id="settingsDialog">
-// named "Settings". The rewrite turns Settings into a fifth screen. Only these two helpers know which;
-// every test reaches Settings content through them.
+// --- Settings ------------------------------------------------------------------
+// Settings is the fifth screen (bottom-nav "Settings"); its content is the region named "Settings".
 
-/** Locator scoping all Settings content (old app: the Settings dialog). */
+/** Locator scoping all Settings content. */
 export function settingsScope(page) {
-  return page.getByRole("dialog", { name: "Settings" });
+  return page.getByRole("region", { name: "Settings" });
 }
 
 /** Open Settings from the bottom navigation and return the Settings scope once visible. */
@@ -340,11 +338,10 @@ export async function openSettings(page) {
   return scope;
 }
 
-/** Leave Settings (old app: close the Settings dialog with its × button). */
+/** Leave Settings by going back to the Workout screen. */
 export async function closeSettings(page) {
-  const scope = settingsScope(page);
-  await scope.getByRole("button", { name: "Close settings" }).click();
-  await expect(scope).toBeHidden();
+  await navButton(page, "Workout").click();
+  await expect(settingsScope(page)).toBeHidden();
 }
 
 /** The open <dialog> whose accessible name matches `name` (string or RegExp). */
