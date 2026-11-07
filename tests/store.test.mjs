@@ -103,7 +103,7 @@ test("unreadable saved data opens the starting data and keeps the original for r
   }
 });
 
-test("unreadable saved data isn't overwritten when its recovery copy can't be stored", { todo: "store.js load() writes the defaults anyway" }, (t) => {
+test("unreadable saved data isn't overwritten when its recovery copy can't be stored", (t) => {
   quiet(t);
   const raw = "{\"version\": 10, \"exer";
   const storage = fakeStorage({ [STORAGE_KEY]: raw });
