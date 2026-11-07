@@ -120,7 +120,7 @@ const SHOTS = [
   }],
   ["settings-import-error", async (page) => {
     await chooseImportFile(page, { name: "garbage.json", mimeType: "application/json", buffer: Buffer.from("{ not json") });
-    await expect(page.getByText("This backup is not compatible with this version of the app.")).toBeVisible();
+    await expect(page.getByText("This file isn't a Gym Schedule backup.")).toBeVisible();
   }],
 
   // ---- Workout sheets ----
