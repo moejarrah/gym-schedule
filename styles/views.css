@@ -1,3 +1,8 @@
+/* Screens and editors, in this order: Workout (with the exercise-choices sheet),
+   Program and its editors, Library and filters, Log and the day sheet, the exercise
+   editor, Settings, the logging sheet, the exercise history sheet, and the logged
+   sets shown in the day sheet. */
+
 .workout-page {
   height: 100%;
   max-width: none;

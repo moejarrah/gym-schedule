@@ -54,7 +54,7 @@ Program
 - See the routine note, its blocks and numbered slots with prescriptions and note previews.
 - Open a one-choice slot's reference directly. A multi-choice slot opens a sheet listing each choice with its own reference and video buttons.
 - In the reference, see the routine prescription and entry note separately from the master's targets, classification, notes, related exercises and video; open a related exercise; go to the master editor.
-- Log today's sets from a slot's number: the sheet shows the exercise's last 3 sessions (date, routine, every set and drop), one row per planned set (from the prescription's set count) with last time's set beside it, and grey suggestions that a tick takes when the fields are empty. Tap last time's set to copy it. Ticking saves straight away and a tick takes the grey value shown in an empty field; unticking a set takes it and its drops out of the log, and ticking it again brings the drops back; Enter in a field ticks its row (on a hardware keyboard). Add sets, and chain any number of drop sets under the set just ticked. Switch which choice a multi-choice slot is logging. Done marks the slot done, and Done or Close also save rows that were typed but not ticked; Not done undoes it; × closes without saving untyped changes. There is no rest timer.
+- Log today's sets from a slot's number: the sheet shows the exercise's last 3 sessions (date, routine, every set and drop), one row per planned set (from the prescription's set count) with last time's set beside it, and grey suggestions that a tick takes when the fields are empty. Tap last time's set to copy it. Ticking saves straight away and a tick takes the grey value shown in an empty field; unticking a set takes it and its drops out of the log, and ticking it again brings the drops back; Enter in a field ticks its row (on a hardware keyboard). Add sets, chain any number of drop sets under the set just ticked, and remove any drop with its × (a saved drop is taken out of the log). Switch which choice a multi-choice slot is logging. Done marks the slot done, and Done or Close also save rows that were typed but not ticked; Not done undoes it; the × in the sheet's header closes it without saving rows that were typed but not ticked. There is no rest timer.
 - See today's logged sets as small boxes under each slot's name, with drops counted.
 - Open an exercise's full history from the logging sheet or its reference: best set, heaviest weight, change since the first session, a small trend of the top set's weight, and every session with its change from the one before.
 - "Today" updates when the app is reopened on a new day.
@@ -101,6 +101,8 @@ Program
 
 ## Design principles
 
-- Current workout and the next useful action first; one-handed use on a narrow screen.
+How the app looks (colours, type, shapes, components) is in `docs/DESIGN.md`.
+
+- Current workout and the next useful action first; one-handed use on a narrow screen. Lean: nothing on screen that doesn't help during a workout.
 - History is preserved and predictable; editing and recovery are easy to trust. Editors keep their drafts until you save or close them (tapping outside doesn't discard them; Enter saves).
 - Comfortable tap targets, readable contrast and type, cues that don't rely on color alone, reduced-motion support, basic keyboard and screen-reader semantics.

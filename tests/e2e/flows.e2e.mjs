@@ -14,8 +14,7 @@
 //  - Settings is reached only through helpers.openSettings()/settingsScope() — today that is the
 //    <dialog> named "Settings"; adapt those two helpers when Settings becomes a screen.
 //  - Import uses the browser file chooser opened by the "Import app data" button (no #importFile).
-//  - helpers.waitForApp waits for #appMain to have children (and, if present, #viewMetaLine to stop
-//    reading "Loading saved data").
+//  - helpers.waitForApp waits for #appMain to have children.
 //  - Structural (no CSS classes): the Workout exercise-list scroller is the nearest scrollable
 //    ancestor of a row; the Log order test reads each day-editor checkbox's `<label>` → `<strong>`
 //    routine name. Day-editor checkboxes are toggled with { force: true } because the styled box

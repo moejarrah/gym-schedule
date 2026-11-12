@@ -38,4 +38,4 @@ Everything you enter stays in the app on your phone. Settings → Export app dat
 
 ## For AI assistants and developers
 
-Start with `AGENTS.md` (rules and code map) and `docs/PRODUCT.md` (what the app does). Planned work is in `docs/TODO.md`.
+Start with `AGENTS.md` (rules, code map, how the owner likes to work), then `docs/PRODUCT.md` (what the app does) and `docs/DESIGN.md` (how it looks). Planned work and past decisions are in `docs/TODO.md`.

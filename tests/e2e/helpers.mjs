@@ -265,11 +265,7 @@ export async function openApp({
 
 /** Wait until the app has rendered its first view into #appMain. */
 export async function waitForApp(page) {
-  await page.waitForFunction(() => {
-    const main = document.querySelector("#appMain");
-    const meta = document.querySelector("#viewMetaLine");
-    return Boolean(main?.children.length) && (!meta || meta.textContent !== "Loading saved data");
-  });
+  await page.waitForFunction(() => Boolean(document.querySelector("#appMain")?.children.length));
 }
 
 /**

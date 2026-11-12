@@ -9,6 +9,7 @@ Things a desktop browser can't fully confirm:
 - [ ] Pressing Go/Enter on the keyboard in an editor saves.
 - [ ] After an update, the installed app reloads once and shows the new version in Settings.
 - [ ] Logging sheet: the number keypad appears for weight and reps, and the sheet stays usable with the keyboard open. (The iPhone number keypad has no Return key, so a set is ticked with its tick button.)
+- [ ] The redesign on the phone: nothing hides under the notch or the home bar, and sheets' rounded corners and the bottom navigation look right in both themes.
 
 ## Next
 
@@ -21,3 +22,4 @@ Things a desktop browser can't fully confirm:
 ## Maybe later
 
 - Store routine names in history so deleted routines show their name instead of "Deleted routine".
+- From the design boards (`references/redesign/`), not built and not asked for yet: Library rows showing the last logged set ("last 15 × 12"), and Program as a plain list of routines instead of tabs.

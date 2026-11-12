@@ -1,8 +1,8 @@
 // Logging sheet: today's sets for one routine slot, opened from its number on
 // Workout. It shows the exercise's last three sessions from any routine, one row
-// per set (last time, weight, reps, tick) with drop chains under a set, and Done,
-// which marks the slot done. Ticking a set saves it straight away; empty fields
-// take the grey suggestion from last time.
+// per set (last time, weight, reps, tick) with drop chains under a set (each drop
+// can be removed), and Done, which marks the slot done. Ticking a set saves it
+// straight away; empty fields take the grey suggestion from last time.
 
 import { mainElement, onStart, render, store } from "../context.js";
 import { $, closeDialog, escapeHtml, openDialog, report, showError } from "../dom.js";

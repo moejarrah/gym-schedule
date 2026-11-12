@@ -9,8 +9,8 @@
 //  - #toast: the role=status toast element is observed (MutationObserver) to record every toast
 //    text during an offline launch (c).
 //  - `document.documentElement.dataset.theme` must be "dark" on first paint (j); the probe treats
-//    "#viewMetaLine still reads 'Loading saved data'" OR "#appMain still empty" as "app module has
-//    not rendered yet" to prove it sampled before the module ran.
+//    "#appMain still empty" as "app module has not rendered yet" to prove it sampled before the
+//    module ran.
 //  - (d) inspects every `dialog input/select/textarea` (excluding hidden/checkbox/radio/file types).
 //  - (e) the routine-tab strip is the selected tab button's parent element (structural, no class).
 //  - Settings is reached through helpers.openSettings()/settingsScope() (adaptation point).

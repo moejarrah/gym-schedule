@@ -5,6 +5,7 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 ## Before changing anything
 
 - `docs/PRODUCT.md` says what the app does. Every action listed there must keep working unless the owner asks otherwise; update the file when behaviour changes.
+- `docs/DESIGN.md` says how it looks: tokens, type, shapes and components, and the design boards the owner agreed to (`references/redesign/`). New UI follows it.
 - `docs/TODO.md` holds planned work. The owner's newest request decides scope.
 - Each module starts with a comment saying what it owns. Read it before editing.
 
@@ -26,7 +27,16 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 | `sw.js` | Offline cache; its file list and version are stamped by `npm run check` |
 | `tests/` | Unit tests (`*.test.mjs`) and browser tests (`e2e/`) |
 | `tools/` | Check, preview server, the owner's phone preview page, screenshots and visual diff |
-| `references/` | Design mock-ups and the starting program's source; not loaded by the app |
+| `references/` | The agreed design boards, older mock-ups and the starting program's source; not loaded by the app |
+
+## Saved data at a glance
+
+One JSON object in `localStorage` under `gymAppStateV1`. The schema version, currently 11, is set in `js/store.js`, which validates every save.
+
+- `exercises`: the Library's master exercises.
+- `programs` and `routines`: a program lists its routine IDs. A routine holds its blocks and entries, and each entry its choices (master exercise plus prescription).
+- `sessions`: one per date (`YYYY-MM-DD`) with `routineIds` (completed routines), `checkedEntryIdsByRoutine` (slots marked done), `note`, and `logs` (sets logged per slot, keyed by entry ID; see `saveEntrySets` in `js/model.js`).
+- `settings`: the active program and routine, the theme, and the training rules.
 
 ## Rules
 
@@ -48,6 +58,13 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 ## Releasing
 
 Pushing to `main` publishes the app on GitHub Pages. Installed apps download the new version the next time they're opened and reload once. Publish only after `npm run check` and `npm run e2e` pass; an unstamped `sw.js` means phones never see the update.
+
+## Working with the owner
+
+- It's a personal app for one person. Don't add accounts, sync, multi-user or online-security features, and don't build for unlikely edge cases.
+- The owner wants a lean, uncluttered app (see `docs/DESIGN.md`). For a bigger UI change, show the design first (mock-ups or screenshots) and build once it's agreed.
+- They write casually and expect the work to be done, checked and published, not a plan to approve. Reply in plain words, say what changed, and after a release give the site: https://moejarrah.github.io/gym-schedule/.
+- Decisions they've already made are recorded in `docs/TODO.md` (including what was decided against). Don't bring those back unasked.
 
 ## Working style
 

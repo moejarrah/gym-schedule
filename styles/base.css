@@ -1,3 +1,7 @@
+/* Base: fonts, the design tokens for both themes (colours, radii, spacing), page
+   layout, the shared top bar and the bottom navigation. docs/DESIGN.md describes
+   the visual system; use these tokens rather than new colours or radii. */
+
 @font-face {
   font-family: "Barlow";
   font-style: normal;
@@ -82,7 +86,6 @@
   /* Aliases: defined once, they follow the theme's values. */
   --border: var(--line);
   --focus: var(--accent);
-  --home: var(--accent);
   --home-soft: var(--accent-soft);
   font-family: var(--font-body);
   font-synthesis: none;

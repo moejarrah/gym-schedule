@@ -2,9 +2,13 @@
 
 Design and content background. Nothing here is loaded by the app.
 
-## UI concepts (`ui-concepts/`)
+## Design boards (`redesign/`)
 
-Static HTML mock-ups of the "Ironworks" design the app follows. Open them in a browser.
+The current design, agreed with the owner in November 2026: `workout.png`, `logging-sheet.png`, `history.png`, `log.png`, `library.png` and `program.png`, all in the dark theme at iPhone width. `docs/DESIGN.md` describes the system and lists where the app differs from these boards.
+
+## Earlier UI concepts (`ui-concepts/`)
+
+Static HTML mock-ups of the earlier square "Ironworks" design, kept as history; the app no longer looks like this. The two logging ideas were replaced by the logging sheet in `redesign/`. Open them in a browser.
 
 | File | What it shows |
 | --- | --- |
@@ -13,8 +17,8 @@ Static HTML mock-ups of the "Ironworks" design the app follows. Open them in a b
 | `ironworks-classification.html` | Library, filters, exercise reference and editor |
 | `ironworks-log-settings.html` | Log, day editor and Settings |
 | `ironworks-pplppl7.html` | Routine blocks, notes, exercise choices and their editors |
-| `ironworks-logging.html` | Idea, not built: per-set logging and progress |
-| `ironworks-setlog-flow.html` | Idea, not built: compact set-log flow (expand a row, fill sets, drop sets) |
+| `ironworks-logging.html` | Earlier idea for per-set logging and progress |
+| `ironworks-setlog-flow.html` | Earlier idea for a compact set-log flow (expand a row, fill sets, drop sets) |
 | `ironworks-flows.css` | Styles shared by the Program and Log/Settings concepts |
 
 ## Starting program content
