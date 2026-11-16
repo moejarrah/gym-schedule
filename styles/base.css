@@ -151,6 +151,11 @@
   :root {
     --space-4: 12px;
   }
+
+  /* Sheets give their content more room on the narrowest screens. */
+  dialog {
+    --gutter: 12px;
+  }
 }
 
 /* ---------- element defaults ---------- */
