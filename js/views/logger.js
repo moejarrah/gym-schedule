@@ -4,8 +4,8 @@
 // can be removed), and Done, which marks the slot done. Ticking a set saves it
 // straight away; empty fields take the grey suggestion from last time.
 
-import { mainElement, onStart, render, store } from "../context.js";
-import { $, closeDialog, escapeHtml, openDialog, report, showError } from "../dom.js";
+import { registerActions, render, store } from "../context.js";
+import { $, closeDialog, escapeHtml, openDialog, redraw, report, showError } from "../dom.js";
 import {
   entryLog,
   exerciseHistory,
@@ -124,7 +124,7 @@ function historyMarkup(state, history) {
   return `<section class="log-history" aria-labelledby="logHistoryTitle">
     <div class="log-history-head">
       <h3 id="logHistoryTitle">Last 3 times</h3>
-      <button class="text-button" type="button" data-log-action="history">All history</button>
+      <button class="text-button" type="button" data-action="log-history">All history</button>
     </div>
     ${rows || `<p class="log-history-empty">No sets logged for this exercise yet.</p>`}
   </section>`;
@@ -139,12 +139,12 @@ function rowMarkup({ setIndex, dropIndex, row, last, timed }) {
   const lastTimed = last?.unit === "sec";
   const shown = lastLift ? liftText(lastLift, lastTimed).replace(" kg", "") : "";
   const lastValue = lastLift
-    ? `<button class="log-last" type="button" data-log-action="use-last" ${data} aria-label="${escapeHtml(shown)}, copy last time to ${name}">${escapeHtml(shown)}</button>`
+    ? `<button class="log-last" type="button" data-action="log-use-last" ${data} aria-label="${escapeHtml(shown)}, copy last time to ${name}">${escapeHtml(shown)}</button>`
     : `<span class="log-last is-empty" aria-hidden="true">—</span>`;
   const lastCell = isDrop ? `<span class="log-last-cell"><span class="log-drop-tag">Drop</span>${lastValue}</span>` : lastValue;
   // A drop row's first cell removes it; a set row's shows its number.
   const firstCell = isDrop
-    ? `<button class="log-remove" type="button" data-log-action="remove-drop" ${data} aria-label="Remove ${name}">${removeIcon}</button>`
+    ? `<button class="log-remove" type="button" data-action="log-remove-drop" ${data} aria-label="Remove ${name}">${removeIcon}</button>`
     : `<span class="log-set-label" aria-hidden="true">${setIndex + 1}</span>`;
   const saved = isSaved(setIndex, dropIndex);
   const label = `${name[0].toUpperCase()}${name.slice(1)} done`;
@@ -153,7 +153,7 @@ function rowMarkup({ setIndex, dropIndex, row, last, timed }) {
     ${lastCell}
     <label class="log-field"><input type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" data-field="kg" ${data} value="${escapeHtml(row.kg)}" placeholder="${escapeHtml(hint.kg)}" aria-label="Weight for ${name}, kg"><span aria-hidden="true">kg</span></label>
     <label class="log-field"><input type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" data-field="reps" ${data} value="${escapeHtml(row.reps)}" placeholder="${escapeHtml(hint.reps)}" aria-label="${timed ? "Seconds" : "Reps"} for ${name}"></label>
-    <button class="log-tick" type="button" data-log-action="tick" ${data} aria-pressed="${saved}" aria-label="${label}">${checkIcon}</button>
+    <button class="log-tick" type="button" data-action="log-tick" ${data} aria-pressed="${saved}" aria-label="${label}">${checkIcon}</button>
   </div>`;
 }
 
@@ -162,14 +162,14 @@ function tableMarkup(last, timed) {
     const drops = row.drops.map((drop, dropIndex) => rowMarkup({ setIndex, dropIndex, row: drop, last, timed })).join("");
     const lastRow = row.drops.at(-1) || row;
     const dropLink = setIndex === sheet.lastTicked && row.done && lastRow.done
-      ? `<button class="log-add" type="button" data-log-action="add-drop" data-set="${setIndex}">${plusIcon}${row.drops.length ? "Another drop" : "Drop set"}</button>`
+      ? `<button class="log-add" type="button" data-action="log-add-drop" data-set="${setIndex}">${plusIcon}${row.drops.length ? "Another drop" : "Drop set"}</button>`
       : "";
     return `<div class="log-set ${row.drops.length ? "has-drops" : ""}">${rowMarkup({ setIndex, dropIndex: -1, row, last, timed })}${drops}${dropLink}</div>`;
   }).join("");
   return `<div class="log-table">
     <div class="log-row log-row-head" aria-hidden="true"><span>Set</span><span>Last time</span><span>Weight</span><span>${timed ? "Sec" : "Reps"}</span><span></span></div>
     ${groups}
-    <button class="log-add" type="button" data-log-action="add-set">${plusIcon}Set</button>
+    <button class="log-add" type="button" data-action="log-add-set">${plusIcon}Set</button>
   </div>`;
 }
 
@@ -177,7 +177,7 @@ function choicesMarkup(entry, state) {
   if (entry.choices.length < 2) return "";
   const { choices } = entryPresentation(entry, state);
   return `<div class="log-choices" role="group" aria-label="Exercise you're doing">
-    ${choices.map((item, index) => `<button type="button" data-log-action="choose" data-index="${index}" aria-pressed="${index === sheet.choiceIndex}">${escapeHtml(item.name)}</button>`).join("")}
+    ${choices.map((item, index) => `<button type="button" data-action="log-choose" data-index="${index}" aria-pressed="${index === sheet.choiceIndex}">${escapeHtml(item.name)}</button>`).join("")}
   </div>`;
 }
 
@@ -191,31 +191,22 @@ function sheetMarkup(state) {
       <div><h2 id="logTitle">${escapeHtml(name)}</h2><p>${escapeHtml(choice.prescription)}</p></div>
       <button class="icon-button" type="button" data-close-dialog="logDialog" aria-label="Close">×</button>
     </header>
-    <div class="log-scroll">
+    <div class="log-scroll" data-keep-scroll="log-${escapeHtml(entry.id)}">
       ${choicesMarkup(entry, state)}
       ${historyMarkup(state, history)}
       ${tableMarkup(history[0], timed)}
       <p class="form-error" role="alert" aria-live="polite" data-dialog-error></p>
     </div>
     <footer class="dialog-actions log-actions">
-      ${done ? `<button class="button text" type="button" data-log-action="undo-done">Not done</button>` : ""}
-      <button class="button primary" type="button" data-log-action="done">${done ? "Close" : "Done"}</button>
+      ${done ? `<button class="button text" type="button" data-action="log-undo-done">Not done</button>` : ""}
+      <button class="button primary" type="button" data-action="log-done">${done ? "Close" : "Done"}</button>
     </footer>
   </div>`;
 }
 
-// Re-renders the sheet and puts focus back on the same control (a field's own
-// row tick when Enter ticked it).
-function refresh(focusSelector) {
-  const content = $("#logContent");
-  const focused = content.contains(document.activeElement) ? document.activeElement : null;
-  const action = focused?.dataset.logAction || (focused?.dataset.field ? "tick" : "");
-  const selector = focusSelector || (action ? `[data-log-action="${action}"][data-set="${focused.dataset.set}"][data-drop="${focused.dataset.drop}"]` : "");
-  const scroll = $(".log-scroll", content)?.scrollTop || 0;
-  content.innerHTML = sheetMarkup(store.getState());
-  $(".log-scroll", content).scrollTop = scroll;
-  const target = selector && $(selector, content);
-  (target || $(".log-actions .button.primary", content)).focus({ preventScroll: true });
+// Redraws the sheet from the rows.
+function refresh() {
+  redraw("#logContent", sheetMarkup(store.getState()));
 }
 
 // ---------- actions ----------
@@ -245,7 +236,9 @@ function tick(setIndex, dropIndex) {
 function addDrop(setIndex) {
   sheet.rows[setIndex].drops.push({ kg: "", reps: "", done: false });
   const dropIndex = sheet.rows[setIndex].drops.length - 1;
-  refresh(`[data-field="kg"][data-set="${setIndex}"][data-drop="${dropIndex}"]`);
+  refresh();
+  // Ready to type the drop's weight.
+  $(`#logContent [data-field="kg"][data-set="${setIndex}"][data-drop="${dropIndex}"]`).focus();
 }
 
 // Removing a drop that was saved saves the set without it.
@@ -256,15 +249,12 @@ function removeDrop(setIndex, dropIndex) {
     set.drops.splice(dropIndex, 0, removed);
     return;
   }
-  const next = set.drops.length
-    ? `[data-log-action="remove-drop"][data-set="${setIndex}"][data-drop="${Math.min(dropIndex, set.drops.length - 1)}"]`
-    : `[data-log-action="tick"][data-set="${setIndex}"][data-drop="-1"]`;
-  refresh(next);
+  refresh();
 }
 
 function addSet() {
   sheet.rows.push({ kg: "", reps: "", done: false, drops: [] });
-  refresh(`[data-log-action="add-set"]`);
+  refresh();
 }
 
 function useLast(setIndex, dropIndex) {
@@ -273,7 +263,7 @@ function useLast(setIndex, dropIndex) {
   if (!lift) return;
   Object.assign(rowAt(setIndex, dropIndex), { kg: formatKg(lift.kg), reps: String(lift.reps) });
   if (rowAt(setIndex, dropIndex).done && !saveRows()) return;
-  refresh(`[data-log-action="tick"][data-set="${setIndex}"][data-drop="${dropIndex}"]`);
+  refresh();
 }
 
 // Switching to another choice moves today's sets to that exercise. With nothing
@@ -290,7 +280,7 @@ function choose(index) {
     sheet.choiceIndex = previous;
     return;
   }
-  refresh(`[data-log-action="choose"][data-index="${index}"]`);
+  refresh();
 }
 
 // Done (or Close once the slot is done) also saves rows that were typed in but not
@@ -327,12 +317,12 @@ function undoDone() {
   const result = store.update((draft) => setEntryChecked(draft, sheet.routineId, sheet.entryId, false, sheet.dateKey));
   if (!report(result)) return;
   render();
-  refresh(`[data-log-action="done"]`);
+  refresh();
 }
 
 // ---------- opening ----------
 
-export function openLogger(routineId, entryId, opener) {
+export function openLogger(routineId, entryId) {
   const state = store.getState();
   Object.assign(sheet, { routineId, entryId, dateKey: localDateKey(), choiceIndex: 0 });
   const found = current(state);
@@ -340,34 +330,27 @@ export function openLogger(routineId, entryId, opener) {
   const log = entryLog(state, sheet.dateKey, entryId);
   sheet.choiceIndex = Math.max(0, found.entry.choices.findIndex((choice) => choice.exerciseId === log?.exerciseId));
   loadRows(state);
-  $("#logContent").innerHTML = sheetMarkup(state);
-  openDialog("#logDialog", {
-    returnFocus: opener,
-    fallbackFocus: () => $(`[data-action="open-logger"][data-id="${CSS.escape(entryId)}"]`, mainElement()) || mainElement(),
-    focus: '[data-close-dialog="logDialog"]',
-  });
+  refresh();
+  openDialog("#logDialog");
 }
 
-onStart(() => {
+// The row a button or field belongs to: [setIndex, dropIndex], with -1 for the set itself.
+const position = (element) => [Number(element.dataset.set), Number(element.dataset.drop ?? -1)];
+
+registerActions({
+  "log-tick": (button) => tick(...position(button)),
+  "log-add-drop": (button) => addDrop(Number(button.dataset.set)),
+  "log-remove-drop": (button) => removeDrop(...position(button)),
+  "log-add-set": addSet,
+  "log-use-last": (button) => useLast(...position(button)),
+  "log-choose": (button) => choose(Number(button.dataset.index)),
+  "log-history": () => openExerciseHistory(current(store.getState()).choice.exerciseId),
+  "log-done": finish,
+  "log-undo-done": undoDone,
+});
+
+{
   const content = $("#logContent");
-  content.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-log-action]");
-    if (!button) return;
-    const setIndex = Number(button.dataset.set);
-    const dropIndex = Number(button.dataset.drop ?? -1);
-    const actions = {
-      tick: () => tick(setIndex, dropIndex),
-      "add-drop": () => addDrop(setIndex),
-      "remove-drop": () => removeDrop(setIndex, dropIndex),
-      "add-set": addSet,
-      "use-last": () => useLast(setIndex, dropIndex),
-      choose: () => choose(Number(button.dataset.index)),
-      history: () => openExerciseHistory(current(store.getState()).choice.exerciseId, button),
-      done: finish,
-      "undo-done": undoDone,
-    };
-    actions[button.dataset.logAction]?.();
-  });
   // Typing updates the row; editing a ticked row saves it when the field is left.
   content.addEventListener("input", (event) => {
     const field = event.target.dataset.field;
@@ -392,4 +375,4 @@ onStart(() => {
     }
     tick(setIndex, dropIndex);
   });
-});
+}

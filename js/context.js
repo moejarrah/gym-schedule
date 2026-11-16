@@ -1,6 +1,14 @@
-// The running app: the one store, the registered screens, and their actions.
-// Screens register themselves when their module is imported (see app.js).
+// The running app: the one store, the registered screens, and the actions that
+// taps run. Screens and sheets register themselves when their module is
+// imported (see app.js).
+//
+// How a tap becomes a change:
+//   markup has data-action="name"  →  registerActions({ name(button, event) { … } })
+//   the handler changes data with store.update(...), then calls render()
+//   render() redraws the current screen from the saved state
+// A <form data-submit="name"> runs the action the same way when it's submitted.
 
+import { redraw } from "./dom.js";
 import { createStore } from "./store.js";
 
 export const store = createStore();
@@ -10,14 +18,12 @@ const actions = new Map();
 const afterRenderHooks = [];
 let current = "workout";
 
-// registerView("calendar", { render(state, main), title? })
-// Views without a title draw their own bar; base.css hides the shared top bar for them.
+// registerView("calendar", { markup(state), title? })
+// Views without a title draw their own bar; the stylesheet hides the shared top bar for them.
 export function registerView(id, view) {
   views.set(id, view);
 }
 
-// registerActions({ "open-logger": (button, event) => … })
-// Any element inside the main area with data-action="name" runs that handler on click.
 export function registerActions(map) {
   for (const [name, handler] of Object.entries(map)) {
     if (actions.has(name)) throw new Error(`Duplicate action ${name}`);
@@ -25,14 +31,8 @@ export function registerActions(map) {
   }
 }
 
-// Runs once at startup, after the DOM and dialogs are ready: bind listeners here,
-// never at module top level (modules are also imported by Node tests).
-const startHooks = [];
-export function onStart(hook) {
-  startHooks.push(hook);
-}
-export function start() {
-  for (const hook of startHooks) hook();
+export function runAction(name, element, event) {
+  actions.get(name)?.(element, event);
 }
 
 // Runs after every render, e.g. to refresh an open sheet that shows saved data.
@@ -40,24 +40,18 @@ export function afterRender(hook) {
   afterRenderHooks.push(hook);
 }
 
-export function runAction(name, button, event) {
-  const handler = actions.get(name);
-  if (!handler) return false;
-  handler(button, event);
-  return true;
-}
-
 export const mainElement = () => document.querySelector("#appMain");
 
 export function render() {
   const state = store.getState();
-  const view = views.get(current) || views.get("workout");
+  const view = views.get(current);
   document.body.dataset.currentView = current;
   for (const button of document.querySelectorAll(".bottom-nav [data-view]")) {
     if (button.dataset.view === current) button.setAttribute("aria-current", "page");
     else button.removeAttribute("aria-current");
   }
-  view.render(state, mainElement());
+  redraw(mainElement(), view.markup(state));
+  view.afterDraw?.(mainElement());
   document.querySelector("#viewTitle").textContent = view.title || "";
   for (const hook of afterRenderHooks) hook(state);
 }
@@ -66,9 +60,7 @@ export function navigate(id) {
   if (!views.has(id)) return;
   current = id;
   render();
-  const main = mainElement();
-  main.scrollTop = 0;
-  main.focus({ preventScroll: true });
+  mainElement().scrollTop = 0;
 }
 
 export function applyTheme(theme) {

@@ -6,7 +6,7 @@
 // been deleted. Those days count as completed and the editor lists them as
 // "Deleted routine" so they can be kept or unmarked.
 
-import { mainElement, onStart, registerActions, registerView, render, store } from "../context.js";
+import { mainElement, registerActions, registerView, render, store } from "../context.js";
 import { $, $$, chevronIcon, closeDialog, escapeHtml, formatDate, openDialog, report } from "../dom.js";
 import { activeProgram, dateFromKey, exerciseById, localDateKey, programRoutines, routineById, routineProgram, sessionFor, setDay } from "../model.js";
 import { locationLabel, setChipsMarkup } from "./shared.js";
@@ -104,12 +104,10 @@ function recentRowMarkup(state, dateKey) {
   </button>`;
 }
 
-function changeCalendarMonth(offset, action) {
+function changeCalendarMonth(offset) {
   calendar.month = monthStart(calendar.month, offset);
   render();
-  const main = mainElement();
-  main.scrollTop = 0;
-  $(`[data-action="${action}"]`, main).focus();
+  mainElement().scrollTop = 0;
 }
 
 // ---------- day editor ----------
@@ -162,7 +160,7 @@ function dayEditorMarkup(state, dateKey) {
       <div><h2 id="dayDialogTitle">${escapeHtml(formatDate(dateFromKey(dateKey), { weekday: "long", month: "long", day: "numeric" }))}</h2><p>Workout history</p></div>
       <button class="icon-button" type="button" data-close-dialog="dayDialog" aria-label="Close day editor">×</button>
     </header>
-    <form id="dayForm" class="day-form" data-date="${dateKey}">
+    <form id="dayForm" class="day-form" data-submit="save-day" data-date="${dateKey}">
       <div class="day-sheet-scroll">
         ${program ? routineSectionMarkup("Completed routines", activeRoutines.length
           ? activeRoutines.map((routine) => routineRowMarkup(state, session, routine))
@@ -181,18 +179,9 @@ function dayEditorMarkup(state, dateKey) {
   </div>`;
 }
 
-function openDayEditor(dateKey, opener) {
+function openDayEditor(dateKey) {
   $("#dayDialogContent").innerHTML = dayEditorMarkup(store.getState(), dateKey);
-  const sameKind = opener.classList.contains("log-recent-row") ? ".log-recent-row" : ".log-calendar-day";
-  openDialog("#dayDialog", {
-    returnFocus: opener,
-    // Saving re-renders the screen: land on the same date's new button, preferring the
-    // list it was opened from, or the calendar when a cleared day left the list.
-    fallbackFocus: () => $(`${sameKind}[data-date="${dateKey}"]`, mainElement())
-      || $(`[data-action="open-day"][data-date="${dateKey}"]`, mainElement())
-      || mainElement(),
-    focus: '[data-close-dialog="dayDialog"]',
-  });
+  openDialog("#dayDialog");
 }
 
 function saveDay(form) {
@@ -204,22 +193,11 @@ function saveDay(form) {
   render();
 }
 
-registerView("calendar", {
-  render(state, main) {
-    main.innerHTML = calendarMarkup(state);
-  },
-  title: "Log",
-});
+registerView("calendar", { markup: calendarMarkup, title: "Log" });
 
 registerActions({
-  "previous-month": (button) => changeCalendarMonth(-1, button.dataset.action),
-  "next-month": (button) => changeCalendarMonth(1, button.dataset.action),
-  "open-day": (button) => openDayEditor(button.dataset.date, button),
-});
-
-onStart(() => {
-  $("#dayDialog").addEventListener("submit", (event) => {
-    event.preventDefault();
-    saveDay(event.target);
-  });
+  "previous-month": () => changeCalendarMonth(-1),
+  "next-month": () => changeCalendarMonth(1),
+  "open-day": (button) => openDayEditor(button.dataset.date),
+  "save-day": saveDay,
 });

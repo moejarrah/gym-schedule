@@ -3,8 +3,8 @@
 // selected routine (a slot's number opens its logging sheet; today's sets show
 // under its name), and the exercise-choices sheet of multi-choice slots.
 
-import { afterRender, mainElement, onStart, registerActions, registerView, render, store } from "../context.js";
-import { $, chevronIcon, closeDialog, escapeHtml, openDialog, playIcon, plural, report } from "../dom.js";
+import { afterRender, registerActions, registerView, render, store } from "../context.js";
+import { $, chevronIcon, closeDialog, escapeHtml, openDialog, playIcon, plural, redraw, report } from "../dom.js";
 import {
   activeProgram,
   activeRoutine,
@@ -19,10 +19,6 @@ import {
 import { openLogger } from "./logger.js";
 import { openExerciseReference, openExerciseVideo } from "./reference.js";
 import { entryPresentation, revealSelectedTab, routineTabsMarkup, saysOptional, setChipsMarkup, videoUrl } from "./shared.js";
-
-// The exercise list is one element reused across renders, so checking an entry
-// keeps the list where the user scrolled it.
-const list = { rows: null };
 
 // The routine slot shown in the open choices sheet.
 const choicesSheet = { routineId: "", entryId: "" };
@@ -41,7 +37,7 @@ function programBarMarkup(program) {
       <strong>${escapeHtml(program.name)}</strong>
       ${chevronIcon("down")}
     </button>
-    <button class="workout-manage-program" type="button" data-view-link="routines" aria-label="Manage ${escapeHtml(program.name)}">
+    <button class="workout-manage-program" type="button" data-view="routines" aria-label="Manage ${escapeHtml(program.name)}">
       <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
   </div>`;
@@ -60,20 +56,28 @@ function emptyStateMarkup(program, routine) {
     return `<div class="empty-state"><h3>No programs yet</h3><p>Add a program to organize your workout days.</p><button class="button primary" type="button" data-action="new-program">Add program</button></div>`;
   }
   if (!routine) {
-    return `<div class="empty-state"><h3>No routines yet</h3><p>Add the first workout day to ${escapeHtml(program.name)} in Program.</p><button class="button primary" type="button" data-view-link="routines">Manage program</button></div>`;
+    return `<div class="empty-state"><h3>No routines yet</h3><p>Add the first workout day to ${escapeHtml(program.name)} in Program.</p><button class="button primary" type="button" data-view="routines">Manage program</button></div>`;
   }
   if (!routine.entries.length) {
-    return `<div class="empty-state compact-empty"><h3>No exercises yet</h3><p>Open Program to add exercises.</p><button class="button secondary" type="button" data-view-link="routines">Manage program</button></div>`;
+    return `<div class="empty-state compact-empty"><h3>No exercises yet</h3><p>Open Program to add exercises.</p><button class="button secondary" type="button" data-view="routines">Manage program</button></div>`;
   }
   return "";
 }
 
-function pageMarkup(state, program, routine) {
+// The list keeps its scroll position while the same routine is shown, so ticking
+// a slot doesn't jump; another routine starts at its first exercise.
+function pageMarkup(state) {
+  const program = activeProgram(state);
+  const routine = activeRoutine(state);
+  const todayKey = localDateKey();
   return `<section class="page workout-page">
     ${programBarMarkup(program)}
     ${routineTabsMarkup(programRoutines(state, program), routine?.id)}
     ${routine ? routineNoteMarkup(routine.note) : ""}
     ${emptyStateMarkup(program, routine)}
+    ${routine?.entries.length ? `<div class="workout-rows" data-keep-scroll="workout-${escapeHtml(routine.id)}">
+      ${routine.blocks.map((block) => blockMarkup(state, routine, block, todayKey)).join("")}
+    </div>` : ""}
   </section>`;
 }
 
@@ -161,21 +165,7 @@ function entryChoicesMarkup(state, routine, entry) {
 
 // ---------- screen ----------
 
-registerView("workout", {
-  render(state, main) {
-    const scrollTop = list.rows.scrollTop; // 0 when the list wasn't on screen
-    const program = activeProgram(state);
-    const routine = activeRoutine(state);
-    main.innerHTML = pageMarkup(state, program, routine);
-    if (routine?.entries.length) {
-      const todayKey = localDateKey();
-      list.rows.innerHTML = routine.blocks.map((block) => blockMarkup(state, routine, block, todayKey)).join("");
-      $(".workout-page", main).append(list.rows);
-      list.rows.scrollTop = scrollTop;
-    }
-    revealSelectedTab(main);
-  },
-});
+registerView("workout", { markup: pageMarkup, afterDraw: revealSelectedTab });
 
 // A one-choice row opens its exercise's reference in the context of this slot.
 function openRowReference(button) {
@@ -188,14 +178,21 @@ function openRowReference(button) {
 registerActions({
   "select-routine": (button) => {
     const result = store.update((draft) => setActiveRoutine(draft, button.dataset.id));
-    if (!report(result)) return;
-    list.rows.scrollTop = 0; // a different routine starts at its first exercise
-    render();
+    if (report(result)) render();
   },
-  "open-logger": (button) => openLogger(button.dataset.routineId, button.dataset.id, button),
+  "open-logger": (button) => openLogger(button.dataset.routineId, button.dataset.id),
   "open-entry-choices": openEntryChoices,
   "open-workout-exercise": openRowReference,
   "open-workout-video": (button) => openExerciseVideo(button.dataset.id),
+  "open-choice-reference": (button) => {
+    const { routine, entry } = sheetEntry(store.getState());
+    const choice = entry.choices[Number(button.dataset.index)];
+    openExerciseReference(choice.exerciseId, { prescription: choice.prescription, routineName: routine.name, routineNote: entry.note });
+  },
+  "open-choice-video": (button) => {
+    const { entry } = sheetEntry(store.getState());
+    openExerciseVideo(entry.choices[Number(button.dataset.index)].exerciseId);
+  },
 });
 
 // ---------- exercise choices sheet ----------
@@ -211,11 +208,8 @@ function openEntryChoices(button) {
   Object.assign(choicesSheet, { routineId, entryId });
   const state = store.getState();
   const { routine, entry } = sheetEntry(state);
-  $("#entryChoicesContent").innerHTML = entryChoicesMarkup(state, routine, entry);
-  openDialog("#entryChoicesDialog", {
-    returnFocus: button,
-    fallbackFocus: () => $(`.workout-row[data-entry-id="${CSS.escape(entryId)}"]`, mainElement()) || mainElement(),
-  });
+  redraw("#entryChoicesContent", entryChoicesMarkup(state, routine, entry));
+  openDialog("#entryChoicesDialog");
 }
 
 // Data can change under the open sheet (an exercise edited or deleted from one of
@@ -224,34 +218,8 @@ function refreshEntryChoices(state) {
   const dialog = $("#entryChoicesDialog");
   if (!dialog.open) return;
   const current = sheetEntry(state);
-  if (!current || current.entry.choices.length < 2) {
-    closeDialog(dialog);
-    return;
-  }
-  const focused = document.activeElement?.closest?.("#entryChoicesContent [data-action][data-index]");
-  const focusSelector = focused ? `[data-action="${focused.dataset.action}"][data-index="${focused.dataset.index}"]` : "";
-  $("#entryChoicesContent").innerHTML = entryChoicesMarkup(state, current.routine, current.entry);
-  requestAnimationFrame(() => {
-    const target = (focusSelector && $(focusSelector, dialog)) || $('[data-close-dialog="entryChoicesDialog"]', dialog);
-    target.focus();
-  });
+  if (!current || current.entry.choices.length < 2) closeDialog(dialog);
+  else redraw("#entryChoicesContent", entryChoicesMarkup(state, current.routine, current.entry));
 }
 
 afterRender(refreshEntryChoices);
-
-onStart(() => {
-  list.rows = document.createElement("div");
-  list.rows.className = "workout-rows";
-
-  $("#entryChoicesContent").addEventListener("click", (event) => {
-    const button = event.target.closest("[data-action][data-index]");
-    if (!button) return;
-    const { routine, entry } = sheetEntry(store.getState());
-    const choice = entry.choices[Number(button.dataset.index)];
-    if (button.dataset.action === "open-choice-reference") {
-      openExerciseReference(choice.exerciseId, { prescription: choice.prescription, routineName: routine.name, routineNote: entry.note });
-    } else if (button.dataset.action === "open-choice-video") {
-      openExerciseVideo(choice.exerciseId);
-    }
-  });
-});

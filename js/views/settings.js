@@ -2,7 +2,7 @@
 // downloading saved data that couldn't be read, the owner's training rules
 // (shown formatted, edited inline as plain text), and the installed version.
 
-import { applyTheme, mainElement, onStart, registerActions, registerView, render, store } from "../context.js";
+import { applyTheme, mainElement, registerActions, registerView, render, store } from "../context.js";
 import { $, confirmAction, escapeHtml, report, toast } from "../dom.js";
 import { localDateKey, setTheme, setTrainingRules } from "../model.js";
 import { createBackup, createDefaultState, parseBackup } from "../store.js";
@@ -108,12 +108,6 @@ function settingsMarkup(state) {
 
 // ---------- helpers ----------
 
-// Re-rendering replaces the screen's buttons; put focus back on the one that was used.
-function rerender(selector) {
-  render();
-  $(selector, mainElement()).focus({ preventScroll: true });
-}
-
 function showDataError(message) {
   $("#settingsFormError").textContent = message;
 }
@@ -209,7 +203,7 @@ async function importData(file) {
   }
   rulesEditor.draft = null;
   applyTheme(next.settings.theme);
-  rerender("#importButton");
+  render();
   toast("App data imported.");
 }
 
@@ -230,18 +224,19 @@ async function restoreStartingData() {
     return;
   }
   rulesEditor.draft = null;
-  rerender("#resetButton");
+  render();
   toast("Starting data restored.");
 }
 
 function editTrainingRules() {
   rulesEditor.draft = store.getState().settings.trainingRules;
-  rerender("#trainingRulesInput");
+  render();
+  $("#trainingRulesInput").focus({ preventScroll: true }); // ready to type
 }
 
 function cancelTrainingRules() {
   rulesEditor.draft = null;
-  rerender("#editRulesButton");
+  render();
 }
 
 function saveTrainingRules() {
@@ -251,17 +246,11 @@ function saveTrainingRules() {
     return;
   }
   rulesEditor.draft = null;
-  rerender("#editRulesButton");
+  render();
   toast("Training rules saved.");
 }
 
-registerView("settings", {
-  render(state, main) {
-    main.innerHTML = settingsMarkup(state);
-    refreshVersion();
-  },
-  title: "Settings",
-});
+registerView("settings", { markup: settingsMarkup, afterDraw: refreshVersion, title: "Settings" });
 
 registerActions({
   "toggle-theme": toggleTheme,
@@ -277,15 +266,13 @@ registerActions({
   "save-training-rules": saveTrainingRules,
 });
 
-onStart(() => {
-  const input = $("#importFile");
-  input.addEventListener("change", () => {
-    const [file] = input.files;
-    // Cleared so choosing the same file again still fires "change".
-    input.value = "";
-    if (file) importData(file);
-  });
-  mainElement().addEventListener("input", (event) => {
-    if (event.target.id === "trainingRulesInput") rulesEditor.draft = event.target.value;
-  });
+$("#importFile").addEventListener("change", (event) => {
+  const input = event.target;
+  const [file] = input.files;
+  // Cleared so choosing the same file again still fires "change".
+  input.value = "";
+  if (file) importData(file);
+});
+mainElement().addEventListener("input", (event) => {
+  if (event.target.id === "trainingRulesInput") rulesEditor.draft = event.target.value;
 });

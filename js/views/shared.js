@@ -31,7 +31,7 @@ export function saysOptional(blockName) {
 
 export function routineTabsMarkup(routines, selectedId) {
   if (!routines.length) return "";
-  return `<div class="routine-tabs" aria-label="Choose a routine">
+  return `<div class="routine-tabs" aria-label="Choose a routine" data-keep-scroll="routine-tabs">
     ${routines.map((routine) => `
       <button class="routine-tab" type="button"
         aria-label="${escapeHtml(routine.name)}, ${locationLabel(routine.group)}" aria-pressed="${routine.id === selectedId}" data-action="select-routine" data-id="${escapeHtml(routine.id)}">

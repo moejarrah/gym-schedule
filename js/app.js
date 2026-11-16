@@ -1,4 +1,4 @@
-// Entry point: loads every screen, wires navigation and global events, starts offline support.
+// Entry point: loads every screen, routes taps to actions, starts offline support.
 
 import "./views/workout.js";
 import "./views/reference.js";
@@ -8,18 +8,37 @@ import "./views/library.js";
 import "./views/exercise-editor.js";
 import "./views/log.js";
 import "./views/settings.js";
-import { afterRender, applyTheme, mainElement, navigate, render, runAction, start, store } from "./context.js";
-import { initDialogs, toast } from "./dom.js";
+import { afterRender, applyTheme, navigate, render, runAction, store } from "./context.js";
+import { closeDialog, initDialogs, setSegment, toast } from "./dom.js";
 import { STORAGE_KEY } from "./store.js";
 
 initDialogs();
-start();
 
-// Focus rings are for keyboard use. The app moves focus after taps too (a sheet
-// focuses its first control, closing it returns focus, redrawn rows keep focus),
-// and on iPhone that drew a ring around whatever was just tapped. So a tap turns
-// rings off for buttons and links, and a key press outside a text field turns
-// them back on. Text fields always show theirs.
+// Every tap goes through here.
+document.addEventListener("click", (event) => {
+  const target = (selector) => event.target.closest?.(selector);
+  const closer = target("[data-close-dialog]");
+  if (closer) closeDialog(`#${closer.dataset.closeDialog}`);
+  const option = target("[data-segment] > button[data-value]");
+  if (option) setSegment(option.parentElement, option.dataset.value);
+  const action = target("[data-action]");
+  if (action) runAction(action.dataset.action, action, event);
+  const link = target("[data-view]");
+  if (link) navigate(link.dataset.view);
+});
+
+// Saving a form (its button, or Enter in a field) runs the form's action.
+document.addEventListener("submit", (event) => {
+  const { submit } = event.target.dataset;
+  if (!submit) return;
+  event.preventDefault();
+  runAction(submit, event.target, event);
+});
+
+// Focus rings are for keyboard use. Opening a sheet focuses its first control,
+// and on iPhone that drew a ring around it after a tap. So a tap turns rings off
+// for buttons and links, and a key press outside a text field turns them back
+// on. Text fields always show theirs.
 const root = document.documentElement;
 document.addEventListener("pointerdown", () => {
   root.dataset.input = "touch";
@@ -27,21 +46,6 @@ document.addEventListener("pointerdown", () => {
 document.addEventListener("keydown", (event) => {
   if (!event.target.matches?.('textarea, select, input:not([type="checkbox"], [type="radio"])')) delete root.dataset.input;
 }, true);
-
-document.querySelector(".bottom-nav").addEventListener("click", (event) => {
-  const button = event.target.closest("[data-view]");
-  if (button) navigate(button.dataset.view);
-});
-
-mainElement().addEventListener("click", (event) => {
-  const link = event.target.closest("[data-view-link]");
-  if (link) {
-    navigate(link.dataset.viewLink);
-    return;
-  }
-  const button = event.target.closest("[data-action]");
-  if (button) runAction(button.dataset.action, button, event);
-});
 
 // Another tab saved data: reload so both don't overwrite each other.
 window.addEventListener("storage", (event) => {
@@ -76,6 +80,9 @@ if ("serviceWorker" in navigator) {
       if (!navigator.serviceWorker.controller) toast("Offline mode couldn't be started.");
     });
 }
+
+// Ask the phone to keep this app's data even when it's short of space.
+navigator.storage?.persist?.().catch(() => {});
 
 // Coming back to the app: "today" may have changed overnight, and iOS keeps
 // home-screen apps alive in the background, so also look for a new version.

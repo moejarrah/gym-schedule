@@ -3,7 +3,7 @@
 // related-exercise editor. Opened from the Library and the exercise reference.
 // Nested pickers edit a draft; nothing is saved until "Save exercise".
 
-import { mainElement, onStart, render, store } from "../context.js";
+import { registerActions, render, store } from "../context.js";
 import { $, closeDialog, confirmAction, escapeHtml, openDialog, plural, report, showError } from "../dom.js";
 import { exerciseById, exerciseDeletionImpact, makeId, normalizedName, removeExercise, saveExercise as saveExerciseInState } from "../model.js";
 import { searchExercises } from "../search.js";
@@ -12,7 +12,6 @@ import { CHALLENGES, EMPHASES, EQUIPMENT, LATERALITIES, MOVEMENTS, PURPOSES, REL
 const editor = {
   mode: "add", // "add" | "edit" | "duplicate"
   exerciseId: "", // the exercise being edited; "" while adding or duplicating
-  returnId: "", // on close, this exercise's Library row gets focus if the opener was re-rendered
   selections: { secondaryTargets: [], equipment: [], emphases: [] },
   related: [], // { exerciseId, relation }, saved with the master
 };
@@ -34,7 +33,7 @@ function classificationOptionPickerMarkup({ options, selected, excluded }) {
   return options.map((option) => {
     const isSelected = selected.includes(option.id);
     const isExcluded = excluded.includes(option.id);
-    return `<button class="classification-option" type="button" data-classification-value="${escapeHtml(option.id)}" aria-pressed="${isSelected}" ${isExcluded ? "disabled" : ""}>
+    return `<button class="classification-option" type="button" data-action="toggle-classification-option" data-value="${escapeHtml(option.id)}" aria-pressed="${isSelected}" ${isExcluded ? "disabled" : ""}>
       <span>${escapeHtml(option.label)}</span>
       <span class="classification-option-state">${isExcluded ? "Primary target" : isSelected ? "Selected" : ""}</span>
       <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10"/></svg>
@@ -55,10 +54,10 @@ function relationshipEditorMarkup({ linkedExercises, availableExercises, query }
           ${RELATIONS.map((option) => `<option value="${escapeHtml(option.id)}" ${option.id === relation ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("")}
         </select>
       </label>
-      <button class="relationship-remove" type="button" data-remove-related="${escapeHtml(exercise.id)}" aria-label="Remove relationship to ${escapeHtml(exercise.name)}">Remove</button>
+      <button class="relationship-remove" type="button" data-action="remove-related" data-id="${escapeHtml(exercise.id)}" aria-label="Remove relationship to ${escapeHtml(exercise.name)}">Remove</button>
     </article>`).join("") : `<p class="relationship-empty">No related exercises yet.</p>`;
   const availableMarkup = availableExercises.length ? availableExercises.map((exercise) => `
-    <button class="relationship-result" type="button" data-add-related="${escapeHtml(exercise.id)}">
+    <button class="relationship-result" type="button" data-action="add-related" data-id="${escapeHtml(exercise.id)}">
       <span class="relationship-row-copy">
         <strong>${escapeHtml(exercise.name)}</strong>
         <small>${escapeHtml(classificationSummary(exercise))}</small>
@@ -146,13 +145,11 @@ function fillForm(source) {
 }
 
 // Opens the editor to add (no exerciseId), edit, or duplicate an exercise.
-// Duplicating while the editor is open refills it in place, so closing it
-// still returns focus to whatever opened the original editor.
-export function openExerciseEditor({ exerciseId = "", duplicate = false, returnFocus } = {}) {
+// Duplicating while the editor is open refills it in place.
+export function openExerciseEditor({ exerciseId = "", duplicate = false } = {}) {
   const source = exerciseId ? exerciseById(store.getState(), exerciseId) : null;
   editor.mode = source ? (duplicate ? "duplicate" : "edit") : "add";
   editor.exerciseId = editor.mode === "edit" ? source.id : "";
-  editor.returnId = source?.id || "";
   editor.selections = {
     secondaryTargets: [...(source?.secondaryTargets || [])],
     equipment: [...(source?.equipment || [])],
@@ -160,15 +157,7 @@ export function openExerciseEditor({ exerciseId = "", duplicate = false, returnF
   };
   editor.related = structuredClone(source?.relatedExercises || []);
   fillForm(source);
-  openDialog("#exerciseDialog", {
-    returnFocus,
-    fallbackFocus: () => (
-      (editor.returnId && $(`[data-id="${CSS.escape(editor.returnId)}"]`, mainElement()))
-      || $(".library-add-button", mainElement())
-      || mainElement()
-    ),
-    focus: "#exerciseName",
-  });
+  openDialog("#exerciseDialog");
   $(".exercise-editor-scroll").scrollTop = 0;
 }
 
@@ -244,7 +233,6 @@ function saveExercise() {
   const result = store.update((draft) => saveExerciseInState(draft, exercise, editor.related));
   const message = { add: "Exercise added.", edit: "Exercise updated.", duplicate: "Exercise duplicated." }[editor.mode];
   if (!report(result, message)) return;
-  editor.returnId = exercise.id;
   closeDialog("#exerciseDialog");
   render();
 }
@@ -319,17 +307,13 @@ function openClassificationPicker(button) {
   $("#classificationPickerTitle").textContent = config.title;
   $("#classificationPickerHint").textContent = config.hint;
   renderClassificationPicker();
-  openDialog("#classificationPickerDialog", {
-    returnFocus: button,
-    focus: () => $("#classificationPickerOptions button:not(:disabled)") || $("#saveClassificationPickerButton"),
-  });
+  openDialog("#classificationPickerDialog");
 }
 
 function toggleClassificationOption(option) {
-  const value = option.dataset.classificationValue;
+  const { value } = option.dataset;
   picker.draft = picker.draft.includes(value) ? picker.draft.filter((item) => item !== value) : [...picker.draft, value];
   renderClassificationPicker();
-  $(`[data-classification-value="${CSS.escape(value)}"]`).focus();
 }
 
 // ---------- related-exercise editor ----------
@@ -345,78 +329,56 @@ function renderRelatedEditor() {
   });
 }
 
-function openRelatedEditor(button) {
+function openRelatedEditor() {
   relatedEditor.draft = structuredClone(editor.related);
   relatedEditor.query = "";
   $("#alternativesSearch").value = "";
   renderRelatedEditor();
-  openDialog("#alternativesDialog", { returnFocus: button, focus: "#alternativesSearch" });
+  openDialog("#alternativesDialog");
 }
 
-function addRelated(exerciseId) {
-  relatedEditor.draft.push({ exerciseId, relation: "similar" });
-  renderRelatedEditor();
-  $(`[data-related-relation="${CSS.escape(exerciseId)}"]`).focus();
-}
+// ---------- actions and fields ----------
 
-function removeRelated(exerciseId) {
-  relatedEditor.draft = relatedEditor.draft.filter((related) => related.exerciseId !== exerciseId);
-  renderRelatedEditor();
-  ($(`[data-add-related="${CSS.escape(exerciseId)}"]`) || $("#alternativesSearch")).focus();
-}
+registerActions({
+  "save-exercise": saveExercise,
+  "duplicate-exercise": () => openExerciseEditor({ exerciseId: editor.exerciseId, duplicate: true }),
+  "delete-exercise": deleteExercise,
 
-// ---------- events ----------
-
-onStart(() => {
-  const form = $("#exerciseForm");
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    saveExercise();
-  });
-  form.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-classification-picker]");
-    if (button) openClassificationPicker(button);
-  });
-  for (const id of ["#exercisePrimaryTarget1", "#exercisePrimaryTarget2"]) $(id).addEventListener("change", syncExerciseTargetOptions);
-  for (const id of ["#exerciseStyle", "#exerciseLaterality", "#exerciseSupport", "#exerciseChallenge"]) $(id).addEventListener("change", updateExerciseEditorSummaries);
-  $("#chooseAlternativesButton").addEventListener("click", (event) => openRelatedEditor(event.currentTarget));
-  $("#duplicateExerciseButton").addEventListener("click", () => openExerciseEditor({ exerciseId: editor.exerciseId, duplicate: true }));
-  $("#deleteExerciseButton").addEventListener("click", deleteExercise);
-
-  $("#classificationPickerOptions").addEventListener("click", (event) => {
-    const option = event.target.closest("[data-classification-value]");
-    if (option) toggleClassificationOption(option);
-  });
-  $("#clearClassificationPickerButton").addEventListener("click", (event) => {
+  "open-classification-picker": openClassificationPicker,
+  "toggle-classification-option": toggleClassificationOption,
+  "clear-classification-picker": () => {
     picker.draft = [];
     renderClassificationPicker();
-    event.currentTarget.focus();
-  });
-  $("#cancelClassificationPickerButton").addEventListener("click", () => closeDialog("#classificationPickerDialog"));
-  $("#saveClassificationPickerButton").addEventListener("click", () => {
+  },
+  "save-classification-picker": () => {
     editor.selections[picker.kind] = [...picker.draft];
     updateExerciseEditorSummaries();
     closeDialog("#classificationPickerDialog");
-  });
+  },
 
-  $("#alternativesSearch").addEventListener("input", (event) => {
-    relatedEditor.query = event.target.value;
+  "open-related-editor": openRelatedEditor,
+  "add-related": (button) => {
+    relatedEditor.draft.push({ exerciseId: button.dataset.id, relation: "similar" });
     renderRelatedEditor();
-  });
-  $("#alternativesList").addEventListener("click", (event) => {
-    const add = event.target.closest("[data-add-related]");
-    const remove = event.target.closest("[data-remove-related]");
-    if (add) addRelated(add.dataset.addRelated);
-    else if (remove) removeRelated(remove.dataset.removeRelated);
-  });
-  $("#alternativesList").addEventListener("change", (event) => {
-    const related = relatedEditor.draft.find((item) => item.exerciseId === event.target.dataset.relatedRelation);
-    related.relation = event.target.value;
-  });
-  $("#cancelAlternativesButton").addEventListener("click", () => closeDialog("#alternativesDialog"));
-  $("#saveAlternativesButton").addEventListener("click", () => {
+  },
+  "remove-related": (button) => {
+    relatedEditor.draft = relatedEditor.draft.filter((related) => related.exerciseId !== button.dataset.id);
+    renderRelatedEditor();
+  },
+  "save-related-editor": () => {
     editor.related = structuredClone(relatedEditor.draft);
     updateRelatedCount();
     closeDialog("#alternativesDialog");
-  });
+  },
+});
+
+for (const id of ["#exercisePrimaryTarget1", "#exercisePrimaryTarget2"]) $(id).addEventListener("change", syncExerciseTargetOptions);
+for (const id of ["#exerciseStyle", "#exerciseLaterality", "#exerciseSupport", "#exerciseChallenge"]) $(id).addEventListener("change", updateExerciseEditorSummaries);
+$("#alternativesSearch").addEventListener("input", (event) => {
+  relatedEditor.query = event.target.value;
+  renderRelatedEditor();
+});
+$("#alternativesList").addEventListener("change", (event) => {
+  const related = relatedEditor.draft.find((item) => item.exerciseId === event.target.dataset.relatedRelation);
+  related.relation = event.target.value;
 });

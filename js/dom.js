@@ -1,5 +1,5 @@
 // Small DOM helpers shared by every screen: queries, escaping, icons, toasts,
-// dialogs with focus return, confirmations, and hold-to-drag reordering.
+// redrawing, dialogs, confirmations, and hold-to-drag reordering.
 
 export const $ = (selector, root = document) => root.querySelector(selector);
 export const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -89,62 +89,51 @@ export function report(result, successMessage = "") {
   return true;
 }
 
+// ---------- redrawing ----------
+
+// Replaces an element's markup. Scroll areas marked data-keep-scroll="name" stay
+// where they were when the new markup has an area of the same name.
+export function redraw(root, html) {
+  root = element(root);
+  const positions = new Map($$("[data-keep-scroll]", root).map((area) => [area.dataset.keepScroll, [area.scrollTop, area.scrollLeft]]));
+  root.innerHTML = html;
+  for (const area of $$("[data-keep-scroll]", root)) {
+    const [top, left] = positions.get(area.dataset.keepScroll) || [0, 0];
+    area.scrollTop = top;
+    area.scrollLeft = left;
+  }
+}
+
 // ---------- dialogs ----------
 //
-// openDialog(dialog, { returnFocus, fallbackFocus, onClose }) shows a modal and,
-// when it closes, puts focus back on the element that opened it (or on
-// fallbackFocus() when that element was re-rendered away). Use
-// closeDialog(dialog, { restoreFocus: false }) when another dialog takes over.
+// The browser does the focus work: showModal() focuses the dialog's first control
+// and closing puts focus back where it was. onClose(returnValue) runs once when
+// the dialog next closes.
 
-const dialogState = new WeakMap();
+const closeHandlers = new WeakMap();
 
-function focusWithoutScroll(element) {
-  element?.focus?.({ preventScroll: true });
-}
-
-function handleDialogClose(event) {
-  const dialog = event.currentTarget;
-  // "close" is dispatched later; if the dialog was reopened meanwhile, this event is stale.
+export function openDialog(dialog, { onClose } = {}) {
+  dialog = element(dialog);
+  if (onClose) closeHandlers.set(dialog, onClose);
   if (dialog.open) return;
-  const entry = dialogState.get(dialog);
-  dialogState.delete(dialog);
-  if (!entry) return;
-  entry.onClose?.(dialog.returnValue);
-  if (!entry.restoreFocus) return;
-  requestAnimationFrame(() => {
-    const opener = entry.returnFocus;
-    const openerDialog = opener?.closest?.("dialog");
-    const usable = opener?.isConnected && (!openerDialog || openerDialog.open);
-    focusWithoutScroll(usable ? opener : entry.fallbackFocus?.());
-  });
+  dialog.returnValue = "";
+  dialog.showModal();
 }
 
-export function openDialog(dialog, { returnFocus = document.activeElement, fallbackFocus, onClose, focus } = {}) {
-  if (typeof dialog === "string") dialog = $(dialog);
-  if (!dialog) return;
-  if (dialog.open) {
-    // Re-opening an open dialog keeps its original focus target.
-    const entry = dialogState.get(dialog);
-    if (entry && onClose) entry.onClose = onClose;
-  } else {
-    dialogState.set(dialog, { returnFocus, fallbackFocus, onClose, restoreFocus: true });
-    dialog.returnValue = "";
-    dialog.showModal();
-  }
-  if (focus) requestAnimationFrame(() => focusWithoutScroll(typeof focus === "string" ? $(focus, dialog) : focus()));
-}
-
-export function closeDialog(dialog, { restoreFocus = true } = {}) {
-  if (typeof dialog === "string") dialog = $(dialog);
-  if (!dialog?.open) return;
-  const entry = dialogState.get(dialog);
-  if (entry) entry.restoreFocus = restoreFocus;
-  dialog.close();
+export function closeDialog(dialog) {
+  dialog = element(dialog);
+  if (dialog?.open) dialog.close();
 }
 
 export function initDialogs() {
   for (const dialog of $$("dialog")) {
-    dialog.addEventListener("close", handleDialogClose);
+    dialog.addEventListener("close", () => {
+      // "close" arrives a moment later; if the dialog was reopened meanwhile, it's stale.
+      if (dialog.open) return;
+      const onClose = closeHandlers.get(dialog);
+      closeHandlers.delete(dialog);
+      onClose?.(dialog.returnValue);
+    });
     // Only read-only sheets close when the dimmed backdrop is tapped; editors keep their drafts.
     if (dialog.hasAttribute("data-dismissable")) {
       dialog.addEventListener("click", (event) => {
@@ -152,16 +141,15 @@ export function initDialogs() {
       });
     }
   }
-  document.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-close-dialog]");
-    if (button) closeDialog(`#${button.dataset.closeDialog}`);
-  });
 }
 
 // ---------- segmented controls ----------
-// A `.segment` group of buttons with `data-value`; the chosen value is kept on the group.
+// A data-segment group of buttons with data-value; the chosen value is kept on
+// the group. Tapping a button selects it (see the click handling in app.js).
 
-const element = (target) => (typeof target === "string" ? $(target) : target);
+function element(target) {
+  return typeof target === "string" ? $(target) : target;
+}
 
 export function setSegment(group, value) {
   group = element(group);
@@ -170,16 +158,6 @@ export function setSegment(group, value) {
 }
 
 export const segmentValue = (group) => element(group).dataset.value;
-
-export function bindSegment(group, onChange = () => {}) {
-  group = element(group);
-  group.addEventListener("click", (event) => {
-    const button = event.target.closest("button[data-value]");
-    if (!button || button.disabled) return;
-    setSegment(group, button.dataset.value);
-    onChange(button.dataset.value);
-  });
-}
 
 // ---------- confirmation ----------
 

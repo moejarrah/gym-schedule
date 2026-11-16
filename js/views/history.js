@@ -98,7 +98,7 @@ function historyMarkup(state, exerciseId) {
   </div>`;
 }
 
-export function openExerciseHistory(exerciseId, opener) {
+export function openExerciseHistory(exerciseId) {
   $("#historyContent").innerHTML = historyMarkup(store.getState(), exerciseId);
-  openDialog("#historyDialog", { returnFocus: opener, focus: '[data-close-dialog="historyDialog"]' });
+  openDialog("#historyDialog");
 }

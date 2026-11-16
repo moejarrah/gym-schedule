@@ -1,7 +1,7 @@
 // Library screen: the searchable list of master exercises with quick groups,
 // target scope and the filter sheet. Search and filters last for the session only.
 
-import { mainElement, onStart, registerActions, registerView, render, store } from "../context.js";
+import { mainElement, registerActions, registerView, render, store } from "../context.js";
 import { $, $$, chevronIcon, closeDialog, escapeHtml, openDialog, plural } from "../dom.js";
 import { activeLibraryFilterCount, availableBrowseGroups, createLibraryFilters, filteredExercises } from "../search.js";
 import { CHALLENGES, EMPHASES, EQUIPMENT, LATERALITIES, MOVEMENTS, PURPOSES, STYLES, TARGETS, label } from "../vocab.js";
@@ -12,7 +12,6 @@ const library = {
   query: "",
   filters: createLibraryFilters(),
   draft: createLibraryFilters(), // the filter sheet's changes until "Show N exercises"
-  scroller: null, // reused across renders so the list keeps its scroll position
 };
 
 // ---------- markup ----------
@@ -44,20 +43,20 @@ function quickGroupMarkup(groups, selectedId) {
   return [{ id: "all", label: "All" }, ...groups].map((group) => `<button class="library-chip" type="button" data-action="select-library-quick-group" data-id="${escapeHtml(group.id)}" aria-pressed="${group.id === selectedId}">${escapeHtml(group.label)}</button>`).join("");
 }
 
-function libraryPageShellMarkup(resultCount) {
+function libraryMarkup(state) {
+  const { query, filters } = library;
+  const exercises = visibleExercises(state);
+  const totalCount = state.exercises.length;
+  const browseGroups = availableBrowseGroups(state, filters.targetScope);
+  const activeCount = activeLibraryFilterCount(filters);
   return `<section class="page library-page">
     <header class="library-appbar">
-      <div class="library-app-title">Library <span id="libraryAppCount">${resultCount}</span></div>
+      <div class="library-app-title">Library <span id="libraryAppCount">${exercises.length}</span></div>
       <button class="icon-button library-add-button" type="button" data-action="new-exercise" aria-label="Add exercise">
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
       </button>
     </header>
-  </section>`;
-}
-
-function libraryScrollContentMarkup({ query, filters, exercises, totalCount, browseGroups }) {
-  const activeCount = activeLibraryFilterCount(filters);
-  return `
+    <div class="library-scroll" data-keep-scroll="library">
     ${totalCount ? `
       <label class="library-search">
         <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
@@ -65,18 +64,19 @@ function libraryScrollContentMarkup({ query, filters, exercises, totalCount, bro
         <input id="exerciseSearch" type="search" value="${escapeHtml(query)}" autocomplete="off" placeholder="Exercise, target, or movement">
       </label>
       <div class="library-quickbar">
-        <div class="library-quick-scroll" aria-label="Quick target filters">${quickGroupMarkup(browseGroups, filters.quickGroup)}</div>
+        <div class="library-quick-scroll" aria-label="Quick target filters" data-keep-scroll="library-groups">${quickGroupMarkup(browseGroups, filters.quickGroup)}</div>
         <button class="library-filter-button" type="button" data-action="open-exercise-filter" aria-label="Filter exercises${activeCount ? `, ${activeCount} active ${activeCount === 1 ? "group" : "groups"}` : ""}">Filter${activeCount ? ` <b>${activeCount}</b>` : ""}</button>
       </div>
       <div class="library-result-head"><span id="exerciseResultCount">${plural(exercises.length, "exercise")}</span><button type="button" data-action="toggle-library-target-scope">${filters.targetScope === "primary" ? "Primary only" : "Primary + secondary"}</button></div>
     ` : ""}
     <div id="exerciseList">${libraryRowsMarkup(exercises, { libraryEmpty: totalCount === 0 })}</div>
-  `;
+    </div>
+  </section>`;
 }
 
 function filterOptionButtons(group, options, selected) {
   return `<div class="library-filter-options" data-filter-options="${escapeHtml(group)}">${options.map((option) => `
-    <button class="library-chip" type="button" data-filter-group="${escapeHtml(group)}" data-filter-value="${escapeHtml(option.id)}" aria-pressed="${selected.includes(option.id)}">${escapeHtml(option.label)}</button>`).join("")}
+    <button class="library-chip" type="button" data-action="toggle-filter-option" data-filter-group="${escapeHtml(group)}" data-filter-value="${escapeHtml(option.id)}" aria-pressed="${selected.includes(option.id)}">${escapeHtml(option.label)}</button>`).join("")}
   </div>`;
 }
 
@@ -84,8 +84,8 @@ function exerciseFilterContentMarkup(filters) {
   return `
     <p class="library-filter-label">Target matching</p>
     <div class="segment library-filter-scope" role="group" aria-label="Target matching">
-      <button type="button" data-filter-scope="primary" aria-pressed="${filters.targetScope === "primary"}">Primary only</button>
-      <button type="button" data-filter-scope="all" aria-pressed="${filters.targetScope === "all"}">Primary + secondary</button>
+      <button type="button" data-action="set-filter-scope" data-scope="primary" aria-pressed="${filters.targetScope === "primary"}">Primary only</button>
+      <button type="button" data-action="set-filter-scope" data-scope="all" aria-pressed="${filters.targetScope === "all"}">Primary + secondary</button>
     </div>
     <p class="library-filter-label">Targets</p>
     ${filterOptionButtons("targets", TARGETS, filters.targets)}
@@ -112,34 +112,12 @@ function exerciseFilterContentMarkup(filters) {
 
 const visibleExercises = (state, filters = library.filters) => filteredExercises(state, { query: library.query, ...filters });
 
-function renderLibrary(state, main) {
-  const { scroller } = library;
-  const scrollTop = scroller.scrollTop;
-  const exercises = visibleExercises(state);
-  main.innerHTML = libraryPageShellMarkup(exercises.length);
-  scroller.innerHTML = libraryScrollContentMarkup({
-    query: library.query,
-    filters: library.filters,
-    exercises,
-    totalCount: state.exercises.length,
-    browseGroups: availableBrowseGroups(state, library.filters.targetScope),
-  });
-  $(".library-page", main).append(scroller);
-  scroller.scrollTop = scrollTop;
-}
-
-// Typing only replaces the rows and counts, so the search field keeps focus.
+// Typing only replaces the rows and counts, so the search field keeps the keyboard.
 function renderRows(state) {
   const exercises = visibleExercises(state);
   $("#libraryAppCount").textContent = String(exercises.length);
   $("#exerciseResultCount").textContent = plural(exercises.length, "exercise");
   $("#exerciseList").innerHTML = libraryRowsMarkup(exercises);
-}
-
-// Re-renders the screen, then focuses the re-rendered control the user just used.
-function renderAndFocus(selector) {
-  render();
-  requestAnimationFrame(() => $(selector, mainElement())?.focus());
 }
 
 // ---------- filter sheet ----------
@@ -156,14 +134,10 @@ function renderFilterDraft() {
   updateFilterCount();
 }
 
-function openFilter(button) {
+function openFilter() {
   library.draft = structuredClone(library.filters);
   renderFilterDraft();
-  openDialog("#exerciseFilterDialog", {
-    returnFocus: button,
-    // Applying re-renders the screen, so focus the new Filter button.
-    fallbackFocus: () => $(".library-filter-button", mainElement()),
-  });
+  openDialog("#exerciseFilterDialog");
 }
 
 function toggleFilterOption(option) {
@@ -173,60 +147,50 @@ function toggleFilterOption(option) {
   // Choosing targets in the sheet replaces the quick group.
   if (group === "targets") library.draft.quickGroup = "all";
   option.setAttribute("aria-pressed", String(!selected.includes(value)));
+  updateFilterCount();
 }
 
-onStart(() => {
-  library.scroller = document.createElement("div");
-  library.scroller.className = "library-scroll";
-  library.scroller.addEventListener("input", (event) => {
-    library.query = event.target.value;
-    renderRows(store.getState());
-  });
-
-  $("#exerciseFilterContent").addEventListener("click", (event) => {
-    const scope = event.target.closest("[data-filter-scope]");
-    const option = event.target.closest("[data-filter-group]");
-    if (scope) {
-      library.draft.targetScope = scope.dataset.filterScope;
-      for (const button of $$("[data-filter-scope]")) button.setAttribute("aria-pressed", String(button === scope));
-    } else if (option) {
-      toggleFilterOption(option);
-    } else {
-      return;
-    }
-    updateFilterCount();
-  });
-
-  $("#clearExerciseFilterButton").addEventListener("click", () => {
-    library.draft = createLibraryFilters();
-    renderFilterDraft();
-  });
-
-  $("#applyExerciseFilterButton").addEventListener("click", () => {
-    library.filters = structuredClone(library.draft);
-    closeDialog("#exerciseFilterDialog");
-    render();
-  });
+mainElement().addEventListener("input", (event) => {
+  if (event.target.id !== "exerciseSearch") return;
+  library.query = event.target.value;
+  renderRows(store.getState());
 });
 
-registerView("exercises", { render: renderLibrary });
+registerView("exercises", { markup: libraryMarkup });
 
 registerActions({
-  "new-exercise": (button) => openExerciseEditor({ returnFocus: button }),
+  "new-exercise": () => openExerciseEditor(),
   "view-exercise": (button) => openExerciseReference(button.dataset.id),
-  "open-exercise-filter": (button) => openFilter(button),
   "select-library-quick-group": (button) => {
     library.filters.quickGroup = button.dataset.id;
     library.filters.targets = [];
-    renderAndFocus(`[data-action="select-library-quick-group"][data-id="${CSS.escape(button.dataset.id)}"]`);
+    render();
   },
   "toggle-library-target-scope": () => {
     library.filters.targetScope = library.filters.targetScope === "primary" ? "all" : "primary";
-    renderAndFocus('[data-action="toggle-library-target-scope"]');
+    render();
   },
   "clear-library-filters": () => {
     library.query = "";
     library.filters = createLibraryFilters();
-    renderAndFocus("#exerciseSearch");
+    render();
+  },
+
+  // The filter sheet works on a draft until "Show N exercises".
+  "open-exercise-filter": openFilter,
+  "set-filter-scope": (button) => {
+    library.draft.targetScope = button.dataset.scope;
+    for (const option of $$('[data-action="set-filter-scope"]')) option.setAttribute("aria-pressed", String(option === button));
+    updateFilterCount();
+  },
+  "toggle-filter-option": toggleFilterOption,
+  "clear-filter-draft": () => {
+    library.draft = createLibraryFilters();
+    renderFilterDraft();
+  },
+  "apply-filter-draft": () => {
+    library.filters = structuredClone(library.draft);
+    closeDialog("#exerciseFilterDialog");
+    render();
   },
 });

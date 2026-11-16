@@ -3,10 +3,9 @@
 // opened from Workout), and the program, routine and block editors. Entry
 // editing and the Library picker live in entry-editor.js.
 
-import { mainElement, onStart, registerActions, registerView, render, runAction, store } from "../context.js";
+import { mainElement, registerActions, registerView, render, store } from "../context.js";
 import {
   $,
-  bindSegment,
   chevronIcon,
   closeDialog,
   confirmAction,
@@ -45,8 +44,8 @@ import { entryPresentation, locationLabel, revealSelectedTab, routineTabsMarkup,
 const programEditor = { id: "" };
 // The routine open in the routine editor ("" while adding one). Its blocks are
 // edited as a draft and only saved with the routine; blockId is the block open
-// in the block editor; drag is the blocks list's hold-drag handle.
-const routineEditor = { id: "", blocks: [], blockId: "", drag: null };
+// in the block editor.
+const routineEditor = { id: "", blocks: [], blockId: "" };
 
 // ---------- markup ----------
 
@@ -184,16 +183,10 @@ function programMarkup(state) {
 
 // ---------- programs sheet and program editor ----------
 
-// Where focus goes when the element that opened a program dialog was re-rendered away.
-function programFocusFallback() {
-  const main = mainElement();
-  return $(".program-page-manage, .workout-program-pick, [data-action='new-program']", main) || main;
-}
-
-function openPrograms(returnFocus) {
+function openPrograms() {
   $("#programsList").innerHTML = programsListMarkup(store.getState());
   $("#programsFormError").textContent = "";
-  openDialog("#programsDialog", { returnFocus, fallbackFocus: programFocusFallback });
+  openDialog("#programsDialog");
 }
 
 function selectProgram(id) {
@@ -213,13 +206,13 @@ function setProgramStartMode(mode) {
 }
 
 // Opens the editor for a program, or for a new one (empty, or a copy of duplicateSourceId).
-function openProgramEditor(id = "", { duplicateSourceId = "", returnFocus = document.activeElement } = {}) {
+function openProgramEditor(id = "", duplicateSourceId = "") {
   const state = store.getState();
   const program = state.programs.find((item) => item.id === id) || null;
   const source = state.programs.find((item) => item.id === duplicateSourceId) || null;
-  closeDialog("#programsDialog", { restoreFocus: false });
+  closeDialog("#programsDialog");
   // "Duplicate program" reopens this editor as a new program.
-  closeDialog("#programDialog", { restoreFocus: false });
+  closeDialog("#programDialog");
   programEditor.id = program?.id || "";
 
   const sourceSelect = $("#programDuplicateSource");
@@ -240,7 +233,7 @@ function openProgramEditor(id = "", { duplicateSourceId = "", returnFocus = docu
 
   const dialog = $("#programDialog");
   dialog.classList.toggle("compact-dialog", Boolean(program));
-  openDialog(dialog, { returnFocus, fallbackFocus: programFocusFallback, focus: "#programName" });
+  openDialog(dialog);
 }
 
 function saveProgram() {
@@ -283,19 +276,12 @@ async function deleteProgram() {
   if (!confirmed) return;
   const result = store.update((draft) => removeProgram(draft, id));
   if (!report(result, "Program deleted.")) return;
-  closeDialog("#programDialog", { restoreFocus: false });
+  closeDialog("#programDialog");
   render();
   mainElement().scrollTop = 0;
-  programFocusFallback().focus({ preventScroll: true });
 }
 
 // ---------- routine editor ----------
-
-function routineFocusFallback() {
-  const main = mainElement();
-  const edit = routineEditor.id && $(`.program-view-edit[data-id="${CSS.escape(routineEditor.id)}"]`, main);
-  return edit || $(".program-app-action, [data-action='new-routine'], .program-page-manage", main) || main;
-}
 
 function updateRoutineMoveButtons() {
   const program = routineProgram(store.getState(), routineEditor.id);
@@ -304,7 +290,7 @@ function updateRoutineMoveButtons() {
   $("#moveRoutineLaterButton").disabled = index < 0 || index === program.routineIds.length - 1;
 }
 
-function openRoutineEditor(id = "", returnFocus = document.activeElement) {
+function openRoutineEditor(id = "") {
   const routine = routineById(store.getState(), id);
   routineEditor.id = routine?.id || "";
   routineEditor.blocks = structuredClone(routine?.blocks || [{ id: makeId("block"), name: "" }]);
@@ -317,12 +303,7 @@ function openRoutineEditor(id = "", returnFocus = document.activeElement) {
   $("#routineEditActions").hidden = !routine;
   updateRoutineMoveButtons();
   renderBlocksEditor();
-  openDialog("#routineDialog", {
-    returnFocus,
-    fallbackFocus: routineFocusFallback,
-    focus: "#routineName",
-    onClose: () => routineEditor.drag.cancel(),
-  });
+  openDialog("#routineDialog", { onClose: () => blocksDrag.cancel() });
 }
 
 // Moves the saved routine right away, like the old app; the rest of the draft stays unsaved.
@@ -379,13 +360,8 @@ async function deleteRoutine() {
   if (!confirmed) return;
   const result = store.update((draft) => removeRoutine(draft, id));
   if (!report(result, "Routine deleted.")) return;
-  closeDialog("#routineDialog", { restoreFocus: false });
+  closeDialog("#routineDialog");
   render();
-  const main = mainElement();
-  const target = $(".routine-tab[aria-pressed='true']", main)
-    || $(".program-empty-state [data-action='new-routine']", main)
-    || $(".program-page-manage", main);
-  target.focus({ preventScroll: true });
 }
 
 // ---------- routine blocks (draft) ----------
@@ -398,10 +374,6 @@ function savedBlockEntryCount(blockId) {
 function renderBlocksEditor() {
   const routine = routineById(store.getState(), routineEditor.id);
   $("#routineBlocksList").innerHTML = routineBlocksEditorMarkup(routineEditor.blocks, routine?.entries || []);
-}
-
-function blockEditButton(blockId) {
-  return $(`#routineBlocksList .routine-block-edit[data-id="${CSS.escape(blockId)}"]`);
 }
 
 function moveBlockDraft(blockId, toIndex) {
@@ -423,17 +395,13 @@ function updateBlockButtons() {
   $("#deleteBlockButton").disabled = blocks.length <= 1 || savedBlockEntryCount(blockId) > 0;
 }
 
-function openBlockEditor(blockId, returnFocus) {
+function openBlockEditor(blockId) {
   routineEditor.blockId = blockId;
   $("#routineBlockName").value = editedBlock().name;
   $("#routineBlockDialogSubtitle").textContent = plural(savedBlockEntryCount(blockId), "entry", "entries");
   $("#routineBlockFormError").textContent = "";
   updateBlockButtons();
-  openDialog("#routineBlockDialog", {
-    returnFocus,
-    fallbackFocus: () => blockEditButton(routineEditor.blockId) || $("#addRoutineBlockButton"),
-    focus: "#routineBlockName",
-  });
+  openDialog("#routineBlockDialog");
 }
 
 function syncBlockName() {
@@ -463,88 +431,58 @@ function addBlock() {
   const block = { id: makeId("block"), name: "" };
   routineEditor.blocks.push(block);
   renderBlocksEditor();
-  openBlockEditor(block.id, blockEditButton(block.id));
+  openBlockEditor(block.id);
 }
 
 // ---------- registration ----------
 
-registerView("routines", {
-  render(state, main) {
-    main.innerHTML = programMarkup(state);
-    revealSelectedTab(main);
-  },
-});
+registerView("routines", { markup: programMarkup, afterDraw: revealSelectedTab });
 
 registerActions({
-  "open-programs": (button) => openPrograms(button),
+  "open-programs": openPrograms,
   "select-program": (button) => selectProgram(button.dataset.id),
-  "new-program": (button) => openProgramEditor("", { returnFocus: button }),
-  "edit-program": (button) => openProgramEditor(button.dataset.id, { returnFocus: button }),
-  "new-routine": (button) => openRoutineEditor("", button),
-  "edit-routine": (button) => openRoutineEditor(button.dataset.id, button),
-  "edit-entry": (button) => openEntryEditor(button.dataset.id, button),
-  "open-picker": (button) => openPicker({ blockId: button.dataset.blockId, mode: "entry", returnFocus: button }),
+  "new-program": () => openProgramEditor(),
+  "edit-program": (button) => openProgramEditor(button.dataset.id),
+  "set-program-start-mode": (button) => setProgramStartMode(button.dataset.value),
+  "save-program": saveProgram,
+  "duplicate-program": () => openProgramEditor("", programEditor.id),
+  "delete-program": deleteProgram,
+
+  "new-routine": () => openRoutineEditor(),
+  "edit-routine": (button) => openRoutineEditor(button.dataset.id),
+  "save-routine": saveRoutine,
+  "move-routine": (button) => moveRoutineBy(Number(button.dataset.by)),
+  "delete-routine": deleteRoutine,
+
+  "add-routine-block": addBlock,
+  "edit-routine-block": (button) => openBlockEditor(button.dataset.id),
+  "save-routine-block": saveBlock,
+  "move-routine-block": (button) => moveBlockBy(Number(button.dataset.by)),
+  "delete-routine-block": deleteBlock,
+
+  "edit-entry": (button) => openEntryEditor(button.dataset.id),
+  "open-picker": (button) => openPicker({ blockId: button.dataset.blockId, mode: "entry" }),
 });
 
-onStart(() => {
-  const main = mainElement();
-  enableHoldDrag(main, {
-    rowSelector: ".program-row",
-    listSelector: ".program-list",
-    placeholderClass: "program-row-placeholder",
-    activeBodyClass: "entry-drag-active",
-    scroller: mainElement,
-    onDrop(row, toIndex) {
-      const routineId = store.getState().settings.activeRoutineId;
-      const result = store.update((draft) => moveEntryInBlock(draft, routineId, row.dataset.id, toIndex));
-      report(result, "Exercise moved.");
-      render();
-    },
-  });
-
-  // The programs sheet's rows use the same actions as the page.
-  $("#programsList").addEventListener("click", (event) => {
-    const button = event.target.closest("[data-action]");
-    if (button) runAction(button.dataset.action, button, event);
-  });
-  $("#newProgramButton").addEventListener("click", (event) => openProgramEditor("", { returnFocus: event.currentTarget }));
-  bindSegment("#programStartModeOptions", setProgramStartMode);
-  $("#programForm").addEventListener("submit", (event) => {
-    event.preventDefault();
-    saveProgram();
-  });
-  $("#duplicateProgramButton").addEventListener("click", () => openProgramEditor("", { duplicateSourceId: programEditor.id }));
-  $("#deleteProgramButton").addEventListener("click", deleteProgram);
-
-  bindSegment("#routineGroupOptions");
-  bindSegment("#routineStatusOptions");
-  $("#routineForm").addEventListener("submit", (event) => {
-    event.preventDefault();
-    saveRoutine();
-  });
-  $("#moveRoutineEarlierButton").addEventListener("click", () => moveRoutineBy(-1));
-  $("#moveRoutineLaterButton").addEventListener("click", () => moveRoutineBy(1));
-  $("#deleteRoutineButton").addEventListener("click", deleteRoutine);
-
-  const blocksList = $("#routineBlocksList");
-  routineEditor.drag = enableHoldDrag(blocksList, {
-    rowSelector: ".routine-block-row",
-    listSelector: ".routine-block-list",
-    placeholderClass: "routine-block-placeholder",
-    activeBodyClass: "routine-block-drag-active",
-    scroller: () => $(".routine-sheet-scroll"),
-    onDrop: (row, toIndex) => moveBlockDraft(row.dataset.blockId, toIndex),
-  });
-  blocksList.addEventListener("click", (event) => {
-    const button = event.target.closest('[data-action="edit-routine-block"]');
-    if (button) openBlockEditor(button.dataset.id, button);
-  });
-  $("#addRoutineBlockButton").addEventListener("click", addBlock);
-  $("#routineBlockForm").addEventListener("submit", (event) => {
-    event.preventDefault();
-    saveBlock();
-  });
-  $("#moveBlockEarlierButton").addEventListener("click", () => moveBlockBy(-1));
-  $("#moveBlockLaterButton").addEventListener("click", () => moveBlockBy(1));
-  $("#deleteBlockButton").addEventListener("click", deleteBlock);
+// Hold and drag: entries inside their block on the page, blocks in the routine editor.
+enableHoldDrag(mainElement(), {
+  rowSelector: ".program-row",
+  listSelector: ".program-list",
+  placeholderClass: "program-row-placeholder",
+  activeBodyClass: "entry-drag-active",
+  scroller: mainElement,
+  onDrop(row, toIndex) {
+    const routineId = store.getState().settings.activeRoutineId;
+    const result = store.update((draft) => moveEntryInBlock(draft, routineId, row.dataset.id, toIndex));
+    report(result, "Exercise moved.");
+    render();
+  },
+});
+const blocksDrag = enableHoldDrag($("#routineBlocksList"), {
+  rowSelector: ".routine-block-row",
+  listSelector: ".routine-block-list",
+  placeholderClass: "routine-block-placeholder",
+  activeBodyClass: "routine-block-drag-active",
+  scroller: () => $(".routine-sheet-scroll"),
+  onDrop: (row, toIndex) => moveBlockDraft(row.dataset.blockId, toIndex),
 });

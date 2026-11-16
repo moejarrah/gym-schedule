@@ -3,8 +3,8 @@
 // editor; and the Library picker, which adds a new entry to a block or a choice
 // to the entry being edited.
 
-import { mainElement, onStart, render, store } from "../context.js";
-import { $, bindSegment, chevronIcon, clearError, closeDialog, confirmAction, escapeHtml, openDialog, plural, report, segmentValue, setSegment, showError } from "../dom.js";
+import { registerActions, render, store } from "../context.js";
+import { $, chevronIcon, clearError, closeDialog, confirmAction, escapeHtml, openDialog, plural, report, segmentValue, setSegment, showError } from "../dom.js";
 import { activeRoutine, addEntry, entryNumber, exerciseById, moveEntryInBlock, removeEntry, routineById, updateEntry } from "../model.js";
 import { searchExercises } from "../search.js";
 import { label } from "../vocab.js";
@@ -54,14 +54,6 @@ function entryChoicesEditorMarkup(choices, state) {
 
 // ---------- entry editor ----------
 
-function entryFocusFallback() {
-  const main = mainElement();
-  return $(`.program-row[data-id="${CSS.escape(entryEditor.entryId)}"]`, main)
-    || $(".add-row-button", main)
-    || $(".program-view-edit", main)
-    || main;
-}
-
 function renderChoiceDraft() {
   const state = store.getState();
   $("#entryChoicesList").innerHTML = entryChoicesEditorMarkup(entryEditor.choices, state);
@@ -83,7 +75,7 @@ function updateEntryMoveButtons() {
   $("#moveEntryLaterButton").disabled = index >= count - 1;
 }
 
-export function openEntryEditor(entryId, returnFocus = document.activeElement) {
+export function openEntryEditor(entryId) {
   const state = store.getState();
   const routine = activeRoutine(state);
   const entry = routine.entries.find((item) => item.id === entryId);
@@ -100,7 +92,7 @@ export function openEntryEditor(entryId, returnFocus = document.activeElement) {
   updateEntryMoveButtons();
   renderChoiceDraft();
   $("#entryFormError").textContent = "";
-  openDialog("#entryDialog", { returnFocus, fallbackFocus: entryFocusFallback, focus: "#addEntryChoiceButton" });
+  openDialog("#entryDialog");
 }
 
 function entryChanges() {
@@ -157,14 +149,12 @@ function preferChoice(index) {
   const [choice] = entryEditor.choices.splice(index, 1);
   entryEditor.choices.unshift(choice);
   renderChoiceDraft();
-  $('#entryChoicesList [data-action="edit-entry-choice"][data-index="0"]').focus();
 }
 
 function removeChoice(index) {
   entryEditor.choices.splice(index, 1);
   renderChoiceDraft();
-  closeDialog("#entryChoiceDialog", { restoreFocus: false });
-  $("#addEntryChoiceButton").focus();
+  closeDialog("#entryChoiceDialog");
 }
 
 function updateChoiceEditor() {
@@ -176,18 +166,14 @@ function updateChoiceEditor() {
   $("#moveEntryChoiceLaterButton").disabled = index >= count - 1;
 }
 
-function openChoiceEditor(index, returnFocus) {
+function openChoiceEditor(index) {
   const choice = entryEditor.choices[index];
   entryEditor.choiceIndex = index;
   $("#entryChoiceDialogTitle").textContent = exerciseById(store.getState(), choice.exerciseId).name;
   $("#entryChoicePrescription").value = choice.prescription;
   $("#entryChoiceFormError").textContent = "";
   updateChoiceEditor();
-  openDialog("#entryChoiceDialog", {
-    returnFocus,
-    fallbackFocus: () => $(`#entryChoicesList [data-action="edit-entry-choice"][data-index="${entryEditor.choiceIndex}"]`) || $("#addEntryChoiceButton"),
-    focus: "#entryChoicePrescription",
-  });
+  openDialog("#entryChoiceDialog");
 }
 
 // Copies the choice editor's prescription into the draft; false when it's blank.
@@ -221,12 +207,6 @@ function saveChoice() {
 
 // ---------- picker ----------
 
-function pickerFocusFallback() {
-  if (picker.mode === "choice") return $("#addEntryChoiceButton");
-  const main = mainElement();
-  return $(`.add-row-button[data-block-id="${CSS.escape(picker.blockId)}"]`, main) || main;
-}
-
 function renderPickerList() {
   const state = store.getState();
   const used = picker.mode === "choice"
@@ -237,7 +217,7 @@ function renderPickerList() {
   $("#pickerList").innerHTML = pickerListMarkup(exercises, new Set(used.map((choice) => choice.exerciseId)), picker.mode);
 }
 
-export function openPicker({ blockId = "", mode, returnFocus = document.activeElement }) {
+export function openPicker({ blockId = "", mode }) {
   const routine = activeRoutine(store.getState());
   Object.assign(picker, { mode, blockId });
   const block = routine.blocks.find((item) => item.id === blockId);
@@ -247,7 +227,7 @@ export function openPicker({ blockId = "", mode, returnFocus = document.activeEl
   $("#pickerSearch").value = "";
   $("#pickerFormError").textContent = "";
   renderPickerList();
-  openDialog("#pickerDialog", { returnFocus, fallbackFocus: pickerFocusFallback, focus: "#pickerSearch" });
+  openDialog("#pickerDialog");
 }
 
 function pickExercise(exerciseId) {
@@ -274,39 +254,22 @@ function pickExercise(exerciseId) {
 
 // ---------- listeners ----------
 
-onStart(() => {
-  $("#entryForm").addEventListener("submit", (event) => {
-    event.preventDefault();
-    saveEntry();
-  });
-  bindSegment("#entryRoleOptions");
-  $("#entryBlock").addEventListener("change", updateEntryMoveButtons);
-  $("#moveEntryEarlierButton").addEventListener("click", () => moveEntry(-1));
-  $("#moveEntryLaterButton").addEventListener("click", () => moveEntry(1));
-  $("#removeEntryButton").addEventListener("click", removeEntryFromRoutine);
-  $("#addEntryChoiceButton").addEventListener("click", (event) => openPicker({ mode: "choice", returnFocus: event.currentTarget }));
-
-  $("#entryChoicesList").addEventListener("click", (event) => {
-    const button = event.target.closest("[data-action][data-index]");
-    if (!button) return;
-    const index = Number(button.dataset.index);
-    if (button.dataset.action === "edit-entry-choice") openChoiceEditor(index, button);
-    else if (button.dataset.action === "prefer-entry-choice") preferChoice(index);
-    else if (button.dataset.action === "remove-entry-choice") removeChoice(index);
-  });
-
-  $("#entryChoiceForm").addEventListener("submit", (event) => {
-    event.preventDefault();
-    saveChoice();
-  });
-  $("#preferEntryChoiceButton").addEventListener("click", () => moveChoice(0));
-  $("#moveEntryChoiceEarlierButton").addEventListener("click", () => moveChoice(entryEditor.choiceIndex - 1));
-  $("#moveEntryChoiceLaterButton").addEventListener("click", () => moveChoice(entryEditor.choiceIndex + 1));
-  $("#removeEntryChoiceButton").addEventListener("click", () => removeChoice(entryEditor.choiceIndex));
-
-  $("#pickerSearch").addEventListener("input", renderPickerList);
-  $("#pickerList").addEventListener("click", (event) => {
-    const button = event.target.closest('[data-action="pick-exercise"]');
-    if (button) pickExercise(button.dataset.id);
-  });
+registerActions({
+  "save-entry": saveEntry,
+  "move-entry": (button) => moveEntry(Number(button.dataset.by)),
+  "remove-entry": removeEntryFromRoutine,
+  // Buttons in the entry editor's list of choices carry the choice's index.
+  "add-entry-choice": () => openPicker({ mode: "choice" }),
+  "edit-entry-choice": (button) => openChoiceEditor(Number(button.dataset.index)),
+  "prefer-entry-choice": (button) => preferChoice(Number(button.dataset.index)),
+  "remove-entry-choice": (button) => removeChoice(Number(button.dataset.index)),
+  // The choice editor's buttons act on the choice it has open.
+  "save-open-choice": saveChoice,
+  "prefer-open-choice": () => moveChoice(0),
+  "move-open-choice": (button) => moveChoice(entryEditor.choiceIndex + Number(button.dataset.by)),
+  "remove-open-choice": () => removeChoice(entryEditor.choiceIndex),
+  "pick-exercise": (button) => pickExercise(button.dataset.id),
 });
+
+$("#entryBlock").addEventListener("change", updateEntryMoveButtons);
+$("#pickerSearch").addEventListener("input", renderPickerList);

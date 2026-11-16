@@ -3,16 +3,13 @@
 // "find a video" sheet. Both hand over to the master exercise editor; the
 // reference also opens the exercise's logged history.
 
-import { onStart, store } from "../context.js";
+import { registerActions, store } from "../context.js";
 import { $, closeDialog, escapeHtml, openDialog, playIcon } from "../dom.js";
 import { exerciseById } from "../model.js";
 import { RELATIONS, label } from "../vocab.js";
 import { openExerciseEditor } from "./exercise-editor.js";
 import { openExerciseHistory } from "./history.js";
 import { videoUrl } from "./shared.js";
-
-// What opened each sheet, so the exercise editor can return focus there.
-const openers = { reference: null, video: null };
 
 const RELATION_ORDER = RELATIONS.map((relation) => relation.id);
 
@@ -152,41 +149,22 @@ function videoSearchMarkup(exercise) {
 // reference is open (a related exercise), it replaces the sheet's content.
 export function openExerciseReference(exerciseId, { prescription = "", routineName = "", routineNote = "" } = {}) {
   const state = store.getState();
-  const dialog = $("#exerciseDetailDialog");
   $("#exerciseDetailContent").innerHTML = referenceMarkup(state, exerciseById(state, exerciseId), { prescription, routineName, routineNote });
-  if (dialog.open) {
-    openDialog(dialog, { focus: ".reference-sheet-head .icon-button" });
-    return;
-  }
-  openers.reference = document.activeElement;
-  openDialog(dialog);
+  openDialog("#exerciseDetailDialog");
 }
 
 // Opens the "find a video" sheet for an exercise without a linked video.
 export function openExerciseVideo(exerciseId) {
   $("#exerciseVideoContent").innerHTML = videoSearchMarkup(exerciseById(store.getState(), exerciseId));
-  openers.video = document.activeElement;
   openDialog("#exerciseVideoDialog");
 }
 
-// The editor takes over from the sheet and returns focus to what opened the sheet.
-function editExercise(dialog, exerciseId, returnFocus) {
-  closeDialog(dialog, { restoreFocus: false });
-  openExerciseEditor({ exerciseId, returnFocus });
-}
-
-onStart(() => {
-  const referenceDialog = $("#exerciseDetailDialog");
-  referenceDialog.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-action]");
-    if (button?.dataset.action === "view-alternative") openExerciseReference(button.dataset.id);
-    else if (button?.dataset.action === "edit-master-exercise") editExercise(referenceDialog, button.dataset.id, openers.reference);
-    else if (button?.dataset.action === "view-history") openExerciseHistory(button.dataset.id, button);
-  });
-
-  const videoDialog = $("#exerciseVideoDialog");
-  videoDialog.addEventListener("click", (event) => {
-    const button = event.target.closest('[data-action="edit-master-exercise"]');
-    if (button) editExercise(videoDialog, button.dataset.id, openers.video);
-  });
+registerActions({
+  "view-alternative": (button) => openExerciseReference(button.dataset.id),
+  "view-history": (button) => openExerciseHistory(button.dataset.id),
+  // The editor takes over from the sheet (the reference or the video sheet).
+  "edit-master-exercise": (button) => {
+    closeDialog(button.closest("dialog"));
+    openExerciseEditor({ exerciseId: button.dataset.id });
+  },
 });
