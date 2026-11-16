@@ -23,7 +23,7 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 | `js/seed.js` | Starting data (first launch and "Restore starting data") |
 | `js/dom.js` | DOM helpers: escaping, toasts, dialogs, confirmations, hold-to-drag |
 | `js/views/*.js` | One file per screen or editor, each with its markup and handlers |
-| `styles/` | `base.css` (tokens, layout), `components.css`, `views.css` |
+| `styles/` | `base.css` (tokens, element defaults, page shell), `components.css` (the shared classes every screen is built from), `views.css` (what only one screen needs) |
 | `sw.js` | Offline cache; its file list and version are stamped by `npm run check` |
 | `tests/` | Unit tests (`*.test.mjs`) and browser tests (`e2e/`) |
 | `tools/` | Check, preview server, the owner's phone preview page, screenshots and visual diff |
