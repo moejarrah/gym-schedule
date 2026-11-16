@@ -73,7 +73,9 @@ function rulesSectionMarkup(rules) {
 function recoveryMarkup() {
   if (!store.recoveryData()) return "";
   return `<div class="settings-recovery">
-    <p><strong>Earlier saved data couldn't be read</strong> The app opened the starting program instead. The unreadable data is still on this device; download it to keep a copy.</p>
+    <p><strong>Saved data couldn't be read</strong> ${store.getLastError()
+    ? "The starting program is open and nothing is saved. Download the unreadable data to keep a copy, then import a backup or restore the starting data."
+    : "It is still on this device; download it to keep a copy."}</p>
     <button class="button secondary" type="button" data-action="download-unreadable-data">Download unreadable data</button>
   </div>`;
 }

@@ -1,7 +1,7 @@
 // Exercise search and Library filters (pure functions, shared by Library,
 // the add-exercise picker and the related-exercise editor).
 
-import { normalizedName } from "./store.js";
+import { normalizedName } from "./model.js";
 import { BROWSE_GROUPS, label } from "./vocab.js";
 
 export function createLibraryFilters() {

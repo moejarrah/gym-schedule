@@ -1,9 +1,8 @@
 // Reading and changing app data. Selectors read a state; mutators change the
 // state they're given in place (inside store.update) and throw an Error with a
 // user-facing message when a change isn't allowed. The store validates the
-// whole result before saving, so mutators only check what the UI could get wrong.
-
-import { INVERSE_RELATION, isDateKey, normalizedName } from "./store.js";
+// result's shape before saving (stateProblem), so mutators only check what the UI
+// could get wrong.
 
 // ---------- small helpers ----------
 
@@ -23,6 +22,22 @@ export function dateFromKey(key) {
   const [year, month, day] = key.split("-").map(Number);
   return new Date(year, month - 1, day);
 }
+
+export function isDateKey(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const [, year, month, day] = match.map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+}
+
+// Lowercased letters and digits only, so "Ab-wheel" and "ab wheel" are the same name.
+export function normalizedName(value) {
+  if (typeof value !== "string") return "";
+  return (value.normalize("NFKD").toLowerCase().match(/[\p{L}\p{N}]+/gu) || []).join("");
+}
+
+const INVERSE_RELATION = { easier: "harder", similar: "similar", harder: "easier" };
 
 function fail(message) {
   throw new Error(message);

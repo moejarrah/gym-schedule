@@ -1,8 +1,8 @@
-// Shared by the unit tests: an in-memory localStorage and store helpers that
-// prove every change goes through createStore's validation and write.
+// Shared by the unit tests: an in-memory localStorage and a store on the sample program.
 
 import assert from "node:assert/strict";
 import { createStore, STORAGE_KEY } from "../js/store.js";
+import { sampleState } from "./sample.mjs";
 
 export function fakeStorage(initial = {}) {
   const values = new Map(Object.entries(initial));
@@ -15,13 +15,14 @@ export function fakeStorage(initial = {}) {
       this.writes += 1;
       values.set(key, String(value));
     },
+    raw: () => values.get(STORAGE_KEY),
     saved: () => JSON.parse(values.get(STORAGE_KEY)),
   };
 }
 
-// A store on fake storage, optionally starting from a saved state.
-export function freshStore(state) {
-  const storage = fakeStorage(state ? { [STORAGE_KEY]: JSON.stringify(state) } : {});
+// A store that starts from a saved state (the sample program unless given another).
+export function freshStore(state = sampleState()) {
+  const storage = fakeStorage({ [STORAGE_KEY]: JSON.stringify(state) });
   return { store: createStore(storage), storage };
 }
 
@@ -35,16 +36,10 @@ export function save(store, fn) {
   return returned;
 }
 
-// Asserts the update is refused with this message and changes nothing.
-export function refuse(store, fn, error) {
-  const before = store.getState();
+// Asserts the update is refused with this message and nothing was written.
+export function refuse({ store, storage }, fn, error) {
+  const before = storage.raw();
   assert.deepEqual(store.update(fn), { ok: false, error });
-  assert.deepEqual(store.getState(), before);
-}
-
-// Runs fn on the starting data in one saved update; returns what was written.
-export function withStore(fn) {
-  const { store, storage } = freshStore();
-  const returned = save(store, fn);
-  return { state: storage.saved(), returned };
+  assert.equal(storage.raw(), before);
+  assert.deepEqual(store.getState(), JSON.parse(before));
 }

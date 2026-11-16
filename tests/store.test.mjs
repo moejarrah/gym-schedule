@@ -1,239 +1,157 @@
+// What protects saved workouts: loading, saving, upgrading old versions, backups,
+// and never writing over data the app couldn't read.
+
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import {
-  RECOVERY_KEY,
-  SCHEMA_VERSION,
-  STORAGE_KEY,
-  createBackup,
-  createDefaultState,
-  createStore,
-  parseBackup,
-  stateProblem,
-} from "../js/store.js";
+import { SCHEMA_VERSION, STORAGE_KEY, createBackup, createDefaultState, createStore, parseBackup, stateProblem } from "../js/store.js";
 import { SEED } from "../js/seed.js";
+import { sampleState } from "./sample.mjs";
 import { fakeStorage, freshStore, refuse, save } from "./support.mjs";
 
-// Saved by the v9 app (built with its own code): a renamed program, a custom
-// exercise used as a choice, full/partial/note-only/all-Optional/two-routine days.
-const V9 = JSON.parse(readFileSync(new URL("./fixtures/v9-state.json", import.meta.url), "utf8"));
-// What the migrations make of it: v10 added training rules, v11 an empty set log per day.
-const V9_AS_V11 = {
-  ...V9,
-  version: 11,
-  settings: { ...V9.settings, trainingRules: SEED.settings.trainingRules },
-  sessions: Object.fromEntries(Object.entries(V9.sessions).map(([dateKey, session]) => [dateKey, { ...session, logs: {} }])),
+const quiet = (t) => t.mock.method(console, "error", () => {});
+const setTheme = (draft) => { draft.settings.theme = "light"; };
+
+// Saved by the version-9 app, before training rules (v10), set logs (v11) and the
+// switch to PPL 9 (v12). The days are the shapes the owner's phone had: a completed
+// routine with a note, done marks only, a note only, and two routines in one day.
+const V9 = {
+  version: 9,
+  exercises: [],
+  routines: [],
+  programs: [],
+  sessions: {
+    "2026-10-05": { routineIds: ["push-a-glutes"], checkedEntryIdsByRoutine: { "push-a-glutes": ["push-a-glutes-entry-001"] }, note: "Felt strong.\nShoulder fine." },
+    "2026-10-06": { routineIds: [], checkedEntryIdsByRoutine: { "pull-a": ["pull-a-entry-001"] }, note: "" },
+    "2026-10-07": { routineIds: [], checkedEntryIdsByRoutine: {}, note: "Rest day, knee sore." },
+    "2026-10-09": { routineIds: ["legs-a", "legs-morning"], checkedEntryIdsByRoutine: { "legs-a": ["legs-a-entry-001"] }, note: "Double day." },
+  },
+  settings: { activeProgramId: "pplppl7-glute-specialization", activeRoutineId: "pull-a", theme: "dark" },
 };
-// v12 replaced the library and programs with the starting data's (PPL 9, active).
-// Days keep notes, logs and completed routines but lose done marks; days left empty go.
-const afterPpl9 = (state) => ({
-  ...state,
-  version: 12,
+const V9_UPGRADED = {
+  version: SCHEMA_VERSION,
   exercises: SEED.exercises,
   routines: SEED.routines,
   programs: SEED.programs,
-  settings: { ...state.settings, activeProgramId: "ppl-9", activeRoutineId: "push-a" },
-  sessions: Object.fromEntries(Object.entries(state.sessions)
-    .filter(([, session]) => session.routineIds.length || session.note || Object.keys(session.logs).length)
-    .map(([dateKey, session]) => [dateKey, { ...session, checkedEntryIdsByRoutine: {} }])),
-});
-const V9_AS_CURRENT = afterPpl9(V9_AS_V11);
-const V10 = { ...V9_AS_V11, version: 10, sessions: V9.sessions };
+  sessions: {
+    "2026-10-05": { routineIds: ["push-a-glutes"], checkedEntryIdsByRoutine: {}, note: "Felt strong.\nShoulder fine.", logs: {} },
+    "2026-10-07": { routineIds: [], checkedEntryIdsByRoutine: {}, note: "Rest day, knee sore.", logs: {} },
+    "2026-10-09": { routineIds: ["legs-a", "legs-morning"], checkedEntryIdsByRoutine: {}, note: "Double day.", logs: {} },
+  },
+  settings: { activeProgramId: "ppl-9", activeRoutineId: "push-a", theme: "dark", trainingRules: SEED.settings.trainingRules },
+};
 
-const quiet = (t) => t.mock.method(console, "error", () => {});
-
-test("the starting data is a valid current state", () => {
+test("the starting data and the test sample are valid", () => {
   assert.equal(SEED.version, SCHEMA_VERSION);
   assert.equal(stateProblem(createDefaultState()), "");
+  assert.equal(stateProblem(sampleState()), "");
 });
 
-test("validation catches structural problems that would corrupt data", async (t) => {
-  const broken = {
-    "a duplicate exercise id": [/bad exercise id/, (s) => s.exercises.push({ ...s.exercises[0], name: "Copy", aliases: [] })],
-    "a duplicate entry id": [/entry id/, (s) => { s.routines[1].entries[0].id = s.routines[0].entries[0].id; }],
-    "a related link without its reverse": [/missing reverse link/, (s) => {
-      const source = s.exercises.find((exercise) => exercise.relatedExercises.length);
-      const other = s.exercises.find((exercise) => exercise.id === source.relatedExercises[0].exerciseId);
-      other.relatedExercises = other.relatedExercises.filter((related) => related.exerciseId !== source.id);
-    }],
-    "an entry in an unknown block": [/entry push-a-01$/, (s) => { s.routines[0].entries[0].blockId = "nope"; }],
-    "a choice of an unknown exercise": [/choice/, (s) => { s.routines[0].entries[0].choices[0].exerciseId = "nope"; }],
-    "a routine owned by two programs": [/program p2: routine/, (s) => s.programs.push({ id: "p2", name: "Two", note: "", routineIds: [s.routines[0].id] })],
-    "an active routine from another program": [/active routine/, (s) => {
-      const moved = s.programs[0].routineIds.pop();
-      s.programs.push({ id: "p2", name: "Two", note: "", routineIds: [moved] });
-      s.settings.activeRoutineId = moved;
-    }],
-    "a check for another routine's entry": [/checks for push-a/, (s) => {
-      s.sessions["2026-10-01"] = { routineIds: [], checkedEntryIdsByRoutine: { "push-a": [s.routines[1].entries[0].id] }, note: "", logs: {} };
-    }],
-    "an empty session": [/empty/, (s) => { s.sessions["2026-10-01"] = { routineIds: [], checkedEntryIdsByRoutine: {}, note: "", logs: {} }; }],
-    "an impossible date key": [/session 2026-02-30/, (s) => { s.sessions["2026-02-30"] = { routineIds: [], checkedEntryIdsByRoutine: {}, note: "x", logs: {} }; }],
-    "a session without a set log": [/logs/, (s) => { s.sessions["2026-10-01"] = { routineIds: [], checkedEntryIdsByRoutine: {}, note: "x" }; }],
-    "a log without the exercise's name": [/log e1/, (s) => {
-      s.sessions["2026-10-01"] = { routineIds: [], checkedEntryIdsByRoutine: {}, note: "", logs: { e1: { routineId: "r", exerciseId: "x", unit: "reps", sets: [{ kg: 1, reps: 1, drops: [] }] } } };
-    }],
-    "a log with an unknown unit": [/log e1/, (s) => {
-      s.sessions["2026-10-01"] = { routineIds: [], checkedEntryIdsByRoutine: {}, note: "", logs: { e1: { routineId: "r", exerciseId: "x", exerciseName: "X", unit: "lb", sets: [{ kg: 1, reps: 1, drops: [] }] } } };
-    }],
-    "a logged set with fractional reps": [/sets for e1/, (s) => {
-      s.sessions["2026-10-01"] = { routineIds: [], checkedEntryIdsByRoutine: {}, note: "", logs: { e1: { routineId: "r", exerciseId: "x", exerciseName: "X", unit: "reps", sets: [{ kg: 1, reps: 1.5, drops: [] }] } } };
-    }],
-  };
-  for (const [name, [problem, breakIt]] of Object.entries(broken)) {
-    await t.test(name, () => {
-      const state = createDefaultState();
-      breakIt(state);
-      assert.match(stateProblem(state), problem);
-    });
-  }
-});
-
-test("first run saves the starting data", () => {
-  const { store, storage } = freshStore();
+test("first launch saves the starting data", () => {
+  const storage = fakeStorage();
+  const store = createStore(storage);
   assert.deepEqual(store.getState(), createDefaultState());
   assert.deepEqual(storage.saved(), createDefaultState());
   assert.equal(store.getLastError(), "");
 });
 
-test("a saved current state loads unchanged and isn't rewritten", () => {
-  const { store, storage } = freshStore(V9_AS_CURRENT);
-  assert.deepEqual(store.getState(), V9_AS_CURRENT);
+test("saved data loads unchanged and isn't rewritten", () => {
+  const { store, storage } = freshStore();
+  assert.deepEqual(store.getState(), sampleState());
   assert.equal(storage.writes, 0);
 });
 
-test("a v11 save switches to PPL 9 and keeps the day history, theme and training rules", () => {
-  const log = { routineId: "push-a-glutes", exerciseId: "machine-chest-press", exerciseName: "Machine chest press", unit: "reps", sets: [{ kg: 50, reps: 10, drops: [] }] };
-  const days = Object.entries(V9_AS_V11.sessions);
-  const [checksOnly] = days.find(([, session]) => !session.routineIds.length && !session.note);
-  const [logged] = days.find(([dateKey]) => dateKey !== checksOnly);
-  const v11 = structuredClone(V9_AS_V11);
-  v11.settings.theme = "light";
-  v11.sessions[logged].logs = { "push-a-glutes-entry-003": log };
-
-  const { store } = freshStore(v11);
-  const state = store.getState();
-  assert.equal(store.getLastError(), "");
-  assert.deepEqual(state.programs.map((program) => program.name), ["PPL 9"]);
-  assert.deepEqual([state.settings.activeProgramId, state.settings.activeRoutineId], ["ppl-9", "push-a"]);
-  assert.deepEqual(state.routines.map((routine) => routine.name), ["Push A", "Pull A", "Legs A", "Push B", "Pull B", "Legs B"]);
-  assert.deepEqual([state.settings.theme, state.settings.trainingRules], ["light", v11.settings.trainingRules]);
-  assert.deepEqual(state.sessions[logged].logs, { "push-a-glutes-entry-003": log }, "logs stay");
-  assert.equal(state.sessions[checksOnly], undefined, "a day with only done marks of the old program goes");
-  assert.ok(Object.values(state.sessions).every((session) => !Object.keys(session.checkedEntryIdsByRoutine).length));
+test("a change is saved and is there after a reload", () => {
+  const { store, storage } = freshStore();
+  save(store, (draft) => { draft.sessions["2026-11-03"] = { routineIds: [], checkedEntryIdsByRoutine: {}, note: "Two lines\nof notes", logs: {} }; });
+  const reloaded = createStore(storage).getState();
+  assert.equal(reloaded.sessions["2026-11-03"].note, "Two lines\nof notes");
+  assert.deepEqual(reloaded.sessions["2026-11-02"], sampleState().sessions["2026-11-02"]);
 });
 
-test("a v9 save migrates through every version, and is saved as the current version", () => {
+test("data saved by version 9 upgrades: days, notes and theme stay; the library and program become PPL 9's", () => {
   const { store, storage } = freshStore(V9);
-  assert.deepEqual(store.getState(), V9_AS_CURRENT);
-  assert.deepEqual(storage.saved(), V9_AS_CURRENT);
+  assert.deepEqual(store.getState(), V9_UPGRADED);
+  assert.deepEqual(storage.saved(), V9_UPGRADED);
   assert.equal(store.getLastError(), "");
 });
 
-test("a v10 save migrates to the current version with every day kept and an empty set log", () => {
-  const { store, storage } = freshStore(V10);
-  assert.deepEqual(store.getState(), V9_AS_CURRENT);
-  assert.deepEqual(storage.saved(), V9_AS_CURRENT);
+test("data saved by version 11 keeps its logged sets through the upgrade", () => {
+  const log = { routineId: "push-a-glutes", exerciseId: "machine-chest-press", exerciseName: "Machine chest press", unit: "reps", sets: [{ kg: 50, reps: 10, drops: [{ kg: 40, reps: 8 }] }] };
+  const v11 = structuredClone({ ...V9_UPGRADED, version: 11 });
+  v11.sessions["2026-10-06"] = { routineIds: [], checkedEntryIdsByRoutine: { "pull-a": ["pull-a-entry-001"] }, note: "", logs: { "push-a-glutes-entry-003": log } };
+  const state = freshStore(v11).store.getState();
+  assert.deepEqual(state.sessions["2026-10-06"], { routineIds: [], checkedEntryIdsByRoutine: {}, note: "", logs: { "push-a-glutes-entry-003": log } });
 });
 
-test("a v9 backup imports through the migration", () => {
-  const backup = { schemaVersion: 9, exportedAt: "2026-10-10T08:00:00.000Z", data: V9 };
-  assert.deepEqual(parseBackup(JSON.stringify(backup)), V9_AS_CURRENT);
+test("a backup imports back exactly, and a version-9 backup is upgraded", () => {
+  const backup = JSON.stringify(createBackup(sampleState()));
+  assert.deepEqual(parseBackup(backup), sampleState());
+  assert.deepEqual(parseBackup(JSON.stringify({ schemaVersion: 9, exportedAt: "2026-10-10T08:00:00.000Z", data: V9 })), V9_UPGRADED);
 });
 
-test("unreadable saved data opens the starting data and keeps the original for recovery", async (t) => {
+test("files that aren't usable backups are refused with a clear message", () => {
+  const notBackup = { message: "This file isn't a Gym Schedule backup." };
+  assert.throws(() => parseBackup("not json at all"), notBackup);
+  assert.throws(() => parseBackup("[1, 2]"), notBackup);
+  assert.throws(() => parseBackup(JSON.stringify(sampleState())), notBackup);
+  assert.throws(() => parseBackup(JSON.stringify({ data: { ...sampleState(), version: SCHEMA_VERSION + 1 } })), { message: /newer version/ });
+  const broken = createBackup(sampleState());
+  broken.data.routines[0].entries[0].choices = [];
+  assert.throws(() => parseBackup(JSON.stringify(broken)), { message: "This backup couldn't be read by this version of the app." });
+});
+
+test("saved data the app can't read is left exactly as it is until an import or restore replaces it", async (t) => {
   quiet(t);
   const unreadable = {
-    "broken JSON": "{\"version\": 10, \"exer",
-    "an unknown future version": JSON.stringify({ ...V9_AS_CURRENT, version: SCHEMA_VERSION + 1 }),
-    "a version with no migration": JSON.stringify({ ...V9, version: 8 }),
+    "broken JSON": "{\"version\": 12, \"exer",
+    "saved by a newer version": JSON.stringify({ ...sampleState(), version: SCHEMA_VERSION + 1 }),
+    "a version with no upgrade path": JSON.stringify({ ...V9, version: 8 }),
+    "a missing part": JSON.stringify({ ...sampleState(), routines: undefined }),
   };
   for (const [name, raw] of Object.entries(unreadable)) {
     await t.test(name, () => {
       const storage = fakeStorage({ [STORAGE_KEY]: raw });
       const store = createStore(storage);
-      assert.deepEqual(store.getState(), createDefaultState());
-      assert.deepEqual(storage.saved(), createDefaultState());
-      assert.equal(storage.getItem(RECOVERY_KEY), raw);
-      assert.equal(store.recoveryData(), raw);
-      assert.match(store.getLastError(), /couldn't be read/);
+      assert.deepEqual(store.getState(), createDefaultState(), "the starting program opens");
+      assert.match(store.getLastError(), /nothing will be saved/);
+      assert.equal(store.recoveryData(), raw, "Settings can offer it as a download");
+      assert.equal(store.update(setTheme).ok, false);
+      assert.equal(storage.raw(), raw);
+      assert.equal(storage.writes, 0);
+
+      assert.equal(store.replace(sampleState()).ok, true);
+      assert.equal(store.update(setTheme).ok, true);
+      assert.equal(store.recoveryData(), "");
     });
   }
 });
 
-test("unreadable saved data isn't overwritten when its recovery copy can't be stored", (t) => {
+test("content the app doesn't police still loads: an unknown equipment ID, a done mark for a deleted slot", () => {
+  const state = sampleState();
+  state.exercises[0].equipment = ["sled"];
+  state.sessions["2026-11-02"].checkedEntryIdsByRoutine["day-a"].push("gone");
+  const { store } = freshStore(state);
+  assert.equal(store.getLastError(), "");
+  assert.deepEqual(store.getState(), state);
+});
+
+test("a failed write reports the error and changes nothing", () => {
+  const stored = freshStore();
+  stored.storage.failWrites = true;
+  refuse(stored, setTheme, "Changes couldn't be saved on this device. Nothing changed.");
+  assert.equal(stored.store.replace(createDefaultState()).ok, false);
+  assert.deepEqual(stored.store.getState(), sampleState());
+});
+
+test("an update that throws, or would break the data's shape, saves nothing", (t) => {
   quiet(t);
-  const raw = "{\"version\": 10, \"exer";
-  const storage = fakeStorage({ [STORAGE_KEY]: raw });
-  const setItem = storage.setItem;
-  storage.setItem = function (key, value) {
-    if (key === RECOVERY_KEY) throw new Error("QuotaExceededError");
-    setItem.call(this, key, value);
-  };
-  const store = createStore(storage);
-  assert.equal(storage.getItem(STORAGE_KEY), raw);
-  assert.equal(store.recoveryData(), raw);
-  // Ordinary saves would overwrite it, so they're refused until an explicit restore or import.
-  assert.equal(store.update((draft) => { draft.settings.theme = "dark"; }).ok, false);
-  assert.equal(storage.getItem(STORAGE_KEY), raw);
-  assert.equal(store.replace(createDefaultState()).ok, true);
-  assert.equal(store.update((draft) => { draft.settings.theme = "dark"; }).ok, true);
-});
-
-test("storage that can't be read opens the starting data without writing", () => {
-  const store = createStore({
-    getItem: () => { throw new Error("SecurityError"); },
-    setItem: () => assert.fail("should not write"),
-  });
-  assert.deepEqual(store.getState(), createDefaultState());
-  assert.match(store.getLastError(), /couldn't be read on this device/);
-});
-
-test("a failed write reports the error and changes neither memory nor storage", () => {
-  const { store, storage } = freshStore(V9_AS_CURRENT);
-  storage.failWrites = true;
-  refuse(store, (draft) => { draft.programs[0].name = "Lost"; }, "Changes couldn't be saved on this device. Nothing changed.");
-  assert.equal(store.replace(createDefaultState()).ok, false);
-  assert.deepEqual(store.getState(), V9_AS_CURRENT);
-  assert.deepEqual(storage.saved(), V9_AS_CURRENT);
-});
-
-test("an update that throws returns the message and saves nothing, even after partly changing the draft", () => {
-  const { store, storage } = freshStore();
-  refuse(store, (draft) => {
+  const stored = freshStore();
+  refuse(stored, (draft) => {
     draft.programs[0].name = "Half done";
     throw new Error("Choose a program first.");
   }, "Choose a program first.");
-  assert.equal(storage.writes, 1);
-});
-
-test("an update that would leave an invalid state is blocked", (t) => {
-  quiet(t);
-  const { store, storage } = freshStore();
-  refuse(store, (draft) => { draft.routines[0].entries[0].blockId = "nope"; }, "That change couldn't be saved.");
-  assert.equal(storage.writes, 1);
-});
-
-test("a valid update is saved and survives a reload", () => {
-  const { store, storage } = freshStore();
-  save(store, (draft) => { draft.programs[0].note = "Two lines\nof rules"; });
-  assert.equal(createStore(storage).getState().programs[0].note, "Two lines\nof rules");
-});
-
-test("an exported backup imports back exactly", () => {
-  const backup = createBackup(V9_AS_CURRENT);
-  assert.equal(backup.schemaVersion, SCHEMA_VERSION);
-  assert.deepEqual(parseBackup(JSON.stringify(backup)), V9_AS_CURRENT);
-});
-
-test("files that aren't usable backups give a clear error", () => {
-  const notBackup = "This file isn't a Gym Schedule backup.";
-  assert.throws(() => parseBackup("not json at all"), { message: notBackup });
-  assert.throws(() => parseBackup(JSON.stringify(V9_AS_CURRENT)), { message: notBackup });
-  assert.throws(() => parseBackup("[1, 2]"), { message: notBackup });
-  const unreadable = "This backup couldn't be read by this version of the app.";
-  assert.throws(() => parseBackup(JSON.stringify({ schemaVersion: 99, data: { ...V9_AS_CURRENT, version: 99 } })), { message: unreadable });
-  const invalid = createBackup(V9_AS_CURRENT);
-  invalid.data.routines[0].entries[0].choices = [];
-  assert.throws(() => parseBackup(JSON.stringify(invalid)), { message: unreadable });
+  refuse(stored, (draft) => { draft.routines[0].entries[0].blockId = "nope"; }, "That change couldn't be saved.");
+  refuse(stored, (draft) => { draft.routines[0].entries[1].choices[0].exerciseId = "nope"; }, "That change couldn't be saved.");
+  refuse(stored, (draft) => { draft.sessions["2026-11-02"].logs.a2.sets[0].reps = "ten"; }, "That change couldn't be saved.");
+  assert.equal(stored.storage.writes, 0);
 });

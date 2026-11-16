@@ -5,9 +5,8 @@
 
 import { mainElement, onStart, render, store } from "../context.js";
 import { $, closeDialog, confirmAction, escapeHtml, openDialog, plural, report, showError } from "../dom.js";
-import { exerciseById, exerciseDeletionImpact, makeId, removeExercise, saveExercise as saveExerciseInState } from "../model.js";
+import { exerciseById, exerciseDeletionImpact, makeId, normalizedName, removeExercise, saveExercise as saveExerciseInState } from "../model.js";
 import { searchExercises } from "../search.js";
-import { normalizedName } from "../store.js";
 import { CHALLENGES, EMPHASES, EQUIPMENT, LATERALITIES, MOVEMENTS, PURPOSES, RELATIONS, STYLES, SUPPORTS, TARGETS, label } from "../vocab.js";
 
 const editor = {

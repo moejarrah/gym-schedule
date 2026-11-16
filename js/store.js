@@ -1,23 +1,22 @@
-// Saved data: schema, validation, migrations, loading, saving and backups.
+// Saved data: the schema version, upgrades from older versions, a check that the
+// data has the shape the screens rely on, loading, saving and backups.
 //
-// Rules for changing the saved shape:
-// - Bump SCHEMA_VERSION and add a MIGRATIONS entry that upgrades the previous
-//   version in place. Saved data and backups from older versions must keep loading.
-// - Add a test in tests/store.test.mjs that loads a saved state of the old version.
+// Changing the saved shape: bump SCHEMA_VERSION and add a MIGRATIONS entry that
+// upgrades the previous version in place, with a test in tests/store.test.mjs.
+// Saved data and backups from older versions must keep loading.
 
+import { isDateKey } from "./model.js";
 import { SEED } from "./seed.js";
-import { CHALLENGES, EMPHASES, EQUIPMENT, LATERALITIES, MOVEMENTS, PURPOSES, RELATIONS, STYLES, SUPPORTS, TARGETS } from "./vocab.js";
 
 export const SCHEMA_VERSION = 12;
 export const STORAGE_KEY = "gymAppStateV1";
-export const RECOVERY_KEY = `${STORAGE_KEY}:unreadable`;
-
-const DEFAULT_TRAINING_RULES = SEED.settings.trainingRules;
+// Earlier versions copied unreadable data here before starting fresh. It's still offered for download.
+const OLD_RECOVERY_KEY = `${STORAGE_KEY}:unreadable`;
 
 // Each entry upgrades a state of version N to N + 1, in place.
 const MIGRATIONS = {
   9(state) {
-    state.settings.trainingRules = DEFAULT_TRAINING_RULES;
+    state.settings.trainingRules = SEED.settings.trainingRules;
   },
   // Sets, weights and reps logged per exercise.
   10(state) {
@@ -48,187 +47,98 @@ export function createDefaultState() {
   return clone(SEED);
 }
 
-function isRecord(value) {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-export function isDateKey(value) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) return false;
-  const [, year, month, day] = match.map(Number);
-  const date = new Date(year, month - 1, day);
-  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
-}
-
-// Lowercased letters and digits only, so "Ab-wheel" and "ab wheel" are the same identity.
-export function normalizedName(value) {
-  if (typeof value !== "string") return "";
-  return (value.normalize("NFKD").toLowerCase().match(/[\p{L}\p{N}]+/gu) || []).join("");
-}
-
-const ids = (list) => new Set(list.map((option) => option.id));
-const allowed = {
-  targets: ids(TARGETS),
-  movements: ids(MOVEMENTS),
-  equipment: ids(EQUIPMENT),
-  purposes: ids(PURPOSES),
-  styles: ids(STYLES),
-  lateralities: ids(LATERALITIES),
-  supports: ids(SUPPORTS),
-  emphases: ids(EMPHASES),
-  challenges: ids(CHALLENGES),
-  relations: ids(RELATIONS),
-};
-export const INVERSE_RELATION = { easier: "harder", similar: "similar", harder: "easier" };
-
+const isRecord = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);
 const isText = (value) => typeof value === "string";
-const isName = (value) => typeof value === "string" && value.trim() !== "";
-const isId = (value) => typeof value === "string" && value !== "";
-
-function uniqueAllowed(values, set, min = 0, max = Infinity) {
-  return Array.isArray(values)
-    && values.length >= min
-    && values.length <= max
-    && values.every((value) => set.has(value))
-    && new Set(values).size === values.length;
-}
-
-const optionalAllowed = (value, set) => value === "" || set.has(value);
+const isName = (value) => isText(value) && value.trim() !== "";
+const isId = (value) => isText(value) && value !== "";
+const allText = (object, keys) => keys.every((key) => isText(object[key]));
+const allLists = (object, keys) => keys.every((key) => Array.isArray(object[key]));
 
 // One logged lift: weight in kg (null when no weight is used) and whole reps (or seconds).
 const isLift = (lift) => isRecord(lift)
-  && (lift.kg === null || (Number.isFinite(lift.kg) && lift.kg >= 0 && lift.kg <= 1000))
-  && Number.isInteger(lift.reps) && lift.reps >= 0 && lift.reps <= 1000;
+  && (lift.kg === null || (Number.isFinite(lift.kg) && lift.kg >= 0))
+  && Number.isInteger(lift.reps) && lift.reps >= 0;
 const isLoggedSet = (set) => isLift(set) && Array.isArray(set.drops) && set.drops.every(isLift);
 
-// Returns a short description of the first problem found, or "" when the state is valid.
+// Checks what the screens rely on: every part has the right shape and every
+// reference points at something. It doesn't police content (vocabulary IDs,
+// duplicate names, tidy history); the editors and js/model.js do that.
+// Returns a short description of the first problem, or "" when the state is fine.
 export function stateProblem(state) {
   if (!isRecord(state)) return "not an object";
   if (state.version !== SCHEMA_VERSION) return `version ${state.version} is not ${SCHEMA_VERSION}`;
   const { exercises, routines, programs, sessions, settings } = state;
-  if (!Array.isArray(exercises) || !Array.isArray(routines) || !Array.isArray(programs)) return "missing lists";
-  if (!isRecord(sessions) || !isRecord(settings)) return "missing sessions or settings";
+  if (![exercises, routines, programs].every(Array.isArray) || !isRecord(sessions) || !isRecord(settings)) return "missing parts";
 
-  const exerciseById = new Map();
-  const identities = new Set();
+  const exerciseIds = new Set();
   for (const exercise of exercises) {
-    if (!isRecord(exercise) || !isId(exercise.id) || exerciseById.has(exercise.id)) return "bad exercise id";
-    const where = `exercise ${exercise.id}`;
-    if (!isName(exercise.name) || !Array.isArray(exercise.aliases)) return `${where}: name or aliases`;
-    for (const identity of [exercise.name, ...exercise.aliases]) {
-      const key = normalizedName(identity);
-      if (!key || identities.has(key)) return `${where}: duplicate name or alias "${identity}"`;
-      identities.add(key);
-    }
-    if (!uniqueAllowed(exercise.primaryTargets, allowed.targets, 1, 2)) return `${where}: primary targets`;
-    if (!uniqueAllowed(exercise.secondaryTargets, allowed.targets)) return `${where}: secondary targets`;
-    if (exercise.primaryTargets.some((target) => exercise.secondaryTargets.includes(target))) return `${where}: target is both primary and secondary`;
-    if (!allowed.movements.has(exercise.movementPattern)) return `${where}: movement`;
-    if (!uniqueAllowed(exercise.equipment, allowed.equipment, 1)) return `${where}: equipment`;
-    if (!allowed.purposes.has(exercise.purpose)) return `${where}: purpose`;
-    if (!optionalAllowed(exercise.style, allowed.styles)) return `${where}: style`;
-    if (!optionalAllowed(exercise.laterality, allowed.lateralities)) return `${where}: laterality`;
-    if (!optionalAllowed(exercise.support, allowed.supports)) return `${where}: support`;
-    if (!uniqueAllowed(exercise.emphases, allowed.emphases)) return `${where}: emphases`;
-    if (!optionalAllowed(exercise.typicalChallenge, allowed.challenges)) return `${where}: challenge`;
-    if (!isText(exercise.defaultPrescription) || !isText(exercise.instructions) || !isText(exercise.videoId)) return `${where}: text fields`;
-    if (!Array.isArray(exercise.relatedExercises)) return `${where}: related list`;
-    exerciseById.set(exercise.id, exercise);
+    if (!isRecord(exercise) || !isId(exercise.id) || exerciseIds.has(exercise.id)) return "exercise id";
+    if (!isName(exercise.name)
+      || !allText(exercise, ["movementPattern", "purpose", "style", "laterality", "support", "typicalChallenge", "defaultPrescription", "instructions", "videoId"])
+      || !allLists(exercise, ["aliases", "primaryTargets", "secondaryTargets", "equipment", "emphases", "relatedExercises"])) return `exercise ${exercise.id}`;
+    exerciseIds.add(exercise.id);
+  }
+  for (const exercise of exercises) {
+    if (!exercise.relatedExercises.every((related) => isRecord(related) && isText(related.relation) && exerciseIds.has(related.exerciseId))) return `exercise ${exercise.id}: related`;
   }
 
-  for (const exercise of exercises) {
-    const seen = new Set();
-    for (const related of exercise.relatedExercises) {
-      const where = `exercise ${exercise.id} related`;
-      if (!isRecord(related) || !allowed.relations.has(related.relation)) return `${where}: relation`;
-      const other = exerciseById.get(related.exerciseId);
-      if (!other || other === exercise || seen.has(related.exerciseId)) return `${where}: target`;
-      seen.add(related.exerciseId);
-      const inverse = INVERSE_RELATION[related.relation];
-      if (!other.relatedExercises.some((item) => item.exerciseId === exercise.id && item.relation === inverse)) return `${where}: missing reverse link`;
-    }
-  }
-
-  const entryIdsByRoutine = new Map();
-  const blockIds = new Set();
+  const routineIds = new Set();
   const entryIds = new Set();
   for (const routine of routines) {
-    if (!isRecord(routine) || !isId(routine.id) || entryIdsByRoutine.has(routine.id)) return "bad routine id";
+    if (!isRecord(routine) || !isId(routine.id) || routineIds.has(routine.id)) return "routine id";
     const where = `routine ${routine.id}`;
-    if (!isName(routine.name) || !isText(routine.note)) return `${where}: name or note`;
-    if (!["gym", "home"].includes(routine.group) || !["required", "optional"].includes(routine.status)) return `${where}: group or status`;
-    if (!Array.isArray(routine.blocks) || !routine.blocks.length || !Array.isArray(routine.entries)) return `${where}: blocks or entries`;
-    const routineBlocks = new Set();
+    if (!isName(routine.name) || !allText(routine, ["note", "group", "status"]) || !allLists(routine, ["blocks", "entries"]) || !routine.blocks.length) return where;
+    const blockIds = new Set();
     for (const block of routine.blocks) {
       if (!isRecord(block) || !isId(block.id) || blockIds.has(block.id) || !isText(block.name)) return `${where}: block`;
       blockIds.add(block.id);
-      routineBlocks.add(block.id);
     }
-    const routineEntries = new Set();
     for (const entry of routine.entries) {
       if (!isRecord(entry) || !isId(entry.id) || entryIds.has(entry.id)) return `${where}: entry id`;
-      if (!routineBlocks.has(entry.blockId) || !isText(entry.note) || !["main", "optional"].includes(entry.role)) return `${where}: entry ${entry.id}`;
-      if (!Array.isArray(entry.choices) || !entry.choices.length) return `${where}: entry ${entry.id} has no choices`;
-      const choiceIds = new Set();
-      for (const choice of entry.choices) {
-        if (!isRecord(choice) || !exerciseById.has(choice.exerciseId) || choiceIds.has(choice.exerciseId) || !isName(choice.prescription)) {
-          return `${where}: entry ${entry.id} choice`;
-        }
-        choiceIds.add(choice.exerciseId);
-      }
+      if (!blockIds.has(entry.blockId) || !isText(entry.note) || !["main", "optional"].includes(entry.role)) return `${where}: entry ${entry.id}`;
+      if (!Array.isArray(entry.choices) || !entry.choices.length
+        || !entry.choices.every((choice) => isRecord(choice) && exerciseIds.has(choice.exerciseId) && isName(choice.prescription))) return `${where}: entry ${entry.id} choices`;
       entryIds.add(entry.id);
-      routineEntries.add(entry.id);
     }
-    entryIdsByRoutine.set(routine.id, routineEntries);
+    routineIds.add(routine.id);
   }
 
   const programIds = new Set();
-  const ownedRoutines = new Set();
+  const owned = new Set();
   for (const program of programs) {
-    if (!isRecord(program) || !isId(program.id) || programIds.has(program.id)) return "bad program id";
-    if (!isName(program.name) || !isText(program.note) || !Array.isArray(program.routineIds)) return `program ${program.id}: fields`;
+    if (!isRecord(program) || !isId(program.id) || programIds.has(program.id)) return "program id";
+    if (!isName(program.name) || !isText(program.note) || !Array.isArray(program.routineIds)) return `program ${program.id}`;
     for (const routineId of program.routineIds) {
-      if (!entryIdsByRoutine.has(routineId) || ownedRoutines.has(routineId)) return `program ${program.id}: routine ${routineId}`;
-      ownedRoutines.add(routineId);
+      if (!routineIds.has(routineId) || owned.has(routineId)) return `program ${program.id}: routine ${routineId}`;
+      owned.add(routineId);
     }
     programIds.add(program.id);
   }
-  if (ownedRoutines.size !== routines.length) return "a routine belongs to no program";
+  if (owned.size !== routines.length) return "a routine belongs to no program";
 
   const { activeProgramId, activeRoutineId, theme, trainingRules } = settings;
-  if (!isText(activeProgramId) || !isText(activeRoutineId)) return "active selection";
   if (!programs.length) {
-    if (activeProgramId || activeRoutineId) return "active selection without programs";
+    if (activeProgramId !== "" || activeRoutineId !== "") return "active selection without programs";
   } else {
     const active = programs.find((program) => program.id === activeProgramId);
-    if (!active) return "active program missing";
-    if (active.routineIds.length ? !active.routineIds.includes(activeRoutineId) : activeRoutineId) return "active routine";
+    if (!active) return "active program";
+    if (active.routineIds.length ? !active.routineIds.includes(activeRoutineId) : activeRoutineId !== "") return "active routine";
   }
-  if (!["light", "dark"].includes(theme)) return "theme";
-  if (!isText(trainingRules)) return "training rules";
+  if (!["light", "dark"].includes(theme) || !isText(trainingRules)) return "settings";
 
+  // History outlives what it points at: the routine, slot and exercise IDs in a
+  // day may belong to things deleted since.
   for (const [dateKey, session] of Object.entries(sessions)) {
     const where = `session ${dateKey}`;
     if (!isDateKey(dateKey) || !isRecord(session) || !isText(session.note)) return where;
-    // Completed routine IDs stay in history after a routine is deleted.
-    if (!Array.isArray(session.routineIds) || !session.routineIds.every(isId) || new Set(session.routineIds).size !== session.routineIds.length) return `${where}: routines`;
-    if (!isRecord(session.checkedEntryIdsByRoutine)) return `${where}: checks`;
-    let checks = 0;
-    for (const [routineId, checked] of Object.entries(session.checkedEntryIdsByRoutine)) {
-      const valid = entryIdsByRoutine.get(routineId);
-      if (!valid || !Array.isArray(checked) || !checked.length || !checked.every((id) => valid.has(id)) || new Set(checked).size !== checked.length) {
-        return `${where}: checks for ${routineId}`;
-      }
-      checks += checked.length;
-    }
-    // Logs are history: they stay after their routine, slot or exercise is deleted,
-    // so they carry the exercise's name and the unit they were logged in.
+    if (!Array.isArray(session.routineIds) || !session.routineIds.every(isId)) return `${where}: routines`;
+    if (!isRecord(session.checkedEntryIdsByRoutine)
+      || !Object.values(session.checkedEntryIdsByRoutine).every((ids) => Array.isArray(ids) && ids.every(isId))) return `${where}: checks`;
     if (!isRecord(session.logs)) return `${where}: logs`;
     for (const [key, log] of Object.entries(session.logs)) {
-      if (!isId(key) || !isRecord(log) || !isId(log.routineId) || !isId(log.exerciseId) || !isName(log.exerciseName) || !["reps", "sec"].includes(log.unit)) return `${where}: log ${key}`;
-      if (!Array.isArray(log.sets) || !log.sets.length || !log.sets.every(isLoggedSet)) return `${where}: sets for ${key}`;
+      if (!isRecord(log) || !isId(log.routineId) || !isId(log.exerciseId) || !isName(log.exerciseName) || !["reps", "sec"].includes(log.unit)
+        || !Array.isArray(log.sets) || !log.sets.length || !log.sets.every(isLoggedSet)) return `${where}: log ${key}`;
     }
-    if (!session.routineIds.length && !checks && !session.note && !Object.keys(session.logs).length) return `${where}: empty`;
   }
   return "";
 }
@@ -249,7 +159,7 @@ function migrate(raw) {
 }
 
 export function createBackup(state) {
-  return { schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(), data: clone(state) };
+  return { schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(), data: state };
 }
 
 export function parseBackup(text) {
@@ -260,6 +170,7 @@ export function parseBackup(text) {
     throw new Error("This file isn't a Gym Schedule backup.");
   }
   if (!isRecord(parsed) || !isRecord(parsed.data)) throw new Error("This file isn't a Gym Schedule backup.");
+  if (parsed.data.version > SCHEMA_VERSION) throw new Error("This backup was made by a newer version of the app. Update the app, then import it.");
   try {
     return migrate(parsed.data);
   } catch (_) {
@@ -267,16 +178,21 @@ export function parseBackup(text) {
   }
 }
 
-// One store per page. `update(fn)` hands fn a copy of the state to change in place
-// (its return value is ignored); fn may throw an Error with a message for the user. Nothing is saved unless the
-// whole new state is valid and the write succeeds.
+// One store per page.
+// - getState() is the saved state itself: read it, never change it.
+// - update(fn) hands fn a copy to change in place (its return value is ignored);
+//   fn may throw an Error with a message for the user. Nothing changes unless the
+//   result passes stateProblem and the write succeeds.
+// - replace(state) swaps in a whole state (backup import, restore starting data).
+//
+// Saved data that can't be read is never overwritten automatically: the starting
+// program opens, nothing is saved, and Settings offers the unreadable data as a
+// download. Only an import or a restore (replace) writes over it.
 export function createStore(storage = safeLocalStorage()) {
   let state;
   let lastError = "";
   let unreadable = "";
-  // Set when unreadable data couldn't be copied aside: ordinary saves would overwrite
-  // it, so only an explicit import or restore (replace) may write.
-  let protectUnreadable = false;
+  let locked = false;
 
   function write(next) {
     const problem = stateProblem(next);
@@ -290,8 +206,7 @@ export function createStore(storage = safeLocalStorage()) {
     } catch (_) {
       return { ok: false, error: "Changes couldn't be saved on this device. Nothing changed." };
     }
-    state = clone(next);
-    lastError = "";
+    state = next;
     return { ok: true };
   }
 
@@ -302,7 +217,8 @@ export function createStore(storage = safeLocalStorage()) {
       raw = storage.getItem(STORAGE_KEY);
     } catch (_) {
       state = createDefaultState();
-      lastError = "Saved data couldn't be read on this device. Changes may not be kept.";
+      locked = true;
+      lastError = "Saved data couldn't be read on this device, so nothing will be saved. Close the app and open it again.";
       return;
     }
     if (!raw) {
@@ -312,28 +228,27 @@ export function createStore(storage = safeLocalStorage()) {
     }
     try {
       const parsed = JSON.parse(raw);
-      state = migrate(parsed);
-      if (parsed.version !== SCHEMA_VERSION) write(state);
+      if (parsed?.version > SCHEMA_VERSION) {
+        lastError = "Your data was saved by a newer version of the app, so nothing will be saved. Close the app and open it again to update.";
+      }
+      const upgraded = migrate(parsed);
+      state = upgraded;
+      if (parsed.version !== SCHEMA_VERSION) write(upgraded);
     } catch (error) {
       console.error("Saved data couldn't be read:", error.message);
       unreadable = raw;
       state = createDefaultState();
-      try {
-        storage.setItem(RECOVERY_KEY, raw);
-        write(state);
-      } catch (_) {
-        protectUnreadable = true;
-      }
-      lastError = "Saved data couldn't be read, so the starting program is open. The old data can be downloaded from Settings.";
+      locked = true;
+      lastError ||= "Saved data couldn't be read, so the starting program is open and nothing will be saved. See Settings.";
     }
   }
 
   load();
 
   return {
-    getState: () => clone(state),
+    getState: () => state,
     update(fn) {
-      if (protectUnreadable) return { ok: false, error: "Download the unreadable data in Settings first; saving now would overwrite it." };
+      if (locked) return { ok: false, error: lastError };
       const draft = clone(state);
       try {
         fn(draft);
@@ -344,14 +259,19 @@ export function createStore(storage = safeLocalStorage()) {
     },
     replace(next) {
       const result = write(clone(next));
-      if (result.ok) protectUnreadable = false;
+      if (result.ok) {
+        locked = false;
+        unreadable = "";
+        lastError = "";
+      }
       return result;
     },
     getLastError: () => lastError,
+    // Saved data the app couldn't read, as text, or "".
     recoveryData() {
       if (unreadable) return unreadable;
       try {
-        return storage?.getItem(RECOVERY_KEY) || "";
+        return storage?.getItem(OLD_RECOVERY_KEY) || "";
       } catch (_) {
         return "";
       }
