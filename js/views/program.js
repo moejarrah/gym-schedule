@@ -135,7 +135,8 @@ function routineEntriesMarkup(state, routine) {
     const name = block.name.trim();
     const optionalOnly = entries.length > 0 && entries.every((entry) => entry.role === "optional");
     const mixedRoles = entries.some((entry) => entry.role === "optional") && !optionalOnly;
-    const showLabel = name || optionalOnly || routine.blocks.length > 1;
+    // An unnamed block has no label; "+ Add exercise" already ends the block above it.
+    const showLabel = name || optionalOnly;
     const rows = entries.map((entry) => {
       const presentation = entryPresentation(entry, state);
       number += 1;
