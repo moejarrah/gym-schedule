@@ -57,11 +57,11 @@ One JSON object in `localStorage` under `gymAppStateV1`. The schema version, cur
 
 ## Releasing
 
-Pushing to `main` publishes the app on GitHub Pages. Installed apps download the new version the next time they're opened and reload once. Publish only after `npm run check` and `npm run e2e` pass; an unstamped `sw.js` means phones never see the update.
+Pushing to `main` publishes the app on GitHub Pages. Installed apps download the new version the next time they're opened and reload once. Always run `npm run check` before pushing: an unstamped `sw.js` means phones never see the update. Run `npm run e2e` when a change touches how screens behave, not for docs, data or styling tweaks.
 
 ## Working with the owner
 
-- It's a personal app for one person. Don't add accounts, sync, multi-user or online-security features, and don't build for unlikely edge cases.
+- **Speed of development matters more than ceremony.** It's a personal app for one person: no accounts, sync, multi-user or online-security features, no building for unlikely edge cases, and no tests, validation or process beyond what protects the owner's saved workouts and the main flows. If a rule, test or guardrail here slows work down without protecting anything real, simplify or remove it.
 - The owner wants a lean, uncluttered app (see `docs/DESIGN.md`). For a bigger UI change, show the design first (mock-ups or screenshots) and build once it's agreed.
 - They write casually and expect the work to be done, checked and published, not a plan to approve. Reply in plain words, say what changed, and after a release give the site: https://moejarrah.github.io/gym-schedule/.
 - Decisions they've already made are recorded in `docs/TODO.md` (including what was decided against). Don't bring those back unasked.
