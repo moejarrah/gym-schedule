@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "check": "node tools/check.mjs",
-    "e2e": "node --test --test-concurrency=1 \"tests/e2e/*.e2e.mjs\"",
+    "e2e": "node --test \"tests/e2e/*.e2e.mjs\"",
     "preview": "node tools/serve.mjs",
     "screenshots": "node tools/screenshots.mjs"
   },

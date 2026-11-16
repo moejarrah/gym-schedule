@@ -19,7 +19,7 @@ While it runs, http://127.0.0.1:4173/tools/iphone-preview.html shows the app in 
 
 ```bash
 npm run check   # quick: stamps sw.js, checks syntax, runs unit tests
-npm run e2e     # full: clicks through every screen in a headless browser
+npm run e2e     # full: clicks through the main flows in a headless browser (about 15 seconds)
 ```
 
 The first time you want `npm run e2e`, run `npm install` and then `npx playwright install chromium`.

@@ -51,7 +51,7 @@ One JSON object in `localStorage` under `gymAppStateV1`. The schema version, cur
 ## Checks
 
 - `npm run check` — stamps `sw.js`, syntax-checks every script, runs the unit tests. Run it before every commit and commit the stamped `sw.js`.
-- `npm run e2e` — browser tests of every screen (one-time setup: `npm install` and `npx playwright install chromium`).
+- `npm run e2e` — browser tests, one per main flow, in about 15 seconds (one-time setup: `npm install` and `npx playwright install chromium`). They run on the made-up program in `tests/sample.mjs` and find things by role, name or visible text, never by CSS class, id or `data-*` attribute; `tests/e2e/helpers.mjs` explains how.
 - `npm run preview` — serves the app at `http://127.0.0.1:4173/`. `npm run preview -- --lan` also prints an address a phone on the same Wi-Fi can open. The owner watches changes at `/tools/iphone-preview.html`, which refreshes after every save; keep it working.
 - For UI changes, look at the result at 393 × 852 and 320 × 700 in both themes (`npm run screenshots -- <folder>` captures every screen and dialog; `tools/visual-diff.mjs` compares two runs).
 
