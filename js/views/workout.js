@@ -27,17 +27,17 @@ const choicesSheet = { routineId: "", entryId: "" };
 
 function programBarMarkup(program) {
   if (!program) {
-    return `<div class="workout-programbar">
-      <div class="workout-program-empty"><span>Active</span><strong>No program</strong></div>
+    return `<div class="bar">
+      <div class="bar-pick"><span class="label tag active">Active</span><strong>No program</strong></div>
     </div>`;
   }
-  return `<div class="workout-programbar">
-    <button class="workout-program-pick" type="button" data-action="open-programs" aria-label="Choose active program, currently ${escapeHtml(program.name)}">
-      <span>Active</span>
-      <strong>${escapeHtml(program.name)}</strong>
+  return `<div class="bar">
+    <button class="bar-pick tap" type="button" data-action="open-programs" aria-label="Choose active program, currently ${escapeHtml(program.name)}">
+      <span class="label tag active">Active</span>
+      <strong class="truncate">${escapeHtml(program.name)}</strong>
       ${chevronIcon("down")}
     </button>
-    <button class="workout-manage-program" type="button" data-view="routines" aria-label="Manage ${escapeHtml(program.name)}">
+    <button class="icon-button" type="button" data-view="routines" aria-label="Manage ${escapeHtml(program.name)}">
       <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
   </div>`;
@@ -45,21 +45,21 @@ function programBarMarkup(program) {
 
 function routineNoteMarkup(note) {
   if (!note.trim()) return "";
-  return `<details class="routine-note-disclosure">
-    <summary><span>${escapeHtml(note.trim())}</span>${chevronIcon("down")}</summary>
-    <p>${escapeHtml(note)}</p>
+  return `<details class="note">
+    <summary><span class="hint clamp-2">${escapeHtml(note.trim())}</span>${chevronIcon("down")}</summary>
+    <p class="hint">${escapeHtml(note)}</p>
   </details>`;
 }
 
 function emptyStateMarkup(program, routine) {
   if (!program) {
-    return `<div class="empty-state"><h3>No programs yet</h3><p>Add a program to organize your workout days.</p><button class="button primary" type="button" data-action="new-program">Add program</button></div>`;
+    return `<div class="empty"><h3>No programs yet</h3><p>Add a program to organize your workout days.</p><button class="button primary" type="button" data-action="new-program">Add program</button></div>`;
   }
   if (!routine) {
-    return `<div class="empty-state"><h3>No routines yet</h3><p>Add the first workout day to ${escapeHtml(program.name)} in Program.</p><button class="button primary" type="button" data-view="routines">Manage program</button></div>`;
+    return `<div class="empty"><h3>No routines yet</h3><p>Add the first workout day to ${escapeHtml(program.name)} in Program.</p><button class="button primary" type="button" data-view="routines">Manage program</button></div>`;
   }
   if (!routine.entries.length) {
-    return `<div class="empty-state compact-empty"><h3>No exercises yet</h3><p>Open Program to add exercises.</p><button class="button secondary" type="button" data-view="routines">Manage program</button></div>`;
+    return `<div class="empty"><h3>No exercises yet</h3><p>Open Program to add exercises.</p><button class="button" type="button" data-view="routines">Manage program</button></div>`;
   }
   return "";
 }
@@ -70,12 +70,12 @@ function pageMarkup(state) {
   const program = activeProgram(state);
   const routine = activeRoutine(state);
   const todayKey = localDateKey();
-  return `<section class="page workout-page">
+  return `<section class="page fills">
     ${programBarMarkup(program)}
     ${routineTabsMarkup(programRoutines(state, program), routine?.id)}
     ${routine ? routineNoteMarkup(routine.note) : ""}
     ${emptyStateMarkup(program, routine)}
-    ${routine?.entries.length ? `<div class="workout-rows" data-keep-scroll="workout-${escapeHtml(routine.id)}">
+    ${routine?.entries.length ? `<div class="scroll" data-keep-scroll="workout-${escapeHtml(routine.id)}">
       ${routine.blocks.map((block) => blockMarkup(state, routine, block, todayKey)).join("")}
     </div>` : ""}
   </section>`;
@@ -85,7 +85,7 @@ function pageMarkup(state) {
 function loggedSetsMarkup(log) {
   if (!log) return "";
   const drops = log.sets.reduce((count, set) => count + set.drops.length, 0);
-  return `<span class="set-chips workout-sets">${setChipsMarkup(log.sets, { timed: log.unit === "sec", drops: false })}${drops ? `<span class="set-chips-more">+ ${drops} drop${drops === 1 ? "" : "s"}</span>` : ""}</span>`;
+  return `<span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec", drops: false })}${drops ? `<span class="row-meta">+ ${drops} drop${drops === 1 ? "" : "s"}</span>` : ""}</span>`;
 }
 
 function entryMarkup(state, routine, entry, { checked, log, showOptionalRole }) {
@@ -95,21 +95,21 @@ function entryMarkup(state, routine, entry, { checked, log, showOptionalRole }) 
   const multiChoice = entry.choices.length > 1;
   const status = checked ? ", done" : log ? `, ${plural(log.sets.length, "set")} logged` : "";
   const videoControl = preferred.exercise.videoId
-    ? `<a class="workout-video is-linked" href="${videoUrl(preferred.exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for preferred choice ${escapeHtml(preferred.name)}"><span class="workout-video-mark">${playIcon()}</span></a>`
-    : `<button class="workout-video" type="button" data-action="open-workout-video" data-id="${escapeHtml(exerciseId)}" aria-label="Find a video for preferred choice ${escapeHtml(preferred.name)}"><span class="workout-video-mark">${playIcon()}</span></button>`;
+    ? `<a class="icon-button is-linked" href="${videoUrl(preferred.exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for preferred choice ${escapeHtml(preferred.name)}"><span class="play">${playIcon()}</span></a>`
+    : `<button class="icon-button" type="button" data-action="open-workout-video" data-id="${escapeHtml(exerciseId)}" aria-label="Find a video for preferred choice ${escapeHtml(preferred.name)}"><span class="play">${playIcon()}</span></button>`;
 
-  return `<article class="workout-item ${checked ? "is-done" : ""} ${log ? "has-sets" : ""}">
-    <button class="workout-check" type="button" data-action="open-logger" data-routine-id="${escapeHtml(routine.id)}" data-id="${escapeHtml(entry.id)}" aria-label="Log sets for ${escapeHtml(name)}${status}">
-      <span class="workout-check-mark" aria-hidden="true">
-        <span class="workout-check-number">${entryNumber(routine, entry.id)}</span>
+  return `<article class="row split tap ${checked ? "is-done" : ""} ${log ? "has-sets" : ""}">
+    <button class="icon-button" type="button" data-action="open-logger" data-routine-id="${escapeHtml(routine.id)}" data-id="${escapeHtml(entry.id)}" aria-label="Log sets for ${escapeHtml(name)}${status}">
+      <span class="tickbox" aria-hidden="true">
+        <span>${entryNumber(routine, entry.id)}</span>
         <svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
       </span>
     </button>
-    <button class="workout-row" type="button" data-action="${multiChoice ? "open-entry-choices" : "open-workout-exercise"}" data-id="${escapeHtml(exerciseId)}" data-entry-id="${escapeHtml(entry.id)}" data-routine-id="${escapeHtml(routine.id)}" data-prescription="${escapeHtml(prescription)}" aria-label="${multiChoice ? `Open exercise choices for ${escapeHtml(name)}` : `View ${escapeHtml(name)} details`}">
+    <button class="row-body" type="button" data-action="${multiChoice ? "open-entry-choices" : "open-workout-exercise"}" data-id="${escapeHtml(exerciseId)}" data-entry-id="${escapeHtml(entry.id)}" data-routine-id="${escapeHtml(routine.id)}" data-prescription="${escapeHtml(prescription)}" aria-label="${multiChoice ? `Open exercise choices for ${escapeHtml(name)}` : `View ${escapeHtml(name)} details`}">
       <span class="row-main">
-        <span class="row-line"><span class="row-title">${escapeHtml(name)}</span><span class="row-meta">${escapeHtml(prescription)}${showOptionalRole ? `<span class="entry-role-tag">Optional</span>` : ""}</span></span>
+        <span class="row-line"><span class="row-title">${escapeHtml(name)}</span><span class="row-meta">${escapeHtml(prescription)}${showOptionalRole ? `<span class="label tag">Optional</span>` : ""}</span></span>
         ${loggedSetsMarkup(log)}
-        ${note ? `<span class="entry-note-preview">${escapeHtml(note)}</span>` : ""}
+        ${note ? `<span class="row-meta clamp-2 faint">${escapeHtml(note)}</span>` : ""}
       </span>
     </button>
     ${videoControl}
@@ -125,8 +125,8 @@ function blockMarkup(state, routine, block, todayKey) {
   if (!entries.length && !name) return "";
   const optionalOnly = entries.length > 0 && entries.every((entry) => entry.role === "optional");
   const mixedRoles = !optionalOnly && entries.some((entry) => entry.role === "optional");
-  return `<section class="workout-section" data-block-id="${escapeHtml(block.id)}">
-    ${(name || optionalOnly) ? `<div class="workout-section-label"><span>${escapeHtml(name)}</span>${optionalOnly && !saysOptional(name) ? `<span class="workout-block-role">Optional</span>` : ""}</div>` : ""}
+  return `<section data-block-id="${escapeHtml(block.id)}">
+    ${(name || optionalOnly) ? `<div class="label section-label"><span>${escapeHtml(name)}</span>${optionalOnly && !saysOptional(name) ? `<span>Optional</span>` : ""}</div>` : ""}
     ${entries.map((entry) => entryMarkup(state, routine, entry, {
       checked: isEntryChecked(state, todayKey, routine.id, entry.id),
       log: entryLog(state, todayKey, entry.id),
@@ -138,12 +138,12 @@ function blockMarkup(state, routine, block, todayKey) {
 function entryChoicesMarkup(state, routine, entry) {
   const rows = entryPresentation(entry, state).choices.map((item, index) => {
     const video = item.exercise.videoId
-      ? `<a class="entry-choice-video is-linked" href="${videoUrl(item.exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for ${escapeHtml(item.name)}"><span>${playIcon()}</span></a>`
-      : `<button class="entry-choice-video" type="button" data-action="open-choice-video" data-index="${index}" aria-label="Find a video for ${escapeHtml(item.name)}"><span>${playIcon()}</span></button>`;
-    return `<div class="entry-choice-view-row">
-      <button class="entry-choice-reference" type="button" data-action="open-choice-reference" data-index="${index}" aria-label="Open reference for ${escapeHtml(item.name)}">
+      ? `<a class="icon-button is-linked" href="${videoUrl(item.exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for ${escapeHtml(item.name)}"><span class="play">${playIcon()}</span></a>`
+      : `<button class="icon-button" type="button" data-action="open-choice-video" data-index="${index}" aria-label="Find a video for ${escapeHtml(item.name)}"><span class="play">${playIcon()}</span></button>`;
+    return `<div class="row split">
+      <button class="row-body" type="button" data-action="open-choice-reference" data-index="${index}" aria-label="Open reference for ${escapeHtml(item.name)}">
         <span class="row-main"><span class="row-title">${escapeHtml(item.name)}</span><span class="row-meta">${escapeHtml(item.prescription)}</span></span>
-        ${index === 0 ? `<span class="choice-preferred-tag">Preferred</span>` : ""}
+        ${index === 0 ? `<span class="label accent">Preferred</span>` : ""}
         ${chevronIcon("right")}
       </button>
       ${video}
@@ -151,14 +151,14 @@ function entryChoicesMarkup(state, routine, entry) {
   }).join("");
   const blockName = routine.blocks.find((block) => block.id === entry.blockId).name.trim();
   const context = [`Slot ${entryNumber(routine, entry.id)}`, blockName, "first choice is preferred"].filter(Boolean).join(" · ");
-  return `<div class="entry-choices-sheet">
-    <header class="dialog-header">
+  return `<div class="sheet-panel">
+    <header class="sheet-head">
       <div><h2 id="entryChoicesTitle">Exercise choices</h2><p>${escapeHtml(context)}</p></div>
       <button class="icon-button" type="button" data-close-dialog="entryChoicesDialog" aria-label="Close exercise choices">×</button>
     </header>
-    <div class="entry-choices-scroll">
+    <div class="sheet-body">
       ${rows}
-      <p class="entry-choices-context">${entry.note.trim() ? `${escapeHtml(entry.note)}\n\n` : ""}Log it from the slot's number on Workout, where you pick which choice you did.</p>
+      <p class="hint">${entry.note.trim() ? `${escapeHtml(entry.note)}\n\n` : ""}Log it from the slot's number on Workout, where you pick which choice you did.</p>
     </div>
   </div>`;
 }

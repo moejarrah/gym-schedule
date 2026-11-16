@@ -31,7 +31,7 @@ export function saysOptional(blockName) {
 
 export function routineTabsMarkup(routines, selectedId) {
   if (!routines.length) return "";
-  return `<div class="routine-tabs" aria-label="Choose a routine" data-keep-scroll="routine-tabs">
+  return `<div class="routine-tabs scroll-x" aria-label="Choose a routine" data-keep-scroll="routine-tabs">
     ${routines.map((routine) => `
       <button class="routine-tab" type="button"
         aria-label="${escapeHtml(routine.name)}, ${locationLabel(routine.group)}" aria-pressed="${routine.id === selectedId}" data-action="select-routine" data-id="${escapeHtml(routine.id)}">
@@ -47,7 +47,7 @@ export function revealSelectedTab(root) {
   if (!tab || !strip) return;
   const stripBox = strip.getBoundingClientRect();
   const tabBox = tab.getBoundingClientRect();
-  const margin = Math.ceil(strip.clientWidth * 0.12); // the strip's fade-out edge (12%, see .routine-tabs)
+  const margin = Math.ceil(strip.clientWidth * 0.12); // the strip's fade-out edge (12%, see .scroll-x)
   if (tabBox.left < stripBox.left) strip.scrollLeft -= stripBox.left - tabBox.left + margin;
   else if (tabBox.right > stripBox.right) strip.scrollLeft += tabBox.right - stripBox.right + margin;
 }
@@ -72,7 +72,7 @@ export function liftText(lift, timed = false) {
 function liftChip(lift, timed, kind = "") {
   const amount = timed ? `${lift.reps}<small>s</small>` : (lift.kg === null ? `${lift.reps}<small>reps</small>` : String(lift.reps));
   const weight = lift.kg === null ? "" : `${escapeHtml(formatKg(lift.kg))}<small>kg</small><span class="set-chip-x">×</span>`;
-  return `<span class="set-chip ${kind}">${kind ? `<span class="set-chip-tag">Drop</span>` : ""}${weight}${amount}</span>`;
+  return `<span class="set-chip ${kind}">${kind ? `<span class="label accent set-chip-tag">Drop</span>` : ""}${weight}${amount}</span>`;
 }
 
 // Small boxes for logged sets, each followed by its drops as outlined boxes.

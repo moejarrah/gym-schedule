@@ -46,8 +46,8 @@ function trendMarkup(sessions) {
   ]);
   const first = points[0];
   const last = points.at(-1);
-  return `<figure class="history-trend">
-    <figcaption>Top set weight</figcaption>
+  return `<figure class="card history-trend">
+    <figcaption class="label">Top set weight</figcaption>
     <svg role="img" aria-label="Top set weight from ${formatKg(first.kg)} kg on ${escapeHtml(shortDate(first.dateKey))} to ${formatKg(last.kg)} kg on ${escapeHtml(shortDate(last.dateKey))}" viewBox="0 0 ${width} ${height}">
       <polyline points="${xy.map((pair) => pair.join(",")).join(" ")}"/>
       <circle cx="${xy.at(-1)[0]}" cy="${xy.at(-1)[1]}" r="4"/>
@@ -61,7 +61,7 @@ function statsMarkup(sessions) {
   const timed = sessions.find((item) => item.sets.includes(best)).unit === "sec";
   const weights = sessions.flatMap((item) => item.sets.map((set) => set.kg)).filter((kg) => kg !== null);
   const since = sessions.length > 1 ? change(sessions[0].sets, sessions.at(-1).sets) : null;
-  const tile = (label, value, kind = "") => `<div class="history-stat ${kind}"><span>${label}</span><strong>${escapeHtml(value)}</strong></div>`;
+  const tile = (label, value, kind = "") => `<div class="card history-stat ${kind}"><span class="label">${label}</span><strong>${escapeHtml(value)}</strong></div>`;
   return `<div class="history-stats">
     ${tile("Best set", liftText(best, timed))}
     ${tile("Heaviest", weights.length ? `${formatKg(Math.max(...weights))} kg` : "—")}
@@ -72,10 +72,10 @@ function statsMarkup(sessions) {
 function sessionMarkup(state, item, older) {
   const routine = routineById(state, item.routineId);
   const delta = older ? change(item.sets, older.sets) : null;
-  return `<article class="history-session">
+  return `<article class="card history-session">
     <header>
-      <strong>${escapeHtml(shortDate(item.dateKey))}</strong>
-      <span>${escapeHtml(routine?.name || "Deleted routine")}</span>
+      <strong class="row-title">${escapeHtml(shortDate(item.dateKey))}</strong>
+      <span class="row-meta truncate">${escapeHtml(routine?.name || "Deleted routine")}</span>
       ${delta ? `<em class="history-change ${delta.kind}">${escapeHtml(delta.text)}</em>` : ""}
     </header>
     <div class="set-chips">${setChipsMarkup(item.sets, { timed: item.unit === "sec" })}</div>
@@ -85,15 +85,15 @@ function sessionMarkup(state, item, older) {
 function historyMarkup(state, exerciseId) {
   const exercise = exerciseById(state, exerciseId);
   const sessions = exerciseHistory(state, exerciseId);
-  return `<div class="history-sheet">
-    <header class="dialog-header">
+  return `<div class="sheet-panel">
+    <header class="sheet-head">
       <div><h2 id="historyTitle">${escapeHtml(exercise?.name || "Exercise")}</h2><p>${sessions.length ? plural(sessions.length, "session") : "History"}</p></div>
       <button class="icon-button" type="button" data-close-dialog="historyDialog" aria-label="Close history">×</button>
     </header>
-    <div class="history-scroll">
+    <div class="sheet-body stack tight">
       ${sessions.length ? `${statsMarkup(sessions)}${trendMarkup(sessions)}
-        <section aria-label="Sessions" class="history-sessions">${sessions.map((item, index) => sessionMarkup(state, item, sessions[index + 1])).join("")}</section>`
-        : `<p class="history-empty">No sets logged for this exercise yet. Tap an exercise's number on Workout to log one.</p>`}
+        <section aria-label="Sessions" class="stack snug">${sessions.map((item, index) => sessionMarkup(state, item, sessions[index + 1])).join("")}</section>`
+        : `<p class="hint">No sets logged for this exercise yet. Tap an exercise's number on Workout to log one.</p>`}
     </div>
   </div>`;
 }

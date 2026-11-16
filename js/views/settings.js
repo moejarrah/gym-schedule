@@ -45,26 +45,26 @@ function ruleBodyMarkup(lines) {
 function rulesMarkup(text) {
   const sections = ruleSections(text);
   if (!sections.length) return `<p>No training rules yet.</p>`;
-  return sections.map(([heading, ...lines]) => `<section class="rule-section"><h3>${escapeHtml(heading)}</h3>${ruleBodyMarkup(lines)}</section>`).join("");
+  return sections.map(([heading, ...lines]) => `<section class="card rule"><h3>${escapeHtml(heading)}</h3>${ruleBodyMarkup(lines)}</section>`).join("");
 }
 
 function rulesSectionMarkup(rules) {
   if (rulesEditor.draft === null) {
-    return `<section class="settings-section settings-rules" aria-labelledby="settingsRulesTitle">
-      <div class="settings-heading">
+    return `<section class="stack tight" aria-labelledby="settingsRulesTitle">
+      <div class="label label-row">
         <h2 id="settingsRulesTitle">Training rules</h2>
-        <button class="text-button" id="editRulesButton" type="button" data-action="edit-training-rules" aria-label="Edit training rules">Edit</button>
+        <button class="link-button" id="editRulesButton" type="button" data-action="edit-training-rules" aria-label="Edit training rules">Edit</button>
       </div>
-      <div id="rulesContent" class="rules-list">${rulesMarkup(rules)}</div>
+      <div id="rulesContent" class="stack tight">${rulesMarkup(rules)}</div>
     </section>`;
   }
-  return `<section class="settings-section settings-rules" aria-labelledby="settingsRulesTitle">
-    <div class="settings-heading"><h2 id="settingsRulesTitle">Training rules</h2></div>
-    <div class="field"><textarea id="trainingRulesInput" rows="14" aria-labelledby="settingsRulesTitle" aria-describedby="trainingRulesHint">${escapeHtml(rulesEditor.draft)}</textarea></div>
-    <div class="form-note" id="trainingRulesHint">Leave a blank line between sections. A section's first line is its heading; start a line with “- ” to make a list item.</div>
+  return `<section class="stack tight" aria-labelledby="settingsRulesTitle">
+    <div class="label label-row"><h2 id="settingsRulesTitle">Training rules</h2></div>
+    <div class="field"><textarea class="control" id="trainingRulesInput" rows="14" aria-labelledby="settingsRulesTitle" aria-describedby="trainingRulesHint">${escapeHtml(rulesEditor.draft)}</textarea></div>
+    <div class="hint" id="trainingRulesHint">Leave a blank line between sections. A section's first line is its heading; start a line with “- ” to make a list item.</div>
     <div class="form-error" id="trainingRulesError" role="alert" aria-live="polite"></div>
-    <div class="dialog-actions">
-      <button class="button secondary" type="button" data-action="cancel-training-rules">Cancel</button>
+    <div class="actions">
+      <button class="button" type="button" data-action="cancel-training-rules">Cancel</button>
       <button class="button primary" type="button" data-action="save-training-rules">Save rules</button>
     </div>
   </section>`;
@@ -72,34 +72,34 @@ function rulesSectionMarkup(rules) {
 
 function recoveryMarkup() {
   if (!store.recoveryData()) return "";
-  return `<div class="settings-recovery">
+  return `<div class="card stack tight settings-recovery">
     <p><strong>Saved data couldn't be read</strong> ${store.getLastError()
     ? "The starting program is open and nothing is saved. Download the unreadable data to keep a copy, then import a backup or restore the starting data."
     : "It is still on this device; download it to keep a copy."}</p>
-    <button class="button secondary" type="button" data-action="download-unreadable-data">Download unreadable data</button>
+    <button class="button" type="button" data-action="download-unreadable-data">Download unreadable data</button>
   </div>`;
 }
 
 function settingsMarkup(state) {
-  return `<section class="page settings-page" aria-label="Settings">
-    <section class="settings-section" aria-labelledby="settingsAppearanceTitle">
-      <h2 id="settingsAppearanceTitle">Appearance</h2>
-      <button class="selection-row" id="settingsThemeButton" type="button" data-action="toggle-theme"><span><strong>Theme</strong><small id="settingsThemeValue">${themeLabel(state.settings.theme)}</small></span><span aria-hidden="true">›</span></button>
+  return `<section class="page stack settings-page" aria-label="Settings">
+    <section class="stack tight" aria-labelledby="settingsAppearanceTitle">
+      <h2 class="label" id="settingsAppearanceTitle">Appearance</h2>
+      <button class="row card" id="settingsThemeButton" type="button" data-action="toggle-theme"><span class="row-main"><strong class="row-title">Theme</strong><small class="row-meta" id="settingsThemeValue">${themeLabel(state.settings.theme)}</small></span><span class="chev" aria-hidden="true">›</span></button>
     </section>
-    <section class="settings-section" aria-labelledby="settingsDataTitle">
-      <h2 id="settingsDataTitle">Data</h2>
+    <section class="stack tight" aria-labelledby="settingsDataTitle">
+      <h2 class="label" id="settingsDataTitle">Data</h2>
       ${recoveryMarkup()}
       <p>Export a copy, import a compatible file, or restore the starting program.</p>
-      <div class="stacked-actions">
-        <button class="button secondary" id="exportButton" type="button" data-action="export-data">Export app data</button>
-        <button class="button secondary" id="importButton" type="button" data-action="import-data">Import app data</button>
-        <button class="button secondary danger-text" id="resetButton" type="button" data-action="restore-data">Restore starting data</button>
+      <div class="stack snug">
+        <button class="button" id="exportButton" type="button" data-action="export-data">Export app data</button>
+        <button class="button" id="importButton" type="button" data-action="import-data">Import app data</button>
+        <button class="button danger-text" id="resetButton" type="button" data-action="restore-data">Restore starting data</button>
       </div>
       <div class="form-error" id="settingsFormError" role="alert" aria-live="polite"></div>
     </section>
     ${rulesSectionMarkup(state.settings.trainingRules)}
-    <section class="settings-section" aria-labelledby="settingsAboutTitle">
-      <h2 id="settingsAboutTitle">About</h2>
+    <section class="stack tight" aria-labelledby="settingsAboutTitle">
+      <h2 class="label" id="settingsAboutTitle">About</h2>
       <p id="settingsVersion">${escapeHtml(about.version)}</p>
       <p>Works offline. Your data stays on this device.</p>
     </section>

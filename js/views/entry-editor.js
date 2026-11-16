@@ -20,7 +20,7 @@ const picker = { mode: "entry", blockId: "" };
 
 function pickerListMarkup(exercises, existingExerciseIds, mode) {
   if (!exercises.length) {
-    return `<div class="picker-empty"><h3>No matching exercises</h3><p>Try another name, target, or movement.</p></div>`;
+    return `<div class="empty"><h3>No matching exercises</h3><p>Try another name, target, or movement.</p></div>`;
   }
 
   return exercises.map((exercise) => {
@@ -28,26 +28,26 @@ function pickerListMarkup(exercises, existingExerciseIds, mode) {
     const details = [prescription, label(exercise.primaryTargets[0]), label(exercise.movementPattern)].filter(Boolean).join(" · ");
     const exists = existingExerciseIds.has(exercise.id);
     const unavailable = mode === "choice" && exists;
-    return `<button class="picker-item" type="button" data-action="pick-exercise" data-id="${escapeHtml(exercise.id)}" aria-label="${unavailable ? `${escapeHtml(exercise.name)} is already a choice` : `${exists ? "Add another" : "Add"} ${escapeHtml(exercise.name)} to this routine`}" ${unavailable ? "disabled" : ""}>
-      <span class="picker-item-copy"><strong>${escapeHtml(exercise.name)}</strong><small>${escapeHtml(details)}</small></span>
-      <span class="picker-item-action">${unavailable ? "Added" : exists ? "Add again" : "Add"}</span>
+    return `<button class="row tall" type="button" data-action="pick-exercise" data-id="${escapeHtml(exercise.id)}" aria-label="${unavailable ? `${escapeHtml(exercise.name)} is already a choice` : `${exists ? "Add another" : "Add"} ${escapeHtml(exercise.name)} to this routine`}" ${unavailable ? "disabled" : ""}>
+      <span class="row-main"><strong class="row-title truncate">${escapeHtml(exercise.name)}</strong><small class="row-meta truncate">${escapeHtml(details)}</small></span>
+      <span class="row-action">${unavailable ? "Added" : exists ? "Add again" : "Add"}</span>
     </button>`;
   }).join("");
 }
 
 function entryChoicesEditorMarkup(choices, state) {
   if (!choices.length) {
-    return `<div class="entry-choice-empty"><strong>No exercise choices</strong><span>Add at least one choice before saving this entry.</span></div>`;
+    return `<div class="row row-main"><strong class="row-title">No exercise choices</strong><span class="row-meta">Add at least one choice before saving this entry.</span></div>`;
   }
   return choices.map((choice, index) => {
     const name = exerciseById(state, choice.exerciseId)?.name || "Missing exercise";
     const prescription = choice.prescription || "No prescription";
-    return `<div class="entry-choice-edit-row" data-choice-index="${index}">
-      <span class="entry-choice-number">${index + 1}</span>
-      <span class="entry-choice-copy"><strong>${escapeHtml(name)}</strong><small>${escapeHtml(prescription)}</small></span>
-      ${index === 0 ? `<span class="choice-preferred-tag">Preferred</span>` : `<button class="entry-choice-mini" type="button" data-action="prefer-entry-choice" data-index="${index}" aria-label="Make ${escapeHtml(name)} preferred">↑</button>`}
-      <button class="entry-choice-mini" type="button" data-action="edit-entry-choice" data-index="${index}" aria-label="Edit ${escapeHtml(name)} choice">${chevronIcon("right")}</button>
-      <button class="entry-choice-mini" type="button" data-action="remove-entry-choice" data-index="${index}" aria-label="Remove ${escapeHtml(name)} choice">×</button>
+    return `<div class="row" data-choice-index="${index}">
+      <span class="row-number">${index + 1}</span>
+      <span class="row-main"><strong class="row-title">${escapeHtml(name)}</strong><small class="row-meta">${escapeHtml(prescription)}</small></span>
+      ${index === 0 ? `<span class="label accent">Preferred</span>` : `<button class="icon-button sm" type="button" data-action="prefer-entry-choice" data-index="${index}" aria-label="Make ${escapeHtml(name)} preferred">↑</button>`}
+      <button class="icon-button sm" type="button" data-action="edit-entry-choice" data-index="${index}" aria-label="Edit ${escapeHtml(name)} choice">${chevronIcon("right")}</button>
+      <button class="icon-button sm" type="button" data-action="remove-entry-choice" data-index="${index}" aria-label="Remove ${escapeHtml(name)} choice">×</button>
     </div>`;
   }).join("");
 }
