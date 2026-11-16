@@ -14,7 +14,7 @@ const resolve = (from, ref) => normalize(join(dirname(from), ref.split(/[?#]/)[0
 const isLocal = (ref) => !/^(?:[a-z]+:|#|\/\/)/i.test(ref);
 
 const sw = read("sw.js");
-const cached = new Set(JSON.parse(/const FILES = (\[[\s\S]*?\]); \/\/ stamped/.exec(sw)[1]).map((file) => normalize(file)));
+const cached = new Set(JSON.parse(/const FILES = (\[[\s\S]*?\]); \/\/ stamped/.exec(sw)[1]).map((file) => file.replace(/^\.\//, "")));
 
 // Static `import … from "x"`, `import "x"` and `export … from "x"` at the start of a line.
 const IMPORT = /^\s*(?:import|export)\s(?:[^;"'`]*?\sfrom\s*)?["']([^"']+)["']/gm;

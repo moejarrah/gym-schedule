@@ -1,2 +1,8 @@
+# Same line endings on every machine, so the version stamped into sw.js matches everywhere.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.woff2 binary
+
 # Preserve owner-provided source material byte-for-byte.
 references/source-material/** whitespace=-blank-at-eol,-blank-at-eof
