@@ -50,21 +50,21 @@ const routineEditor = { id: "", blocks: [], blockId: "" };
 // ---------- markup ----------
 
 function programAppBarMarkup(program, routines) {
-  return `<header class="program-appbar">
-    <h1>Program</h1>
-    ${program && routines.length ? `<button class="program-app-action" type="button" data-action="new-routine">+ Add routine</button>` : ""}
+  return `<header class="appbar">
+    <h1 class="title">Program</h1>
+    ${program && routines.length ? `<button class="button" type="button" data-action="new-routine">+ Add routine</button>` : ""}
   </header>`;
 }
 
 function programBarMarkup(program) {
   const name = program?.name || "No program";
-  return `<div class="program-page-bar">
-    <button class="program-page-pick" type="button" data-action="open-programs" aria-label="${program ? `Choose active program, currently ${escapeHtml(name)}` : "Open programs"}">
-      <span>Active</span>
-      <strong>${escapeHtml(name)}</strong>
+  return `<div class="bar">
+    <button class="bar-pick tap" type="button" data-action="open-programs" aria-label="${program ? `Choose active program, currently ${escapeHtml(name)}` : "Open programs"}">
+      <span class="label tag active">Active</span>
+      <strong class="truncate">${escapeHtml(name)}</strong>
       ${chevronIcon("down")}
     </button>
-    <button class="program-page-manage" type="button" data-action="open-programs" aria-label="Manage programs">
+    <button class="icon-button" type="button" data-action="open-programs" aria-label="Manage programs">
       <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
   </div>`;
@@ -72,20 +72,20 @@ function programBarMarkup(program) {
 
 function programsListMarkup(state) {
   if (!state.programs.length) {
-    return `<div class="empty-state compact-empty"><h3>No programs yet</h3><p>Add one to organize your workout days.</p></div>`;
+    return `<div class="empty"><h3>No programs yet</h3><p>Add one to organize your workout days.</p></div>`;
   }
 
   return state.programs.map((program) => {
     const active = program.id === state.settings.activeProgramId;
-    return `<div class="program-choice-row">
-      <button class="program-choice-select" type="button" data-action="select-program" data-id="${escapeHtml(program.id)}" aria-pressed="${active}">
-        <span class="${active ? "program-active-dot" : "program-active-slot"}" aria-hidden="true"></span>
-        <span class="program-choice-copy">
-          <strong>${escapeHtml(program.name)}</strong>
-          <small>${plural(program.routineIds.length, "routine")}${active ? " · active" : ""}</small>
+    return `<div class="row split tall">
+      <button class="row-body" type="button" data-action="select-program" data-id="${escapeHtml(program.id)}" aria-pressed="${active}">
+        <span class="dot" aria-hidden="true"></span>
+        <span class="row-main">
+          <strong class="row-title truncate">${escapeHtml(program.name)}</strong>
+          <small class="row-meta truncate">${plural(program.routineIds.length, "routine")}${active ? " · active" : ""}</small>
         </span>
       </button>
-      <button class="program-choice-edit" type="button" data-action="edit-program" data-id="${escapeHtml(program.id)}" aria-label="Edit ${escapeHtml(program.name)}">
+      <button class="icon-button sm" type="button" data-action="edit-program" data-id="${escapeHtml(program.id)}" aria-label="Edit ${escapeHtml(program.name)}">
         ${chevronIcon("right")}
       </button>
     </div>`;
@@ -96,13 +96,13 @@ function routineBlocksEditorMarkup(blocks, entries) {
   return blocks.map((block, index) => {
     const count = entries.filter((entry) => entry.blockId === block.id).length;
     const name = block.name.trim() || "Untitled block";
-    return `<div class="routine-block-row" data-block-id="${escapeHtml(block.id)}">
-      <span class="routine-block-grip" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h8"/></svg></span>
-      <button class="routine-block-edit" type="button" data-action="edit-routine-block" data-id="${escapeHtml(block.id)}" aria-label="Edit ${escapeHtml(name)}. Hold and drag to reorder.">
-        <strong>${escapeHtml(name)}</strong>
-        <small>${plural(count, "entry", "entries")} · ${index + 1} of ${blocks.length}</small>
+    return `<div class="row split drag-row" data-block-id="${escapeHtml(block.id)}">
+      <span class="grip" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h8"/></svg></span>
+      <button class="row-main" type="button" data-action="edit-routine-block" data-id="${escapeHtml(block.id)}" aria-label="Edit ${escapeHtml(name)}. Hold and drag to reorder.">
+        <strong class="row-title truncate">${escapeHtml(name)}</strong>
+        <small class="row-meta truncate">${plural(count, "entry", "entries")} · ${index + 1} of ${blocks.length}</small>
       </button>
-      <span class="routine-block-chevron" aria-hidden="true">${chevronIcon("right")}</span>
+      <span class="chev" aria-hidden="true">${chevronIcon("right")}</span>
     </div>`;
   }).join("");
 }
@@ -110,26 +110,26 @@ function routineBlocksEditorMarkup(blocks, entries) {
 function programNoteMarkup(note) {
   if (!note.trim()) return "";
   const preview = note.split(/\r?\n/).find((line) => line.trim()) || note;
-  return `<details class="program-note-disclosure">
+  return `<details class="note program-note">
     <summary>
-      <span class="program-note-copy"><strong>Weekly layout &amp; rules</strong><small>${escapeHtml(preview)}</small></span>
+      <span class="row-main"><strong class="row-title truncate">Weekly layout &amp; rules</strong><small class="row-meta truncate">${escapeHtml(preview)}</small></span>
       ${chevronIcon("right")}
     </summary>
-    <p>${escapeHtml(note)}</p>
+    <p class="hint">${escapeHtml(note)}</p>
   </details>`;
 }
 
 function routineNoteMarkup(note) {
   if (!note.trim()) return "";
-  return `<details class="program-routine-note">
-    <summary><span>${escapeHtml(note.trim())}</span>${chevronIcon("down")}</summary>
-    <p>${escapeHtml(note)}</p>
+  return `<details class="note">
+    <summary><span class="hint clamp-2">${escapeHtml(note.trim())}</span>${chevronIcon("down")}</summary>
+    <p class="hint">${escapeHtml(note)}</p>
   </details>`;
 }
 
 function routineEntriesMarkup(state, routine) {
   let number = 0;
-  return `<div class="program-entries">${routine.blocks.map((block) => {
+  return `<div>${routine.blocks.map((block) => {
     const entries = routine.entries.filter((entry) => entry.blockId === block.id);
     const name = block.name.trim();
     const optionalOnly = entries.length > 0 && entries.every((entry) => entry.role === "optional");
@@ -143,17 +143,17 @@ function routineEntriesMarkup(state, routine) {
       const content = `<span class="row-number">${number}</span>
         <span class="row-main">
           <span class="row-title">${escapeHtml(presentation.title)}</span>
-          <span class="row-meta">${escapeHtml(presentation.prescription)}${mixedRoles && entry.role === "optional" ? `<span class="entry-role-tag">Optional</span>` : ""}</span>
-          ${note ? `<span class="entry-note-preview">${escapeHtml(note)}</span>` : ""}
+          <span class="row-meta">${escapeHtml(presentation.prescription)}${mixedRoles && entry.role === "optional" ? `<span class="label tag">Optional</span>` : ""}</span>
+          ${note ? `<span class="row-meta clamp-2 faint">${escapeHtml(note)}</span>` : ""}
         </span>
-        <span class="drag-hint" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h8"/></svg></span>`;
-      return `<button class="program-row" type="button" data-action="edit-entry" data-id="${escapeHtml(entry.id)}" data-block-id="${escapeHtml(block.id)}" aria-label="${escapeHtml(presentation.title)}. Tap to edit. Hold and drag to reorder within ${escapeHtml(name || "this block")}.">${content}</button>`;
+        <span class="grip" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h8"/></svg></span>`;
+      return `<button class="row drag-row" type="button" data-action="edit-entry" data-id="${escapeHtml(entry.id)}" data-block-id="${escapeHtml(block.id)}" aria-label="${escapeHtml(presentation.title)}. Tap to edit. Hold and drag to reorder within ${escapeHtml(name || "this block")}.">${content}</button>`;
     }).join("");
-    return `<section class="program-section" data-block-id="${escapeHtml(block.id)}">
-      ${showLabel ? `<div class="program-section-label"><span>${escapeHtml(name)}</span>${optionalOnly && !saysOptional(name) ? `<span class="program-block-role">Optional</span>` : ""}</div>` : ""}
-      <div class="program-list" data-block-id="${escapeHtml(block.id)}">${rows}</div>
-      ${!entries.length ? `<p class="program-block-empty">No exercises in ${escapeHtml(name || "this block")}.</p>` : ""}
-      <button class="add-row-button" type="button" data-action="open-picker" data-block-id="${escapeHtml(block.id)}">+ Add exercise</button>
+    return `<section data-block-id="${escapeHtml(block.id)}">
+      ${showLabel ? `<div class="label section-label"><span>${escapeHtml(name)}</span>${optionalOnly && !saysOptional(name) ? `<span>Optional</span>` : ""}</div>` : ""}
+      <div class="drag-list" data-block-id="${escapeHtml(block.id)}">${rows}</div>
+      ${!entries.length ? `<p class="hint">No exercises in ${escapeHtml(name || "this block")}.</p>` : ""}
+      <button class="row compact link-button" type="button" data-action="open-picker" data-block-id="${escapeHtml(block.id)}">+ Add exercise</button>
     </section>`;
   }).join("")}</div>`;
 }
@@ -162,22 +162,22 @@ function programMarkup(state) {
   const program = activeProgram(state);
   const routines = programRoutines(state, program);
   const routine = activeRoutine(state);
-  return `<section class="page program-page">
+  return `<section class="page">
     ${programAppBarMarkup(program, routines)}
     ${programBarMarkup(program)}
     ${program ? programNoteMarkup(program.note) : ""}
     ${routineTabsMarkup(routines, routine?.id)}
     ${routine ? routineNoteMarkup(routine.note) : ""}
-    ${!program ? `<div class="program-empty-state"><h2>No programs yet</h2><p>Create a program, then add its workout days.</p><button class="button primary" type="button" data-action="new-program">Add program</button></div>` : routine ? `
-      <div class="program-viewbar">
-        <div class="program-viewbar-copy">
-          <strong>${escapeHtml(routine.name)}</strong>
-          <span>${locationLabel(routine.group)} · ${routine.status === "optional" ? "Optional" : "Required"} · ${plural(routine.entries.length, "slot")} · ${plural(routine.blocks.length, "block")}</span>
+    ${!program ? `<div class="empty"><h2>No programs yet</h2><p>Create a program, then add its workout days.</p><button class="button primary" type="button" data-action="new-program">Add program</button></div>` : routine ? `
+      <div class="bar">
+        <div class="row-main">
+          <strong class="bar-title truncate">${escapeHtml(routine.name)}</strong>
+          <span class="row-meta truncate">${locationLabel(routine.group)} · ${routine.status === "optional" ? "Optional" : "Required"} · ${plural(routine.entries.length, "slot")} · ${plural(routine.blocks.length, "block")}</span>
         </div>
-        <button class="program-view-edit" type="button" data-action="edit-routine" data-id="${escapeHtml(routine.id)}" aria-label="Edit ${escapeHtml(routine.name)}">${editIcon()}</button>
+        <button class="icon-button" type="button" data-action="edit-routine" data-id="${escapeHtml(routine.id)}" aria-label="Edit ${escapeHtml(routine.name)}">${editIcon()}</button>
       </div>
       ${routineEntriesMarkup(state, routine)}
-    ` : `<div class="program-empty-state"><h2>No routines yet</h2><p>Add the first workout day to this program. Exercises will still come from your shared Library.</p><button class="button primary" type="button" data-action="new-routine">Add routine</button></div>`}
+    ` : `<div class="empty"><h2>No routines yet</h2><p>Add the first workout day to this program. Exercises will still come from your shared Library.</p><button class="button primary" type="button" data-action="new-routine">Add routine</button></div>`}
   </section>`;
 }
 
@@ -231,9 +231,7 @@ function openProgramEditor(id = "", duplicateSourceId = "") {
   $("#programSaveButton").textContent = program ? "Save changes" : "Create program";
   $("#programFormError").textContent = "";
 
-  const dialog = $("#programDialog");
-  dialog.classList.toggle("compact-dialog", Boolean(program));
-  openDialog(dialog);
+  openDialog("#programDialog");
 }
 
 function saveProgram() {
@@ -466,10 +464,10 @@ registerActions({
 
 // Hold and drag: entries inside their block on the page, blocks in the routine editor.
 enableHoldDrag(mainElement(), {
-  rowSelector: ".program-row",
-  listSelector: ".program-list",
-  placeholderClass: "program-row-placeholder",
-  activeBodyClass: "entry-drag-active",
+  rowSelector: ".drag-row",
+  listSelector: ".drag-list",
+  placeholderClass: "drag-placeholder",
+  activeBodyClass: "drag-active",
   scroller: mainElement,
   onDrop(row, toIndex) {
     const routineId = store.getState().settings.activeRoutineId;
@@ -479,10 +477,10 @@ enableHoldDrag(mainElement(), {
   },
 });
 const blocksDrag = enableHoldDrag($("#routineBlocksList"), {
-  rowSelector: ".routine-block-row",
-  listSelector: ".routine-block-list",
-  placeholderClass: "routine-block-placeholder",
-  activeBodyClass: "routine-block-drag-active",
-  scroller: () => $(".routine-sheet-scroll"),
+  rowSelector: ".drag-row",
+  listSelector: ".drag-list",
+  placeholderClass: "drag-placeholder",
+  activeBodyClass: "drag-active",
+  scroller: () => $("#routineDialog .sheet-body"),
   onDrop: (row, toIndex) => moveBlockDraft(row.dataset.blockId, toIndex),
 });

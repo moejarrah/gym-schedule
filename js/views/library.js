@@ -22,25 +22,25 @@ function rowTargetSummary(exercise) {
 
 function libraryRowsMarkup(exercises, { libraryEmpty = false } = {}) {
   if (libraryEmpty) {
-    return `<div class="empty-state library-empty"><h3>Library is empty</h3><p>Add a reusable master exercise to get started.</p><button class="button primary" type="button" data-action="new-exercise">Add exercise</button></div>`;
+    return `<div class="empty"><h3>Library is empty</h3><p>Add a reusable master exercise to get started.</p><button class="button primary" type="button" data-action="new-exercise">Add exercise</button></div>`;
   }
   if (!exercises.length) {
-    return `<div class="empty-state library-empty"><h3>No matching exercises</h3><p>Change the search or filters, or add a new exercise.</p><div class="library-empty-actions"><button class="button secondary" type="button" data-action="clear-library-filters">Clear filters</button><button class="button primary" type="button" data-action="new-exercise">Add exercise</button></div></div>`;
+    return `<div class="empty"><h3>No matching exercises</h3><p>Change the search or filters, or add a new exercise.</p><div class="actions"><button class="button" type="button" data-action="clear-library-filters">Clear filters</button><button class="button primary" type="button" data-action="new-exercise">Add exercise</button></div></div>`;
   }
-  return `<div class="library-list">${exercises.map((exercise) => {
+  return `<div>${exercises.map((exercise) => {
     const decisionContext = exercise.purpose === "strength"
       ? `<span>${escapeHtml(label(exercise.movementPattern))}</span>`
-      : `<span class="library-purpose">${escapeHtml(label(exercise.purpose))}</span>`;
+      : `<span class="label tag rehab">${escapeHtml(label(exercise.purpose))}</span>`;
     return `
-    <button class="library-row" type="button" data-action="view-exercise" data-id="${escapeHtml(exercise.id)}" aria-label="View ${escapeHtml(exercise.name)} details">
-      <span class="library-row-copy"><span class="library-row-name">${escapeHtml(exercise.name)}</span><span class="library-row-meta"><span class="library-row-rx">${escapeHtml(exercise.defaultPrescription || "No prescription")}</span><span>${escapeHtml(rowTargetSummary(exercise))}</span>${decisionContext}</span></span>
-      <span class="library-row-chevron" aria-hidden="true">${chevronIcon("right")}</span>
+    <button class="row tall" type="button" data-action="view-exercise" data-id="${escapeHtml(exercise.id)}" aria-label="View ${escapeHtml(exercise.name)} details">
+      <span class="row-main"><span class="row-title">${escapeHtml(exercise.name)}</span><span class="row-meta"><span class="rx">${escapeHtml(exercise.defaultPrescription || "No prescription")}</span><span>${escapeHtml(rowTargetSummary(exercise))}</span>${decisionContext}</span></span>
+      <span class="chev" aria-hidden="true">${chevronIcon("right")}</span>
     </button>`;
   }).join("")}</div>`;
 }
 
 function quickGroupMarkup(groups, selectedId) {
-  return [{ id: "all", label: "All" }, ...groups].map((group) => `<button class="library-chip" type="button" data-action="select-library-quick-group" data-id="${escapeHtml(group.id)}" aria-pressed="${group.id === selectedId}">${escapeHtml(group.label)}</button>`).join("");
+  return [{ id: "all", label: "All" }, ...groups].map((group) => `<button class="pill" type="button" data-action="select-library-quick-group" data-id="${escapeHtml(group.id)}" aria-pressed="${group.id === selectedId}">${escapeHtml(group.label)}</button>`).join("");
 }
 
 function libraryMarkup(state) {
@@ -49,25 +49,25 @@ function libraryMarkup(state) {
   const totalCount = state.exercises.length;
   const browseGroups = availableBrowseGroups(state, filters.targetScope);
   const activeCount = activeLibraryFilterCount(filters);
-  return `<section class="page library-page">
-    <header class="library-appbar">
-      <div class="library-app-title">Library <span id="libraryAppCount">${exercises.length}</span></div>
-      <button class="icon-button library-add-button" type="button" data-action="new-exercise" aria-label="Add exercise">
+  return `<section class="page fills">
+    <header class="appbar">
+      <div class="title">Library <span id="libraryAppCount">${exercises.length}</span></div>
+      <button class="icon-button filled" type="button" data-action="new-exercise" aria-label="Add exercise">
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
       </button>
     </header>
-    <div class="library-scroll" data-keep-scroll="library">
+    <div class="scroll" data-keep-scroll="library">
     ${totalCount ? `
-      <label class="library-search">
+      <label class="search">
         <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
         <span class="visually-hidden">Search exercises</span>
         <input id="exerciseSearch" type="search" value="${escapeHtml(query)}" autocomplete="off" placeholder="Exercise, target, or movement">
       </label>
       <div class="library-quickbar">
-        <div class="library-quick-scroll" aria-label="Quick target filters" data-keep-scroll="library-groups">${quickGroupMarkup(browseGroups, filters.quickGroup)}</div>
-        <button class="library-filter-button" type="button" data-action="open-exercise-filter" aria-label="Filter exercises${activeCount ? `, ${activeCount} active ${activeCount === 1 ? "group" : "groups"}` : ""}">Filter${activeCount ? ` <b>${activeCount}</b>` : ""}</button>
+        <div class="chips scroll-x" aria-label="Quick target filters" data-keep-scroll="library-groups">${quickGroupMarkup(browseGroups, filters.quickGroup)}</div>
+        <button class="pill filter-button" type="button" data-action="open-exercise-filter" aria-label="Filter exercises${activeCount ? `, ${activeCount} active ${activeCount === 1 ? "group" : "groups"}` : ""}">Filter${activeCount ? ` <b>${activeCount}</b>` : ""}</button>
       </div>
-      <div class="library-result-head"><span id="exerciseResultCount">${plural(exercises.length, "exercise")}</span><button type="button" data-action="toggle-library-target-scope">${filters.targetScope === "primary" ? "Primary only" : "Primary + secondary"}</button></div>
+      <div class="label section-label library-result-head"><span id="exerciseResultCount">${plural(exercises.length, "exercise")}</span><button class="link-button" type="button" data-action="toggle-library-target-scope">${filters.targetScope === "primary" ? "Primary only" : "Primary + secondary"}</button></div>
     ` : ""}
     <div id="exerciseList">${libraryRowsMarkup(exercises, { libraryEmpty: totalCount === 0 })}</div>
     </div>
@@ -75,35 +75,35 @@ function libraryMarkup(state) {
 }
 
 function filterOptionButtons(group, options, selected) {
-  return `<div class="library-filter-options" data-filter-options="${escapeHtml(group)}">${options.map((option) => `
-    <button class="library-chip" type="button" data-action="toggle-filter-option" data-filter-group="${escapeHtml(group)}" data-filter-value="${escapeHtml(option.id)}" aria-pressed="${selected.includes(option.id)}">${escapeHtml(option.label)}</button>`).join("")}
+  return `<div class="chips" data-filter-options="${escapeHtml(group)}">${options.map((option) => `
+    <button class="pill" type="button" data-action="toggle-filter-option" data-filter-group="${escapeHtml(group)}" data-filter-value="${escapeHtml(option.id)}" aria-pressed="${selected.includes(option.id)}">${escapeHtml(option.label)}</button>`).join("")}
   </div>`;
 }
 
 function exerciseFilterContentMarkup(filters) {
   return `
-    <p class="library-filter-label">Target matching</p>
-    <div class="segment library-filter-scope" role="group" aria-label="Target matching">
+    <p class="label">Target matching</p>
+    <div class="segment" role="group" aria-label="Target matching">
       <button type="button" data-action="set-filter-scope" data-scope="primary" aria-pressed="${filters.targetScope === "primary"}">Primary only</button>
       <button type="button" data-action="set-filter-scope" data-scope="all" aria-pressed="${filters.targetScope === "all"}">Primary + secondary</button>
     </div>
-    <p class="library-filter-label">Targets</p>
+    <p class="label">Targets</p>
     ${filterOptionButtons("targets", TARGETS, filters.targets)}
-    <p class="library-filter-label">Movement</p>
+    <p class="label">Movement</p>
     ${filterOptionButtons("movements", MOVEMENTS, filters.movements)}
-    <p class="library-filter-label">Equipment</p>
+    <p class="label">Equipment</p>
     ${filterOptionButtons("equipment", EQUIPMENT, filters.equipment)}
-    <p class="library-filter-label">Purpose</p>
+    <p class="label">Purpose</p>
     ${filterOptionButtons("purposes", PURPOSES, filters.purposes)}
-    <details class="library-more-filters">
+    <details class="more">
       <summary><strong>More filters</strong><span>Style · side · emphasis · challenge</span></summary>
-      <p class="library-filter-label">Style</p>
+      <p class="label">Style</p>
       ${filterOptionButtons("styles", STYLES, filters.styles)}
-      <p class="library-filter-label">Laterality</p>
+      <p class="label">Laterality</p>
       ${filterOptionButtons("lateralities", LATERALITIES, filters.lateralities)}
-      <p class="library-filter-label">Emphasis</p>
+      <p class="label">Emphasis</p>
       ${filterOptionButtons("emphases", EMPHASES, filters.emphases)}
-      <p class="library-filter-label">Typical challenge</p>
+      <p class="label">Typical challenge</p>
       ${filterOptionButtons("challenges", CHALLENGES, filters.challenges)}
     </details>`;
 }

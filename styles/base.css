@@ -1,10 +1,21 @@
-/* Base: fonts, the design tokens for both themes (colours, radii, spacing), page
-   layout, the shared top bar and the bottom navigation. docs/DESIGN.md describes
-   the visual system; use these tokens rather than new colours or radii. */
+/* Base: fonts, the design tokens for both themes, element defaults, the page shell
+   (app bar, scrolling main area, bottom navigation) and the scroll areas.
+   docs/DESIGN.md describes the look; use these tokens rather than new values.
+
+   The three files load in this order:
+     base.css        tokens, element defaults, shell, scroll areas (.scroll .scroll-x)
+     components.css  shared parts: .label .tag .hint .button .link-button .icon-button
+                     .pill .chips .tickbox .play .field .control .segment .search
+                     .form-error .row (+ .row-body .row-main .row-title .row-meta
+                     .row-number .row-action .chev .grip) .section-label .label-row
+                     .card .note .more .empty .bar .routine-tabs .set-chips .sheet
+                     (+ .sheet-panel .sheet-head .sheet-body .actions) .confirm .toast,
+                     hold-drag, and the utilities .tap .contents .stack .ruled
+                     .truncate .clamp-2 .faint .danger .up .down .visually-hidden
+     views.css       what is left that only one screen or sheet needs */
 
 @font-face {
   font-family: "Barlow";
-  font-style: normal;
   font-weight: 500;
   font-display: swap;
   src: url("../fonts/barlow-500-latin.woff2") format("woff2");
@@ -12,7 +23,6 @@
 
 @font-face {
   font-family: "Barlow";
-  font-style: normal;
   font-weight: 600;
   font-display: swap;
   src: url("../fonts/barlow-600-latin.woff2") format("woff2");
@@ -20,7 +30,6 @@
 
 @font-face {
   font-family: "Barlow";
-  font-style: normal;
   font-weight: 700;
   font-display: swap;
   src: url("../fonts/barlow-700-latin.woff2") format("woff2");
@@ -28,17 +37,22 @@
 
 @font-face {
   font-family: "Barlow Condensed";
-  font-style: normal;
   font-weight: 600;
   font-display: swap;
   src: url("../fonts/barlow-condensed-600-latin.woff2") format("woff2");
 }
 
+/* ---------- tokens ---------- */
+
 :root {
   color-scheme: light;
+
+  /* Colour (light) */
   --bg: #f3f4f6;
   --surface: #ffffff;
   --surface-2: #eceef2;
+  --field: #eceef2;
+  --chip-raised: #ffffff;
   --press: #e2e5ea;
   --line: rgb(18 22 30 / 10%);
   --line-soft: rgb(18 22 30 / 7%);
@@ -48,15 +62,14 @@
   --faint: #67707b;
   --accent: #3550d0;
   --accent-fill: #3d5ce0;
-  --accent-on-soft: #2f4ac4;
+  --accent-press: #314fcf;
   --accent-soft: rgb(61 92 224 / 11%);
-  --field: #eceef2;
-  --chip-raised: #ffffff;
+  --on-accent: #ffffff;
   --badge-bg: #e2e7ff;
   --badge-text: #2c47b8;
-  --gym-active: #314fcf;
   --nav-bg: #ffffff;
   --rehab: #765000;
+  --rehab-soft: rgb(217 166 46 / 12%);
   --danger: #c03b27;
   --danger-soft: rgb(192 59 39 / 10%);
   --up: #17764c;
@@ -64,31 +77,43 @@
   --scrim: rgb(20 24 32 / 34%);
   --shadow-sheet: 0 -18px 48px rgb(20 24 32 / 18%);
   --shadow-lift: 0 10px 24px rgb(20 24 32 / 20%);
+
+  /* Type: Barlow for everything, Barlow Condensed for small uppercase labels. */
   --font-body: "Barlow", -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
   --font-label: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --fs-title: 1.75rem; /* screen titles */
+  --fs-sheet: 1.3rem; /* sheet titles, empty-state headings */
+  --fs-head: 1.1rem; /* sub-headings: month, routine name, stat values */
+  --fs-field: 1rem; /* form fields (16px: smaller makes iOS zoom in), bar names */
+  --fs-body: 0.94rem; /* body text, row names, buttons, tabs */
+  --fs-small: 0.88rem; /* secondary text: paragraphs, segment choices, box numbers */
+  --fs-meta: 0.82rem; /* prescriptions, meta lines, hints, section labels */
+  --fs-label: 0.78rem; /* small labels */
+  --fs-tag: 0.75rem; /* tags, units, captions */
+
+  /* Space */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
-  --space-4: 16px;
+  --space-4: 16px; /* cards sit this far from the screen edge */
   --space-5: 24px;
   --space-6: 32px;
-  /* Corner radii: chips, small squares (number boxes, ticks), controls, cards, sheets. */
-  --radius-chip: 7px;
-  --radius-sm: 9px;
-  --radius-control: 12px;
-  --radius-card: 16px;
-  --radius-sheet: 22px;
+  --gutter: 20px; /* side padding of screens and sheets */
+  --tap: 44px; /* smallest tap target */
   --nav-height: 58px;
-  --z-topbar: 10;
+
+  /* Corner radii */
+  --radius-chip: 7px; /* set chips, tags */
+  --radius-sm: 9px; /* number boxes, tick boxes, segment buttons */
+  --radius-control: 12px; /* fields, icon buttons, pressed rows */
+  --radius-button: 14px; /* buttons, search fields, dragged rows */
+  --radius-card: 16px; /* cards */
+  --radius-sheet: 22px; /* sheets */
+  --radius-pill: 999px;
+
   --z-nav: 20;
   --z-drag: 80;
   --z-toast: 100;
-  /* Aliases: defined once, they follow the theme's values. */
-  --border: var(--line);
-  --focus: var(--accent);
-  --home-soft: var(--accent-soft);
-  font-family: var(--font-body);
-  font-synthesis: none;
 }
 
 :root[data-theme="dark"] {
@@ -96,6 +121,8 @@
   --bg: #0d0f12;
   --surface: #16191e;
   --surface-2: #1e2228;
+  --field: #262a31;
+  --chip-raised: #2a2f37;
   --press: #23272e;
   --line: #22262d;
   --line-soft: #1e2228;
@@ -105,13 +132,10 @@
   --faint: #858e9b;
   --accent: #8ea2ff;
   --accent-fill: #4a68f0;
-  --accent-on-soft: #8ea2ff;
+  --accent-press: #3f5ce0;
   --accent-soft: rgb(74 104 240 / 16%);
-  --field: #262a31;
-  --chip-raised: #2a2f37;
   --badge-bg: #22305e;
   --badge-text: #b3c0ff;
-  --gym-active: #3f5ce0;
   --nav-bg: #111317;
   --rehab: #d9a62e;
   --danger: #e76657;
@@ -123,45 +147,49 @@
   --shadow-lift: 0 10px 24px rgb(0 0 0 / 38%);
 }
 
-* {
+@media (max-width: 359px) {
+  :root {
+    --space-4: 12px;
+  }
+}
+
+/* ---------- element defaults ---------- */
+
+*,
+::before,
+::after {
   box-sizing: border-box;
-}
-
-[hidden] {
-  display: none !important;
-}
-
-.visually-hidden {
-  position: absolute !important;
-  width: 1px !important;
-  height: 1px !important;
-  padding: 0 !important;
-  margin: -1px !important;
-  overflow: hidden !important;
-  clip: rect(0, 0, 0, 0) !important;
-  white-space: nowrap !important;
-  border: 0 !important;
 }
 
 html,
 body {
-  width: 100%;
   height: 100%;
-  min-height: 100%;
   margin: 0;
   background: var(--bg);
   color: var(--text);
 }
 
 body {
-  min-height: 100dvh;
   overflow: hidden;
-  font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.4;
+  font: 500 var(--fs-body) / 1.4 var(--font-body);
+  font-synthesis: none;
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+figure {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
 button,
@@ -173,144 +201,133 @@ textarea {
 }
 
 button {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
   -webkit-appearance: none;
   appearance: none;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
-button {
-  touch-action: manipulation;
+/* Fields are at least 16px, or iOS zooms in on them. */
+input,
+select,
+textarea {
+  font-size: var(--fs-field);
+}
+
+::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+:is(button, input, select, textarea):disabled,
+.is-disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+small {
+  color: var(--text-muted);
+  font-size: var(--fs-tag);
+  font-weight: 500;
+}
+
+summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Every icon is a stroked 24-unit drawing in the current text colour. */
+svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
 }
 
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
-a:focus-visible {
-  outline: 3px solid var(--focus);
+a:focus-visible,
+.row:has(> input:focus-visible),
+.search:focus-within {
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
 
 /* After a tap, buttons, links and checkboxes don't show focus rings (see js/app.js). */
 :root[data-input="touch"] :is(button, a, summary, [tabindex], input[type="checkbox"], input[type="radio"]):focus-visible,
-:root[data-input="touch"] .day-check-row:has(input:focus-visible) {
+:root[data-input="touch"] .row:has(> input:focus-visible) {
   outline: none;
 }
 
+/* ---------- shell ---------- */
+
 .app-shell {
-  width: 100%;
-  height: 100vh;
   height: 100dvh;
-  min-height: 100dvh;
-  margin: 0 auto;
-  background: var(--bg);
+  padding-top: env(safe-area-inset-top);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  position: relative;
-  overflow: hidden;
 }
 
-/* App bars: the shell's topbar and the Program and Library screens' own bars. */
-.topbar,
-.program-appbar,
-.library-appbar {
-  min-height: calc(60px + env(safe-area-inset-top));
-  padding: env(safe-area-inset-top) 12px 0 20px;
+/* App bar: the shell's own (Log, Settings) and the ones Program and Library draw. */
+.appbar {
+  min-height: 60px;
+  padding: 0 12px 0 var(--gutter);
   background: var(--bg);
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
+  flex: none;
 }
 
-.topbar-title h1,
-.program-appbar h1,
-.library-app-title {
-  font-size: 1.75rem;
+.appbar .title {
+  min-width: 0;
+  flex: 1;
+  font-size: var(--fs-title);
   font-weight: 700;
+  line-height: 1.1;
   letter-spacing: -0.015em;
 }
 
-.topbar {
-  grid-row: 1;
-  justify-content: space-between;
-  z-index: var(--z-topbar);
-}
-
-.topbar-title {
-  min-width: 0;
-  flex: 1;
-}
-
-.topbar-title h1 {
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.topbar-title h1 {
-  max-width: min(68vw, 440px);
-  line-height: 1.1;
+/* Screens without a title draw their own top bar (see registerView in js/context.js). */
+body:is([data-current-view="workout"], [data-current-view="routines"], [data-current-view="exercises"]) .topbar {
+  display: none;
 }
 
 #appMain {
   grid-row: 2;
   min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
-  padding: 0 var(--space-4) calc(var(--nav-height) + env(safe-area-inset-bottom) + var(--space-5));
+  padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + var(--space-5));
   scroll-padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + var(--space-5));
 }
 
-/* Scroll areas that hide their scrollbar. */
-#appMain,
-.routine-tabs,
-.workout-rows,
-.entry-choices-scroll,
-.picker-sheet .picker-list,
-.reference-sheet-scroll,
-.routine-sheet-scroll,
-.entry-sheet-scroll,
-.programs-list,
-.library-scroll,
-.library-quick-scroll,
-.library-filter-scroll,
-.day-sheet-scroll {
-  scrollbar-width: none;
-}
-
-#appMain::-webkit-scrollbar,
-.routine-tabs::-webkit-scrollbar,
-.workout-rows::-webkit-scrollbar,
-.entry-choices-scroll::-webkit-scrollbar,
-.picker-sheet .picker-list::-webkit-scrollbar,
-.reference-sheet-scroll::-webkit-scrollbar,
-.routine-sheet-scroll::-webkit-scrollbar,
-.entry-sheet-scroll::-webkit-scrollbar,
-.programs-list::-webkit-scrollbar,
-.library-scroll::-webkit-scrollbar,
-.library-quick-scroll::-webkit-scrollbar,
-.library-filter-scroll::-webkit-scrollbar,
-.day-sheet-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-body[data-current-view="workout"] .topbar,
-body[data-current-view="routines"] .topbar,
-body[data-current-view="exercises"] .topbar {
-  display: none;
-}
-
-body[data-current-view="workout"] #appMain,
-body[data-current-view="routines"] #appMain,
-body[data-current-view="exercises"] #appMain,
-body[data-current-view="calendar"] #appMain {
-  padding-inline: 0;
-}
-
-body[data-current-view="workout"] #appMain,
-body[data-current-view="exercises"] #appMain {
+/* A screen that fills the main area and scrolls a list inside it (Workout, Library). */
+#appMain:has(> .fills) {
   overflow: hidden;
+}
+
+.fills {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.fills > .scroll {
+  min-height: 0;
+  flex: 1;
 }
 
 .bottom-nav {
@@ -328,26 +345,14 @@ body[data-current-view="exercises"] #appMain {
 .bottom-nav button {
   min-width: 0;
   min-height: 50px;
-  padding: 0;
-  border: 0;
   border-radius: var(--radius-control);
-  background: transparent;
   color: var(--faint);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  font-family: var(--font-label);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-
-.bottom-nav button:active {
-  background: var(--press);
+  font-size: var(--fs-label);
 }
 
 .bottom-nav button[aria-current="page"] {
@@ -357,41 +362,39 @@ body[data-current-view="exercises"] #appMain {
 .bottom-nav svg {
   width: 22px;
   height: 22px;
+  stroke-width: 1.8;
 }
 
-.page {
-  width: 100%;
-  max-width: 720px;
-  margin: 0 auto;
-  padding-top: var(--space-3);
+/* ---------- scroll areas ---------- */
+
+#appMain,
+.scroll,
+.sheet-panel,
+.sheet-body {
+  overflow-y: auto;
 }
 
-@media (min-width: 760px) {
-  body {
-    background: #232528;
-  }
-
-  .app-shell {
-    max-width: 760px;
-    border-inline: 1px solid var(--line);
-  }
-
-  .bottom-nav {
-    width: 760px;
-    left: 50%;
-    transform: translateX(-50%);
-    border-inline: 1px solid var(--line);
-  }
+/* A strip that scrolls sideways and fades out at its end; the end padding matches
+   the fade, so the last item is fully readable when scrolled to the end. */
+.scroll-x {
+  padding-right: 12%;
+  display: flex;
+  overflow-x: auto;
+  -webkit-mask-image: linear-gradient(to right, #000 88%, transparent);
+  mask-image: linear-gradient(to right, #000 88%, transparent);
 }
 
-@media (max-width: 359px) {
-  :root {
-    --space-4: 12px;
-  }
+#appMain,
+.scroll,
+.scroll-x,
+.sheet-panel,
+.sheet-body {
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
 
-  .topbar-title h1 {
-    font-size: 1.55rem;
-  }
+:is(#appMain, .scroll, .scroll-x, .sheet-panel, .sheet-body)::-webkit-scrollbar {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

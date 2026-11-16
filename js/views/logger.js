@@ -26,7 +26,7 @@ import { entryPresentation, formatKg, liftText, setChipsMarkup, shortDate } from
 // ticks so ticking it again brings them back.
 const sheet = { routineId: "", entryId: "", dateKey: "", choiceIndex: 0, rows: [], lastTicked: -1 };
 
-const checkIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>`;
+const checkIcon = `<svg class="tickbox" aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>`;
 const plusIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>`;
 const removeIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17"/></svg>`;
 
@@ -117,16 +117,16 @@ function historyMarkup(state, history) {
   const rows = history.map((item) => {
     const routine = routineById(state, item.routineId);
     return `<div class="log-history-row">
-      <span class="log-history-date"><strong>${escapeHtml(shortDate(item.dateKey))}</strong><small>${escapeHtml(routine?.name || "Deleted routine")}</small></span>
+      <span class="row-main log-history-date"><strong class="row-title truncate">${escapeHtml(shortDate(item.dateKey))}</strong><small class="row-meta truncate">${escapeHtml(routine?.name || "Deleted routine")}</small></span>
       <span class="set-chips">${setChipsMarkup(item.sets, { timed: item.unit === "sec" })}</span>
     </div>`;
   }).join("");
-  return `<section class="log-history" aria-labelledby="logHistoryTitle">
-    <div class="log-history-head">
+  return `<section class="card log-history" aria-labelledby="logHistoryTitle">
+    <div class="label label-row">
       <h3 id="logHistoryTitle">Last 3 times</h3>
-      <button class="text-button" type="button" data-action="log-history">All history</button>
+      <button class="link-button" type="button" data-action="log-history">All history</button>
     </div>
-    ${rows || `<p class="log-history-empty">No sets logged for this exercise yet.</p>`}
+    ${rows || `<p class="hint">No sets logged for this exercise yet.</p>`}
   </section>`;
 }
 
@@ -141,10 +141,10 @@ function rowMarkup({ setIndex, dropIndex, row, last, timed }) {
   const lastValue = lastLift
     ? `<button class="log-last" type="button" data-action="log-use-last" ${data} aria-label="${escapeHtml(shown)}, copy last time to ${name}">${escapeHtml(shown)}</button>`
     : `<span class="log-last is-empty" aria-hidden="true">—</span>`;
-  const lastCell = isDrop ? `<span class="log-last-cell"><span class="log-drop-tag">Drop</span>${lastValue}</span>` : lastValue;
+  const lastCell = isDrop ? `<span class="log-last-cell"><span class="label accent">Drop</span>${lastValue}</span>` : lastValue;
   // A drop row's first cell removes it; a set row's shows its number.
   const firstCell = isDrop
-    ? `<button class="log-remove" type="button" data-action="log-remove-drop" ${data} aria-label="Remove ${name}">${removeIcon}</button>`
+    ? `<button class="icon-button sm" type="button" data-action="log-remove-drop" ${data} aria-label="Remove ${name}">${removeIcon}</button>`
     : `<span class="log-set-label" aria-hidden="true">${setIndex + 1}</span>`;
   const saved = isSaved(setIndex, dropIndex);
   const label = `${name[0].toUpperCase()}${name.slice(1)} done`;
@@ -153,7 +153,7 @@ function rowMarkup({ setIndex, dropIndex, row, last, timed }) {
     ${lastCell}
     <label class="log-field"><input type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" data-field="kg" ${data} value="${escapeHtml(row.kg)}" placeholder="${escapeHtml(hint.kg)}" aria-label="Weight for ${name}, kg"><span aria-hidden="true">kg</span></label>
     <label class="log-field"><input type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" data-field="reps" ${data} value="${escapeHtml(row.reps)}" placeholder="${escapeHtml(hint.reps)}" aria-label="${timed ? "Seconds" : "Reps"} for ${name}"></label>
-    <button class="log-tick" type="button" data-action="log-tick" ${data} aria-pressed="${saved}" aria-label="${label}">${checkIcon}</button>
+    <button class="icon-button" type="button" data-action="log-tick" ${data} aria-pressed="${saved}" aria-label="${label}">${checkIcon}</button>
   </div>`;
 }
 
@@ -162,22 +162,22 @@ function tableMarkup(last, timed) {
     const drops = row.drops.map((drop, dropIndex) => rowMarkup({ setIndex, dropIndex, row: drop, last, timed })).join("");
     const lastRow = row.drops.at(-1) || row;
     const dropLink = setIndex === sheet.lastTicked && row.done && lastRow.done
-      ? `<button class="log-add" type="button" data-action="log-add-drop" data-set="${setIndex}">${plusIcon}${row.drops.length ? "Another drop" : "Drop set"}</button>`
+      ? `<button class="link-button" type="button" data-action="log-add-drop" data-set="${setIndex}">${plusIcon}${row.drops.length ? "Another drop" : "Drop set"}</button>`
       : "";
     return `<div class="log-set ${row.drops.length ? "has-drops" : ""}">${rowMarkup({ setIndex, dropIndex: -1, row, last, timed })}${drops}${dropLink}</div>`;
   }).join("");
   return `<div class="log-table">
-    <div class="log-row log-row-head" aria-hidden="true"><span>Set</span><span>Last time</span><span>Weight</span><span>${timed ? "Sec" : "Reps"}</span><span></span></div>
+    <div class="log-row label" aria-hidden="true"><span>Set</span><span>Last time</span><span>Weight</span><span>${timed ? "Sec" : "Reps"}</span><span></span></div>
     ${groups}
-    <button class="log-add" type="button" data-action="log-add-set">${plusIcon}Set</button>
+    <button class="link-button" type="button" data-action="log-add-set">${plusIcon}Set</button>
   </div>`;
 }
 
 function choicesMarkup(entry, state) {
   if (entry.choices.length < 2) return "";
   const { choices } = entryPresentation(entry, state);
-  return `<div class="log-choices" role="group" aria-label="Exercise you're doing">
-    ${choices.map((item, index) => `<button type="button" data-action="log-choose" data-index="${index}" aria-pressed="${index === sheet.choiceIndex}">${escapeHtml(item.name)}</button>`).join("")}
+  return `<div class="chips scroll-x" role="group" aria-label="Exercise you're doing">
+    ${choices.map((item, index) => `<button class="pill" type="button" data-action="log-choose" data-index="${index}" aria-pressed="${index === sheet.choiceIndex}">${escapeHtml(item.name)}</button>`).join("")}
   </div>`;
 }
 
@@ -186,18 +186,18 @@ function sheetMarkup(state) {
   const name = entryPresentation({ ...entry, choices: [choice] }, state).title;
   const history = exerciseHistory(state, choice.exerciseId, { beforeDateKey: sheet.dateKey, limit: 3 });
   const done = isEntryChecked(state, sheet.dateKey, routine.id, entry.id);
-  return `<div class="log-sheet">
-    <header class="dialog-header log-head">
+  return `<div class="sheet-panel">
+    <header class="sheet-head">
       <div><h2 id="logTitle">${escapeHtml(name)}</h2><p>${escapeHtml(choice.prescription)}</p></div>
       <button class="icon-button" type="button" data-close-dialog="logDialog" aria-label="Close">×</button>
     </header>
-    <div class="log-scroll" data-keep-scroll="log-${escapeHtml(entry.id)}">
+    <div class="sheet-body stack tight" data-keep-scroll="log-${escapeHtml(entry.id)}">
       ${choicesMarkup(entry, state)}
       ${historyMarkup(state, history)}
       ${tableMarkup(history[0], timed)}
       <p class="form-error" role="alert" aria-live="polite" data-dialog-error></p>
     </div>
-    <footer class="dialog-actions log-actions">
+    <footer class="actions">
       ${done ? `<button class="button text" type="button" data-action="log-undo-done">Not done</button>` : ""}
       <button class="button primary" type="button" data-action="log-done">${done ? "Close" : "Done"}</button>
     </footer>

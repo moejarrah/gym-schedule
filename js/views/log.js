@@ -29,7 +29,7 @@ function calendarMarkup(state) {
   const todayKey = localDateKey();
   const cells = [];
   for (let index = 0; index < firstWeekday; index += 1) {
-    cells.push(`<span class="log-calendar-blank" aria-hidden="true"></span>`);
+    cells.push(`<span aria-hidden="true"></span>`);
   }
   for (let day = 1; day <= daysInMonth; day += 1) {
     const date = new Date(year, month, day);
@@ -47,24 +47,24 @@ function calendarMarkup(state) {
       loggedCount ? `sets logged for ${loggedCount} ${loggedCount === 1 ? "exercise" : "exercises"}` : "",
       hasNote ? "note recorded" : "",
     ].filter(Boolean);
-    cells.push(`<button class="log-calendar-day ${trained ? "has-completion" : ""} ${hasNote ? "has-note" : ""} ${isToday ? "is-today" : ""}" type="button" data-action="open-day" data-date="${key}" aria-label="${escapeHtml(labelParts.join(", "))}"${isToday ? ` aria-current="date"` : ""}>
+    cells.push(`<button class="log-calendar-day tap ${isToday ? "is-today" : ""}" type="button" data-action="open-day" data-date="${key}" aria-label="${escapeHtml(labelParts.join(", "))}"${isToday ? ` aria-current="date"` : ""}>
       <span>${day}</span><span class="log-calendar-markers" aria-hidden="true">${trained ? `<i class="completion-marker"></i>` : ""}${hasNote ? `<i class="note-marker"></i>` : ""}</span>
     </button>`);
   }
   const trailingBlanks = (7 - (cells.length % 7)) % 7;
   for (let index = 0; index < trailingBlanks; index += 1) {
-    cells.push(`<span class="log-calendar-blank" aria-hidden="true"></span>`);
+    cells.push(`<span aria-hidden="true"></span>`);
   }
 
   return `<section class="page log-page">
-    <div class="log-monthbar">
-      <strong>${escapeHtml(formatDate(calendar.month, { month: "long", year: "numeric" }))}</strong>
+    <div class="bar">
+      <strong class="bar-title">${escapeHtml(formatDate(calendar.month, { month: "long", year: "numeric" }))}</strong>
       <button class="icon-button" type="button" data-action="previous-month" aria-label="Previous month">${chevronIcon("left")}</button>
       <button class="icon-button" type="button" data-action="next-month" aria-label="Next month">${chevronIcon("right")}</button>
     </div>
-    <div class="log-weekdays" aria-hidden="true">${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => `<span>${day}</span>`).join("")}</div>
+    <div class="label log-weekdays" aria-hidden="true">${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => `<span>${day}</span>`).join("")}</div>
     <div class="log-calendar">${cells.join("")}</div>
-    <div class="log-section-label">Recent</div>
+    <div class="label section-label">Recent</div>
     ${recentSessionsMarkup(state)}
   </section>`;
 }
@@ -72,9 +72,9 @@ function calendarMarkup(state) {
 function recentSessionsMarkup(state) {
   const recentKeys = Object.keys(state.sessions).sort((a, b) => b.localeCompare(a)).slice(0, RECENT_LIMIT);
   if (!recentKeys.length) {
-    return `<div class="log-recent-empty"><strong>No history yet</strong><span>Completed routines and day notes will appear here.</span></div>`;
+    return `<div class="card row-main log-recent"><strong class="row-title">No history yet</strong><span class="row-meta">Completed routines and day notes will appear here.</span></div>`;
   }
-  return `<div class="log-recent-list">${recentKeys.map((dateKey) => recentRowMarkup(state, dateKey)).join("")}</div>`;
+  return `<div class="stack snug log-recent">${recentKeys.map((dateKey) => recentRowMarkup(state, dateKey)).join("")}</div>`;
 }
 
 function recentRowMarkup(state, dateKey) {
@@ -97,10 +97,10 @@ function recentRowMarkup(state, dateKey) {
   const fullDate = formatDate(date, LONG_DATE);
   const shortDate = formatDate(date, { day: "numeric", month: "short" });
   const accessibleContext = context.length ? `. ${context.join(". ")}` : "";
-  return `<button class="log-recent-row" type="button" data-action="open-day" data-date="${dateKey}" aria-label="Open ${escapeHtml(fullDate)}. ${escapeHtml(title)}${escapeHtml(accessibleContext)}">
-    <span class="log-recent-date">${escapeHtml(shortDate)}</span>
-    <span class="log-recent-copy"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(summary)}</small></span>
-    <span class="log-recent-chevron" aria-hidden="true">${chevronIcon("right")}</span>
+  return `<button class="row tall card" type="button" data-action="open-day" data-date="${dateKey}" aria-label="Open ${escapeHtml(fullDate)}. ${escapeHtml(title)}${escapeHtml(accessibleContext)}">
+    <span class="row-meta log-recent-date">${escapeHtml(shortDate)}</span>
+    <span class="row-main"><strong class="row-title">${escapeHtml(title)}</strong><small class="row-meta">${escapeHtml(summary)}</small></span>
+    <span class="chev" aria-hidden="true">${chevronIcon("right")}</span>
   </button>`;
 }
 
@@ -113,10 +113,10 @@ function changeCalendarMonth(offset) {
 // ---------- day editor ----------
 
 function checkRowMarkup({ routineId, checked, name, context }) {
-  return `<label class="day-check-row">
-    <input type="checkbox" name="routine" value="${escapeHtml(routineId)}" ${checked ? "checked" : ""}>
-    <span class="day-check-box" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span>
-    <span class="day-check-copy"><strong>${escapeHtml(name)}</strong><small>${escapeHtml(context)}</small></span>
+  return `<label class="row">
+    <input class="visually-hidden" type="checkbox" name="routine" value="${escapeHtml(routineId)}" ${checked ? "checked" : ""}>
+    <span class="tickbox" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span>
+    <span class="row-main"><strong class="row-title">${escapeHtml(name)}</strong><small class="row-meta">${escapeHtml(context)}</small></span>
   </label>`;
 }
 
@@ -131,7 +131,7 @@ function routineRowMarkup(state, session, routine, inactive = false) {
 }
 
 function routineSectionMarkup(heading, rows) {
-  return `<section class="day-routine-section"><p class="form-label">${escapeHtml(heading)}</p><div class="day-check-list">${rows.join("")}</div></section>`;
+  return `<section><p class="form-label">${escapeHtml(heading)}</p><div class="ruled">${rows.join("")}</div></section>`;
 }
 
 // What was lifted that day, one exercise per row (by the name it had when logged if
@@ -139,11 +139,11 @@ function routineSectionMarkup(heading, rows) {
 function loggedSetsMarkup(state, session) {
   const logs = Object.values(session.logs);
   if (!logs.length) return "";
-  const rows = logs.map((log) => `<div class="day-log-row">
-    <strong>${escapeHtml(exerciseById(state, log.exerciseId)?.name || log.exerciseName)}</strong>
+  const rows = logs.map((log) => `<div class="row-main">
+    <strong class="row-title">${escapeHtml(exerciseById(state, log.exerciseId)?.name || log.exerciseName)}</strong>
     <span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec" })}</span>
   </div>`).join("");
-  return `<section class="day-routine-section"><p class="form-label">Logged sets</p><div class="day-log-list">${rows}</div></section>`;
+  return `<section><p class="form-label">Logged sets</p><div class="stack tight">${rows}</div></section>`;
 }
 
 function dayEditorMarkup(state, dateKey) {
@@ -155,26 +155,26 @@ function dayEditorMarkup(state, dateKey) {
   const otherRoutines = recordedIds.map((id) => routineById(state, id)).filter(Boolean);
   const deletedIds = recordedIds.filter((id) => !routineById(state, id));
 
-  return `<div class="day-sheet">
-    <header class="dialog-header day-sheet-header">
+  return `<div class="sheet-panel">
+    <header class="sheet-head">
       <div><h2 id="dayDialogTitle">${escapeHtml(formatDate(dateFromKey(dateKey), { weekday: "long", month: "long", day: "numeric" }))}</h2><p>Workout history</p></div>
       <button class="icon-button" type="button" data-close-dialog="dayDialog" aria-label="Close day editor">×</button>
     </header>
-    <form id="dayForm" class="day-form" data-submit="save-day" data-date="${dateKey}">
-      <div class="day-sheet-scroll">
+    <form id="dayForm" class="contents" data-submit="save-day" data-date="${dateKey}">
+      <div class="sheet-body stack">
         ${program ? routineSectionMarkup("Completed routines", activeRoutines.length
           ? activeRoutines.map((routine) => routineRowMarkup(state, session, routine))
-          : [`<p class="muted-copy">This program has no routines yet.</p>`]) : ""}
+          : [`<p class="hint">This program has no routines yet.</p>`]) : ""}
         ${otherRoutines.length ? routineSectionMarkup(program ? "Already recorded from another program" : "Recorded routines",
           otherRoutines.map((routine) => routineRowMarkup(state, session, routine, Boolean(program)))) : ""}
         ${deletedIds.length ? routineSectionMarkup("Deleted routines",
           deletedIds.map((routineId) => checkRowMarkup({ routineId, checked: true, name: "Deleted routine", context: "No longer in any program" }))) : ""}
-        ${!program && !recordedIds.length ? `<p class="muted-copy">Add a program before logging a routine completion.</p>` : ""}
+        ${!program && !recordedIds.length ? `<p class="hint">Add a program before logging a routine completion.</p>` : ""}
         ${loggedSetsMarkup(state, session)}
-        <label class="field day-note-field"><span>Note</span><textarea id="dayNote" rows="4" maxlength="500" placeholder="Optional note">${escapeHtml(session.note)}</textarea></label>
+        <label class="field"><span>Note</span><textarea class="control" id="dayNote" rows="4" maxlength="500" placeholder="Optional note">${escapeHtml(session.note)}</textarea></label>
         <p class="form-error" id="dayFormError" role="alert" aria-live="polite" data-dialog-error></p>
       </div>
-      <footer class="day-sheet-actions"><button class="button primary full" type="submit">Save day</button></footer>
+      <footer class="actions"><button class="button primary full" type="submit">Save day</button></footer>
     </form>
   </div>`;
 }

@@ -1,58 +1,99 @@
-/* Shared components: buttons, fields, segments, routine tabs, rows, sheets and
-   dialogs, the exercise picker, the exercise reference, video search, toasts and
-   the set chips used on Workout, the logging sheet, history and Log. */
+/* Shared components, used by more than one screen or sheet. Each starts with a
+   line saying what it is. Utilities are last so they win over the components. */
 
-.icon-button {
-  width: 44px;
-  height: 44px;
-  border: 0;
-  border-radius: var(--radius-control);
-  background: transparent;
+/* ---------- text ---------- */
+
+/* Small uppercase Condensed label: section labels, kickers, tags, nav labels. */
+.label,
+.bottom-nav button {
+  font-family: var(--font-label);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.label {
+  color: var(--faint);
+  font-size: var(--fs-label);
+}
+
+.label :is(h2, h3) {
+  font: inherit;
+}
+
+.label.accent {
+  color: var(--accent);
+}
+
+/* Tag: a label in a small rounded box ("Optional"); .active is the Active badge,
+   .rehab the Library purpose tag. */
+.tag {
+  padding: 2px 7px;
+  border-radius: var(--radius-chip);
+  box-shadow: inset 0 0 0 1px var(--line);
+  flex: none;
+  font-size: var(--fs-tag);
+  line-height: 1.3;
+}
+
+.tag.active {
+  background: var(--badge-bg);
+  box-shadow: none;
+  color: var(--badge-text);
+}
+
+.tag.rehab {
+  background: var(--rehab-soft);
+  box-shadow: none;
+  color: var(--rehab);
+}
+
+/* Hint: a muted line of help or "nothing here" text. Notes keep their line breaks. */
+.hint {
   color: var(--text-muted);
-  display: inline-grid;
-  place-items: center;
-  font-size: 1.75rem;
-  font-weight: 400;
-  line-height: 1;
-  cursor: pointer;
-  transition: background-color 120ms ease, color 120ms ease;
+  font-size: var(--fs-meta);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
-.icon-button:active {
-  background: var(--press);
+.row + .hint {
+  margin-top: var(--space-3);
 }
 
-.icon-button svg {
-  width: 21px;
-  height: 21px;
+.hint strong {
+  color: var(--text);
 }
 
-.icon-button svg,
-.bottom-nav svg {
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.8;
-}
+/* ---------- buttons ---------- */
 
+/* Button: 48px tall. Plain is the secondary look; .primary, .text and .danger change it. */
 .button {
   min-height: 48px;
-  padding: 0 18px;
-  border: 1px solid transparent;
-  border-radius: 14px;
+  padding: 6px 18px;
+  border-radius: var(--radius-button);
   background: var(--surface-2);
-  color: var(--text);
-  font-size: 0.94rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   font-weight: 600;
   line-height: 1.2;
-  cursor: pointer;
-  transition: background-color 120ms ease, color 120ms ease, transform 120ms ease;
+  text-align: center;
+  transition: background-color 120ms ease, transform 120ms ease;
+}
+
+.button:active {
+  transform: translateY(1px);
 }
 
 .button.primary {
   background: var(--accent-fill);
-  color: #fff;
+  color: var(--on-accent);
+}
+
+.button.primary:active {
+  background: var(--accent-press);
 }
 
 .button.text {
@@ -60,385 +101,229 @@
   color: var(--text-muted);
 }
 
-.button.primary:active {
-  background: var(--gym-active);
-}
-
-.button:active {
-  transform: translateY(1px);
-}
-
-.button.secondary {
-  background: var(--surface-2);
-  color: var(--text);
-}
-
 .button.danger {
   background: var(--danger-soft);
-  color: var(--danger);
 }
 
 .button.full {
   width: 100%;
 }
 
-.danger-text {
-  color: var(--danger) !important;
-}
-
-/* The end padding matches the 12% fade so the last tab is fully readable when scrolled to the end. */
-.routine-tabs {
-  min-height: 48px;
-  display: flex;
-  gap: 22px;
-  margin: 0;
-  padding: 0 12% 0 20px;
-  border-bottom: 1px solid var(--line);
-  background: var(--bg);
-  overflow-x: auto;
-  -webkit-mask-image: linear-gradient(to right, #000 88%, transparent);
-  mask-image: linear-gradient(to right, #000 88%, transparent);
-}
-
-.routine-tab {
-  flex: 0 0 auto;
-  min-width: 44px;
-  min-height: 48px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--faint);
-  font-size: 0.94rem;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
+/* Link button: accent text with a full tap target ("+ Add exercise", "All history"). */
+.link-button {
+  min-width: var(--tap);
+  min-height: var(--tap);
+  padding: 0 2px;
+  color: var(--accent);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  box-shadow: inset 0 -2px transparent;
-}
-
-.routine-tab[aria-pressed="true"] {
-  color: var(--text);
-  box-shadow: inset 0 -2px var(--accent);
-}
-
-.field {
-  display: grid;
-  gap: 6px;
-  color: var(--text-muted);
-  font-size: 0.8rem;
+  gap: 4px;
   font-weight: 600;
 }
 
-.field input,
-.field select,
-.field textarea {
+.link-button svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.6;
+}
+
+.label .link-button {
+  justify-content: flex-end;
+  font: 600 var(--fs-meta) / 1.2 var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Icon button: a 44px tap target around an icon or "×"; .sm for row-level icons,
+   .filled for the one in an app bar. */
+.icon-button {
+  width: var(--tap);
+  min-height: var(--tap);
+  border-radius: var(--radius-control);
+  color: var(--text-muted);
+  flex: none;
+  display: grid;
+  place-items: center;
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.icon-button svg {
+  width: 21px;
+  height: 21px;
+  stroke-width: 1.8;
+}
+
+.icon-button.sm {
+  font-size: var(--fs-field);
+}
+
+.icon-button.sm svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+}
+
+.icon-button.filled {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* Pill: an outlined chip, filled when chosen (Library groups, filters, logging choices). */
+.pill {
+  min-height: var(--tap);
+  padding: 0 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.pill[aria-pressed="true"] {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 600;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chips.scroll-x {
+  flex-wrap: nowrap;
+}
+
+/* Tick box: 30px. Empty outline, or filled accent with a tick when done, pressed or
+   checked. On Workout it holds the slot's number until then. */
+.tickbox {
+  width: 30px;
+  height: 30px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  flex: none;
+  display: grid;
+  place-items: center;
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.tickbox svg {
+  width: 15px;
+  height: 15px;
+  display: none;
+  stroke-width: 3;
+}
+
+svg.tickbox {
+  width: 30px;
+  height: 30px;
+  padding: 6px;
+  color: transparent;
+  stroke-width: 3;
+}
+
+.is-done > * > .tickbox,
+[aria-pressed="true"] > .tickbox,
+:checked + .tickbox {
+  border-color: var(--accent-fill);
+  background: var(--accent-fill);
+  color: var(--on-accent);
+}
+
+.is-done > * > .tickbox > svg,
+:checked + .tickbox > svg {
+  display: block;
+}
+
+.is-done > * > .tickbox > span {
+  display: none;
+}
+
+/* Play circle: 30px outline; filled accent inside .is-linked (the exercise has a video). */
+.play {
+  width: 30px;
+  height: 30px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 50%;
+  color: var(--text-muted);
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+
+.play svg {
+  width: 12px;
+  height: 12px;
+  margin-left: 1px;
+  fill: currentColor;
+  stroke: none;
+}
+
+.is-linked > .play {
+  border-color: transparent;
+  background: var(--accent-fill);
+  color: var(--on-accent);
+}
+
+/* ---------- forms ---------- */
+
+/* Field: a label above its control. */
+.field {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.field > :is(span, strong),
+.form-label {
+  color: var(--text-muted);
+  font-size: var(--fs-meta);
+  font-weight: 700;
+}
+
+p.form-label {
+  margin-bottom: 6px;
+}
+
+.control {
   width: 100%;
   min-height: 48px;
   padding: 10px 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius-control);
   background: var(--surface-2);
-  color: var(--text);
-  font-size: 1rem;
-  font-weight: 500;
 }
 
-.field textarea {
+textarea.control {
   min-height: 112px;
+  line-height: 1.5;
   resize: vertical;
-  line-height: 1.5;
 }
 
-input::placeholder,
-textarea::placeholder {
-  color: var(--text-muted);
-  opacity: 1;
-}
-
-.text-button {
-  min-height: 44px;
-  padding: 0 2px 0 12px;
-  border: 0;
-  background: transparent;
-  color: var(--accent);
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.compact-empty {
-  padding-block: var(--space-5);
-  border-bottom: 1px solid var(--border);
-}
-
-.dialog-intro {
-  margin: calc(var(--space-2) * -1) 0 0;
-  color: var(--text-muted);
-  font-size: 0.82rem;
-  line-height: 1.5;
-}
-
-.selection-row {
-  width: 100%;
-  min-height: 52px;
-  padding: 6px 0;
-  border: 0;
-  border-block: 1px solid var(--line);
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  text-align: left;
-}
-
-.selection-row > span:first-child {
-  min-width: 0;
-  display: grid;
-}
-
-.selection-row small {
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.row-number {
-  width: 22px;
-  flex: 0 0 22px;
-  color: var(--faint);
-  font-size: 0.75rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-}
-
-.row-main {
-  flex: 1;
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.row-title {
-  margin: 0;
-  color: var(--text);
-  font-size: 0.92rem;
-  font-weight: 600;
-  line-height: 1.3;
-  overflow-wrap: anywhere;
-}
-
-.row-meta {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  line-height: 1.35;
-}
-
-.empty-state {
-  padding: 48px var(--space-4);
-  text-align: left;
-  color: var(--text-muted);
-}
-
-.empty-state h3 {
-  margin: 0 0 6px;
-  color: var(--text);
-  font-size: 1.35rem;
-}
-
-.empty-state p {
-  max-width: 29ch;
-  margin: 0 0 var(--space-4);
-  font-size: 0.86rem;
-}
-
-.sheet-dialog,
-.confirm-dialog {
-  width: min(100%, 680px);
-  max-width: none;
-  max-height: min(84dvh, 820px);
-  margin: auto auto 0;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--shadow-sheet);
-  overflow: auto;
-}
-
-.sheet-dialog::backdrop,
-.confirm-dialog::backdrop {
-  background: var(--scrim);
-}
-
-.sheet-dialog[open] {
-  animation: sheet-in 180ms cubic-bezier(.2,.8,.2,1);
-}
-
-.dialog-form {
-  display: grid;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-4) max(var(--space-5), env(safe-area-inset-bottom));
-}
-
-/* Grab handle at the top of every bottom sheet. */
-.sheet-dialog .dialog-form::before,
-.reference-sheet::before,
-.log-sheet::before,
-.history-sheet::before,
-.entry-choices-sheet::before,
-.library-filter-sheet::before,
-.day-sheet::before {
-  content: "";
-  width: 36px;
-  height: 5px;
-  margin: 8px auto 2px;
-  border-radius: 3px;
-  background: var(--border-strong);
-  flex: 0 0 auto;
-}
-
-/* Inside a padded form: 8px from the top edge, and with the form's 16px gap, 10px above the header. */
-.sheet-dialog .dialog-form::before {
-  margin: -8px auto -6px;
-}
-
-/* Padded sheets that lay out as a gapless flex column: the same 10px under the handle. */
-.entry-choices-sheet::before,
-.sheet-dialog .picker-sheet::before,
-.sheet-dialog .routine-sheet::before,
-.sheet-dialog .entry-sheet::before,
-.sheet-dialog .programs-sheet::before {
-  margin: -8px auto 10px;
-}
-
-/* Sheets whose middle scrolls between a fixed header and footer. */
-.picker-sheet,
-.routine-sheet,
-.entry-sheet,
-.programs-sheet {
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.picker-sheet .dialog-header,
-.picker-sheet .picker-search,
-.picker-sheet .picker-result-head,
-.picker-sheet .form-error,
-.routine-sheet .dialog-header,
-.routine-sheet .dialog-actions,
-.entry-sheet .dialog-header,
-.entry-sheet .dialog-actions,
-.programs-sheet .dialog-header,
-.programs-sheet .dialog-actions,
-.programs-sheet .form-error {
-  flex: 0 0 auto;
-}
-
-.routine-sheet-scroll,
-.entry-sheet-scroll {
-  min-height: 0;
-  padding-block: var(--space-3);
-  flex: 1;
-  display: grid;
-  align-content: start;
-  gap: var(--space-4);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-.routine-sheet .dialog-actions,
-.entry-sheet .dialog-actions {
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
-}
-
-.tall-dialog .dialog-form {
-  min-height: 100%;
-  align-content: start;
-}
-
-.tall-dialog {
-  height: min(84dvh, 820px);
-}
-
-.dialog-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--line);
-}
-
-.dialog-header h2,
-.dialog-header p {
-  margin: 0;
-}
-
-.dialog-header h2 {
-  font-size: 1.3rem;
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
-}
-
-.dialog-header > div {
-  min-width: 0;
-  flex: 1;
-}
-
-.dialog-header > div > p:not(.dialog-kicker) {
-  margin-top: 3px;
-  color: var(--text-muted);
-  font-size: 0.75rem;
-}
-
-.dialog-kicker {
-  color: var(--faint);
-  font-family: var(--font-label);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.field > span,
-.form-label {
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
-.field.is-disabled {
-  opacity: 0.48;
-}
-
+/* Segment: two or more choices in one track; the chosen one is filled. */
 .segment {
-  min-height: 44px;
   padding: 3px;
   border-radius: var(--radius-control);
   background: var(--surface-2);
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
 }
 
 .segment button {
-  min-width: 0;
-  min-height: 44px;
+  min-height: var(--tap);
   padding: 0 8px;
-  border: 0;
   border-radius: var(--radius-sm);
-  background: transparent;
   color: var(--text-muted);
-  font-size: 0.88rem;
+  font-size: var(--fs-small);
   font-weight: 600;
 }
 
@@ -447,76 +332,39 @@ textarea::placeholder {
   color: var(--bg);
 }
 
-.segment button:disabled {
-  opacity: 0.42;
-}
-
-.form-note {
-  margin: 0;
-  color: var(--faint);
-  font-size: 0.75rem;
-  line-height: 1.45;
-}
-
-.action-list {
-  border-top: 1px solid var(--line);
-}
-
-.action-row {
-  width: 100%;
+/* Search field: an icon and a bare input in one rounded box. */
+.search {
   min-height: 48px;
-  padding: 0;
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  background: transparent;
-  color: var(--text);
-  text-align: left;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  background: var(--surface-2);
+  color: var(--text-muted);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  font-size: 0.88rem;
-  font-weight: 700;
+  gap: 9px;
 }
 
-.action-row > span {
-  color: var(--faint);
-}
-
-.action-row.danger {
-  color: var(--danger);
-}
-
-.action-row:active {
-  background: var(--press);
-}
-
-.action-row:disabled {
-  color: var(--faint);
-  opacity: 0.42;
-}
-
-.dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
-}
-
-.dialog-actions > .button {
+.search input {
+  min-width: 0;
+  min-height: var(--tap);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
   flex: 1;
 }
 
-.dialog-actions > .button.text {
-  flex: 0 0 auto;
+.search input:focus-visible {
+  outline: 0;
 }
 
 .form-error {
-  margin: 0;
   padding: 10px 12px;
   border-radius: var(--radius-control);
   background: var(--danger-soft);
   color: var(--danger);
-  font-size: 0.82rem;
+  font-size: var(--fs-meta);
   font-weight: 700;
 }
 
@@ -524,632 +372,438 @@ textarea::placeholder {
   display: none;
 }
 
-.picker-list {
-  background: var(--surface);
-  border-block: 1px solid var(--line);
-  overflow: clip;
-}
+/* ---------- rows ---------- */
 
-.picker-search {
-  min-height: 48px;
-  margin: 12px 0 8px;
-  padding: 0 14px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface-2);
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-
-.picker-search svg {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 18px;
-  fill: none;
-  stroke: var(--text-muted);
-  stroke-linecap: round;
-  stroke-width: 2;
-}
-
-.picker-search input {
-  min-width: 0;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  flex: 1;
-  font-size: 1rem;
-}
-
-.picker-result-head {
-  min-height: 30px;
-  color: var(--faint);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  font-family: var(--font-label);
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.picker-sheet .picker-list {
-  min-height: 0;
-  flex: 1;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-.picker-item {
+/* Row: one line of a list, 56px (.compact 44px, .tall 64px). A screen's rows run edge
+   to edge with a soft inset divider; a sheet's rows have a rule underneath.
+   .split rows hold a .row-body button next to icon buttons. */
+.row {
+  position: relative;
   width: 100%;
-  min-height: 60px;
-  padding: var(--space-3);
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  background: transparent;
-  color: var(--text);
+  min-height: 56px;
+  padding-block: var(--space-2);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: 10px;
+  font-weight: 600;
   text-align: left;
-  cursor: pointer;
 }
 
-.picker-item:last-child {
-  border-bottom: 0;
+.row.compact {
+  min-height: var(--tap);
 }
 
-.picker-item:active {
-  background: var(--press);
+.row:disabled {
+  color: var(--faint);
 }
 
-.picker-item-copy {
-  min-width: 0;
-  flex: 1;
-  display: grid;
-  gap: 3px;
+.row.tall {
+  min-height: 64px;
 }
 
-.picker-item-copy strong,
-.picker-item-copy small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.row.split {
+  padding-block: 0;
+  gap: 0;
+  align-items: stretch;
 }
 
-.picker-item-copy strong {
-  font-size: 0.91rem;
+.page .row:not(.card) {
+  padding-inline: var(--gutter);
 }
 
-.picker-item-copy small {
-  color: var(--text-muted);
-  font-size: 0.75rem;
+.page .row.split {
+  padding-inline: 12px 10px;
 }
 
-.picker-item-action {
-  min-width: 64px;
-  color: var(--accent);
-  flex: 0 0 auto;
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-align: right;
+.page .row:not(.card) + .row::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--gutter) auto;
+  border-top: 1px solid var(--line-soft);
 }
 
-.picker-empty {
-  min-height: 240px;
-  padding: 36px 10px;
-  color: var(--text-muted);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.picker-empty h3,
-.picker-empty p {
-  margin: 0;
-}
-
-.picker-empty h3 {
-  color: var(--text);
-  font-size: 1.15rem;
-}
-
-.picker-empty p {
-  max-width: 28ch;
-  margin-top: 6px;
-  font-size: 0.84rem;
-}
-
-.reference-dialog {
-  position: fixed;
-  inset: auto 0 0;
-  height: min(84dvh, 760px);
-  margin: 0 auto;
-  overflow: hidden;
-}
-
-.reference-dialog > div,
-.reference-sheet {
-  height: 100%;
-  min-height: 0;
-}
-
-.reference-sheet {
-  display: grid;
-  grid-template-rows: 15px auto minmax(0, 1fr) auto;
-}
-
-.reference-sheet-head {
-  min-height: 48px;
-  padding: 4px 16px 8px 20px;
+.sheet .row:not(.card) {
   border-bottom: 1px solid var(--line);
+}
+
+.row > .icon-button + .icon-button {
+  margin-left: -10px;
+}
+
+.row[aria-pressed] > svg {
+  color: transparent;
+}
+
+.row[aria-pressed="true"] > svg {
+  color: var(--accent);
+}
+
+.row-body {
+  min-width: 0;
+  padding-block: 7px;
+  border-radius: var(--radius-control);
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
+  text-align: left;
 }
 
-.reference-sheet-head > div {
+.icon-button + .row-body {
+  padding-left: var(--space-1);
+}
+
+.row-body > svg {
+  color: var(--faint);
+}
+
+/* The text of a row: a title over a meta line (.row-line puts them on one line). */
+.row-main {
   min-width: 0;
   flex: 1;
   display: grid;
+  align-content: center;
   gap: 2px;
+  text-align: left;
 }
 
-.reference-sheet-head h2,
-.reference-sheet-head small {
-  margin: 0;
-}
-
-.reference-sheet-head h2 {
-  font-size: 1.3rem;
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
-  overflow-wrap: anywhere;
-  text-wrap: pretty;
-}
-
-.reference-sheet-head small {
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.reference-sheet-scroll {
-  min-height: 0;
-  overflow-y: auto;
-  padding: 12px 20px 18px;
-  -webkit-overflow-scrolling: touch;
-}
-
-.reference-prescription {
-  margin: 0;
-  font-size: 2rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-}
-
-.reference-meta {
-  margin: 5px 0 0;
-  color: var(--text-muted);
-  font-size: 0.81rem;
-}
-
-.reference-target-groups,
-.reference-note-group,
-.reference-facts {
-  margin-top: 14px;
-  border-top: 1px solid var(--line);
-}
-
-.reference-context-note,
-.reference-notes {
-  margin: 0;
-  padding: 8px 0 9px;
-  border-bottom: 1px solid var(--line);
-  font-size: 0.91rem;
-  line-height: 1.55;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.reference-group-label {
-  margin: 0;
-  padding: 10px 0 4px;
-  color: var(--faint);
-  font-family: var(--font-label);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.reference-group-label:not(:first-child) {
-  margin-top: 2px;
-  border-top: 1px solid var(--line);
-}
-
-.reference-target-row {
-  min-height: 39px;
-  padding: 7px 0;
-  border-bottom: 1px solid var(--line);
+.row-line {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 10px;
+  gap: 1px var(--space-2);
 }
 
-.reference-target-row > span {
-  flex: 0 0 16px;
-  color: var(--faint);
-  font-size: 0.75rem;
+.row-line ~ * {
+  margin-top: 2px;
+}
+
+.row-title {
+  font-size: var(--fs-body);
   font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  overflow-wrap: anywhere;
 }
 
-.reference-target-row strong {
-  font-size: 0.91rem;
-}
-
-.reference-target-row em {
+.row-title em {
   color: var(--text-muted);
   font-style: normal;
   font-weight: 500;
 }
 
-.reference-fact {
-  min-height: 40px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--line);
-  display: grid;
-  grid-template-columns: 98px minmax(0, 1fr);
-  align-items: baseline;
-  gap: 10px;
-}
-
-.reference-fact > span {
-  color: var(--faint);
-  font-family: var(--font-label);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.reference-fact strong {
-  font-size: 0.88rem;
-}
-
-.reference-search-actions {
-  margin-top: 14px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.reference-video-link {
-  min-height: 48px;
-  margin-top: 14px;
-  padding: 6px 12px;
-  border-radius: var(--radius-control);
-  background: var(--accent-soft);
-  color: var(--text);
+.row-meta {
+  color: var(--text-muted);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 9px;
-  text-decoration: none;
+  gap: 2px var(--space-2);
+  font-size: var(--fs-meta);
+  font-weight: 500;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
-.reference-video-link:active {
-  background: var(--press);
+.row-number {
+  width: 22px;
+  color: var(--faint);
+  flex: none;
+  font-size: var(--fs-tag);
+  text-align: center;
 }
 
-.reference-video-link > strong {
-  min-width: 0;
-  flex: 1;
-  font-size: 0.86rem;
+/* What a row ends with: "Add", a chevron or arrow, a hold-drag grip. */
+.row-action {
+  color: var(--accent);
+  flex: none;
+  font-size: var(--fs-meta);
 }
 
-.reference-video-link > svg {
-  width: 12px;
-  height: 12px;
-  flex: 0 0 auto;
-  fill: none;
-  stroke: var(--faint);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
-}
-
-.reference-video-mark {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--accent-fill);
-  color: #ffffff;
+.chev {
+  color: var(--faint);
+  flex: none;
   display: grid;
   place-items: center;
 }
 
-.reference-video-mark svg {
-  width: 10px;
-  height: 10px;
-  margin-left: 1px;
-  fill: currentColor;
+.grip {
+  width: 28px;
+  height: var(--tap);
+  color: var(--text-muted);
+  flex: none;
+  align-self: center;
+  display: grid;
+  place-items: center;
 }
 
-.reference-search-actions a {
-  min-width: 0;
-  min-height: 46px;
-  padding: 8px 10px;
-  border-radius: var(--radius-control);
-  background: var(--surface-2);
-  color: var(--text);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 0.84rem;
-  font-weight: 700;
-  line-height: 1.15;
-  text-align: center;
-  text-decoration: none;
+.grip svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 1.8;
 }
 
-.reference-search-actions a:active {
-  background: var(--press);
+/* Section label above a screen's rows, optionally with something at its end. */
+.section-label {
+  min-height: 34px;
+  padding: var(--space-4) var(--gutter) var(--space-1);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: var(--fs-meta);
+  line-height: 1;
 }
 
-.reference-search-actions svg {
-  width: 12px;
-  height: 12px;
-  flex: 0 0 auto;
-  fill: none;
-  stroke: var(--faint);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
+.page section:first-child > .section-label {
+  min-height: 30px;
+  padding-top: var(--space-3);
 }
 
-.reference-ladder {
-  margin-top: 16px;
-  border-top: 1px solid var(--line);
-}
-
-.reference-ladder-head {
-  min-height: 38px;
-  color: var(--faint);
+/* Label row: a label with a count or link button at its end, heading a list. */
+.label-row {
+  min-height: 34px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  font-family: var(--font-label);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  gap: var(--space-2);
 }
 
-.reference-ladder-head span {
-  font-size: 0.75rem;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-.reference-ladder-row {
-  width: 100%;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
+.sheet .label-row {
   border-bottom: 1px solid var(--line);
-  border-radius: 0;
-  background: transparent;
-  color: var(--text);
+}
+
+/* ---------- cards and disclosures ---------- */
+
+/* Card: grouped content on a rounded surface. */
+.card {
+  padding: 14px var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.row.card {
+  padding-block: 10px;
+}
+
+.sheet .card {
+  --chip-bg: var(--chip-raised);
+  background: var(--surface-2);
+}
+
+.card .set-chip {
+  padding-block: 3px;
+}
+
+.card.tinted {
+  background: var(--accent-soft);
+}
+
+.card .label-row {
+  border-bottom: 0;
+}
+
+/* Note: a card that opens to show a routine's or program's note. */
+.note {
+  margin: var(--space-3) var(--space-4) 0;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  flex: none;
+  overflow: hidden;
+}
+
+.note summary {
+  min-height: var(--tap);
+  padding: 7px 12px 7px var(--space-4);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2);
+}
+
+.note summary > :first-child {
+  min-width: 0;
+  flex: 1;
+}
+
+.note summary > svg {
+  color: var(--faint);
+  transition: transform 120ms ease;
+}
+
+.note[open] summary > svg {
+  transform: rotate(180deg);
+}
+
+.note > p {
+  padding: 0 var(--space-4) 10px;
+}
+
+/* More: a ruled disclosure for optional parts of a form or filter; .plus adds +/−
+   and puts the summary under the title. */
+.more {
+  border-block: 1px solid var(--line);
+}
+
+.more > summary {
+  min-height: 52px;
+  padding-block: var(--space-2);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 2px var(--space-3);
+  font-weight: 700;
+}
+
+.more > summary > span {
+  color: var(--text-muted);
+  font-size: var(--fs-meta);
+  font-weight: 500;
+  text-align: right;
+}
+
+.more.plus > summary > span {
+  grid-column: 1;
   text-align: left;
 }
 
-.reference-ladder-row:active {
-  background: var(--press);
-}
-
-.reference-ladder-row span {
-  flex: 0 0 48px;
+.more.plus > summary::after {
+  content: "+";
+  grid-area: 1 / 2 / span 2;
   color: var(--faint);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--fs-head);
 }
 
-.reference-ladder-row strong {
+.more.plus[open] > summary::after {
+  content: "−";
+}
+
+.more[open] {
+  padding-bottom: var(--space-4);
+}
+
+/* Empty state: a heading, a line of help and usually a button. */
+.empty {
+  padding: 48px var(--gutter);
+  color: var(--text-muted);
+}
+
+.empty > :is(h2, h3) {
+  margin-bottom: 6px;
+  color: var(--text);
+  font-size: var(--fs-sheet);
+}
+
+.empty > p {
+  max-width: 29ch;
+  margin-bottom: var(--space-4);
+  font-size: var(--fs-small);
+}
+
+.sheet .empty {
+  padding-inline: 0;
+}
+
+/* ---------- bars and tabs ---------- */
+
+/* Bar: a 52px line under the app bar with a name and icon buttons at its end (the
+   active program, the routine being edited, the month). First on a screen, it
+   stands in for the app bar and gets a little more room. */
+.bar {
+  min-height: 52px;
+  padding: var(--space-1) var(--space-2) 0 var(--gutter);
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+
+.fills > .bar:first-child {
+  min-height: 56px;
+  padding-top: 6px;
+}
+
+.bar > :first-child {
   min-width: 0;
   flex: 1;
-  font-size: 0.88rem;
 }
 
-.reference-empty,
-.video-search-empty,
-.video-search-label {
-  margin: 0;
-}
-
-.reference-empty {
-  padding: 10px 0;
-  color: var(--text-muted);
-  font-size: 0.84rem;
-}
-
-.reference-notes {
-  color: var(--text);
-}
-
-.reference-notes.is-empty {
-  color: var(--text-muted);
-}
-
-.reference-sheet-actions {
-  padding: 10px 20px max(16px, env(safe-area-inset-bottom));
-  border-top: 1px solid var(--line);
-  display: flex;
-  gap: 8px;
-}
-
-.reference-sheet-actions .button {
-  flex: 1;
-}
-
-.video-search-dialog {
-  height: auto;
-  max-height: min(70dvh, 520px);
-}
-
-.video-search-dialog > div,
-.video-search-sheet {
-  height: auto;
-}
-
-.video-search-sheet {
-  min-height: 270px;
-  grid-template-rows: 15px auto minmax(100px, 1fr) auto;
-}
-
-.video-search-empty {
-  color: var(--text-muted);
-  font-size: 0.88rem;
-}
-
-.video-search-label {
-  margin-top: 16px;
-  color: var(--faint);
-  font-family: var(--font-label);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.confirm-dialog {
-  width: min(calc(100% - 32px), 420px);
-  margin: auto;
-  border-radius: 20px;
-}
-
-.confirm-content {
-  padding: var(--space-5);
-}
-
-.confirm-content h2 {
-  margin: 0 0 var(--space-2);
-  font-size: 1.15rem;
-}
-
-.confirm-content p {
-  margin: 0 0 var(--space-5);
-  color: var(--text-muted);
-}
-
-.confirm-dialog[data-variant="program-delete"],
-.confirm-dialog[data-variant="routine-delete"],
-.confirm-dialog[data-variant="entry-remove"],
-.confirm-dialog[data-variant="exercise-delete"] {
-  width: min(100%, 680px);
-  max-height: min(66dvh, 560px);
-  margin: auto auto 0;
-  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
-}
-
-.confirm-dialog[data-variant="program-delete"] .confirm-content,
-.confirm-dialog[data-variant="routine-delete"] .confirm-content,
-.confirm-dialog[data-variant="entry-remove"] .confirm-content,
-.confirm-dialog[data-variant="exercise-delete"] .confirm-content {
-  padding: var(--space-4) var(--space-5) max(var(--space-5), env(safe-area-inset-bottom));
-}
-
-.confirm-dialog[data-variant="program-delete"] .confirm-content h2,
-.confirm-dialog[data-variant="routine-delete"] .confirm-content h2,
-.confirm-dialog[data-variant="entry-remove"] .confirm-content h2,
-.confirm-dialog[data-variant="exercise-delete"] .confirm-content h2 {
-  margin-bottom: var(--space-3);
-}
-
-.confirm-dialog[data-variant="program-delete"] .confirm-content p,
-.confirm-dialog[data-variant="routine-delete"] .confirm-content p,
-.confirm-dialog[data-variant="entry-remove"] .confirm-content p,
-.confirm-dialog[data-variant="exercise-delete"] .confirm-content p {
-  margin-bottom: var(--space-4);
-  line-height: 1.55;
-}
-
-.toast {
-  position: fixed;
-  left: 50%;
-  bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + var(--space-4));
-  max-width: min(calc(100% - 32px), 520px);
-  padding: 11px 16px;
-  border-radius: 14px;
-  background: var(--text);
-  color: var(--surface);
-  font-size: 0.84rem;
+.bar-title {
+  font-size: var(--fs-head);
   font-weight: 700;
-  opacity: 0;
-  pointer-events: none;
-  transform: translate(-50%, 8px);
-  transition: opacity 160ms ease, transform 160ms ease;
-  z-index: var(--z-toast);
+  line-height: 1.25;
 }
 
-.toast.show {
-  opacity: 1;
-  transform: translate(-50%, 0);
+/* The Active badge, the program's name and a chevron. */
+.bar-pick {
+  min-height: var(--tap);
+  padding-right: var(--space-2);
+  border-radius: var(--radius-control);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: left;
 }
 
-@keyframes sheet-in {
-  from { transform: translateY(16px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+.bar-pick > strong {
+  min-width: 0;
+  font-size: var(--fs-field);
+  font-weight: 600;
 }
 
-@media (min-width: 760px) {
-  .sheet-dialog {
-    margin: auto;
-    border-radius: var(--radius-sheet);
-  }
+.bar-pick > svg {
+  width: 15px;
+  height: 15px;
+  color: var(--text-muted);
+}
+
+/* Routine tabs: a 2px accent underline on the chosen one. */
+.routine-tabs {
+  min-height: 48px;
+  padding-left: var(--gutter);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+  gap: 22px;
+  flex: none;
+}
+
+.routine-tab {
+  min-width: var(--tap);
+  min-height: 48px;
+  color: var(--faint);
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: inset 0 -2px transparent;
+}
+
+.routine-tab[aria-pressed="true"] {
+  color: var(--text);
+  box-shadow: inset 0 -2px var(--accent);
 }
 
 /* ---------- logged sets ---------- */
 
+/* Set chips: "50 kg × 10" boxes; a drop is outlined and tagged. */
 .set-chips {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .set-chip {
   padding: 2px 7px;
   border-radius: var(--radius-chip);
-  background: var(--surface-2);
+  background: var(--chip-bg, var(--surface-2));
   color: var(--text);
   display: inline-flex;
   align-items: baseline;
   gap: 2px;
-  font-size: 0.8rem;
+  font-size: var(--fs-meta);
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.35;
+  line-height: 1.32;
   white-space: nowrap;
-}
-
-.set-chip small {
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 500;
 }
 
 .set-chip-x {
@@ -1165,15 +819,330 @@ textarea::placeholder {
 
 .set-chip-tag {
   margin-right: 3px;
-  color: var(--accent-on-soft);
-  font-family: var(--font-label);
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: var(--fs-tag);
 }
 
-.set-chips-more {
+/* ---------- sheets ---------- */
+
+/* Sheet: a dialog that rises from the bottom, at most 84% of the screen tall.
+   The dialog sets the height (.tall always fills it, .short is 72%, .full is the
+   whole screen); inside, .sheet-panel stacks a fixed .sheet-head, one scrolling
+   .sheet-body and a fixed .actions footer. A panel without a body scrolls whole. */
+.sheet,
+.confirm {
+  --sheet-h: 84dvh;
+  width: min(100%, 680px);
+  max-width: none;
+  max-height: var(--sheet-h);
+  margin: auto auto 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sheet);
+  overflow: hidden;
+}
+
+:is(.sheet, .confirm)::backdrop {
+  background: var(--scrim);
+}
+
+.sheet[open] {
+  display: flex;
+  flex-direction: column;
+  animation: sheet-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.sheet.short {
+  --sheet-h: 72dvh;
+}
+
+.sheet.tall {
+  height: var(--sheet-h);
+}
+
+.sheet.full {
+  --sheet-h: 100dvh;
+  height: var(--sheet-h);
+  border-radius: 0;
+}
+
+@keyframes sheet-in {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.sheet-panel {
+  min-height: 0;
+  padding: 0 var(--gutter) max(var(--space-4), env(safe-area-inset-bottom));
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Grab handle. */
+.sheet-panel::before {
+  content: "";
+  width: 36px;
+  height: 5px;
+  margin: var(--space-2) auto 2px;
+  border-radius: var(--radius-pill);
+  background: var(--border-strong);
+  flex: none;
+}
+
+/* The handle keeps its place when the panel is a .stack with gaps. */
+.sheet-panel.stack::before {
+  margin-bottom: calc(2px - var(--space-4));
+}
+
+.sheet-head {
+  padding: var(--space-1) 0 var(--space-2);
+  border-bottom: 1px solid var(--line);
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.sheet-head > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.sheet-head h2 {
+  font-size: var(--fs-sheet);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.sheet-head :is(p, small):not(.label) {
+  margin-top: 3px;
   color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
+  display: block;
+  font-size: var(--fs-meta);
+}
+
+.sheet-body {
+  min-height: 0;
+  padding-block: var(--space-3);
+  flex: 1 1 auto;
+}
+
+/* A list starts right under the sheet's header. */
+.sheet-body > .row:first-child {
+  margin-top: calc(-1 * var(--space-3));
+}
+
+.sheet-body p.label {
+  padding-block: var(--space-3) 6px;
+}
+
+.sheet-body > p.label:first-child {
+  padding-top: 0;
+}
+
+/* Actions: a line of buttons sharing the width; the footer of a sheet. */
+.actions {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.actions > .button {
+  flex: 1;
+}
+
+.actions > .button.text {
+  flex: none;
+}
+
+.actions > .form-error {
+  flex: 1 0 100%;
+}
+
+.sheet-body + .actions {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+
+/* Confirmation: a small centred dialog. The delete confirmations (data-variant, see
+   confirmAction in js/dom.js) rise from the bottom like a sheet instead. */
+.confirm {
+  width: min(calc(100% - 32px), 420px);
+  margin: auto;
+  padding: var(--space-5);
+  border-radius: var(--radius-sheet);
+  overflow: auto;
+}
+
+.confirm:not([data-variant=""]) {
+  width: min(100%, 680px);
+  margin: auto auto 0;
+  padding-bottom: max(var(--space-5), env(safe-area-inset-bottom));
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+}
+
+.confirm h2 {
+  margin-bottom: var(--space-2);
+  font-size: var(--fs-head);
+}
+
+.confirm p {
+  margin-bottom: var(--space-5);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + var(--space-4));
+  max-width: min(calc(100% - 32px), 520px);
+  padding: 11px var(--space-4);
+  border-radius: var(--radius-button);
+  background: var(--text);
+  color: var(--surface);
+  font-size: var(--fs-meta);
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 8px);
+  transition: opacity 160ms ease, transform 160ms ease;
+  z-index: var(--z-toast);
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ---------- hold-drag (see enableHoldDrag in js/dom.js) ---------- */
+
+.drag-row,
+.drag-row * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.drag-row {
+  -webkit-touch-callout: none;
+}
+
+.row.drag-row.is-dragging {
+  position: fixed;
+  z-index: var(--z-drag);
+  margin: 0;
+  padding-inline: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-button);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-lift);
+  cursor: grabbing;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.drag-placeholder {
+  border: 1.5px dashed var(--accent);
+  border-radius: var(--radius-button);
+  background: var(--accent-soft);
+}
+
+.page .drag-placeholder {
+  margin: 2px var(--space-3);
+}
+
+.drag-active {
+  cursor: grabbing;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ---------- utilities ---------- */
+
+/* Pressed state of everything tappable that isn't a .button. */
+:is(button, a).row:active,
+.row-body:active,
+.icon-button:active,
+.bottom-nav button:active,
+.tap:active {
+  background: var(--press);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* A wrapper that takes no part in layout (a sheet's content slot, a form around it). */
+.contents {
+  display: contents;
+}
+
+/* Children in a column, 16px apart (.tight 12px, .snug 8px): form fields, groups
+   of content, cards. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.stack.tight {
+  gap: var(--space-3);
+}
+
+.stack.snug {
+  gap: var(--space-2);
+}
+
+.ruled {
+  border-top: 1px solid var(--line);
+}
+
+.truncate {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clamp-2 {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.faint {
+  color: var(--faint);
+}
+
+.danger,
+.danger-text {
+  color: var(--danger);
+}
+
+.up {
+  color: var(--up);
+}
+
+.down {
+  color: var(--down);
 }

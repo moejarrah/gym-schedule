@@ -33,9 +33,9 @@ function classificationOptionPickerMarkup({ options, selected, excluded }) {
   return options.map((option) => {
     const isSelected = selected.includes(option.id);
     const isExcluded = excluded.includes(option.id);
-    return `<button class="classification-option" type="button" data-action="toggle-classification-option" data-value="${escapeHtml(option.id)}" aria-pressed="${isSelected}" ${isExcluded ? "disabled" : ""}>
-      <span>${escapeHtml(option.label)}</span>
-      <span class="classification-option-state">${isExcluded ? "Primary target" : isSelected ? "Selected" : ""}</span>
+    return `<button class="row compact" type="button" data-action="toggle-classification-option" data-value="${escapeHtml(option.id)}" aria-pressed="${isSelected}" ${isExcluded ? "disabled" : ""}>
+      <span class="row-main">${escapeHtml(option.label)}</span>
+      <span class="row-meta">${isExcluded ? "Primary target" : isSelected ? "Selected" : ""}</span>
       <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10"/></svg>
     </button>`;
   }).join("");
@@ -43,34 +43,34 @@ function classificationOptionPickerMarkup({ options, selected, excluded }) {
 
 function relationshipEditorMarkup({ linkedExercises, availableExercises, query }) {
   const linkedMarkup = linkedExercises.length ? linkedExercises.map(({ exercise, relation }) => `
-    <article class="relationship-linked-row" data-related-id="${escapeHtml(exercise.id)}">
-      <div class="relationship-row-copy">
-        <strong>${escapeHtml(exercise.name)}</strong>
-        <small>${escapeHtml(classificationSummary(exercise))}</small>
+    <article class="row related" data-related-id="${escapeHtml(exercise.id)}">
+      <div class="row-main">
+        <strong class="row-title">${escapeHtml(exercise.name)}</strong>
+        <small class="row-meta">${escapeHtml(classificationSummary(exercise))}</small>
       </div>
-      <label class="relationship-relation">
+      <label>
         <span class="visually-hidden">Relationship to ${escapeHtml(exercise.name)}</span>
-        <select data-related-relation="${escapeHtml(exercise.id)}" aria-label="Relationship to ${escapeHtml(exercise.name)}">
+        <select class="control" data-related-relation="${escapeHtml(exercise.id)}" aria-label="Relationship to ${escapeHtml(exercise.name)}">
           ${RELATIONS.map((option) => `<option value="${escapeHtml(option.id)}" ${option.id === relation ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("")}
         </select>
       </label>
-      <button class="relationship-remove" type="button" data-action="remove-related" data-id="${escapeHtml(exercise.id)}" aria-label="Remove relationship to ${escapeHtml(exercise.name)}">Remove</button>
-    </article>`).join("") : `<p class="relationship-empty">No related exercises yet.</p>`;
+      <button class="link-button danger" type="button" data-action="remove-related" data-id="${escapeHtml(exercise.id)}" aria-label="Remove relationship to ${escapeHtml(exercise.name)}">Remove</button>
+    </article>`).join("") : `<p class="hint">No related exercises yet.</p>`;
   const availableMarkup = availableExercises.length ? availableExercises.map((exercise) => `
-    <button class="relationship-result" type="button" data-action="add-related" data-id="${escapeHtml(exercise.id)}">
-      <span class="relationship-row-copy">
-        <strong>${escapeHtml(exercise.name)}</strong>
-        <small>${escapeHtml(classificationSummary(exercise))}</small>
+    <button class="row" type="button" data-action="add-related" data-id="${escapeHtml(exercise.id)}">
+      <span class="row-main">
+        <strong class="row-title">${escapeHtml(exercise.name)}</strong>
+        <small class="row-meta">${escapeHtml(classificationSummary(exercise))}</small>
       </span>
-      <span aria-hidden="true">Add</span>
-    </button>`).join("") : `<p class="relationship-empty">${query.trim() ? "No matching exercises." : "Every available exercise is already linked."}</p>`;
+      <span class="row-action" aria-hidden="true">Add</span>
+    </button>`).join("") : `<p class="hint">${query.trim() ? "No matching exercises." : "Every available exercise is already linked."}</p>`;
   return `
-    <section class="relationship-group" aria-labelledby="linkedRelationshipsHeading">
-      <div class="relationship-group-head"><h3 id="linkedRelationshipsHeading">Linked</h3><span>${linkedExercises.length}</span></div>
+    <section aria-labelledby="linkedRelationshipsHeading">
+      <div class="label label-row"><h3 id="linkedRelationshipsHeading">Linked</h3><span>${linkedExercises.length}</span></div>
       ${linkedMarkup}
     </section>
-    <section class="relationship-group" aria-labelledby="availableRelationshipsHeading">
-      <div class="relationship-group-head"><h3 id="availableRelationshipsHeading">Add relationship</h3><span>${availableExercises.length}</span></div>
+    <section aria-labelledby="availableRelationshipsHeading">
+      <div class="label label-row"><h3 id="availableRelationshipsHeading">Add relationship</h3><span>${availableExercises.length}</span></div>
       ${availableMarkup}
     </section>`;
 }
@@ -158,7 +158,7 @@ export function openExerciseEditor({ exerciseId = "", duplicate = false } = {}) 
   editor.related = structuredClone(source?.relatedExercises || []);
   fillForm(source);
   openDialog("#exerciseDialog");
-  $(".exercise-editor-scroll").scrollTop = 0;
+  $("#exerciseDialog .sheet-body").scrollTop = 0;
 }
 
 // ---------- saving ----------
