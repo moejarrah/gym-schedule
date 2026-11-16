@@ -41,7 +41,7 @@ function exerciseSearchTerms(exercise) {
 }
 
 // Punctuation- and case-insensitive: "ab wheel" matches "Ab-wheel rollout".
-export function matchesSearch(exercise, query) {
+function matchesSearch(exercise, query) {
   const needle = normalizedName(query);
   if (!needle) return true;
   return [exercise.name, ...exerciseSearchTerms(exercise)].some((value) => normalizedName(value).includes(needle));

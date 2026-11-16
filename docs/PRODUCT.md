@@ -90,7 +90,7 @@ Program
 - Import a backup after confirming that it replaces everything. Backups from older app versions are upgraded. Errors are shown and change nothing.
 - Restore the starting program after confirmation (the theme is kept).
 - Read and edit the training rules (progression, pain rule, …).
-- If saved data ever couldn't be read, download that unreadable data.
+- If saved data ever can't be read (damaged, or saved by a newer version of the app), it is left exactly as it is: the starting program opens, nothing is saved, and the unreadable data can be downloaded. Only importing a backup or restoring the starting data replaces it.
 - See the installed app version.
 
 ## Exercise classification
