@@ -13,6 +13,10 @@ Things a desktop browser can't fully confirm:
 
 ## Next
 
+- **Cleanup (agreed with the owner, November 2026).** Keep every feature: multiple programs, Home routines, the Library and its classifications, filters, the exercise editor, related exercises, videos, training rules, backups. Clean up how it's built:
+  1. **Tests get their own small sample program** instead of the owner's starting data (`js/seed.js`), so changing the owner's program never breaks tests. Swapping PPLPPL 7 for PPL 9 meant rewriting about 40 browser tests.
+  2. **Rewrite the styling from scratch** for the current design (`docs/DESIGN.md`). The rounded redesign was layered on top of the earlier square design, so `styles/` is about 4,600 lines with old, overridden and unused rules. Same look, much less CSS, one system of tokens.
+  3. **Simplify how screens redraw.** Each screen rebuilds its HTML and then puts focus back by hand (`.focus()` calls across `js/views/`), which is fiddly and caused focus rings around tapped buttons on iPhone. Stay framework-free and without a build step.
 - **Training rules**: the rules in Settings are still PPLPPL 7's (12-week progression, pain rule, and a rule about home versions of rehab work, whose home routines are gone). The owner hasn't said whether they still apply to PPL 9.
 - **Week numbers** in history ("Week 6 · Sat 31 Oct"). Undecided: how a week is counted (from a program start date? the first workout?). The owner will decide; until then history shows dates only.
 
