@@ -394,3 +394,19 @@ appTest("regression j: with dark theme saved, the theme is dark before the app m
   assert.equal(probe.appRendered, false, "probe ran before the app rendered (test validity)");
   assert.equal(probe.theme, "dark", "documentElement.dataset.theme at first <body> parse");
 });
+
+appTest("regressions: after a tap, buttons show no focus ring; a key press brings rings back", async ({ page }) => {
+  // iPhone Safari draws a ring when the app moves focus after a tap; desktop Chrome
+  // only does after keyboard use, so start from keyboard use and then tap.
+  const button = page.getByRole("button", { name: /^Log sets for / }).first();
+  const ring = () => button.evaluate((element) => getComputedStyle(element).outlineStyle);
+  await page.keyboard.press("Tab");
+  await button.focus();
+  assert.equal(await ring(), "solid");
+  await page.locator("#appMain").dispatchEvent("pointerdown");
+  await button.evaluate((element) => element.blur());
+  await button.focus();
+  assert.equal(await ring(), "none");
+  await page.keyboard.press("Shift");
+  assert.equal(await ring(), "solid");
+});

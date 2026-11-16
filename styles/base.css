@@ -190,6 +190,12 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
+/* After a tap, buttons, links and checkboxes don't show focus rings (see js/app.js). */
+:root[data-input="touch"] :is(button, a, summary, [tabindex], input[type="checkbox"], input[type="radio"]):focus-visible,
+:root[data-input="touch"] .day-check-row:has(input:focus-visible) {
+  outline: none;
+}
+
 .app-shell {
   width: 100%;
   height: 100vh;

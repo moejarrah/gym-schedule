@@ -15,6 +15,19 @@ import { STORAGE_KEY } from "./store.js";
 initDialogs();
 start();
 
+// Focus rings are for keyboard use. The app moves focus after taps too (a sheet
+// focuses its first control, closing it returns focus, redrawn rows keep focus),
+// and on iPhone that drew a ring around whatever was just tapped. So a tap turns
+// rings off for buttons and links, and a key press outside a text field turns
+// them back on. Text fields always show theirs.
+const root = document.documentElement;
+document.addEventListener("pointerdown", () => {
+  root.dataset.input = "touch";
+}, true);
+document.addEventListener("keydown", (event) => {
+  if (!event.target.matches?.('textarea, select, input:not([type="checkbox"], [type="radio"])')) delete root.dataset.input;
+}, true);
+
 document.querySelector(".bottom-nav").addEventListener("click", (event) => {
   const button = event.target.closest("[data-view]");
   if (button) navigate(button.dataset.view);

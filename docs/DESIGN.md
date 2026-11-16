@@ -92,4 +92,5 @@ Lists (exercise rows, Library, Program, pickers) stay flat rows with soft inset 
 
 - Screens use 20px side padding, and cards sit 16px from the edge.
 - Tap targets are at least 44 × 44px, even when the visible shape is smaller (a 30px number box sits in a 44px button).
+- Focus rings are for keyboard use only. After a tap, buttons and links show none (iPhone Safari drew one around whatever was just tapped); text fields always show theirs. `js/app.js` tracks which input was used last.
 - Layouts must work at 320px wide. Check both themes at 393 × 852 and 320 × 700 with `npm run screenshots -- <folder>`, and compare against the boards above.
