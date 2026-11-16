@@ -36,7 +36,7 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 - A handler changes data with `store.update((draft) => mutator(draft, …))` using functions from `js/model.js`, shows the result with `report()`, then calls `render()`.
 - Redrawing replaces the markup. A scroll area keeps its place if it is marked `data-keep-scroll="name"`. Text being typed that must survive a redraw lives in the module's own state (see the logging sheet's rows).
 - The browser handles dialog focus. Call `.focus()` only to put the cursor in a field the owner is about to type in.
-- Classes are for styling and `data-*` attributes and ids are for behaviour. New markup is built from the shared classes in `styles/components.css` (listed at its top) before adding a screen-specific rule. Scripts find things by class in only three places: hold-drag's `.drag-row` and `.drag-list`, a sheet's `.sheet-body`, and the routine tabs.
+- Classes are for styling and `data-*` attributes and ids are for behaviour. New markup is built from the shared classes in `styles/components.css` (each has a one-line comment) before adding a screen-specific rule. Scripts find things by class in only three places: hold-drag's `.drag-row` and `.drag-list`, a sheet's `.sheet-body`, and the routine tabs.
 
 ## Saved data at a glance
 
