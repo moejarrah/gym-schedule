@@ -212,7 +212,7 @@ describe("Workout", () => {
     await expect(toast(page)).toHaveText("Routine updated.");
     await goToView(page, "Workout");
     await expect(routineTab(page, PUSH_A)).toHaveAttribute("aria-pressed", "true");
-    const note =mainArea(page).getByText(/^Choice menu: choose only what you need/).first();
+    const note = mainArea(page).getByText(/^Choice menu: choose only what you need/).first();
     await expect(note).toBeVisible();
     const before = await note.boundingBox();
     // The exercise list scrolls on its own; the note stays put.
@@ -1012,15 +1012,15 @@ describe("Log", () => {
     await saveDay(page, TODAY, { routines: { "Pull A": true } });
     await goToView(page, "Workout");
     await routineTab(page, "Pull A").click();
-    await expectDone(page, "Neutral-grip pull-up or Assisted neutral-grip pull-up", true);
+    await expectDone(page, "Chest-supported row or Chest-supported T-bar row", true);
     await expectDone(page, "Pallof press", true);
-    await expectDone(page, "Radial deviation", false);
-    await setChecked(page, "Radial deviation", true);
+    await expectDone(page, "Scapular pull-up", false);
+    await setChecked(page, "Scapular pull-up", true);
 
     await saveDay(page, TODAY, { routines: { "Pull A": false } });
     await goToView(page, "Workout");
     await expectDone(page, "Pallof press", false);
-    await expectDone(page, "Radial deviation", false);
+    await expectDone(page, "Scapular pull-up", false);
   });
 
   appTest("log: clearing all completions, checks and the note removes the day record", async ({ page }) => {

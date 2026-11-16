@@ -38,8 +38,8 @@ import {
 
 const { env, appTest } = suite();
 
-const PROGRAM = "PPLPPL 7 — Glute Specialization";
-const PUSH_A = "Push A + Glutes";
+const PROGRAM = "PPL 9";
+const PUSH_A = "Push A";
 
 const mainArea = (page) => page.getByRole("main");
 // Dialog names are matched exactly so e.g. "Push-up plus" never also matches "Cable serratus punch or Push-up plus".
@@ -142,7 +142,7 @@ test("regression b: tapping an editor sheet's backdrop never discards edits", { 
   await t.test("block editor (over the routine editor)", (st) => backdropKeeps({
     open: async () => {
       const routine = await openRoutineEditor(page, PUSH_A);
-      await routine.getByRole("button", { name: startsWith("Edit Glute block.") }).click();
+      await routine.getByRole("button", { name: startsWith("Edit Optional glute block.") }).click();
       const sheet = dialog(page, "Edit block");
       await expect(sheet).toBeVisible();
       return sheet;
@@ -266,15 +266,17 @@ appTest("regression d: every text input, select and textarea in dialogs has a co
 appTest("regression e: the selected last routine tab is visible inside the scrolled tab strip", async ({ page, t }) => {
   async function lastTabVisible(viewLabel) {
     await goToView(page, viewLabel);
-    const tab = routineTab(page, "Legs morning");
+    const tab = routineTab(page, "Legs B");
     await tab.click();
-    await expect(routineTab(page, "Legs morning")).toHaveAttribute("aria-pressed", "true");
+    await expect(routineTab(page, "Legs B")).toHaveAttribute("aria-pressed", "true");
     await page.waitForTimeout(400);
-    const geometry = await routineTab(page, "Legs morning").evaluate((element) => {
+    const geometry = await routineTab(page, "Legs B").evaluate((element) => {
       const strip = element.parentElement.getBoundingClientRect();
       const own = element.getBoundingClientRect();
-      return { stripLeft: strip.left, stripRight: strip.right, tabLeft: own.left, tabRight: own.right, scrollLeft: element.parentElement.scrollLeft };
+      const overflow = element.parentElement.scrollWidth - element.parentElement.clientWidth;
+      return { stripLeft: strip.left, stripRight: strip.right, tabLeft: own.left, tabRight: own.right, scrollLeft: element.parentElement.scrollLeft, overflow };
     });
+    assert.ok(geometry.overflow > 0, `the tab strip overflows, so the last tab needs scrolling (test validity): ${JSON.stringify(geometry)}`);
     assert.ok(
       geometry.tabLeft >= geometry.stripLeft - 1 && geometry.tabRight <= geometry.stripRight + 1,
       `selected tab outside the strip in ${viewLabel}: ${JSON.stringify(geometry)}`,

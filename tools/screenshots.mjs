@@ -41,8 +41,8 @@ const SIZES = [
 ];
 const THEMES = ["light", "dark"];
 const FIXED_TIME = Date.UTC(2026, 10, 4, 10, 0, 0);
-const PROGRAM = "PPLPPL 7 — Glute Specialization";
-const PUSH_A = "Push A + Glutes";
+const PROGRAM = "PPL 9";
+const PUSH_A = "Push A";
 
 const main = (page) => page.getByRole("main");
 const dialog = (page, name) => page.getByRole("dialog", { name, exact: typeof name === "string" });
@@ -94,8 +94,9 @@ async function chooseImportFile(page, files) {
 const SHOTS = [
   // ---- primary views ----
   ["workout", async () => {}],
-  ["workout-home-base", async (page) => { await routineTab(page, "Home Base").click(); }],
-  ["workout-last-tab", async (page) => { await routineTab(page, "Legs morning").click(); }],
+  // Pull A: programming-note previews on its rows and two named Optional blocks.
+  ["workout-pull-a", async (page) => { await routineTab(page, "Pull A").click(); }],
+  ["workout-last-tab", async (page) => { await routineTab(page, "Legs B").click(); }],
   ["program", async (page) => { await goToView(page, "Program"); }],
   ["program-rules-open", async (page) => {
     await goToView(page, "Program");
@@ -125,8 +126,10 @@ const SHOTS = [
 
   // ---- Workout sheets ----
   ["dialog-exercise-reference", async (page) => {
-    await main(page).getByRole("button", { name: "View Cable kickback details" }).click();
-    await shown(dialog(page, "Cable kickback"));
+    // A Pull A row, so the reference shows its "For this routine" note.
+    await routineTab(page, "Pull A").click();
+    await main(page).getByRole("button", { name: "View Pronated-grip lat pulldown details" }).click();
+    await shown(dialog(page, "Pronated-grip lat pulldown"));
   }],
   ["dialog-exercise-reference-related", async (page) => {
     await main(page).getByRole("button", { name: "View Low-incline dumbbell press details" }).click();
@@ -180,7 +183,7 @@ const SHOTS = [
   ["dialog-routine-editor", async (page) => { await openRoutineEditor(page); }],
   ["dialog-block-editor", async (page) => {
     const editor = await openRoutineEditor(page);
-    await editor.getByRole("button", { name: startsWith("Edit Glute block.") }).click();
+    await editor.getByRole("button", { name: startsWith("Edit Optional glute block.") }).click();
     await shown(dialog(page, "Edit block"));
   }],
   ["dialog-entry-editor", async (page) => { await openEntry(page); }],

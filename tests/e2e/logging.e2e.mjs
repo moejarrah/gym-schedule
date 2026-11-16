@@ -9,8 +9,8 @@ import { STORAGE_KEY, expect, goToView, suite } from "./helpers.mjs";
 
 const { appTest } = suite();
 
-const PUSH = "push-a-glutes";
-const CHEST = "push-a-glutes-entry-003";
+const PUSH = "push-a";
+const CHEST = "push-a-02";
 const TODAY_KEY = "2026-11-04";
 
 // Four earlier sessions of Machine chest press (the oldest falls outside "Last 3 times").
@@ -101,14 +101,14 @@ appTest("logging: a tick needs reps, unticking a set removes it with its drops, 
   await expect(sheet.locator("[data-dialog-error]")).toBeEmpty();
   await sheet.getByRole("button", { name: "Drop set" }).click();
   await sheet.getByRole("button", { name: "Drop 1 after set 1 done" }).click();
-  assert.deepEqual((await savedLog(page, "push-a-glutes-entry-001")).sets, [{ kg: 20, reps: 10, drops: [{ kg: 15, reps: 10 }] }]);
+  assert.deepEqual((await savedLog(page, "push-a-01")).sets, [{ kg: 20, reps: 10, drops: [{ kg: 15, reps: 10 }] }]);
 
   // Unticking the set takes its drop out of the log; ticking it again brings the drop back.
   await sheet.getByRole("button", { name: "Set 1 done", exact: true }).click();
-  assert.equal(await savedLog(page, "push-a-glutes-entry-001"), null);
+  assert.equal(await savedLog(page, "push-a-01"), null);
   await expect(sheet.getByRole("button", { name: "Drop 1 after set 1 done" })).toHaveAttribute("aria-pressed", "false");
   await sheet.getByRole("button", { name: "Set 1 done", exact: true }).click();
-  assert.deepEqual((await savedLog(page, "push-a-glutes-entry-001")).sets, [{ kg: 20, reps: 10, drops: [{ kg: 15, reps: 10 }] }]);
+  assert.deepEqual((await savedLog(page, "push-a-01")).sets, [{ kg: 20, reps: 10, drops: [{ kg: 15, reps: 10 }] }]);
   await sheet.getByRole("button", { name: "Set 1 done", exact: true }).click();
 
   await sheet.getByRole("button", { name: "Close", exact: true }).click();
@@ -133,27 +133,27 @@ appTest("logging: the history sheet lists every session with the best set and ch
 });
 
 appTest("logging: a multi-choice slot logs the choice you did, and the Log day shows the sets", async ({ page }) => {
-  await main(page).getByRole("button", { name: /^Pull A, / }).click();
-  const title = "Neutral-grip pull-up or Assisted neutral-grip pull-up";
+  await main(page).getByRole("button", { name: /^Push B, / }).click();
+  const title = "Hanging knee raise or Captain’s-chair knee raise";
   await numberButton(page, title).click();
   const sheet = sheetOf(page);
   const choices = sheet.getByRole("group", { name: "Exercise you're doing" });
-  await choices.getByRole("button", { name: "Assisted neutral-grip pull-up" }).click();
-  await expect(sheet.getByRole("heading", { name: "Assisted neutral-grip pull-up" })).toBeVisible();
+  await choices.getByRole("button", { name: "Captain’s-chair knee raise" }).click();
+  await expect(sheet.getByRole("heading", { name: "Captain’s-chair knee raise" })).toBeVisible();
   await sheet.getByLabel("Reps for set 1").fill("8");
   await sheet.getByRole("button", { name: "Set 1 done", exact: true }).click();
   await sheet.getByRole("button", { name: "Done", exact: true }).click();
-  const log = await savedLog(page, "pull-a-entry-001");
+  const log = await savedLog(page, "push-b-07");
   assert.equal(log.sets[0].kg, null, "no weight typed: a bodyweight set");
   const state = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
-  const choice = routineById(state, "pull-a").entries.find((entry) => entry.id === "pull-a-entry-001").choices[1];
+  const choice = routineById(state, "push-b").entries.find((entry) => entry.id === "push-b-07").choices[1];
   assert.equal(log.exerciseId, choice.exerciseId);
 
   await goToView(page, "Log");
   await main(page).getByRole("button", { name: /^Wednesday, November 4, 2026/ }).click();
   const day = page.locator("#dayDialog");
   await expect(day.getByText("Logged sets")).toBeVisible();
-  await expect(day.locator(".day-log-row")).toContainText("Assisted neutral-grip pull-up");
+  await expect(day.locator(".day-log-row")).toContainText("Captain’s-chair knee raise");
   await expect(day.locator(".day-log-row")).toContainText(/8\s*reps/);
 });
 
@@ -168,7 +168,7 @@ appTest("logging: once done, the sheet's Close also saves rows typed in but not 
   await sheet.getByLabel("Reps for set 2").fill("10");
   await sheet.locator(".log-actions").getByRole("button", { name: "Close", exact: true }).click();
   await expect(sheet).toBeHidden();
-  assert.deepEqual((await savedLog(page, "push-a-glutes-entry-002")).sets, [{ kg: 35, reps: 12, drops: [] }, { kg: 35, reps: 10, drops: [] }]);
+  assert.deepEqual((await savedLog(page, "push-a-03")).sets, [{ kg: 35, reps: 12, drops: [] }, { kg: 35, reps: 10, drops: [] }]);
 });
 
 appTest("logging: a set unticked before Done stays out of the log", async ({ page }) => {
@@ -183,7 +183,7 @@ appTest("logging: a set unticked before Done stays out of the log", async ({ pag
   await sheet.getByRole("button", { name: "Drop 1 after set 2 done" }).click();
   await sheet.getByRole("button", { name: "Set 2 done", exact: true }).click();
   await sheet.getByRole("button", { name: "Done", exact: true }).click();
-  assert.deepEqual((await savedLog(page, "push-a-glutes-entry-002")).sets, [{ kg: 35, reps: 12, drops: [] }]);
+  assert.deepEqual((await savedLog(page, "push-a-03")).sets, [{ kg: 35, reps: 12, drops: [] }]);
 });
 
 appTest("logging: a drop can be removed, ticked or not", async ({ page }) => {
@@ -198,8 +198,8 @@ appTest("logging: a drop can be removed, ticked or not", async ({ page }) => {
   // An empty drop added by mistake goes away, and so does a ticked one.
   await sheet.getByRole("button", { name: "Remove drop 2 after set 1" }).click();
   await expect(sheet.getByRole("button", { name: "Drop 2 after set 1 done" })).toHaveCount(0);
-  assert.equal((await savedLog(page, "push-a-glutes-entry-002")).sets[0].drops.length, 1);
+  assert.equal((await savedLog(page, "push-a-03")).sets[0].drops.length, 1);
   await sheet.getByRole("button", { name: "Remove drop 1 after set 1" }).click();
-  assert.deepEqual((await savedLog(page, "push-a-glutes-entry-002")).sets, [{ kg: 35, reps: 12, drops: [] }]);
+  assert.deepEqual((await savedLog(page, "push-a-03")).sets, [{ kg: 35, reps: 12, drops: [] }]);
   await expect(sheet.getByRole("button", { name: "Drop set" })).toBeVisible();
 });
