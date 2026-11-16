@@ -1,10 +1,10 @@
 // npm run check: stamps sw.js with the current file list and version,
-// syntax-checks every app script, then runs the unit tests.
+// syntax-checks every script, then runs the unit tests. Takes a few seconds.
 
 import { createHash } from "node:crypto";
-import { spawnSync } from "node:child_process";
+import { execFile, spawnSync } from "node:child_process";
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -37,17 +37,17 @@ if (stamped !== sw) {
   console.log(`sw.js stamped: version ${version}, ${files.length} files`);
 }
 
-let failed = false;
-for (const file of [...list("js", (name) => name.endsWith(".js")), "sw.js", ...list("tools", (name) => name.endsWith(".mjs")), ...list("tests", (name) => name.endsWith(".mjs"))]) {
-  const result = spawnSync(process.execPath, ["--check", join(root, file)], { encoding: "utf8" });
-  if (result.status !== 0) {
-    failed = true;
-    console.error(`Syntax error in ${relative(root, join(root, file))}:\n${result.stderr}`);
-  }
+// Syntax: all scripts at once.
+const scripts = [...list("js", (name) => name.endsWith(".js")), "sw.js", ...list("tools", (name) => name.endsWith(".mjs")), ...list("tests", (name) => name.endsWith(".mjs"))];
+const errors = (await Promise.all(scripts.map((file) => new Promise((resolve) => {
+  execFile(process.execPath, ["--check", join(root, file)], (error, _stdout, stderr) => resolve(error ? `Syntax error in ${file}:\n${stderr}` : ""));
+})))).filter(Boolean);
+if (errors.length) {
+  console.error(errors.join("\n"));
+  process.exit(1);
 }
-if (failed) process.exit(1);
 
 // Unit tests only (tests/*.test.mjs). Browser tests live in tests/e2e and run with `npm run e2e`.
 const tests = readdirSync(join(root, "tests")).filter((file) => file.endsWith(".test.mjs")).sort().map((file) => join(root, "tests", file));
-const run = spawnSync(process.execPath, ["--test", ...tests], { stdio: "inherit" });
+const run = spawnSync(process.execPath, ["--test", "--test-reporter=dot", ...tests], { stdio: "inherit" });
 process.exit(run.status ?? 1);
