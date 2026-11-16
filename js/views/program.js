@@ -39,7 +39,7 @@ import {
   updateRoutine,
 } from "../model.js";
 import { openEntryEditor, openPicker } from "./entry-editor.js";
-import { entryPresentation, locationLabel, revealSelectedTab, routineTabsMarkup } from "./shared.js";
+import { entryPresentation, locationLabel, revealSelectedTab, routineTabsMarkup, saysOptional } from "./shared.js";
 
 // The program open in the program editor ("" while adding one).
 const programEditor = { id: "" };
@@ -150,7 +150,7 @@ function routineEntriesMarkup(state, routine) {
       return `<button class="program-row" type="button" data-action="edit-entry" data-id="${escapeHtml(entry.id)}" data-block-id="${escapeHtml(block.id)}" aria-label="${escapeHtml(presentation.title)}. Tap to edit. Hold and drag to reorder within ${escapeHtml(name || "this block")}.">${content}</button>`;
     }).join("");
     return `<section class="program-section" data-block-id="${escapeHtml(block.id)}">
-      ${showLabel ? `<div class="program-section-label"><span>${escapeHtml(name)}</span>${optionalOnly ? `<span class="program-block-role">Optional</span>` : ""}</div>` : ""}
+      ${showLabel ? `<div class="program-section-label"><span>${escapeHtml(name)}</span>${optionalOnly && !saysOptional(name) ? `<span class="program-block-role">Optional</span>` : ""}</div>` : ""}
       <div class="program-list" data-block-id="${escapeHtml(block.id)}">${rows}</div>
       ${!entries.length ? `<p class="program-block-empty">No exercises in ${escapeHtml(name || "this block")}.</p>` : ""}
       <button class="add-row-button" type="button" data-action="open-picker" data-block-id="${escapeHtml(block.id)}">+ Add exercise</button>

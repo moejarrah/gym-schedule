@@ -31,7 +31,7 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 
 ## Saved data at a glance
 
-One JSON object in `localStorage` under `gymAppStateV1`. The schema version, currently 11, is set in `js/store.js`, which validates every save.
+One JSON object in `localStorage` under `gymAppStateV1`. The schema version, currently 12, is set in `js/store.js`, which validates every save.
 
 - `exercises`: the Library's master exercises.
 - `programs` and `routines`: a program lists its routine IDs. A routine holds its blocks and entries, and each entry its choices (master exercise plus prescription).

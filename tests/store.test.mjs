@@ -18,13 +18,27 @@ import { fakeStorage, freshStore, refuse, save } from "./support.mjs";
 // exercise used as a choice, full/partial/note-only/all-Optional/two-routine days.
 const V9 = JSON.parse(readFileSync(new URL("./fixtures/v9-state.json", import.meta.url), "utf8"));
 // What the migrations make of it: v10 added training rules, v11 an empty set log per day.
-const V9_AS_CURRENT = {
+const V9_AS_V11 = {
   ...V9,
-  version: SCHEMA_VERSION,
+  version: 11,
   settings: { ...V9.settings, trainingRules: SEED.settings.trainingRules },
   sessions: Object.fromEntries(Object.entries(V9.sessions).map(([dateKey, session]) => [dateKey, { ...session, logs: {} }])),
 };
-const V10 = { ...V9_AS_CURRENT, version: 10, sessions: V9.sessions };
+// v12 replaced the library and programs with the starting data's (PPL 9, active).
+// Days keep notes, logs and completed routines but lose done marks; days left empty go.
+const afterPpl9 = (state) => ({
+  ...state,
+  version: 12,
+  exercises: SEED.exercises,
+  routines: SEED.routines,
+  programs: SEED.programs,
+  settings: { ...state.settings, activeProgramId: "ppl-9", activeRoutineId: "push-a" },
+  sessions: Object.fromEntries(Object.entries(state.sessions)
+    .filter(([, session]) => session.routineIds.length || session.note || Object.keys(session.logs).length)
+    .map(([dateKey, session]) => [dateKey, { ...session, checkedEntryIdsByRoutine: {} }])),
+});
+const V9_AS_CURRENT = afterPpl9(V9_AS_V11);
+const V10 = { ...V9_AS_V11, version: 10, sessions: V9.sessions };
 
 const quiet = (t) => t.mock.method(console, "error", () => {});
 
@@ -42,7 +56,7 @@ test("validation catches structural problems that would corrupt data", async (t)
       const other = s.exercises.find((exercise) => exercise.id === source.relatedExercises[0].exerciseId);
       other.relatedExercises = other.relatedExercises.filter((related) => related.exerciseId !== source.id);
     }],
-    "an entry in an unknown block": [/entry push-a-glutes-entry-001$/, (s) => { s.routines[0].entries[0].blockId = "nope"; }],
+    "an entry in an unknown block": [/entry push-a-01$/, (s) => { s.routines[0].entries[0].blockId = "nope"; }],
     "a choice of an unknown exercise": [/choice/, (s) => { s.routines[0].entries[0].choices[0].exerciseId = "nope"; }],
     "a routine owned by two programs": [/program p2: routine/, (s) => s.programs.push({ id: "p2", name: "Two", note: "", routineIds: [s.routines[0].id] })],
     "an active routine from another program": [/active routine/, (s) => {
@@ -50,8 +64,8 @@ test("validation catches structural problems that would corrupt data", async (t)
       s.programs.push({ id: "p2", name: "Two", note: "", routineIds: [moved] });
       s.settings.activeRoutineId = moved;
     }],
-    "a check for another routine's entry": [/checks for push-a-glutes/, (s) => {
-      s.sessions["2026-10-01"] = { routineIds: [], checkedEntryIdsByRoutine: { "push-a-glutes": [s.routines[1].entries[0].id] }, note: "", logs: {} };
+    "a check for another routine's entry": [/checks for push-a/, (s) => {
+      s.sessions["2026-10-01"] = { routineIds: [], checkedEntryIdsByRoutine: { "push-a": [s.routines[1].entries[0].id] }, note: "", logs: {} };
     }],
     "an empty session": [/empty/, (s) => { s.sessions["2026-10-01"] = { routineIds: [], checkedEntryIdsByRoutine: {}, note: "", logs: {} }; }],
     "an impossible date key": [/session 2026-02-30/, (s) => { s.sessions["2026-02-30"] = { routineIds: [], checkedEntryIdsByRoutine: {}, note: "x", logs: {} }; }],
@@ -88,7 +102,28 @@ test("a saved current state loads unchanged and isn't rewritten", () => {
   assert.equal(storage.writes, 0);
 });
 
-test("a v9 save migrates with all history, programs and exercises kept, and is saved as the current version", () => {
+test("a v11 save switches to PPL 9 and keeps the day history, theme and training rules", () => {
+  const log = { routineId: "push-a-glutes", exerciseId: "machine-chest-press", exerciseName: "Machine chest press", unit: "reps", sets: [{ kg: 50, reps: 10, drops: [] }] };
+  const days = Object.entries(V9_AS_V11.sessions);
+  const [checksOnly] = days.find(([, session]) => !session.routineIds.length && !session.note);
+  const [logged] = days.find(([dateKey]) => dateKey !== checksOnly);
+  const v11 = structuredClone(V9_AS_V11);
+  v11.settings.theme = "light";
+  v11.sessions[logged].logs = { "push-a-glutes-entry-003": log };
+
+  const { store } = freshStore(v11);
+  const state = store.getState();
+  assert.equal(store.getLastError(), "");
+  assert.deepEqual(state.programs.map((program) => program.name), ["PPL 9"]);
+  assert.deepEqual([state.settings.activeProgramId, state.settings.activeRoutineId], ["ppl-9", "push-a"]);
+  assert.deepEqual(state.routines.map((routine) => routine.name), ["Push A", "Pull A", "Legs A", "Push B", "Pull B", "Legs B"]);
+  assert.deepEqual([state.settings.theme, state.settings.trainingRules], ["light", v11.settings.trainingRules]);
+  assert.deepEqual(state.sessions[logged].logs, { "push-a-glutes-entry-003": log }, "logs stay");
+  assert.equal(state.sessions[checksOnly], undefined, "a day with only done marks of the old program goes");
+  assert.ok(Object.values(state.sessions).every((session) => !Object.keys(session.checkedEntryIdsByRoutine).length));
+});
+
+test("a v9 save migrates through every version, and is saved as the current version", () => {
   const { store, storage } = freshStore(V9);
   assert.deepEqual(store.getState(), V9_AS_CURRENT);
   assert.deepEqual(storage.saved(), V9_AS_CURRENT);

@@ -13,6 +13,10 @@ Things a desktop browser can't fully confirm:
 
 ## Next
 
+- **PPL 9 open points** (the owner decides; see `references/source-material/ppl9-pull-changes.md`):
+  - Kelso shrug (Pull A, optional) has no sets × reps yet.
+  - Reverse wrist curl (Pull B) is flagged for review: keep or remove isn't decided (wrist pain).
+  - The training rules in Settings are still PPLPPL 7's (12-week progression, pain rule, and a rule about home versions of rehab work, whose home routines are gone).
 - **Week numbers** in history ("Week 6 · Sat 31 Oct"). Undecided: how a week is counted (from a program start date? the first workout?). The owner will decide; until then history shows dates only.
 
 ## Decided against (for now)

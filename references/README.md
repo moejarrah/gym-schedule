@@ -23,6 +23,7 @@ Static HTML mock-ups of the earlier square "Ironworks" design, kept as history; 
 
 ## Starting program content
 
-- `source-material/pplppl7-glute-specialization.txt` — the owner's original program text, kept verbatim.
-- `data/pplppl7-manifest.json` — the reviewed, normalized version of that program and the exercise library. The app's starting data in `js/seed.js` was built from it; the two are no longer kept in sync automatically.
-- `pplppl7-data-study.md` and `exercise-classification-study.md` — how names, notes, blocks, choices and exercise classifications were decided.
+The starting program in `js/seed.js` is PPL 9, the owner's main program since November 2026. It replaced the earlier PPLPPL 7, whose source files were removed (Git has them).
+- `source-material/ppl9.jpg` — the owner's program sheet.
+- `source-material/ppl9-pull-changes.md` — the owner's changes to the Pull days, verbatim, and how the app records the sheet. Where the two differ, the changes win.
+- `exercise-classification-study.md` — how the Library's classifications were decided. It was written for the PPLPPL 7 library, which the current Library grew from.

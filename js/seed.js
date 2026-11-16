@@ -2,7 +2,7 @@
 // Editing this file does not change data already saved on a device.
 
 export const SEED = {
-  "version": 11,
+  "version": 12,
   "exercises": [
     {
       "id": "45-degree-glute-biased-back-extension",
@@ -256,66 +256,6 @@ export const SEED = {
       "videoId": ""
     },
     {
-      "id": "ankle-eversion",
-      "name": "Band ankle eversion",
-      "aliases": [
-        "Ankle eversion"
-      ],
-      "primaryTargets": [
-        "ankles"
-      ],
-      "secondaryTargets": [],
-      "movementPattern": "ankle-eversion",
-      "equipment": [
-        "band"
-      ],
-      "purpose": "rehab",
-      "style": "isolation",
-      "laterality": "unilateral",
-      "support": "",
-      "emphases": [],
-      "typicalChallenge": "variable",
-      "relatedExercises": [
-        {
-          "exerciseId": "cable-ankle-eversion",
-          "relation": "similar"
-        }
-      ],
-      "defaultPrescription": "2 × 15–25/side",
-      "instructions": "",
-      "videoId": ""
-    },
-    {
-      "id": "ankle-inversion",
-      "name": "Band ankle inversion",
-      "aliases": [
-        "Ankle inversion"
-      ],
-      "primaryTargets": [
-        "ankles"
-      ],
-      "secondaryTargets": [],
-      "movementPattern": "ankle-inversion",
-      "equipment": [
-        "band"
-      ],
-      "purpose": "rehab",
-      "style": "isolation",
-      "laterality": "unilateral",
-      "support": "",
-      "emphases": [],
-      "typicalChallenge": "variable",
-      "relatedExercises": [
-        {
-          "exerciseId": "cable-ankle-inversion",
-          "relation": "similar"
-        }
-      ],
-      "defaultPrescription": "2 × 15–25/side",
-      "instructions": "",
-      "videoId": ""
-    },
-    {
       "id": "assisted-neutral-grip-pull-up",
       "name": "Assisted neutral-grip pull-up",
       "aliases": [],
@@ -402,31 +342,62 @@ export const SEED = {
       "videoId": ""
     },
     {
-      "id": "wall-angel",
-      "name": "Wall angel",
+      "id": "ankle-eversion",
+      "name": "Band ankle eversion",
       "aliases": [
-        "Wall Angels"
+        "Ankle eversion"
       ],
       "primaryTargets": [
-        "traps"
+        "ankles"
       ],
-      "secondaryTargets": [
-        "serratus",
-        "rotator-cuff",
-        "rear-delts"
-      ],
-      "movementPattern": "scapular-control",
+      "secondaryTargets": [],
+      "movementPattern": "ankle-eversion",
       "equipment": [
-        "none"
+        "band"
       ],
-      "purpose": "mobility",
-      "style": "mobility-control",
-      "laterality": "bilateral",
-      "support": "supported",
+      "purpose": "rehab",
+      "style": "isolation",
+      "laterality": "unilateral",
+      "support": "",
       "emphases": [],
-      "typicalChallenge": "",
-      "relatedExercises": [],
-      "defaultPrescription": "1–2 × 8–12",
+      "typicalChallenge": "variable",
+      "relatedExercises": [
+        {
+          "exerciseId": "cable-ankle-eversion",
+          "relation": "similar"
+        }
+      ],
+      "defaultPrescription": "2 × 15–25/side",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "ankle-inversion",
+      "name": "Band ankle inversion",
+      "aliases": [
+        "Ankle inversion"
+      ],
+      "primaryTargets": [
+        "ankles"
+      ],
+      "secondaryTargets": [],
+      "movementPattern": "ankle-inversion",
+      "equipment": [
+        "band"
+      ],
+      "purpose": "rehab",
+      "style": "isolation",
+      "laterality": "unilateral",
+      "support": "",
+      "emphases": [],
+      "typicalChallenge": "variable",
+      "relatedExercises": [
+        {
+          "exerciseId": "cable-ankle-inversion",
+          "relation": "similar"
+        }
+      ],
+      "defaultPrescription": "2 × 15–25/side",
       "instructions": "",
       "videoId": ""
     },
@@ -475,6 +446,58 @@ export const SEED = {
       "typicalChallenge": "",
       "relatedExercises": [],
       "defaultPrescription": "1–2 × 12–20/side",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "hip-external-rotation",
+      "name": "Band hip external rotation",
+      "aliases": [
+        "Hip external rotation"
+      ],
+      "primaryTargets": [
+        "glute-med-min"
+      ],
+      "secondaryTargets": [],
+      "movementPattern": "hip-rotation",
+      "equipment": [
+        "band"
+      ],
+      "purpose": "rehab",
+      "style": "isolation",
+      "laterality": "unilateral",
+      "support": "",
+      "emphases": [],
+      "typicalChallenge": "variable",
+      "relatedExercises": [],
+      "defaultPrescription": "2 × 12–20/side",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "hip-internal-rotation",
+      "name": "Band hip internal rotation",
+      "aliases": [
+        "Hip internal rotation"
+      ],
+      "primaryTargets": [
+        "glute-med-min"
+      ],
+      "secondaryTargets": [
+        "adductors"
+      ],
+      "movementPattern": "hip-rotation",
+      "equipment": [
+        "band"
+      ],
+      "purpose": "rehab",
+      "style": "isolation",
+      "laterality": "unilateral",
+      "support": "",
+      "emphases": [],
+      "typicalChallenge": "variable",
+      "relatedExercises": [],
+      "defaultPrescription": "2 × 12–20/side",
       "instructions": "",
       "videoId": ""
     },
@@ -587,6 +610,145 @@ export const SEED = {
       "videoId": ""
     },
     {
+      "id": "bar-triceps-pushdown",
+      "name": "Bar triceps pushdown",
+      "aliases": [
+        "Bar pushdown",
+        "Straight-bar pushdown"
+      ],
+      "primaryTargets": [
+        "triceps"
+      ],
+      "secondaryTargets": [],
+      "movementPattern": "elbow-extension",
+      "equipment": [
+        "cable"
+      ],
+      "purpose": "strength",
+      "style": "isolation",
+      "laterality": "bilateral",
+      "support": "unsupported",
+      "emphases": [],
+      "typicalChallenge": "shortened-top",
+      "relatedExercises": [],
+      "defaultPrescription": "3 × 10–15",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "barbell-back-squat",
+      "name": "Barbell back squat",
+      "aliases": [
+        "Back squat"
+      ],
+      "primaryTargets": [
+        "quads",
+        "glute-max"
+      ],
+      "secondaryTargets": [
+        "adductors",
+        "spinal-erectors"
+      ],
+      "movementPattern": "squat",
+      "equipment": [
+        "barbell"
+      ],
+      "purpose": "strength",
+      "style": "compound",
+      "laterality": "bilateral",
+      "support": "unsupported",
+      "emphases": [],
+      "typicalChallenge": "lengthened-bottom",
+      "relatedExercises": [
+        {
+          "exerciseId": "goblet-squat",
+          "relation": "easier"
+        },
+        {
+          "exerciseId": "smith-squat",
+          "relation": "similar"
+        }
+      ],
+      "defaultPrescription": "3 × 5–8",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "barbell-bench-press",
+      "name": "Barbell bench press",
+      "aliases": [
+        "Bench press"
+      ],
+      "primaryTargets": [
+        "chest"
+      ],
+      "secondaryTargets": [
+        "triceps",
+        "front-delts"
+      ],
+      "movementPattern": "horizontal-press",
+      "equipment": [
+        "barbell",
+        "bench"
+      ],
+      "purpose": "strength",
+      "style": "compound",
+      "laterality": "bilateral",
+      "support": "supported",
+      "emphases": [],
+      "typicalChallenge": "lengthened-bottom",
+      "relatedExercises": [
+        {
+          "exerciseId": "push-up",
+          "relation": "similar"
+        },
+        {
+          "exerciseId": "flat-dumbbell-press",
+          "relation": "similar"
+        }
+      ],
+      "defaultPrescription": "3 × 6–10",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "hip-thrust",
+      "name": "Barbell hip thrust",
+      "aliases": [
+        "Hip thrust"
+      ],
+      "primaryTargets": [
+        "glute-max"
+      ],
+      "secondaryTargets": [
+        "hamstrings"
+      ],
+      "movementPattern": "hip-thrust-bridge",
+      "equipment": [
+        "barbell",
+        "bench"
+      ],
+      "purpose": "strength",
+      "style": "compound",
+      "laterality": "bilateral",
+      "support": "supported",
+      "emphases": [],
+      "typicalChallenge": "shortened-top",
+      "relatedExercises": [
+        {
+          "exerciseId": "glute-bridge",
+          "relation": "easier"
+        },
+        {
+          "exerciseId": "smith-hip-thrust",
+          "relation": "similar"
+        }
+      ],
+      "defaultPrescription": "3 × 6–10",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
       "id": "bayesian-curl",
       "name": "Bayesian curl",
       "aliases": [],
@@ -613,6 +775,32 @@ export const SEED = {
         }
       ],
       "defaultPrescription": "2–3 × 10–15/side",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "behind-the-head-ez-bar-skull-crusher",
+      "name": "Behind-the-head EZ-bar skull crusher",
+      "aliases": [
+        "EZ-bar skull crusher"
+      ],
+      "primaryTargets": [
+        "triceps"
+      ],
+      "secondaryTargets": [],
+      "movementPattern": "elbow-extension",
+      "equipment": [
+        "barbell",
+        "bench"
+      ],
+      "purpose": "strength",
+      "style": "isolation",
+      "laterality": "bilateral",
+      "support": "supported",
+      "emphases": [],
+      "typicalChallenge": "lengthened-bottom",
+      "relatedExercises": [],
+      "defaultPrescription": "3 × 8–12",
       "instructions": "",
       "videoId": ""
     },
@@ -664,6 +852,37 @@ export const SEED = {
       "typicalChallenge": "even",
       "relatedExercises": [],
       "defaultPrescription": "1–2 × 5–10/side",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "bodyweight-squat",
+      "name": "Bodyweight squat",
+      "aliases": [],
+      "primaryTargets": [
+        "quads",
+        "glute-max"
+      ],
+      "secondaryTargets": [
+        "adductors"
+      ],
+      "movementPattern": "squat",
+      "equipment": [
+        "bodyweight"
+      ],
+      "purpose": "strength",
+      "style": "compound",
+      "laterality": "bilateral",
+      "support": "unsupported",
+      "emphases": [],
+      "typicalChallenge": "lengthened-bottom",
+      "relatedExercises": [
+        {
+          "exerciseId": "goblet-squat",
+          "relation": "harder"
+        }
+      ],
+      "defaultPrescription": "2–3 × 8–15",
       "instructions": "",
       "videoId": ""
     },
@@ -747,33 +966,6 @@ export const SEED = {
       "videoId": ""
     },
     {
-      "id": "cable-external-rotation",
-      "name": "Cable shoulder external rotation",
-      "aliases": [
-        "Cable external rotation"
-      ],
-      "primaryTargets": [
-        "rotator-cuff"
-      ],
-      "secondaryTargets": [
-        "rear-delts"
-      ],
-      "movementPattern": "shoulder-rotation",
-      "equipment": [
-        "cable"
-      ],
-      "purpose": "rehab",
-      "style": "isolation",
-      "laterality": "unilateral",
-      "support": "unsupported",
-      "emphases": [],
-      "typicalChallenge": "variable",
-      "relatedExercises": [],
-      "defaultPrescription": "2 × 15–25/side",
-      "instructions": "",
-      "videoId": ""
-    },
-    {
       "id": "cable-fly",
       "name": "Cable fly",
       "aliases": [],
@@ -798,6 +990,68 @@ export const SEED = {
         }
       ],
       "defaultPrescription": "2 × 10–15",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "cable-pronation",
+      "name": "Cable forearm pronation",
+      "aliases": [
+        "Cable pronation"
+      ],
+      "primaryTargets": [
+        "forearms"
+      ],
+      "secondaryTargets": [],
+      "movementPattern": "forearm-rotation",
+      "equipment": [
+        "cable"
+      ],
+      "purpose": "rehab",
+      "style": "isolation",
+      "laterality": "unilateral",
+      "support": "supported",
+      "emphases": [],
+      "typicalChallenge": "variable",
+      "relatedExercises": [
+        {
+          "exerciseId": "lever-forearm-pronation",
+          "relation": "similar"
+        }
+      ],
+      "defaultPrescription": "1–2 × 12–20/side",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "cable-supination",
+      "name": "Cable forearm supination",
+      "aliases": [
+        "Cable supination"
+      ],
+      "primaryTargets": [
+        "forearms"
+      ],
+      "secondaryTargets": [
+        "biceps"
+      ],
+      "movementPattern": "forearm-rotation",
+      "equipment": [
+        "cable"
+      ],
+      "purpose": "rehab",
+      "style": "isolation",
+      "laterality": "unilateral",
+      "support": "supported",
+      "emphases": [],
+      "typicalChallenge": "variable",
+      "relatedExercises": [
+        {
+          "exerciseId": "lever-forearm-supination",
+          "relation": "similar"
+        }
+      ],
+      "defaultPrescription": "1–2 × 12–20/side",
       "instructions": "",
       "videoId": ""
     },
@@ -846,29 +1100,6 @@ export const SEED = {
       "typicalChallenge": "",
       "relatedExercises": [],
       "defaultPrescription": "2 × 12–20/side",
-      "instructions": "",
-      "videoId": ""
-    },
-    {
-      "id": "cable-shoulder-internal-rotation",
-      "name": "Cable shoulder internal rotation",
-      "aliases": [],
-      "primaryTargets": [
-        "rotator-cuff"
-      ],
-      "secondaryTargets": [],
-      "movementPattern": "shoulder-rotation",
-      "equipment": [
-        "cable"
-      ],
-      "purpose": "rehab",
-      "style": "isolation",
-      "laterality": "unilateral",
-      "support": "",
-      "emphases": [],
-      "typicalChallenge": "",
-      "relatedExercises": [],
-      "defaultPrescription": "1–2 × 15–25/side",
       "instructions": "",
       "videoId": ""
     },
@@ -930,32 +1161,25 @@ export const SEED = {
       "videoId": ""
     },
     {
-      "id": "cable-pronation",
-      "name": "Cable forearm pronation",
-      "aliases": [
-        "Cable pronation"
-      ],
+      "id": "cable-neck-rotation",
+      "name": "Cable neck rotation",
+      "aliases": [],
       "primaryTargets": [
-        "forearms"
+        "neck"
       ],
       "secondaryTargets": [],
-      "movementPattern": "forearm-rotation",
+      "movementPattern": "neck-movement",
       "equipment": [
         "cable"
       ],
       "purpose": "rehab",
       "style": "isolation",
       "laterality": "unilateral",
-      "support": "supported",
+      "support": "",
       "emphases": [],
-      "typicalChallenge": "variable",
-      "relatedExercises": [
-        {
-          "exerciseId": "lever-forearm-pronation",
-          "relation": "similar"
-        }
-      ],
-      "defaultPrescription": "1–2 × 12–20/side",
+      "typicalChallenge": "",
+      "relatedExercises": [],
+      "defaultPrescription": "1–2 × 15–25/side",
       "instructions": "",
       "videoId": ""
     },
@@ -1017,6 +1241,56 @@ export const SEED = {
       "videoId": ""
     },
     {
+      "id": "cable-external-rotation",
+      "name": "Cable shoulder external rotation",
+      "aliases": [
+        "Cable external rotation"
+      ],
+      "primaryTargets": [
+        "rotator-cuff"
+      ],
+      "secondaryTargets": [
+        "rear-delts"
+      ],
+      "movementPattern": "shoulder-rotation",
+      "equipment": [
+        "cable"
+      ],
+      "purpose": "rehab",
+      "style": "isolation",
+      "laterality": "unilateral",
+      "support": "unsupported",
+      "emphases": [],
+      "typicalChallenge": "variable",
+      "relatedExercises": [],
+      "defaultPrescription": "2 × 15–25/side",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "cable-shoulder-internal-rotation",
+      "name": "Cable shoulder internal rotation",
+      "aliases": [],
+      "primaryTargets": [
+        "rotator-cuff"
+      ],
+      "secondaryTargets": [],
+      "movementPattern": "shoulder-rotation",
+      "equipment": [
+        "cable"
+      ],
+      "purpose": "rehab",
+      "style": "isolation",
+      "laterality": "unilateral",
+      "support": "",
+      "emphases": [],
+      "typicalChallenge": "",
+      "relatedExercises": [],
+      "defaultPrescription": "1–2 × 15–25/side",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
       "id": "cable-side-bend",
       "name": "Cable side bend",
       "aliases": [],
@@ -1040,34 +1314,25 @@ export const SEED = {
       "videoId": ""
     },
     {
-      "id": "cable-supination",
-      "name": "Cable forearm supination",
-      "aliases": [
-        "Cable supination"
-      ],
+      "id": "cable-triceps-kickback",
+      "name": "Cable triceps kickback",
+      "aliases": [],
       "primaryTargets": [
-        "forearms"
+        "triceps"
       ],
-      "secondaryTargets": [
-        "biceps"
-      ],
-      "movementPattern": "forearm-rotation",
+      "secondaryTargets": [],
+      "movementPattern": "elbow-extension",
       "equipment": [
         "cable"
       ],
-      "purpose": "rehab",
+      "purpose": "strength",
       "style": "isolation",
       "laterality": "unilateral",
-      "support": "supported",
+      "support": "unsupported",
       "emphases": [],
-      "typicalChallenge": "variable",
-      "relatedExercises": [
-        {
-          "exerciseId": "lever-forearm-supination",
-          "relation": "similar"
-        }
-      ],
-      "defaultPrescription": "1–2 × 12–20/side",
+      "typicalChallenge": "shortened-top",
+      "relatedExercises": [],
+      "defaultPrescription": "1–2 × 12–20",
       "instructions": "",
       "videoId": ""
     },
@@ -1216,6 +1481,35 @@ export const SEED = {
       "videoId": ""
     },
     {
+      "id": "chest-supported-high-row-machine",
+      "name": "Chest-supported high row machine",
+      "aliases": [
+        "Machine high row"
+      ],
+      "primaryTargets": [
+        "upper-mid-back",
+        "lats"
+      ],
+      "secondaryTargets": [
+        "rear-delts",
+        "biceps"
+      ],
+      "movementPattern": "horizontal-pull",
+      "equipment": [
+        "machine"
+      ],
+      "purpose": "strength",
+      "style": "compound",
+      "laterality": "bilateral",
+      "support": "supported",
+      "emphases": [],
+      "typicalChallenge": "middle",
+      "relatedExercises": [],
+      "defaultPrescription": "2 × 8–12",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
       "id": "chest-supported-row",
       "name": "Chest-supported row",
       "aliases": [],
@@ -1270,6 +1564,33 @@ export const SEED = {
       "support": "supported",
       "emphases": [],
       "typicalChallenge": "",
+      "relatedExercises": [],
+      "defaultPrescription": "3 × 6–10",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "chest-supported-t-bar-row",
+      "name": "Chest-supported T-bar row",
+      "aliases": [],
+      "primaryTargets": [
+        "upper-mid-back",
+        "lats"
+      ],
+      "secondaryTargets": [
+        "biceps",
+        "rear-delts"
+      ],
+      "movementPattern": "horizontal-pull",
+      "equipment": [
+        "machine"
+      ],
+      "purpose": "strength",
+      "style": "compound",
+      "laterality": "bilateral",
+      "support": "supported",
+      "emphases": [],
+      "typicalChallenge": "middle",
       "relatedExercises": [],
       "defaultPrescription": "3 × 6–10",
       "instructions": "",
@@ -1499,6 +1820,159 @@ export const SEED = {
       "videoId": ""
     },
     {
+      "id": "hammer-curl",
+      "name": "Dumbbell hammer curl",
+      "aliases": [
+        "Hammer curl"
+      ],
+      "primaryTargets": [
+        "brachialis",
+        "biceps"
+      ],
+      "secondaryTargets": [
+        "brachioradialis"
+      ],
+      "movementPattern": "elbow-flexion",
+      "equipment": [
+        "dumbbells"
+      ],
+      "purpose": "strength",
+      "style": "isolation",
+      "laterality": "bilateral",
+      "support": "unsupported",
+      "emphases": [],
+      "typicalChallenge": "variable",
+      "relatedExercises": [],
+      "defaultPrescription": "2 × 10–15",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "dumbbell-lateral-raise",
+      "name": "Dumbbell lateral raise",
+      "aliases": [],
+      "primaryTargets": [
+        "side-delts"
+      ],
+      "secondaryTargets": [],
+      "movementPattern": "shoulder-raise",
+      "equipment": [
+        "dumbbells"
+      ],
+      "purpose": "strength",
+      "style": "isolation",
+      "laterality": "bilateral",
+      "support": "unsupported",
+      "emphases": [],
+      "typicalChallenge": "shortened-top",
+      "relatedExercises": [
+        {
+          "exerciseId": "cable-lateral-raise",
+          "relation": "similar"
+        }
+      ],
+      "defaultPrescription": "3 × 12–20",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "dumbbell-overhead-press",
+      "name": "Dumbbell overhead press",
+      "aliases": [
+        "Dumbbell shoulder press"
+      ],
+      "primaryTargets": [
+        "front-delts",
+        "side-delts"
+      ],
+      "secondaryTargets": [
+        "triceps"
+      ],
+      "movementPattern": "vertical-press",
+      "equipment": [
+        "dumbbells"
+      ],
+      "purpose": "strength",
+      "style": "compound",
+      "laterality": "bilateral",
+      "support": "",
+      "emphases": [],
+      "typicalChallenge": "middle",
+      "relatedExercises": [
+        {
+          "exerciseId": "machine-overhead-press",
+          "relation": "similar"
+        }
+      ],
+      "defaultPrescription": "2–3 × 8–12",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "dumbbell-romanian-deadlift",
+      "name": "Dumbbell Romanian deadlift",
+      "aliases": [
+        "Dumbbell RDL"
+      ],
+      "primaryTargets": [
+        "hamstrings",
+        "glute-max"
+      ],
+      "secondaryTargets": [
+        "adductors",
+        "spinal-erectors"
+      ],
+      "movementPattern": "hip-hinge",
+      "equipment": [
+        "dumbbells"
+      ],
+      "purpose": "strength",
+      "style": "compound",
+      "laterality": "bilateral",
+      "support": "unsupported",
+      "emphases": [],
+      "typicalChallenge": "lengthened-bottom",
+      "relatedExercises": [
+        {
+          "exerciseId": "romanian-deadlift",
+          "relation": "similar"
+        }
+      ],
+      "defaultPrescription": "3 × 8–12",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "scaption-raise",
+      "name": "Dumbbell scaption raise",
+      "aliases": [
+        "Scaption raise"
+      ],
+      "primaryTargets": [
+        "side-delts"
+      ],
+      "secondaryTargets": [
+        "serratus",
+        "rotator-cuff"
+      ],
+      "movementPattern": "shoulder-raise",
+      "equipment": [
+        "dumbbells"
+      ],
+      "purpose": "rehab",
+      "style": "isolation",
+      "laterality": "bilateral",
+      "support": "unsupported",
+      "emphases": [
+        "scapular-plane"
+      ],
+      "typicalChallenge": "variable",
+      "relatedExercises": [],
+      "defaultPrescription": "3 × 12–20",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
       "id": "dumbbell-shrug",
       "name": "Dumbbell shrug",
       "aliases": [],
@@ -1519,6 +1993,40 @@ export const SEED = {
       "relatedExercises": [
         {
           "exerciseId": "machine-shrug",
+          "relation": "similar"
+        }
+      ],
+      "defaultPrescription": "2 × 10–15",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "reverse-curl",
+      "name": "EZ-bar reverse curl",
+      "aliases": [
+        "Reverse curl"
+      ],
+      "primaryTargets": [
+        "brachioradialis",
+        "brachialis"
+      ],
+      "secondaryTargets": [
+        "biceps",
+        "forearm-extensors"
+      ],
+      "movementPattern": "elbow-flexion",
+      "equipment": [
+        "barbell"
+      ],
+      "purpose": "strength",
+      "style": "isolation",
+      "laterality": "bilateral",
+      "support": "unsupported",
+      "emphases": [],
+      "typicalChallenge": "variable",
+      "relatedExercises": [
+        {
+          "exerciseId": "cable-reverse-curl",
           "relation": "similar"
         }
       ],
@@ -1637,6 +2145,63 @@ export const SEED = {
       "videoId": ""
     },
     {
+      "id": "glute-bridge",
+      "name": "Glute bridge",
+      "aliases": [],
+      "primaryTargets": [
+        "glute-max",
+        "hamstrings"
+      ],
+      "secondaryTargets": [],
+      "movementPattern": "hip-thrust-bridge",
+      "equipment": [
+        "bodyweight"
+      ],
+      "purpose": "strength",
+      "style": "compound",
+      "laterality": "bilateral",
+      "support": "supported",
+      "emphases": [],
+      "typicalChallenge": "shortened-top",
+      "relatedExercises": [
+        {
+          "exerciseId": "hip-thrust",
+          "relation": "harder"
+        }
+      ],
+      "defaultPrescription": "1–2 × 10–20",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "glute-biased-reverse-lunge",
+      "name": "Glute-biased reverse lunge",
+      "aliases": [],
+      "primaryTargets": [
+        "glute-max",
+        "quads"
+      ],
+      "secondaryTargets": [
+        "adductors"
+      ],
+      "movementPattern": "split-squat-lunge",
+      "equipment": [
+        "dumbbells"
+      ],
+      "purpose": "strength",
+      "style": "compound",
+      "laterality": "unilateral",
+      "support": "unsupported",
+      "emphases": [
+        "glute-bias"
+      ],
+      "typicalChallenge": "lengthened-bottom",
+      "relatedExercises": [],
+      "defaultPrescription": "2 × 8–12/leg",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
       "id": "glute-biased-step-up",
       "name": "Glute-biased step-up",
       "aliases": [],
@@ -1666,31 +2231,38 @@ export const SEED = {
       "videoId": ""
     },
     {
-      "id": "glute-bridge",
-      "name": "Glute bridge",
+      "id": "goblet-squat",
+      "name": "Goblet squat",
       "aliases": [],
       "primaryTargets": [
-        "glute-max",
-        "hamstrings"
+        "quads",
+        "glute-max"
       ],
-      "secondaryTargets": [],
-      "movementPattern": "hip-thrust-bridge",
+      "secondaryTargets": [
+        "adductors"
+      ],
+      "movementPattern": "squat",
       "equipment": [
-        "bodyweight"
+        "dumbbells",
+        "kettlebell"
       ],
       "purpose": "strength",
       "style": "compound",
       "laterality": "bilateral",
-      "support": "supported",
+      "support": "unsupported",
       "emphases": [],
-      "typicalChallenge": "shortened-top",
+      "typicalChallenge": "lengthened-bottom",
       "relatedExercises": [
         {
-          "exerciseId": "hip-thrust",
+          "exerciseId": "bodyweight-squat",
+          "relation": "easier"
+        },
+        {
+          "exerciseId": "barbell-back-squat",
           "relation": "harder"
         }
       ],
-      "defaultPrescription": "1–2 × 10–20",
+      "defaultPrescription": "3 × 8–12",
       "instructions": "",
       "videoId": ""
     },
@@ -1779,34 +2351,6 @@ export const SEED = {
       "videoId": ""
     },
     {
-      "id": "hammer-curl",
-      "name": "Dumbbell hammer curl",
-      "aliases": [
-        "Hammer curl"
-      ],
-      "primaryTargets": [
-        "brachialis",
-        "biceps"
-      ],
-      "secondaryTargets": [
-        "brachioradialis"
-      ],
-      "movementPattern": "elbow-flexion",
-      "equipment": [
-        "dumbbells"
-      ],
-      "purpose": "strength",
-      "style": "isolation",
-      "laterality": "bilateral",
-      "support": "unsupported",
-      "emphases": [],
-      "typicalChallenge": "variable",
-      "relatedExercises": [],
-      "defaultPrescription": "2 × 10–15",
-      "instructions": "",
-      "videoId": ""
-    },
-    {
       "id": "hanging-knee-raise",
       "name": "Hanging knee raise",
       "aliases": [],
@@ -1860,31 +2404,6 @@ export const SEED = {
       "videoId": ""
     },
     {
-      "id": "upright-hip-abduction-machine",
-      "name": "Upright hip-abduction machine",
-      "aliases": [
-        "Hip-abduction machine"
-      ],
-      "primaryTargets": [
-        "glute-med-min"
-      ],
-      "secondaryTargets": [],
-      "movementPattern": "hip-abduction",
-      "equipment": [
-        "machine"
-      ],
-      "purpose": "strength",
-      "style": "isolation",
-      "laterality": "bilateral",
-      "support": "supported",
-      "emphases": [],
-      "typicalChallenge": "shortened-top",
-      "relatedExercises": [],
-      "defaultPrescription": "2 × 15–25",
-      "instructions": "",
-      "videoId": ""
-    },
-    {
       "id": "hip-cars",
       "name": "Hip CARs",
       "aliases": [],
@@ -1907,31 +2426,6 @@ export const SEED = {
       "typicalChallenge": "",
       "relatedExercises": [],
       "defaultPrescription": "1–2 slow circles/direction/side",
-      "instructions": "",
-      "videoId": ""
-    },
-    {
-      "id": "hip-external-rotation",
-      "name": "Band hip external rotation",
-      "aliases": [
-        "Hip external rotation"
-      ],
-      "primaryTargets": [
-        "glute-med-min"
-      ],
-      "secondaryTargets": [],
-      "movementPattern": "hip-rotation",
-      "equipment": [
-        "band"
-      ],
-      "purpose": "rehab",
-      "style": "isolation",
-      "laterality": "unilateral",
-      "support": "",
-      "emphases": [],
-      "typicalChallenge": "variable",
-      "relatedExercises": [],
-      "defaultPrescription": "2 × 12–20/side",
       "instructions": "",
       "videoId": ""
     },
@@ -1967,66 +2461,32 @@ export const SEED = {
       "videoId": ""
     },
     {
-      "id": "hip-internal-rotation",
-      "name": "Band hip internal rotation",
+      "id": "incline-chest-press-machine",
+      "name": "Incline chest press machine",
       "aliases": [
-        "Hip internal rotation"
+        "Machine incline chest press"
       ],
       "primaryTargets": [
-        "glute-med-min"
+        "chest"
       ],
       "secondaryTargets": [
-        "adductors"
+        "front-delts",
+        "triceps"
       ],
-      "movementPattern": "hip-rotation",
+      "movementPattern": "horizontal-press",
       "equipment": [
-        "band"
-      ],
-      "purpose": "rehab",
-      "style": "isolation",
-      "laterality": "unilateral",
-      "support": "",
-      "emphases": [],
-      "typicalChallenge": "variable",
-      "relatedExercises": [],
-      "defaultPrescription": "2 × 12–20/side",
-      "instructions": "",
-      "videoId": ""
-    },
-    {
-      "id": "hip-thrust",
-      "name": "Barbell hip thrust",
-      "aliases": [
-        "Hip thrust"
-      ],
-      "primaryTargets": [
-        "glute-max"
-      ],
-      "secondaryTargets": [
-        "hamstrings"
-      ],
-      "movementPattern": "hip-thrust-bridge",
-      "equipment": [
-        "barbell",
-        "bench"
+        "machine"
       ],
       "purpose": "strength",
       "style": "compound",
       "laterality": "bilateral",
       "support": "supported",
-      "emphases": [],
-      "typicalChallenge": "shortened-top",
-      "relatedExercises": [
-        {
-          "exerciseId": "glute-bridge",
-          "relation": "easier"
-        },
-        {
-          "exerciseId": "smith-hip-thrust",
-          "relation": "similar"
-        }
+      "emphases": [
+        "upper-chest"
       ],
-      "defaultPrescription": "3 × 6–10",
+      "typicalChallenge": "variable",
+      "relatedExercises": [],
+      "defaultPrescription": "2 × 8–12",
       "instructions": "",
       "videoId": ""
     },
@@ -2058,8 +2518,9 @@ export const SEED = {
     },
     {
       "id": "incline-y-raise",
-      "name": "Incline-bench Y-raise",
+      "name": "Incline dumbbell Y-raise",
       "aliases": [
+        "Incline-bench Y-raise",
         "Incline Y raise"
       ],
       "primaryTargets": [
@@ -2087,6 +2548,34 @@ export const SEED = {
         }
       ],
       "defaultPrescription": "2 × 12–20",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "kelso-shrug",
+      "name": "Kelso shrug",
+      "aliases": [
+        "Chest-supported shrug"
+      ],
+      "primaryTargets": [
+        "traps"
+      ],
+      "secondaryTargets": [
+        "upper-mid-back"
+      ],
+      "movementPattern": "shrug",
+      "equipment": [
+        "dumbbells",
+        "bench"
+      ],
+      "purpose": "strength",
+      "style": "isolation",
+      "laterality": "bilateral",
+      "support": "supported",
+      "emphases": [],
+      "typicalChallenge": "shortened-top",
+      "relatedExercises": [],
+      "defaultPrescription": "",
       "instructions": "",
       "videoId": ""
     },
@@ -2365,6 +2854,32 @@ export const SEED = {
       "videoId": ""
     },
     {
+      "id": "lying-cable-skull-crusher-to-behind-head",
+      "name": "Lying cable skull crusher to behind head",
+      "aliases": [
+        "Lying cable skull crusher"
+      ],
+      "primaryTargets": [
+        "triceps"
+      ],
+      "secondaryTargets": [],
+      "movementPattern": "elbow-extension",
+      "equipment": [
+        "cable",
+        "bench"
+      ],
+      "purpose": "strength",
+      "style": "isolation",
+      "laterality": "bilateral",
+      "support": "supported",
+      "emphases": [],
+      "typicalChallenge": "lengthened-bottom",
+      "relatedExercises": [],
+      "defaultPrescription": "3 × 10–15",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
       "id": "lying-leg-curl",
       "name": "Lying leg curl",
       "aliases": [],
@@ -2485,6 +3000,38 @@ export const SEED = {
       "videoId": ""
     },
     {
+      "id": "preacher-curl",
+      "name": "Machine preacher curl",
+      "aliases": [
+        "Preacher curl"
+      ],
+      "primaryTargets": [
+        "biceps"
+      ],
+      "secondaryTargets": [
+        "brachialis"
+      ],
+      "movementPattern": "elbow-flexion",
+      "equipment": [
+        "machine"
+      ],
+      "purpose": "strength",
+      "style": "isolation",
+      "laterality": "bilateral",
+      "support": "supported",
+      "emphases": [],
+      "typicalChallenge": "lengthened-bottom",
+      "relatedExercises": [
+        {
+          "exerciseId": "bayesian-curl",
+          "relation": "similar"
+        }
+      ],
+      "defaultPrescription": "2 × 8–12",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
       "id": "machine-shrug",
       "name": "Machine shrug",
       "aliases": [],
@@ -2509,6 +3056,35 @@ export const SEED = {
         }
       ],
       "defaultPrescription": "2 × 10–15",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "medium-wide-pronated-seated-cable-row",
+      "name": "Medium-wide pronated seated cable row",
+      "aliases": [
+        "Seated cable row"
+      ],
+      "primaryTargets": [
+        "upper-mid-back"
+      ],
+      "secondaryTargets": [
+        "lats",
+        "rear-delts",
+        "biceps"
+      ],
+      "movementPattern": "horizontal-pull",
+      "equipment": [
+        "cable"
+      ],
+      "purpose": "strength",
+      "style": "compound",
+      "laterality": "bilateral",
+      "support": "unsupported",
+      "emphases": [],
+      "typicalChallenge": "middle",
+      "relatedExercises": [],
+      "defaultPrescription": "3 × 8–12",
       "instructions": "",
       "videoId": ""
     },
@@ -2849,16 +3425,14 @@ export const SEED = {
       "videoId": ""
     },
     {
-      "id": "preacher-curl",
-      "name": "Preacher curl",
+      "id": "pec-deck",
+      "name": "Pec deck",
       "aliases": [],
       "primaryTargets": [
-        "biceps"
+        "chest"
       ],
-      "secondaryTargets": [
-        "brachialis"
-      ],
-      "movementPattern": "elbow-flexion",
+      "secondaryTargets": [],
+      "movementPattern": "fly",
       "equipment": [
         "machine"
       ],
@@ -2867,14 +3441,43 @@ export const SEED = {
       "laterality": "bilateral",
       "support": "supported",
       "emphases": [],
-      "typicalChallenge": "lengthened-bottom",
+      "typicalChallenge": "",
       "relatedExercises": [
         {
-          "exerciseId": "bayesian-curl",
+          "exerciseId": "cable-fly",
           "relation": "similar"
         }
       ],
-      "defaultPrescription": "2 × 8–12",
+      "defaultPrescription": "2 × 10–15",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "pronated-grip-lat-pulldown",
+      "name": "Pronated-grip lat pulldown",
+      "aliases": [
+        "Overhand lat pulldown"
+      ],
+      "primaryTargets": [
+        "lats"
+      ],
+      "secondaryTargets": [
+        "upper-mid-back",
+        "biceps",
+        "brachialis"
+      ],
+      "movementPattern": "vertical-pull",
+      "equipment": [
+        "machine"
+      ],
+      "purpose": "strength",
+      "style": "compound",
+      "laterality": "bilateral",
+      "support": "supported",
+      "emphases": [],
+      "typicalChallenge": "lengthened-bottom",
+      "relatedExercises": [],
+      "defaultPrescription": "3 × 6–10",
       "instructions": "",
       "videoId": ""
     },
@@ -3005,6 +3608,38 @@ export const SEED = {
       "videoId": ""
     },
     {
+      "id": "push-up",
+      "name": "Push-up",
+      "aliases": [],
+      "primaryTargets": [
+        "chest"
+      ],
+      "secondaryTargets": [
+        "triceps",
+        "front-delts",
+        "serratus"
+      ],
+      "movementPattern": "horizontal-press",
+      "equipment": [
+        "bodyweight"
+      ],
+      "purpose": "strength",
+      "style": "compound",
+      "laterality": "bilateral",
+      "support": "unsupported",
+      "emphases": [],
+      "typicalChallenge": "",
+      "relatedExercises": [
+        {
+          "exerciseId": "barbell-bench-press",
+          "relation": "similar"
+        }
+      ],
+      "defaultPrescription": "2–3 × 8–15",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
       "id": "push-up-plus",
       "name": "Push-up plus",
       "aliases": [],
@@ -3080,34 +3715,6 @@ export const SEED = {
       "videoId": ""
     },
     {
-      "id": "pec-deck",
-      "name": "Pec deck",
-      "aliases": [],
-      "primaryTargets": [
-        "chest"
-      ],
-      "secondaryTargets": [],
-      "movementPattern": "fly",
-      "equipment": [
-        "machine"
-      ],
-      "purpose": "strength",
-      "style": "isolation",
-      "laterality": "bilateral",
-      "support": "supported",
-      "emphases": [],
-      "typicalChallenge": "",
-      "relatedExercises": [
-        {
-          "exerciseId": "cable-fly",
-          "relation": "similar"
-        }
-      ],
-      "defaultPrescription": "2 × 10–15",
-      "instructions": "",
-      "videoId": ""
-    },
-    {
       "id": "relaxed-90-90-external-rotation-stretch",
       "name": "Relaxed 90/90 external-rotation stretch",
       "aliases": [],
@@ -3156,40 +3763,6 @@ export const SEED = {
       "videoId": ""
     },
     {
-      "id": "reverse-curl",
-      "name": "EZ-bar reverse curl",
-      "aliases": [
-        "Reverse curl"
-      ],
-      "primaryTargets": [
-        "brachioradialis",
-        "brachialis"
-      ],
-      "secondaryTargets": [
-        "biceps",
-        "forearm-extensors"
-      ],
-      "movementPattern": "elbow-flexion",
-      "equipment": [
-        "barbell"
-      ],
-      "purpose": "strength",
-      "style": "isolation",
-      "laterality": "bilateral",
-      "support": "unsupported",
-      "emphases": [],
-      "typicalChallenge": "variable",
-      "relatedExercises": [
-        {
-          "exerciseId": "cable-reverse-curl",
-          "relation": "similar"
-        }
-      ],
-      "defaultPrescription": "2 × 10–15",
-      "instructions": "",
-      "videoId": ""
-    },
-    {
       "id": "reverse-lunge",
       "name": "Reverse lunge",
       "aliases": [],
@@ -3212,6 +3785,33 @@ export const SEED = {
       "typicalChallenge": "lengthened-bottom",
       "relatedExercises": [],
       "defaultPrescription": "1–2 × 6–12/side",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "reverse-pec-deck",
+      "name": "Reverse pec deck",
+      "aliases": [
+        "Rear-delt fly machine"
+      ],
+      "primaryTargets": [
+        "rear-delts"
+      ],
+      "secondaryTargets": [
+        "upper-mid-back"
+      ],
+      "movementPattern": "shoulder-raise",
+      "equipment": [
+        "machine"
+      ],
+      "purpose": "strength",
+      "style": "isolation",
+      "laterality": "bilateral",
+      "support": "supported",
+      "emphases": [],
+      "typicalChallenge": "shortened-top",
+      "relatedExercises": [],
+      "defaultPrescription": "2 × 12–20",
       "instructions": "",
       "videoId": ""
     },
@@ -3326,32 +3926,28 @@ export const SEED = {
       "videoId": ""
     },
     {
-      "id": "scaption-raise",
-      "name": "Dumbbell scaption raise",
+      "id": "scapular-pull-up",
+      "name": "Scapular pull-up",
       "aliases": [
-        "Scaption raise"
+        "Scap pull-up"
       ],
       "primaryTargets": [
-        "side-delts"
+        "lats",
+        "traps"
       ],
-      "secondaryTargets": [
-        "serratus",
-        "rotator-cuff"
-      ],
-      "movementPattern": "shoulder-raise",
+      "secondaryTargets": [],
+      "movementPattern": "scapular-control",
       "equipment": [
-        "dumbbells"
+        "pull-up-bar"
       ],
-      "purpose": "rehab",
+      "purpose": "strength",
       "style": "isolation",
       "laterality": "bilateral",
       "support": "unsupported",
-      "emphases": [
-        "scapular-plane"
-      ],
-      "typicalChallenge": "variable",
+      "emphases": [],
+      "typicalChallenge": "lengthened-bottom",
       "relatedExercises": [],
-      "defaultPrescription": "3 × 12–20",
+      "defaultPrescription": "1 × 5–10",
       "instructions": "",
       "videoId": ""
     },
@@ -3654,6 +4250,62 @@ export const SEED = {
       "videoId": ""
     },
     {
+      "id": "side-plank",
+      "name": "Side plank",
+      "aliases": [],
+      "primaryTargets": [
+        "obliques"
+      ],
+      "secondaryTargets": [
+        "abs"
+      ],
+      "movementPattern": "anti-lateral-flexion",
+      "equipment": [
+        "bodyweight"
+      ],
+      "purpose": "strength",
+      "style": "isometric",
+      "laterality": "unilateral",
+      "support": "unsupported",
+      "emphases": [],
+      "typicalChallenge": "even",
+      "relatedExercises": [
+        {
+          "exerciseId": "short-lever-side-plank",
+          "relation": "easier"
+        }
+      ],
+      "defaultPrescription": "1–2 × 15–40 sec/side",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "side-plank-with-hip-abduction",
+      "name": "Side plank (with hip abduction)",
+      "aliases": [],
+      "primaryTargets": [
+        "obliques",
+        "glute-med-min"
+      ],
+      "secondaryTargets": [
+        "abs"
+      ],
+      "movementPattern": "anti-lateral-flexion",
+      "equipment": [
+        "bodyweight"
+      ],
+      "purpose": "strength",
+      "style": "isometric",
+      "laterality": "unilateral",
+      "support": "unsupported",
+      "emphases": [],
+      "typicalChallenge": "even",
+      "relatedExercises": [],
+      "defaultPrescription": "2 × 15–30 sec/side",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
       "id": "side-lying-external-rotation",
       "name": "Side-lying dumbbell shoulder external rotation",
       "aliases": [
@@ -3724,62 +4376,6 @@ export const SEED = {
       "typicalChallenge": "",
       "relatedExercises": [],
       "defaultPrescription": "1–2 × 12–20/side",
-      "instructions": "",
-      "videoId": ""
-    },
-    {
-      "id": "side-plank",
-      "name": "Side plank",
-      "aliases": [],
-      "primaryTargets": [
-        "obliques"
-      ],
-      "secondaryTargets": [
-        "abs"
-      ],
-      "movementPattern": "anti-lateral-flexion",
-      "equipment": [
-        "bodyweight"
-      ],
-      "purpose": "strength",
-      "style": "isometric",
-      "laterality": "unilateral",
-      "support": "unsupported",
-      "emphases": [],
-      "typicalChallenge": "even",
-      "relatedExercises": [
-        {
-          "exerciseId": "short-lever-side-plank",
-          "relation": "easier"
-        }
-      ],
-      "defaultPrescription": "1–2 × 15–40 sec/side",
-      "instructions": "",
-      "videoId": ""
-    },
-    {
-      "id": "side-plank-with-hip-abduction",
-      "name": "Side plank (with hip abduction)",
-      "aliases": [],
-      "primaryTargets": [
-        "obliques",
-        "glute-med-min"
-      ],
-      "secondaryTargets": [
-        "abs"
-      ],
-      "movementPattern": "anti-lateral-flexion",
-      "equipment": [
-        "bodyweight"
-      ],
-      "purpose": "strength",
-      "style": "isometric",
-      "laterality": "unilateral",
-      "support": "unsupported",
-      "emphases": [],
-      "typicalChallenge": "even",
-      "relatedExercises": [],
-      "defaultPrescription": "2 × 15–30 sec/side",
       "instructions": "",
       "videoId": ""
     },
@@ -4487,25 +5083,82 @@ export const SEED = {
       "videoId": ""
     },
     {
-      "id": "cable-neck-rotation",
-      "name": "Cable neck rotation",
-      "aliases": [],
+      "id": "upright-hip-abduction-machine",
+      "name": "Upright hip-abduction machine",
+      "aliases": [
+        "Hip-abduction machine"
+      ],
       "primaryTargets": [
-        "neck"
+        "glute-med-min"
       ],
       "secondaryTargets": [],
-      "movementPattern": "neck-movement",
+      "movementPattern": "hip-abduction",
       "equipment": [
-        "cable"
+        "machine"
       ],
-      "purpose": "rehab",
+      "purpose": "strength",
       "style": "isolation",
-      "laterality": "unilateral",
-      "support": "",
+      "laterality": "bilateral",
+      "support": "supported",
+      "emphases": [],
+      "typicalChallenge": "shortened-top",
+      "relatedExercises": [],
+      "defaultPrescription": "2 × 15–25",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "walking-lunge",
+      "name": "Walking lunge",
+      "aliases": [],
+      "primaryTargets": [
+        "quads",
+        "glute-max"
+      ],
+      "secondaryTargets": [
+        "adductors"
+      ],
+      "movementPattern": "split-squat-lunge",
+      "equipment": [
+        "dumbbells"
+      ],
+      "purpose": "strength",
+      "style": "compound",
+      "laterality": "alternating",
+      "support": "unsupported",
+      "emphases": [],
+      "typicalChallenge": "lengthened-bottom",
+      "relatedExercises": [],
+      "defaultPrescription": "2 × 8–12/leg",
+      "instructions": "",
+      "videoId": ""
+    },
+    {
+      "id": "wall-angel",
+      "name": "Wall angel",
+      "aliases": [
+        "Wall Angels"
+      ],
+      "primaryTargets": [
+        "traps"
+      ],
+      "secondaryTargets": [
+        "serratus",
+        "rotator-cuff",
+        "rear-delts"
+      ],
+      "movementPattern": "scapular-control",
+      "equipment": [
+        "none"
+      ],
+      "purpose": "mobility",
+      "style": "mobility-control",
+      "laterality": "bilateral",
+      "support": "supported",
       "emphases": [],
       "typicalChallenge": "",
       "relatedExercises": [],
-      "defaultPrescription": "1–2 × 15–25/side",
+      "defaultPrescription": "1–2 × 8–12",
       "instructions": "",
       "videoId": ""
     },
@@ -4554,426 +5207,168 @@ export const SEED = {
       "defaultPrescription": "2 × 12–20",
       "instructions": "",
       "videoId": ""
-    },
-    {
-      "id": "bodyweight-squat",
-      "name": "Bodyweight squat",
-      "aliases": [],
-      "primaryTargets": [
-        "quads",
-        "glute-max"
-      ],
-      "secondaryTargets": [
-        "adductors"
-      ],
-      "movementPattern": "squat",
-      "equipment": [
-        "bodyweight"
-      ],
-      "purpose": "strength",
-      "style": "compound",
-      "laterality": "bilateral",
-      "support": "unsupported",
-      "emphases": [],
-      "typicalChallenge": "lengthened-bottom",
-      "relatedExercises": [
-        {
-          "exerciseId": "goblet-squat",
-          "relation": "harder"
-        }
-      ],
-      "defaultPrescription": "2–3 × 8–15",
-      "instructions": "",
-      "videoId": ""
-    },
-    {
-      "id": "goblet-squat",
-      "name": "Goblet squat",
-      "aliases": [],
-      "primaryTargets": [
-        "quads",
-        "glute-max"
-      ],
-      "secondaryTargets": [
-        "adductors"
-      ],
-      "movementPattern": "squat",
-      "equipment": [
-        "dumbbells",
-        "kettlebell"
-      ],
-      "purpose": "strength",
-      "style": "compound",
-      "laterality": "bilateral",
-      "support": "unsupported",
-      "emphases": [],
-      "typicalChallenge": "lengthened-bottom",
-      "relatedExercises": [
-        {
-          "exerciseId": "bodyweight-squat",
-          "relation": "easier"
-        },
-        {
-          "exerciseId": "barbell-back-squat",
-          "relation": "harder"
-        }
-      ],
-      "defaultPrescription": "3 × 8–12",
-      "instructions": "",
-      "videoId": ""
-    },
-    {
-      "id": "barbell-back-squat",
-      "name": "Barbell back squat",
-      "aliases": [
-        "Back squat"
-      ],
-      "primaryTargets": [
-        "quads",
-        "glute-max"
-      ],
-      "secondaryTargets": [
-        "adductors",
-        "spinal-erectors"
-      ],
-      "movementPattern": "squat",
-      "equipment": [
-        "barbell"
-      ],
-      "purpose": "strength",
-      "style": "compound",
-      "laterality": "bilateral",
-      "support": "unsupported",
-      "emphases": [],
-      "typicalChallenge": "lengthened-bottom",
-      "relatedExercises": [
-        {
-          "exerciseId": "goblet-squat",
-          "relation": "easier"
-        },
-        {
-          "exerciseId": "smith-squat",
-          "relation": "similar"
-        }
-      ],
-      "defaultPrescription": "3 × 5–8",
-      "instructions": "",
-      "videoId": ""
-    },
-    {
-      "id": "push-up",
-      "name": "Push-up",
-      "aliases": [],
-      "primaryTargets": [
-        "chest"
-      ],
-      "secondaryTargets": [
-        "triceps",
-        "front-delts",
-        "serratus"
-      ],
-      "movementPattern": "horizontal-press",
-      "equipment": [
-        "bodyweight"
-      ],
-      "purpose": "strength",
-      "style": "compound",
-      "laterality": "bilateral",
-      "support": "unsupported",
-      "emphases": [],
-      "typicalChallenge": "",
-      "relatedExercises": [
-        {
-          "exerciseId": "barbell-bench-press",
-          "relation": "similar"
-        }
-      ],
-      "defaultPrescription": "2–3 × 8–15",
-      "instructions": "",
-      "videoId": ""
-    },
-    {
-      "id": "barbell-bench-press",
-      "name": "Barbell bench press",
-      "aliases": [
-        "Bench press"
-      ],
-      "primaryTargets": [
-        "chest"
-      ],
-      "secondaryTargets": [
-        "triceps",
-        "front-delts"
-      ],
-      "movementPattern": "horizontal-press",
-      "equipment": [
-        "barbell",
-        "bench"
-      ],
-      "purpose": "strength",
-      "style": "compound",
-      "laterality": "bilateral",
-      "support": "supported",
-      "emphases": [],
-      "typicalChallenge": "lengthened-bottom",
-      "relatedExercises": [
-        {
-          "exerciseId": "push-up",
-          "relation": "similar"
-        },
-        {
-          "exerciseId": "flat-dumbbell-press",
-          "relation": "similar"
-        }
-      ],
-      "defaultPrescription": "3 × 6–10",
-      "instructions": "",
-      "videoId": ""
-    },
-    {
-      "id": "dumbbell-overhead-press",
-      "name": "Dumbbell overhead press",
-      "aliases": [
-        "Dumbbell shoulder press"
-      ],
-      "primaryTargets": [
-        "front-delts",
-        "side-delts"
-      ],
-      "secondaryTargets": [
-        "triceps"
-      ],
-      "movementPattern": "vertical-press",
-      "equipment": [
-        "dumbbells"
-      ],
-      "purpose": "strength",
-      "style": "compound",
-      "laterality": "bilateral",
-      "support": "",
-      "emphases": [],
-      "typicalChallenge": "middle",
-      "relatedExercises": [
-        {
-          "exerciseId": "machine-overhead-press",
-          "relation": "similar"
-        }
-      ],
-      "defaultPrescription": "2–3 × 8–12",
-      "instructions": "",
-      "videoId": ""
-    },
-    {
-      "id": "dumbbell-lateral-raise",
-      "name": "Dumbbell lateral raise",
-      "aliases": [],
-      "primaryTargets": [
-        "side-delts"
-      ],
-      "secondaryTargets": [],
-      "movementPattern": "shoulder-raise",
-      "equipment": [
-        "dumbbells"
-      ],
-      "purpose": "strength",
-      "style": "isolation",
-      "laterality": "bilateral",
-      "support": "unsupported",
-      "emphases": [],
-      "typicalChallenge": "shortened-top",
-      "relatedExercises": [
-        {
-          "exerciseId": "cable-lateral-raise",
-          "relation": "similar"
-        }
-      ],
-      "defaultPrescription": "3 × 12–20",
-      "instructions": "",
-      "videoId": ""
-    },
-    {
-      "id": "dumbbell-romanian-deadlift",
-      "name": "Dumbbell Romanian deadlift",
-      "aliases": [
-        "Dumbbell RDL"
-      ],
-      "primaryTargets": [
-        "hamstrings",
-        "glute-max"
-      ],
-      "secondaryTargets": [
-        "adductors",
-        "spinal-erectors"
-      ],
-      "movementPattern": "hip-hinge",
-      "equipment": [
-        "dumbbells"
-      ],
-      "purpose": "strength",
-      "style": "compound",
-      "laterality": "bilateral",
-      "support": "unsupported",
-      "emphases": [],
-      "typicalChallenge": "lengthened-bottom",
-      "relatedExercises": [
-        {
-          "exerciseId": "romanian-deadlift",
-          "relation": "similar"
-        }
-      ],
-      "defaultPrescription": "3 × 8–12",
-      "instructions": "",
-      "videoId": ""
     }
   ],
   "routines": [
     {
-      "id": "push-a-glutes",
-      "name": "Push A + Glutes",
+      "id": "push-a",
+      "name": "Push A",
       "group": "gym",
       "status": "required",
       "note": "",
       "blocks": [
         {
-          "id": "push-a-upper-body-work",
-          "name": "Upper-body work"
+          "id": "push-a-main",
+          "name": ""
         },
         {
-          "id": "push-a-glute-block",
-          "name": "Glute block"
-        },
-        {
-          "id": "push-a-upper-body-accessories",
-          "name": "Upper-body accessories"
+          "id": "push-a-optional-glute-block",
+          "name": "Optional glute block"
         },
         {
           "id": "push-a-optional-coverage-rehab",
-          "name": "Optional coverage · Rehab"
+          "name": "Optional coverage / rehab"
         }
       ],
       "entries": [
         {
-          "id": "push-a-glutes-entry-001",
+          "id": "push-a-01",
           "choices": [
             {
               "exerciseId": "low-incline-dumbbell-press",
               "prescription": "3 × 6–10"
             }
           ],
-          "blockId": "push-a-upper-body-work",
+          "blockId": "push-a-main",
           "note": "",
           "role": "main"
         },
         {
-          "id": "push-a-glutes-entry-002",
-          "choices": [
-            {
-              "exerciseId": "machine-overhead-press",
-              "prescription": "2 × 8–12"
-            }
-          ],
-          "blockId": "push-a-upper-body-work",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "push-a-glutes-entry-003",
+          "id": "push-a-02",
           "choices": [
             {
               "exerciseId": "machine-chest-press",
               "prescription": "2 × 8–12"
             }
           ],
-          "blockId": "push-a-upper-body-work",
+          "blockId": "push-a-main",
           "note": "",
           "role": "main"
         },
         {
-          "id": "push-a-glutes-entry-004",
+          "id": "push-a-03",
           "choices": [
             {
-              "exerciseId": "single-leg-hip-thrust",
-              "prescription": "2 × 10–15/leg"
+              "exerciseId": "machine-overhead-press",
+              "prescription": "2 × 8–12"
             }
           ],
-          "blockId": "push-a-glute-block",
+          "blockId": "push-a-main",
           "note": "",
           "role": "main"
         },
         {
-          "id": "push-a-glutes-entry-005",
+          "id": "push-a-04",
           "choices": [
             {
-              "exerciseId": "standing-cable-hip-abduction",
-              "prescription": "2 × 15–25/side"
+              "exerciseId": "pec-deck",
+              "prescription": "2 × 10–15"
+            },
+            {
+              "exerciseId": "cable-fly",
+              "prescription": "2 × 10–15"
             }
           ],
-          "blockId": "push-a-glute-block",
+          "blockId": "push-a-main",
           "note": "",
           "role": "main"
         },
         {
-          "id": "push-a-glutes-entry-006",
-          "choices": [
-            {
-              "exerciseId": "cable-kickback",
-              "prescription": "2 × 12–20/leg"
-            }
-          ],
-          "blockId": "push-a-glute-block",
-          "note": "Alternate straight-back and high/kneeling variations between training blocks.",
-          "role": "main"
-        },
-        {
-          "id": "push-a-glutes-entry-007",
+          "id": "push-a-05",
           "choices": [
             {
               "exerciseId": "scaption-raise",
               "prescription": "3 × 12–20"
             }
           ],
-          "blockId": "push-a-upper-body-accessories",
+          "blockId": "push-a-main",
           "note": "",
           "role": "main"
         },
         {
-          "id": "push-a-glutes-entry-008",
+          "id": "push-a-06",
           "choices": [
             {
-              "exerciseId": "rope-pushdown",
+              "exerciseId": "bar-triceps-pushdown",
               "prescription": "3 × 10–15"
             }
           ],
-          "blockId": "push-a-upper-body-accessories",
+          "blockId": "push-a-main",
           "note": "",
           "role": "main"
         },
         {
-          "id": "push-a-glutes-entry-009",
+          "id": "push-a-07",
           "choices": [
             {
               "exerciseId": "cable-crunch",
               "prescription": "2 × 10–15"
             }
           ],
-          "blockId": "push-a-upper-body-accessories",
+          "blockId": "push-a-main",
           "note": "",
           "role": "main"
         },
         {
-          "id": "push-a-glutes-entry-010",
+          "id": "push-a-08",
           "choices": [
             {
               "exerciseId": "neck-flexion",
               "prescription": "2 × 15–25"
             }
           ],
-          "blockId": "push-a-upper-body-accessories",
+          "blockId": "push-a-main",
           "note": "",
           "role": "main"
         },
         {
-          "id": "push-a-glutes-entry-011",
+          "id": "push-a-09",
+          "choices": [
+            {
+              "exerciseId": "single-leg-hip-thrust",
+              "prescription": "2 × 10–15/leg"
+            }
+          ],
+          "blockId": "push-a-optional-glute-block",
+          "note": "",
+          "role": "optional"
+        },
+        {
+          "id": "push-a-10",
+          "choices": [
+            {
+              "exerciseId": "standing-cable-hip-abduction",
+              "prescription": "2 × 15–25/side"
+            }
+          ],
+          "blockId": "push-a-optional-glute-block",
+          "note": "",
+          "role": "optional"
+        },
+        {
+          "id": "push-a-11",
+          "choices": [
+            {
+              "exerciseId": "cable-kickback",
+              "prescription": "2 × 12–20/leg"
+            }
+          ],
+          "blockId": "push-a-optional-glute-block",
+          "note": "",
+          "role": "optional"
+        },
+        {
+          "id": "push-a-12",
           "choices": [
             {
               "exerciseId": "cable-serratus-punch",
@@ -4989,14 +5384,10 @@ export const SEED = {
           "role": "optional"
         },
         {
-          "id": "push-a-glutes-entry-012",
+          "id": "push-a-13",
           "choices": [
             {
               "exerciseId": "cable-external-rotation",
-              "prescription": "2 × 15–25/side"
-            },
-            {
-              "exerciseId": "side-lying-external-rotation",
               "prescription": "2 × 15–25/side"
             }
           ],
@@ -5005,7 +5396,7 @@ export const SEED = {
           "role": "optional"
         },
         {
-          "id": "push-a-glutes-entry-013",
+          "id": "push-a-14",
           "choices": [
             {
               "exerciseId": "cable-shoulder-internal-rotation",
@@ -5030,65 +5421,73 @@ export const SEED = {
           "name": ""
         },
         {
-          "id": "pull-a-optional-coverage-rehab",
-          "name": "Optional coverage · Rehab"
+          "id": "pull-a-optional-pull-up-practice",
+          "name": "Optional pull-up practice"
+        },
+        {
+          "id": "pull-a-optional",
+          "name": "Optional"
         }
       ],
       "entries": [
         {
-          "id": "pull-a-entry-001",
+          "id": "pull-a-01",
           "choices": [
             {
-              "exerciseId": "neutral-grip-pull-up",
+              "exerciseId": "pronated-grip-lat-pulldown",
+              "prescription": "3 × 6–10"
+            }
+          ],
+          "blockId": "pull-a-main",
+          "note": "Pronated grip, shoulder-width, elbows 10–30°",
+          "role": "main"
+        },
+        {
+          "id": "pull-a-02",
+          "choices": [
+            {
+              "exerciseId": "chest-supported-row",
               "prescription": "3 × 6–10"
             },
             {
-              "exerciseId": "assisted-neutral-grip-pull-up",
+              "exerciseId": "chest-supported-t-bar-row",
               "prescription": "3 × 6–10"
             }
           ],
           "blockId": "pull-a-main",
-          "note": "",
+          "note": "Neutral preferred, elbows 30–50°",
           "role": "main"
         },
         {
-          "id": "pull-a-entry-002",
+          "id": "pull-a-03",
           "choices": [
             {
-              "exerciseId": "one-arm-cable-row-lat-bias",
-              "prescription": "3 × 8–12/side"
+              "exerciseId": "chest-supported-high-row-machine",
+              "prescription": "2 × 8–12"
             }
           ],
           "blockId": "pull-a-main",
-          "note": "",
+          "note": "Neutral, elbows 20–40°",
           "role": "main"
         },
         {
-          "id": "pull-a-entry-003",
+          "id": "pull-a-04",
           "choices": [
             {
-              "exerciseId": "straight-arm-cable-pulldown",
-              "prescription": "2 × 12–15"
-            }
-          ],
-          "blockId": "pull-a-main",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "pull-a-entry-004",
-          "choices": [
+              "exerciseId": "reverse-pec-deck",
+              "prescription": "2 × 12–20"
+            },
             {
               "exerciseId": "chest-supported-rear-delt-raise",
               "prescription": "2 × 12–20"
             }
           ],
           "blockId": "pull-a-main",
-          "note": "",
+          "note": "Elbows 70–100°",
           "role": "main"
         },
         {
-          "id": "pull-a-entry-005",
+          "id": "pull-a-05",
           "choices": [
             {
               "exerciseId": "preacher-curl",
@@ -5100,7 +5499,7 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "pull-a-entry-006",
+          "id": "pull-a-06",
           "choices": [
             {
               "exerciseId": "hammer-curl",
@@ -5108,11 +5507,11 @@ export const SEED = {
             }
           ],
           "blockId": "pull-a-main",
-          "note": "",
+          "note": "Neutral grip",
           "role": "main"
         },
         {
-          "id": "pull-a-entry-007",
+          "id": "pull-a-07",
           "choices": [
             {
               "exerciseId": "wrist-curl",
@@ -5124,7 +5523,7 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "pull-a-entry-008",
+          "id": "pull-a-08",
           "choices": [
             {
               "exerciseId": "pallof-press",
@@ -5132,62 +5531,42 @@ export const SEED = {
             }
           ],
           "blockId": "pull-a-main",
-          "note": "",
+          "note": "Anti-rotation",
           "role": "main"
         },
         {
-          "id": "pull-a-entry-009",
+          "id": "pull-a-09",
           "choices": [
             {
-              "exerciseId": "cable-pronation",
-              "prescription": "1–2 × 12–20/side"
-            },
-            {
-              "exerciseId": "lever-forearm-pronation",
-              "prescription": "1–2 × 12–20/side"
+              "exerciseId": "assisted-neutral-grip-pull-up",
+              "prescription": "1–2 × 6–10"
             }
           ],
-          "blockId": "pull-a-optional-coverage-rehab",
+          "blockId": "pull-a-optional-pull-up-practice",
+          "note": "Neutral grip, shoulder-width, elbows 10–30°",
+          "role": "optional"
+        },
+        {
+          "id": "pull-a-10",
+          "choices": [
+            {
+              "exerciseId": "scapular-pull-up",
+              "prescription": "1 × 5–10"
+            }
+          ],
+          "blockId": "pull-a-optional-pull-up-practice",
           "note": "",
           "role": "optional"
         },
         {
-          "id": "pull-a-entry-010",
+          "id": "pull-a-11",
           "choices": [
             {
-              "exerciseId": "cable-supination",
-              "prescription": "1–2 × 12–20/side"
-            },
-            {
-              "exerciseId": "lever-forearm-supination",
-              "prescription": "1–2 × 12–20/side"
+              "exerciseId": "kelso-shrug",
+              "prescription": "Sets × reps not set"
             }
           ],
-          "blockId": "pull-a-optional-coverage-rehab",
-          "note": "",
-          "role": "optional"
-        },
-        {
-          "id": "pull-a-entry-011",
-          "choices": [
-            {
-              "exerciseId": "radial-deviation",
-              "prescription": "1–2 × 15–25/side"
-            }
-          ],
-          "blockId": "pull-a-optional-coverage-rehab",
-          "note": "",
-          "role": "optional"
-        },
-        {
-          "id": "pull-a-entry-012",
-          "choices": [
-            {
-              "exerciseId": "ulnar-deviation",
-              "prescription": "1–2 × 15–25/side"
-            }
-          ],
-          "blockId": "pull-a-optional-coverage-rehab",
+          "blockId": "pull-a-optional",
           "note": "",
           "role": "optional"
         }
@@ -5202,19 +5581,23 @@ export const SEED = {
       "blocks": [
         {
           "id": "legs-a-main",
-          "name": "Glutes and quads"
+          "name": ""
         },
         {
           "id": "legs-a-optional-coverage-rehab",
-          "name": "Optional coverage · Rehab"
+          "name": "Optional coverage / rehab"
         }
       ],
       "entries": [
         {
-          "id": "legs-a-entry-001",
+          "id": "legs-a-01",
           "choices": [
             {
               "exerciseId": "hip-thrust",
+              "prescription": "3 × 6–10"
+            },
+            {
+              "exerciseId": "smith-hip-thrust",
               "prescription": "3 × 6–10"
             }
           ],
@@ -5223,7 +5606,7 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "legs-a-entry-002",
+          "id": "legs-a-02",
           "choices": [
             {
               "exerciseId": "hack-squat",
@@ -5235,7 +5618,7 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "legs-a-entry-003",
+          "id": "legs-a-03",
           "choices": [
             {
               "exerciseId": "supported-bulgarian-split-squat",
@@ -5251,11 +5634,11 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "legs-a-entry-004",
+          "id": "legs-a-04",
           "choices": [
             {
               "exerciseId": "seated-leg-curl",
-              "prescription": "2 × 8–15"
+              "prescription": "3 × 8–15"
             }
           ],
           "blockId": "legs-a-main",
@@ -5263,7 +5646,7 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "legs-a-entry-005",
+          "id": "legs-a-05",
           "choices": [
             {
               "exerciseId": "leg-extension",
@@ -5275,7 +5658,7 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "legs-a-entry-006",
+          "id": "legs-a-06",
           "choices": [
             {
               "exerciseId": "upright-hip-abduction-machine",
@@ -5287,7 +5670,7 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "legs-a-entry-007",
+          "id": "legs-a-07",
           "choices": [
             {
               "exerciseId": "standing-calf-raise",
@@ -5299,7 +5682,7 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "legs-a-entry-008",
+          "id": "legs-a-08",
           "choices": [
             {
               "exerciseId": "tibialis-raise",
@@ -5311,12 +5694,8 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "legs-a-entry-009",
+          "id": "legs-a-09",
           "choices": [
-            {
-              "exerciseId": "cable-ankle-inversion",
-              "prescription": "2 × 15–25/side"
-            },
             {
               "exerciseId": "ankle-inversion",
               "prescription": "2 × 15–25/side"
@@ -5327,12 +5706,8 @@ export const SEED = {
           "role": "optional"
         },
         {
-          "id": "legs-a-entry-010",
+          "id": "legs-a-10",
           "choices": [
-            {
-              "exerciseId": "cable-ankle-eversion",
-              "prescription": "2 × 15–25/side"
-            },
             {
               "exerciseId": "ankle-eversion",
               "prescription": "2 × 15–25/side"
@@ -5343,7 +5718,7 @@ export const SEED = {
           "role": "optional"
         },
         {
-          "id": "legs-a-entry-011",
+          "id": "legs-a-11",
           "choices": [
             {
               "exerciseId": "short-foot-exercise",
@@ -5359,7 +5734,7 @@ export const SEED = {
           "role": "optional"
         },
         {
-          "id": "legs-a-entry-012",
+          "id": "legs-a-12",
           "choices": [
             {
               "exerciseId": "controlled-toe-extension",
@@ -5371,7 +5746,7 @@ export const SEED = {
           "role": "optional"
         },
         {
-          "id": "legs-a-entry-013",
+          "id": "legs-a-13",
           "choices": [
             {
               "exerciseId": "single-leg-balance",
@@ -5379,7 +5754,7 @@ export const SEED = {
             }
           ],
           "blockId": "legs-a-optional-coverage-rehab",
-          "note": "Perform during the warm-up.",
+          "note": "",
           "role": "optional"
         }
       ]
@@ -5396,13 +5771,13 @@ export const SEED = {
           "name": ""
         },
         {
-          "id": "push-b-optional-coverage-rehab",
-          "name": "Optional coverage · Rehab"
+          "id": "push-b-optional",
+          "name": "Optional"
         }
       ],
       "entries": [
         {
-          "id": "push-b-entry-001",
+          "id": "push-b-01",
           "choices": [
             {
               "exerciseId": "machine-overhead-press",
@@ -5414,7 +5789,7 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "push-b-entry-002",
+          "id": "push-b-02",
           "choices": [
             {
               "exerciseId": "flat-dumbbell-press",
@@ -5426,7 +5801,19 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "push-b-entry-003",
+          "id": "push-b-03",
+          "choices": [
+            {
+              "exerciseId": "incline-chest-press-machine",
+              "prescription": "2 × 8–12"
+            }
+          ],
+          "blockId": "push-b-main",
+          "note": "",
+          "role": "main"
+        },
+        {
+          "id": "push-b-04",
           "choices": [
             {
               "exerciseId": "high-to-low-cable-fly",
@@ -5442,23 +5829,7 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "push-b-entry-004",
-          "choices": [
-            {
-              "exerciseId": "pec-deck",
-              "prescription": "2 × 10–15"
-            },
-            {
-              "exerciseId": "cable-fly",
-              "prescription": "2 × 10–15"
-            }
-          ],
-          "blockId": "push-b-main",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "push-b-entry-005",
+          "id": "push-b-05",
           "choices": [
             {
               "exerciseId": "machine-lateral-raise",
@@ -5474,11 +5845,19 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "push-b-entry-006",
+          "id": "push-b-06",
           "choices": [
             {
               "exerciseId": "overhead-cable-triceps-extension",
-              "prescription": "2 × 10–15"
+              "prescription": "3 × 10–15"
+            },
+            {
+              "exerciseId": "lying-cable-skull-crusher-to-behind-head",
+              "prescription": "3 × 10–15"
+            },
+            {
+              "exerciseId": "behind-the-head-ez-bar-skull-crusher",
+              "prescription": "3 × 8–12"
             }
           ],
           "blockId": "push-b-main",
@@ -5486,7 +5865,7 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "push-b-entry-007",
+          "id": "push-b-07",
           "choices": [
             {
               "exerciseId": "hanging-knee-raise",
@@ -5502,7 +5881,7 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "push-b-entry-008",
+          "id": "push-b-08",
           "choices": [
             {
               "exerciseId": "ab-wheel-rollout",
@@ -5510,7 +5889,7 @@ export const SEED = {
             },
             {
               "exerciseId": "long-lever-plank",
-              "prescription": "2 × 6–12"
+              "prescription": "2 sets"
             }
           ],
           "blockId": "push-b-main",
@@ -5518,26 +5897,38 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "push-b-entry-009",
+          "id": "push-b-09",
+          "choices": [
+            {
+              "exerciseId": "cable-triceps-kickback",
+              "prescription": "1–2 × 12–20"
+            }
+          ],
+          "blockId": "push-b-optional",
+          "note": "",
+          "role": "optional"
+        },
+        {
+          "id": "push-b-10",
           "choices": [
             {
               "exerciseId": "cable-wood-chop",
               "prescription": "2 × 10–15/side"
             }
           ],
-          "blockId": "push-b-optional-coverage-rehab",
+          "blockId": "push-b-optional",
           "note": "",
           "role": "optional"
         },
         {
-          "id": "push-b-entry-010",
+          "id": "push-b-11",
           "choices": [
             {
               "exerciseId": "neck-lateral-flexion",
               "prescription": "2 × 15–25/side"
             }
           ],
-          "blockId": "push-b-optional-coverage-rehab",
+          "blockId": "push-b-optional",
           "note": "",
           "role": "optional"
         }
@@ -5553,27 +5944,23 @@ export const SEED = {
         {
           "id": "pull-b-main",
           "name": ""
-        },
-        {
-          "id": "pull-b-optional-coverage-rehab",
-          "name": "Optional coverage · Rehab"
         }
       ],
       "entries": [
         {
-          "id": "pull-b-entry-001",
+          "id": "pull-b-01",
           "choices": [
             {
-              "exerciseId": "chest-supported-row-mid-back-bias",
-              "prescription": "3 × 6–10"
+              "exerciseId": "medium-wide-pronated-seated-cable-row",
+              "prescription": "3 × 8–12"
             }
           ],
           "blockId": "pull-b-main",
-          "note": "",
+          "note": "Palms down, slightly wider than shoulder-width, elbows approximately 60–70° from torso. Emphasis: mid/upper back.",
           "role": "main"
         },
         {
-          "id": "pull-b-entry-002",
+          "id": "pull-b-02",
           "choices": [
             {
               "exerciseId": "neutral-grip-lat-pulldown",
@@ -5581,11 +5968,23 @@ export const SEED = {
             }
           ],
           "blockId": "pull-b-main",
-          "note": "",
+          "note": "Neutral, shoulder-width, elbows 10–30°",
           "role": "main"
         },
         {
-          "id": "pull-b-entry-003",
+          "id": "pull-b-03",
+          "choices": [
+            {
+              "exerciseId": "straight-arm-cable-pulldown",
+              "prescription": "2 × 12–15"
+            }
+          ],
+          "blockId": "pull-b-main",
+          "note": "Pronated bar, soft elbows 10–20°",
+          "role": "main"
+        },
+        {
+          "id": "pull-b-04",
           "choices": [
             {
               "exerciseId": "dumbbell-shrug",
@@ -5597,11 +5996,11 @@ export const SEED = {
             }
           ],
           "blockId": "pull-b-main",
-          "note": "",
+          "note": "Arms straight",
           "role": "main"
         },
         {
-          "id": "pull-b-entry-004",
+          "id": "pull-b-05",
           "choices": [
             {
               "exerciseId": "rope-face-pull",
@@ -5609,46 +6008,30 @@ export const SEED = {
             }
           ],
           "blockId": "pull-b-main",
-          "note": "",
+          "note": "Rope, elbows 60–90°",
           "role": "main"
         },
         {
-          "id": "pull-b-entry-005",
+          "id": "pull-b-06",
           "choices": [
             {
               "exerciseId": "incline-y-raise",
               "prescription": "2 × 12–20"
-            },
-            {
-              "exerciseId": "cable-y-raise",
-              "prescription": "2 × 12–20"
             }
           ],
           "blockId": "pull-b-main",
-          "note": "",
+          "note": "Thumbs-up, 120–140°",
           "role": "main"
         },
         {
-          "id": "pull-b-entry-006",
+          "id": "pull-b-07",
           "choices": [
             {
               "exerciseId": "incline-dumbbell-curl",
               "prescription": "2 × 10–15"
-            }
-          ],
-          "blockId": "pull-b-main",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "pull-b-entry-007",
-          "choices": [
-            {
-              "exerciseId": "cable-reverse-curl",
-              "prescription": "2 × 10–15"
             },
             {
-              "exerciseId": "reverse-curl",
+              "exerciseId": "bayesian-curl",
               "prescription": "2 × 10–15"
             }
           ],
@@ -5657,19 +6040,31 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "pull-b-entry-008",
+          "id": "pull-b-08",
+          "choices": [
+            {
+              "exerciseId": "hammer-curl",
+              "prescription": "2 × 10–15"
+            }
+          ],
+          "blockId": "pull-b-main",
+          "note": "",
+          "role": "main"
+        },
+        {
+          "id": "pull-b-09",
           "choices": [
             {
               "exerciseId": "suitcase-carry",
-              "prescription": "2 rounds/side · 30–60 sec"
+              "prescription": "2 × 30–60 sec/side"
             }
           ],
           "blockId": "pull-b-main",
-          "note": "",
+          "note": "Stay tall",
           "role": "main"
         },
         {
-          "id": "pull-b-entry-009",
+          "id": "pull-b-10",
           "choices": [
             {
               "exerciseId": "reverse-wrist-curl",
@@ -5677,20 +6072,8 @@ export const SEED = {
             }
           ],
           "blockId": "pull-b-main",
-          "note": "",
+          "note": "Flagged for review: keeping or removing this isn't decided yet (wrist pain).",
           "role": "main"
-        },
-        {
-          "id": "pull-b-entry-010",
-          "choices": [
-            {
-              "exerciseId": "cable-neck-rotation",
-              "prescription": "1–2 × 15–25/side"
-            }
-          ],
-          "blockId": "pull-b-optional-coverage-rehab",
-          "note": "",
-          "role": "optional"
         }
       ]
     },
@@ -5703,16 +6086,16 @@ export const SEED = {
       "blocks": [
         {
           "id": "legs-b-main",
-          "name": "Glutes and posterior chain"
+          "name": ""
         },
         {
           "id": "legs-b-optional-coverage-rehab",
-          "name": "Optional coverage · Rehab"
+          "name": "Optional coverage / rehab"
         }
       ],
       "entries": [
         {
-          "id": "legs-b-entry-001",
+          "id": "legs-b-01",
           "choices": [
             {
               "exerciseId": "romanian-deadlift",
@@ -5720,11 +6103,11 @@ export const SEED = {
             }
           ],
           "blockId": "legs-b-main",
-          "note": "Rotate with a 45° glute-biased back extension when needed. Do not perform both automatically.",
+          "note": "",
           "role": "main"
         },
         {
-          "id": "legs-b-entry-002",
+          "id": "legs-b-02",
           "choices": [
             {
               "exerciseId": "hip-thrust",
@@ -5740,10 +6123,18 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "legs-b-entry-003",
+          "id": "legs-b-03",
           "choices": [
             {
+              "exerciseId": "glute-biased-reverse-lunge",
+              "prescription": "2 × 8–12/leg"
+            },
+            {
               "exerciseId": "glute-biased-step-up",
+              "prescription": "2 × 8–12/leg"
+            },
+            {
+              "exerciseId": "walking-lunge",
               "prescription": "2 × 8–12/leg"
             }
           ],
@@ -5752,7 +6143,7 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "legs-b-entry-optional-quad",
+          "id": "legs-b-04",
           "choices": [
             {
               "exerciseId": "leg-press",
@@ -5764,11 +6155,11 @@ export const SEED = {
             }
           ],
           "blockId": "legs-b-main",
-          "note": "Optional quad addition — perform after step-ups.",
-          "role": "optional"
+          "note": "",
+          "role": "main"
         },
         {
-          "id": "legs-b-entry-004",
+          "id": "legs-b-05",
           "choices": [
             {
               "exerciseId": "lying-leg-curl",
@@ -5780,7 +6171,7 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "legs-b-entry-005",
+          "id": "legs-b-06",
           "choices": [
             {
               "exerciseId": "lean-forward-hip-abduction-machine",
@@ -5792,7 +6183,7 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "legs-b-entry-006",
+          "id": "legs-b-07",
           "choices": [
             {
               "exerciseId": "adductor-machine",
@@ -5804,7 +6195,7 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "legs-b-entry-007",
+          "id": "legs-b-08",
           "choices": [
             {
               "exerciseId": "seated-calf-raise",
@@ -5816,7 +6207,7 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "legs-b-entry-008",
+          "id": "legs-b-09",
           "choices": [
             {
               "exerciseId": "standing-cable-hip-flexion",
@@ -5828,7 +6219,7 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "legs-b-entry-009",
+          "id": "legs-b-10",
           "choices": [
             {
               "exerciseId": "neck-extension",
@@ -5840,14 +6231,10 @@ export const SEED = {
           "role": "main"
         },
         {
-          "id": "legs-b-entry-010",
+          "id": "legs-b-11",
           "choices": [
             {
-              "exerciseId": "seated-hip-internal-rotation",
-              "prescription": "2 × 12–20/side"
-            },
-            {
-              "exerciseId": "cable-hip-internal-rotation",
+              "exerciseId": "hip-internal-rotation",
               "prescription": "2 × 12–20/side"
             }
           ],
@@ -5856,14 +6243,10 @@ export const SEED = {
           "role": "optional"
         },
         {
-          "id": "legs-b-entry-011",
+          "id": "legs-b-12",
           "choices": [
             {
-              "exerciseId": "seated-hip-external-rotation",
-              "prescription": "2 × 12–20/side"
-            },
-            {
-              "exerciseId": "cable-hip-external-rotation",
+              "exerciseId": "hip-external-rotation",
               "prescription": "2 × 12–20/side"
             }
           ],
@@ -5872,7 +6255,7 @@ export const SEED = {
           "role": "optional"
         },
         {
-          "id": "legs-b-entry-012",
+          "id": "legs-b-13",
           "choices": [
             {
               "exerciseId": "cable-side-bend",
@@ -5884,1163 +6267,27 @@ export const SEED = {
           "role": "optional"
         }
       ]
-    },
-    {
-      "id": "home-base",
-      "name": "Home Base",
-      "group": "home",
-      "status": "optional",
-      "note": "Choice menu: choose only what you need; this is not one 52-exercise session.",
-      "blocks": [
-        {
-          "id": "home-base-core",
-          "name": "Core"
-        },
-        {
-          "id": "home-base-shoulder-scapula-spine",
-          "name": "Shoulder, scapula, and spine"
-        },
-        {
-          "id": "home-base-hip-flexion-extension",
-          "name": "Hip flexion and extension"
-        },
-        {
-          "id": "home-base-hip-rotation-circumduction",
-          "name": "Hip rotation and circumduction"
-        },
-        {
-          "id": "home-base-hip-frontal-plane",
-          "name": "Hip abduction, adduction, and frontal plane"
-        },
-        {
-          "id": "home-base-single-leg-pelvic-control",
-          "name": "Single-leg and pelvic control"
-        },
-        {
-          "id": "home-base-ankle-lower-leg",
-          "name": "Ankle and lower leg"
-        }
-      ],
-      "entries": [
-        {
-          "id": "home-base-entry-001",
-          "choices": [
-            {
-              "exerciseId": "dead-bug",
-              "prescription": "2 × 5–10/side"
-            }
-          ],
-          "blockId": "home-base-core",
-          "note": "",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-002",
-          "choices": [
-            {
-              "exerciseId": "bird-dog",
-              "prescription": "1–2 × 5–10/side"
-            }
-          ],
-          "blockId": "home-base-core",
-          "note": "Related work elsewhere: Home Base — Dead bug; Pull A — Pallof press; Legs B — 45° glute-biased back extension.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-003",
-          "choices": [
-            {
-              "exerciseId": "side-plank",
-              "prescription": "1–2 × 15–40 sec/side"
-            }
-          ],
-          "blockId": "home-base-core",
-          "note": "Related work elsewhere: Pull B — Suitcase carry for anti-lateral flexion.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-004",
-          "choices": [
-            {
-              "exerciseId": "band-pallof-press",
-              "prescription": "1–2 × 10–15/side"
-            }
-          ],
-          "blockId": "home-base-core",
-          "note": "Also programmed in: Pull A — Pallof press.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-005",
-          "choices": [
-            {
-              "exerciseId": "band-wood-chop",
-              "prescription": "1–2 × 8–15/side"
-            },
-            {
-              "exerciseId": "band-lift",
-              "prescription": "1–2 × 8–15/side"
-            }
-          ],
-          "blockId": "home-base-core",
-          "note": "Related work elsewhere: Push B — Cable wood chop. This is the same function.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-006",
-          "choices": [
-            {
-              "exerciseId": "reverse-crunch",
-              "prescription": "1–2 × 8–15"
-            }
-          ],
-          "blockId": "home-base-core",
-          "note": "Related work elsewhere: Push A + Glutes — Cable crunch; Push B — Hanging knee raise or captain’s-chair knee raise.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-007",
-          "choices": [
-            {
-              "exerciseId": "band-side-bend",
-              "prescription": "1–2 × 10–15/side"
-            }
-          ],
-          "blockId": "home-base-core",
-          "note": "Related work elsewhere: Legs B — Cable side bend. This is the same function.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-008",
-          "choices": [
-            {
-              "exerciseId": "sorensen-hold",
-              "prescription": "1–2 × 20–45 sec"
-            },
-            {
-              "exerciseId": "prone-back-extension",
-              "prescription": "1–2 × 8–15"
-            }
-          ],
-          "blockId": "home-base-core",
-          "note": "Related work elsewhere: Legs B — 45° glute-biased back extension or Romanian deadlift.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-009",
-          "choices": [
-            {
-              "exerciseId": "neck-cars",
-              "prescription": "1–2 slow circles/direction"
-            }
-          ],
-          "blockId": "home-base-shoulder-scapula-spine",
-          "note": "Related work elsewhere: Push A + Glutes — Neck flexion; Push B — Neck lateral flexion; Pull B — Cable neck rotation; Legs B — Neck extension.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-010",
-          "choices": [
-            {
-              "exerciseId": "shoulder-cars",
-              "prescription": "1–2 slow circles/direction"
-            }
-          ],
-          "blockId": "home-base-shoulder-scapula-spine",
-          "note": "Related work elsewhere: Push A + Glutes — Machine overhead press, dumbbell scaption raise, and shoulder rotations; Push B — Machine overhead press; Pull B — Incline-bench or cable Y-raise.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-011",
-          "choices": [
-            {
-              "exerciseId": "wall-angel",
-              "prescription": "1–2 × 8–12"
-            }
-          ],
-          "blockId": "home-base-shoulder-scapula-spine",
-          "note": "Related work elsewhere: Push A + Glutes — Machine overhead press and dumbbell scaption raise; Push B — Machine overhead press; Pull B — Incline-bench or cable Y-raise.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-012",
-          "choices": [
-            {
-              "exerciseId": "serratus-wall-slide",
-              "prescription": "1–2 × 8–12"
-            }
-          ],
-          "blockId": "home-base-shoulder-scapula-spine",
-          "note": "Related work elsewhere: Push A + Glutes — Cable serratus punch or push-up plus and machine overhead press; Push B — Machine overhead press.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-013",
-          "choices": [
-            {
-              "exerciseId": "push-up-plus",
-              "prescription": "1–2 × 10–15"
-            }
-          ],
-          "blockId": "home-base-shoulder-scapula-spine",
-          "note": "Also programmed in: Push A + Glutes — Push-up plus.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-014",
-          "choices": [
-            {
-              "exerciseId": "prone-w-raise",
-              "prescription": "1–2 × 10–15"
-            }
-          ],
-          "blockId": "home-base-shoulder-scapula-spine",
-          "note": "Related work elsewhere: Pull B — Rope face pull; Push A + Glutes — shoulder external rotation; Pull A — Chest-supported dumbbell rear-delt raise.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-015",
-          "choices": [
-            {
-              "exerciseId": "cat-cow",
-              "prescription": "1 × 6–10"
-            }
-          ],
-          "blockId": "home-base-shoulder-scapula-spine",
-          "note": "",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-016",
-          "choices": [
-            {
-              "exerciseId": "open-book-thoracic-rotation",
-              "prescription": "1–2 × 6–10/side"
-            }
-          ],
-          "blockId": "home-base-shoulder-scapula-spine",
-          "note": "Related work elsewhere: Push B — Cable wood chop. This exercise is mobility rather than loaded rotation.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-017",
-          "choices": [
-            {
-              "exerciseId": "wrist-cars",
-              "prescription": "1–2 slow circles/direction"
-            }
-          ],
-          "blockId": "home-base-shoulder-scapula-spine",
-          "note": "Related work elsewhere: Pull A — Wrist curl, forearm pronation, forearm supination, radial deviation, and ulnar deviation; Pull B — Reverse wrist curl.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-018",
-          "choices": [
-            {
-              "exerciseId": "standing-band-knee-drive",
-              "prescription": "1–2 × 10–15/side"
-            }
-          ],
-          "blockId": "home-base-hip-flexion-extension",
-          "note": "Related work elsewhere: Legs B — Standing cable hip flexion. This is the same function.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-019",
-          "choices": [
-            {
-              "exerciseId": "seated-straight-leg-lift",
-              "prescription": "2 × 6–12/side"
-            }
-          ],
-          "blockId": "home-base-hip-flexion-extension",
-          "note": "Related work elsewhere: Legs B — Standing cable hip flexion; Push B — Hanging knee raise or captain’s-chair knee raise. This exercise uses a straight knee.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-020",
-          "choices": [
-            {
-              "exerciseId": "active-straight-leg-raise",
-              "prescription": "1–2 × 5–10/side"
-            }
-          ],
-          "blockId": "home-base-hip-flexion-extension",
-          "note": "Related work elsewhere: Legs B — Standing cable hip flexion and Romanian deadlift. This exercise emphasizes active range.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-021",
-          "choices": [
-            {
-              "exerciseId": "glute-bridge",
-              "prescription": "1–2 × 10–20"
-            }
-          ],
-          "blockId": "home-base-hip-flexion-extension",
-          "note": "Related work elsewhere: Push A + Glutes — Single-leg hip thrust; Legs A — Barbell hip thrust; Legs B — Barbell or Smith hip thrust. These share the hip-thrust movement pattern.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-022",
-          "choices": [
-            {
-              "exerciseId": "half-kneeling-hip-flexor-stretch",
-              "prescription": "1–2 × 20–40 sec/side"
-            }
-          ],
-          "blockId": "home-base-hip-flexion-extension",
-          "note": "Related work elsewhere: Legs B — Standing cable hip flexion; Push B — Hanging knee raise or captain’s-chair knee raise. Those exercises do not replace this passive stretch.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-023",
-          "choices": [
-            {
-              "exerciseId": "supine-hamstring-stretch",
-              "prescription": "1–2 × 20–40 sec/side"
-            }
-          ],
-          "blockId": "home-base-hip-flexion-extension",
-          "note": "Related work elsewhere: Legs B — Romanian deadlift; Legs A — Seated leg curl. Those exercises load the hamstrings, but this is passive flexibility.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-024",
-          "choices": [
-            {
-              "exerciseId": "90-90-hip-switches",
-              "prescription": "1–2 × 6–10 total"
-            }
-          ],
-          "blockId": "home-base-hip-rotation-circumduction",
-          "note": "Related work elsewhere: Legs B — hip internal rotation and hip external rotation.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-025",
-          "choices": [
-            {
-              "exerciseId": "90-90-front-leg-lift-off",
-              "prescription": "2 × 5–8/side"
-            }
-          ],
-          "blockId": "home-base-hip-rotation-circumduction",
-          "note": "Related work elsewhere: Legs B — hip external rotation. This exercise trains active end range.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-026",
-          "choices": [
-            {
-              "exerciseId": "90-90-rear-leg-lift-off",
-              "prescription": "2 × 5–8/side"
-            }
-          ],
-          "blockId": "home-base-hip-rotation-circumduction",
-          "note": "Related work elsewhere: Legs B — hip internal rotation. This exercise trains active end range.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-027",
-          "choices": [
-            {
-              "exerciseId": "hip-cars",
-              "prescription": "1–2 slow circles/direction/side"
-            }
-          ],
-          "blockId": "home-base-hip-rotation-circumduction",
-          "note": "Related work elsewhere: Push A + Glutes, Legs A, and Legs B contain separate hip-extension, flexion, abduction, adduction, and rotation exercises. Those do not replace continuous circumduction.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-028",
-          "choices": [
-            {
-              "exerciseId": "seated-hip-internal-rotation",
-              "prescription": "2 × 12–20/side"
-            },
-            {
-              "exerciseId": "hip-internal-rotation",
-              "prescription": "2 × 12–20/side"
-            }
-          ],
-          "blockId": "home-base-hip-rotation-circumduction",
-          "note": "Also programmed in: Legs B — Seated hip internal rotation.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-029",
-          "choices": [
-            {
-              "exerciseId": "seated-hip-external-rotation",
-              "prescription": "2 × 12–20/side"
-            },
-            {
-              "exerciseId": "hip-external-rotation",
-              "prescription": "2 × 12–20/side"
-            }
-          ],
-          "blockId": "home-base-hip-rotation-circumduction",
-          "note": "Also programmed in: Legs B — Seated hip external rotation.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-030",
-          "choices": [
-            {
-              "exerciseId": "prone-hip-internal-rotation",
-              "prescription": "1–2 × 10–15/side"
-            }
-          ],
-          "blockId": "home-base-hip-rotation-circumduction",
-          "note": "Related work elsewhere: Legs B — Seated or cable hip internal rotation. This exercise uses a different hip position.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-031",
-          "choices": [
-            {
-              "exerciseId": "prone-hip-external-rotation",
-              "prescription": "1–2 × 10–15/side"
-            }
-          ],
-          "blockId": "home-base-hip-rotation-circumduction",
-          "note": "Related work elsewhere: Legs B — Seated or cable hip external rotation. This exercise uses a different hip position.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-032",
-          "choices": [
-            {
-              "exerciseId": "relaxed-90-90-external-rotation-stretch",
-              "prescription": "1–2 × 20–40 sec/side"
-            }
-          ],
-          "blockId": "home-base-hip-rotation-circumduction",
-          "note": "",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-033",
-          "choices": [
-            {
-              "exerciseId": "gentle-passive-internal-rotation-stretch",
-              "prescription": "1–2 × 20–40 sec/side"
-            }
-          ],
-          "blockId": "home-base-hip-rotation-circumduction",
-          "note": "",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-034",
-          "choices": [
-            {
-              "exerciseId": "side-lying-hip-abduction",
-              "prescription": "1–2 × 12–20/side"
-            },
-            {
-              "exerciseId": "band-hip-abduction",
-              "prescription": "1–2 × 12–20/side"
-            }
-          ],
-          "blockId": "home-base-hip-frontal-plane",
-          "note": "Related work elsewhere: Push A + Glutes — Standing cable hip abduction; Legs A — Upright hip-abduction machine; Legs B — Lean-forward hip-abduction machine. These share the same function.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-035",
-          "choices": [
-            {
-              "exerciseId": "side-lying-hip-adduction",
-              "prescription": "1–2 × 12–20/side"
-            }
-          ],
-          "blockId": "home-base-hip-frontal-plane",
-          "note": "Related work elsewhere: Legs B — Adductor machine. This is the same function.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-036",
-          "choices": [
-            {
-              "exerciseId": "adductor-rock-back",
-              "prescription": "1–2 × 8–12/side"
-            }
-          ],
-          "blockId": "home-base-hip-frontal-plane",
-          "note": "Related work elsewhere: Legs B — Adductor machine; Legs A — Supported Bulgarian split squat.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-037",
-          "choices": [
-            {
-              "exerciseId": "supported-cossack-squat",
-              "prescription": "1–2 × 5–8/side"
-            }
-          ],
-          "blockId": "home-base-hip-frontal-plane",
-          "note": "Related work elsewhere: Legs B — Adductor machine; Legs A — Hack squat and supported Bulgarian split squat.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-038",
-          "choices": [
-            {
-              "exerciseId": "short-lever-copenhagen-plank",
-              "prescription": "1–2 × 10–30 sec/side"
-            }
-          ],
-          "blockId": "home-base-hip-frontal-plane",
-          "note": "Also programmed in: Legs morning — Short-lever Copenhagen plank.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-039",
-          "choices": [
-            {
-              "exerciseId": "supported-frog-stretch",
-              "prescription": "1–2 × 20–40 sec"
-            },
-            {
-              "exerciseId": "passive-adductor-stretch",
-              "prescription": "1–2 × 20–40 sec"
-            }
-          ],
-          "blockId": "home-base-hip-frontal-plane",
-          "note": "",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-040",
-          "choices": [
-            {
-              "exerciseId": "supported-hip-airplane",
-              "prescription": "1–2 × 4–8/side"
-            }
-          ],
-          "blockId": "home-base-single-leg-pelvic-control",
-          "note": "Related work elsewhere: Legs B — Glute-biased step-up and hip rotations; Legs A — Supported Bulgarian split squat.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-041",
-          "choices": [
-            {
-              "exerciseId": "lateral-step-down",
-              "prescription": "1–2 × 6–12/side"
-            }
-          ],
-          "blockId": "home-base-single-leg-pelvic-control",
-          "note": "Related work elsewhere: Legs B — Glute-biased step-up; Legs A — Supported Bulgarian split squat.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-042",
-          "choices": [
-            {
-              "exerciseId": "single-leg-balance",
-              "prescription": "1–2 × 30–60 sec/side"
-            }
-          ],
-          "blockId": "home-base-single-leg-pelvic-control",
-          "note": "Also programmed in: Legs A — Single-leg balance.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-043",
-          "choices": [
-            {
-              "exerciseId": "single-leg-romanian-deadlift",
-              "prescription": "1–2 × 6–10/side"
-            }
-          ],
-          "blockId": "home-base-single-leg-pelvic-control",
-          "note": "Related work elsewhere: Legs B — Romanian deadlift and glute-biased step-up.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-044",
-          "choices": [
-            {
-              "exerciseId": "reverse-lunge",
-              "prescription": "1–2 × 6–12/side"
-            },
-            {
-              "exerciseId": "split-squat",
-              "prescription": "1–2 × 6–12/side"
-            }
-          ],
-          "blockId": "home-base-single-leg-pelvic-control",
-          "note": "Related work elsewhere: Legs A — Supported Bulgarian split squat or deficit reverse lunge; Legs B — Glute-biased step-up.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-045",
-          "choices": [
-            {
-              "exerciseId": "goblet-squat-hold",
-              "prescription": "1–2 × 20–40 sec"
-            }
-          ],
-          "blockId": "home-base-single-leg-pelvic-control",
-          "note": "Related work elsewhere: Legs A — Hack squat through a deep loaded squat position.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-046",
-          "choices": [
-            {
-              "exerciseId": "supported-deep-split-squat-hold",
-              "prescription": "1–2 × 20–40 sec/side"
-            }
-          ],
-          "blockId": "home-base-single-leg-pelvic-control",
-          "note": "Related work elsewhere: Legs A — Supported Bulgarian split squat. This is the same position performed dynamically.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-047",
-          "choices": [
-            {
-              "exerciseId": "ankle-cars",
-              "prescription": "1–2 slow circles/direction"
-            }
-          ],
-          "blockId": "home-base-ankle-lower-leg",
-          "note": "Related work elsewhere: Legs A — Standing calf raise, tibialis raise, ankle inversion, and ankle eversion; Legs B — Seated calf raise.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-048",
-          "choices": [
-            {
-              "exerciseId": "knee-to-wall-ankle-rocks",
-              "prescription": "1–2 × 8–15/side"
-            }
-          ],
-          "blockId": "home-base-ankle-lower-leg",
-          "note": "Related work elsewhere: Legs A — Hack squat and supported Bulgarian split squat provide loaded ankle dorsiflexion.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-049",
-          "choices": [
-            {
-              "exerciseId": "straight-knee-calf-stretch",
-              "prescription": "1–2 × 20–40 sec/side"
-            }
-          ],
-          "blockId": "home-base-ankle-lower-leg",
-          "note": "Related work elsewhere: Legs A — Standing calf raise loads the gastrocnemius at length.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-050",
-          "choices": [
-            {
-              "exerciseId": "bent-knee-calf-stretch",
-              "prescription": "1–2 × 20–40 sec/side"
-            }
-          ],
-          "blockId": "home-base-ankle-lower-leg",
-          "note": "Related work elsewhere: Legs B — Seated calf raise loads the soleus.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-051",
-          "choices": [
-            {
-              "exerciseId": "ankle-inversion",
-              "prescription": "2 × 12–20/side"
-            }
-          ],
-          "blockId": "home-base-ankle-lower-leg",
-          "note": "Also programmed in: Legs A — Band ankle inversion.",
-          "role": "optional"
-        },
-        {
-          "id": "home-base-entry-052",
-          "choices": [
-            {
-              "exerciseId": "ankle-eversion",
-              "prescription": "2 × 12–20/side"
-            }
-          ],
-          "blockId": "home-base-ankle-lower-leg",
-          "note": "Also programmed in: Legs A — Band ankle eversion.",
-          "role": "optional"
-        }
-      ]
-    },
-    {
-      "id": "push-morning",
-      "name": "Push morning",
-      "group": "home",
-      "status": "required",
-      "note": "",
-      "blocks": [
-        {
-          "id": "push-morning-focus",
-          "name": "Shoulders, serratus, and posture"
-        }
-      ],
-      "entries": [
-        {
-          "id": "push-morning-entry-001",
-          "choices": [
-            {
-              "exerciseId": "modified-curl-up",
-              "prescription": "5 × 8–10-sec holds"
-            }
-          ],
-          "blockId": "push-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "push-morning-entry-002",
-          "choices": [
-            {
-              "exerciseId": "short-lever-side-plank",
-              "prescription": "2 × 15–30 sec/side"
-            }
-          ],
-          "blockId": "push-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "push-morning-entry-003",
-          "choices": [
-            {
-              "exerciseId": "bird-dog",
-              "prescription": "5 × 5–10-sec holds/side"
-            }
-          ],
-          "blockId": "push-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "push-morning-entry-004",
-          "choices": [
-            {
-              "exerciseId": "foam-roller-thoracic-extension",
-              "prescription": "6–10 slow reps"
-            }
-          ],
-          "blockId": "push-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "push-morning-entry-005",
-          "choices": [
-            {
-              "exerciseId": "shoulder-cars",
-              "prescription": "2 slow circles/direction/side"
-            }
-          ],
-          "blockId": "push-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "push-morning-entry-006",
-          "choices": [
-            {
-              "exerciseId": "serratus-wall-slide-with-band",
-              "prescription": "2 × 8–12"
-            }
-          ],
-          "blockId": "push-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "push-morning-entry-007",
-          "choices": [
-            {
-              "exerciseId": "push-up-plus",
-              "prescription": "2 × 8–15"
-            }
-          ],
-          "blockId": "push-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "push-morning-entry-008",
-          "choices": [
-            {
-              "exerciseId": "side-lying-external-rotation",
-              "prescription": "2 × 12–20/side"
-            }
-          ],
-          "blockId": "push-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "push-morning-entry-009",
-          "choices": [
-            {
-              "exerciseId": "doorway-pec-stretch",
-              "prescription": "2 × 20–40 sec/side"
-            }
-          ],
-          "blockId": "push-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "push-morning-entry-010",
-          "choices": [
-            {
-              "exerciseId": "knee-to-wall-ankle-rocks",
-              "prescription": "2 × 8–15/side"
-            }
-          ],
-          "blockId": "push-morning-focus",
-          "note": "",
-          "role": "main"
-        }
-      ]
-    },
-    {
-      "id": "pull-morning",
-      "name": "Pull morning",
-      "group": "home",
-      "status": "required",
-      "note": "",
-      "blocks": [
-        {
-          "id": "pull-morning-focus",
-          "name": "Lower traps, rotator cuff, and posture"
-        }
-      ],
-      "entries": [
-        {
-          "id": "pull-morning-entry-001",
-          "choices": [
-            {
-              "exerciseId": "modified-curl-up",
-              "prescription": "5 × 8–10-sec holds"
-            }
-          ],
-          "blockId": "pull-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "pull-morning-entry-002",
-          "choices": [
-            {
-              "exerciseId": "short-lever-side-plank",
-              "prescription": "2 × 15–30 sec/side"
-            }
-          ],
-          "blockId": "pull-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "pull-morning-entry-003",
-          "choices": [
-            {
-              "exerciseId": "bird-dog",
-              "prescription": "5 × 5–10-sec holds/side"
-            }
-          ],
-          "blockId": "pull-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "pull-morning-entry-004",
-          "choices": [
-            {
-              "exerciseId": "open-book-thoracic-rotation",
-              "prescription": "1–2 × 6–10/side"
-            }
-          ],
-          "blockId": "pull-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "pull-morning-entry-005",
-          "choices": [
-            {
-              "exerciseId": "chin-tuck",
-              "prescription": "2 × 8–12 with 3-sec holds"
-            }
-          ],
-          "blockId": "pull-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "pull-morning-entry-006",
-          "choices": [
-            {
-              "exerciseId": "prone-w-raise",
-              "prescription": "2 × 10–15"
-            }
-          ],
-          "blockId": "pull-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "pull-morning-entry-007",
-          "choices": [
-            {
-              "exerciseId": "prone-y-raise",
-              "prescription": "2 × 8–12"
-            }
-          ],
-          "blockId": "pull-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "pull-morning-entry-008",
-          "choices": [
-            {
-              "exerciseId": "band-external-rotation-at-45-90-abduction",
-              "prescription": "2 × 12–20/side"
-            }
-          ],
-          "blockId": "pull-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "pull-morning-entry-009",
-          "choices": [
-            {
-              "exerciseId": "90-90-hip-switches",
-              "prescription": "1–2 × 6–10 total"
-            }
-          ],
-          "blockId": "pull-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "pull-morning-entry-010",
-          "choices": [
-            {
-              "exerciseId": "half-kneeling-hip-flexor-stretch",
-              "prescription": "2 × 20–40 sec/side"
-            }
-          ],
-          "blockId": "pull-morning-focus",
-          "note": "",
-          "role": "main"
-        }
-      ]
-    },
-    {
-      "id": "legs-morning",
-      "name": "Legs morning",
-      "group": "home",
-      "status": "required",
-      "note": "",
-      "blocks": [
-        {
-          "id": "legs-morning-focus",
-          "name": "Hips, ankles, and squat control"
-        }
-      ],
-      "entries": [
-        {
-          "id": "legs-morning-entry-001",
-          "choices": [
-            {
-              "exerciseId": "modified-curl-up",
-              "prescription": "5 × 8–10-sec holds"
-            }
-          ],
-          "blockId": "legs-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "legs-morning-entry-002",
-          "choices": [
-            {
-              "exerciseId": "short-lever-side-plank",
-              "prescription": "2 × 15–30 sec/side"
-            }
-          ],
-          "blockId": "legs-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "legs-morning-entry-003",
-          "choices": [
-            {
-              "exerciseId": "bird-dog",
-              "prescription": "5 × 5–10-sec holds/side"
-            }
-          ],
-          "blockId": "legs-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "legs-morning-entry-004",
-          "choices": [
-            {
-              "exerciseId": "knee-to-wall-ankle-rocks",
-              "prescription": "2 × 8–15/side"
-            }
-          ],
-          "blockId": "legs-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "legs-morning-entry-005",
-          "choices": [
-            {
-              "exerciseId": "90-90-hip-switches",
-              "prescription": "1 × 6–10 total"
-            }
-          ],
-          "blockId": "legs-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "legs-morning-entry-006",
-          "choices": [
-            {
-              "exerciseId": "90-90-front-leg-lift-off",
-              "prescription": "1 × 5–8/side with 2–3-sec holds"
-            }
-          ],
-          "blockId": "legs-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "legs-morning-entry-007",
-          "choices": [
-            {
-              "exerciseId": "90-90-rear-leg-lift-off",
-              "prescription": "1 × 5–8/side with 2–3-sec holds"
-            }
-          ],
-          "blockId": "legs-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "legs-morning-entry-008",
-          "choices": [
-            {
-              "exerciseId": "hip-cars",
-              "prescription": "1–2 slow circles/direction/side"
-            }
-          ],
-          "blockId": "legs-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "legs-morning-entry-009",
-          "choices": [
-            {
-              "exerciseId": "adductor-rock-back",
-              "prescription": "1 × 8–12/side"
-            }
-          ],
-          "blockId": "legs-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "legs-morning-entry-010",
-          "choices": [
-            {
-              "exerciseId": "supported-cossack-squat",
-              "prescription": "2 × 5–8/side"
-            }
-          ],
-          "blockId": "legs-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "legs-morning-entry-011",
-          "choices": [
-            {
-              "exerciseId": "short-lever-copenhagen-plank",
-              "prescription": "1–2 × 10–25 sec/side"
-            }
-          ],
-          "blockId": "legs-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "legs-morning-entry-012",
-          "choices": [
-            {
-              "exerciseId": "supported-hip-airplane",
-              "prescription": "2 × 4–6/side"
-            }
-          ],
-          "blockId": "legs-morning-focus",
-          "note": "",
-          "role": "main"
-        },
-        {
-          "id": "legs-morning-entry-013",
-          "choices": [
-            {
-              "exerciseId": "counterbalanced-deep-squat-hold",
-              "prescription": "2 × 20–40 sec"
-            }
-          ],
-          "blockId": "legs-morning-focus",
-          "note": "",
-          "role": "main"
-        }
-      ]
     }
   ],
   "programs": [
     {
-      "id": "pplppl7-glute-specialization",
-      "name": "PPLPPL 7 — Glute Specialization",
-      "note": "Weekly layout\nDay 1 — Push A + Glutes\nDay 2 — Pull A\nDay 3 — Legs A\nDay 4 — Push B\nDay 5 — Pull B\nDay 6 — Legs B\nDay 7 — Rest: no gym resistance training.\n\nHome morning routines are organized for Push, Pull, and Legs gym days.\n\nRules\nKeep all movements controlled and away from failure.\nUse hand support and heel elevation as needed.\nDo not force through pinching, sharp pain, or a hard joint block.\nProgress by improving control, range, pauses, or reducing assistance before adding resistance.\nWhen fatigued, perform one set of each instead of skipping everything.",
+      "id": "ppl-9",
+      "name": "PPL 9",
+      "note": "Weekly layout\nMon — Push A + optional glutes\nTue — Pull A: lats + mixed back\nWed — Legs A: glutes + quads\nThu — Push B\nFri — Pull B: mid/upper back + secondary lats\nSat — Legs B: glutes + posterior chain\nSun — Rest: no gym resistance training. Walking, mobility, normal daily activity, or easy recreational activity is fine.\n\nPulling grip guide\n- Neutral = palms face each other\n- Pronated = palms face down / away\n- Supinated = palms face up / toward you\n\nElbow-angle guide (from torso)\n- 10–30° = more lat-biased\n- 30–50° = mixed lat + upper/mid-back\n- 60–80° = more mid/upper-back biased\n- 70–100° = rear-delt / horizontal-abduction territory\n\nConsistency + progression + recovery = results",
       "routineIds": [
-        "push-a-glutes",
+        "push-a",
         "pull-a",
         "legs-a",
         "push-b",
         "pull-b",
-        "legs-b",
-        "home-base",
-        "push-morning",
-        "pull-morning",
-        "legs-morning"
+        "legs-b"
       ]
     }
   ],
   "sessions": {},
   "settings": {
-    "activeProgramId": "pplppl7-glute-specialization",
-    "activeRoutineId": "push-a-glutes",
+    "activeProgramId": "ppl-9",
+    "activeRoutineId": "push-a",
     "theme": "light",
     "trainingRules": "Progression\n- Weeks 1-2: light weights, lower end of sets, 3-4 RIR\n- Weeks 3-6: add weight slowly, 2-3 RIR\n- Weeks 7-12: train normally but clean, 1-3 RIR\n- Add weight only if there is no irritation during the set, later that day, or the next morning, and form stays controlled.\n\nPain rule\n- 0-2/10: okay\n- 3/10: reduce weight or range\n- Sharp or pinchy pain: stop the exercise\n- Worse the next day: the session was too much\n\nUnilateral rule\n- Start with the weaker side. Match those reps with the stronger side.\n\nDuplication rule\n- If ankle or hip rehab is done at the gym, skip the home version or do one easy set. Keep wrist work light and controlled."
   }

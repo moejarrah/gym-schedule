@@ -24,6 +24,11 @@ export function entryPresentation(entry, state) {
   };
 }
 
+// A block name like "Optional glute block" already says its entries are optional.
+export function saysOptional(blockName) {
+  return /\boptional\b/i.test(blockName);
+}
+
 export function routineTabsMarkup(routines, selectedId) {
   if (!routines.length) return "";
   return `<div class="routine-tabs" aria-label="Choose a routine">

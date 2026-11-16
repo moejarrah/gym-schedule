@@ -18,7 +18,7 @@ import {
 } from "../model.js";
 import { openLogger } from "./logger.js";
 import { openExerciseReference, openExerciseVideo } from "./reference.js";
-import { entryPresentation, revealSelectedTab, routineTabsMarkup, setChipsMarkup, videoUrl } from "./shared.js";
+import { entryPresentation, revealSelectedTab, routineTabsMarkup, saysOptional, setChipsMarkup, videoUrl } from "./shared.js";
 
 // The exercise list is one element reused across renders, so checking an entry
 // keeps the list where the user scrolled it.
@@ -112,8 +112,9 @@ function entryMarkup(state, routine, entry, { checked, log, showOptionalRole }) 
   </article>`;
 }
 
-// A block whose entries are all Optional says so once in its label; in a mixed
-// block each Optional entry carries its own tag.
+// A block whose entries are all Optional says so once in its label (unless its
+// name already does, as in "Optional glute block"); in a mixed block each
+// Optional entry carries its own tag.
 function blockMarkup(state, routine, block, todayKey) {
   const name = block.name.trim();
   const entries = routine.entries.filter((entry) => entry.blockId === block.id);
@@ -121,7 +122,7 @@ function blockMarkup(state, routine, block, todayKey) {
   const optionalOnly = entries.length > 0 && entries.every((entry) => entry.role === "optional");
   const mixedRoles = !optionalOnly && entries.some((entry) => entry.role === "optional");
   return `<section class="workout-section" data-block-id="${escapeHtml(block.id)}">
-    ${(name || optionalOnly) ? `<div class="workout-section-label"><span>${escapeHtml(name)}</span>${optionalOnly ? `<span class="workout-block-role">Optional</span>` : ""}</div>` : ""}
+    ${(name || optionalOnly) ? `<div class="workout-section-label"><span>${escapeHtml(name)}</span>${optionalOnly && !saysOptional(name) ? `<span class="workout-block-role">Optional</span>` : ""}</div>` : ""}
     ${entries.map((entry) => entryMarkup(state, routine, entry, {
       checked: isEntryChecked(state, todayKey, routine.id, entry.id),
       log: entryLog(state, todayKey, entry.id),

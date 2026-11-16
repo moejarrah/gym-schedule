@@ -26,7 +26,7 @@ Program
             └── Choices: one or more master exercises, each with its own prescription
 ```
 
-- A **program** is a training block (e.g. the current PPL cycle with its home days). Several can be saved; exactly one is active whenever any exist. Switching programs changes Workout and Program, never the Library or past history. If the selected routine isn't in the newly active program, its first routine is selected.
+- A **program** is a training block (e.g. PPL 9, the starting program). Several can be saved; exactly one is active whenever any exist. Switching programs changes Workout and Program, never the Library or past history. If the selected routine isn't in the newly active program, its first routine is selected.
 - A **routine** is one workout day (e.g. Push A). It belongs to one program and has a name, Gym/Home location, Required/Optional status, a note and ordered blocks.
 - An **entry** is one tickable slot in a routine. It has ordered choices (the first is preferred), each with a non-blank prescription, plus its block, a programming note and a Main/Optional role. Its title is the choice names joined with "or".
 - A **master exercise** lives once in the Library and can be used by entries in any program. It has a name, aliases, a default prescription, one or two ordered primary targets, secondary targets, a movement, equipment, a purpose (Strength, Mobility or Rehab), optional style/laterality/support/emphasis/challenge, notes and cues, an optional YouTube video, and related exercises (Easier, Alternative, Harder). Editing the name never changes its identity.

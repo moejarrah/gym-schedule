@@ -8,7 +8,7 @@
 import { SEED } from "./seed.js";
 import { CHALLENGES, EMPHASES, EQUIPMENT, LATERALITIES, MOVEMENTS, PURPOSES, RELATIONS, STYLES, SUPPORTS, TARGETS } from "./vocab.js";
 
-export const SCHEMA_VERSION = 11;
+export const SCHEMA_VERSION = 12;
 export const STORAGE_KEY = "gymAppStateV1";
 export const RECOVERY_KEY = `${STORAGE_KEY}:unreadable`;
 
@@ -22,6 +22,21 @@ const MIGRATIONS = {
   // Sets, weights and reps logged per exercise.
   10(state) {
     for (const session of Object.values(state.sessions)) session.logs = {};
+  },
+  // PPL 9 replaced the PPLPPL 7 program before anything was logged (November 2026):
+  // the library and programs become the starting data's, with PPL 9 active. Days
+  // keep their notes, logs and completed routines; their done marks pointed at the
+  // old routines, so they go. (This reads js/seed.js: if the starting data's shape
+  // ever changes, freeze a copy of the version-12 library and program here.)
+  11(state) {
+    const { exercises, routines, programs, settings } = clone(SEED);
+    Object.assign(state, { exercises, routines, programs });
+    state.settings.activeProgramId = settings.activeProgramId;
+    state.settings.activeRoutineId = settings.activeRoutineId;
+    for (const [dateKey, session] of Object.entries(state.sessions)) {
+      session.checkedEntryIdsByRoutine = {};
+      if (!session.routineIds.length && !session.note && !Object.keys(session.logs).length) delete state.sessions[dateKey];
+    }
   },
 };
 
