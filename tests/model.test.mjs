@@ -36,13 +36,13 @@ import {
 import { freshStore, refuse, save, withStore } from "./support.mjs";
 
 const DAY = "2026-10-05";
-const PROGRAM = "pplppl7-glute-specialization";
-const PUSH = "push-a-glutes";
+const PROGRAM = "ppl-9";
+const PUSH = "push-a";
 
 const day = (state, dateKey = DAY) => state.sessions[dateKey];
 const checks = (state, routineId, dateKey = DAY) => day(state, dateKey)?.checkedEntryIdsByRoutine[routineId] || [];
 const mainIds = (routine) => routine.entries.filter((entry) => entry.role === "main").map((entry) => entry.id);
-const entryIds = (routine) => orderedEntries(routine).map((entry) => entry.id.replace(`${routine.id}-entry-`, ""));
+const entryIds = (routine) => orderedEntries(routine).map((entry) => entry.id.replace(`${routine.id}-`, ""));
 const active = (state) => [state.settings.activeProgramId, state.settings.activeRoutineId];
 const linksOf = (state, id) => exerciseById(state, id).relatedExercises;
 
@@ -77,51 +77,56 @@ test("a routine completes when every Main entry is checked, and Optional entries
     return done;
   };
 
-  // Entry 001 offers two exercises but is one slot, so one check.
-  assert.equal(pull.entries[0].choices.length, 2);
-  assert.equal(toggle("pull-a-entry-001"), true);
-  assert.deepEqual(checks(store.getState(), "pull-a"), ["pull-a-entry-001"]);
+  // Entry 02 offers two exercises but is one slot, so one check.
+  assert.equal(pull.entries[1].choices.length, 2);
+  assert.equal(toggle("pull-a-02"), true);
+  assert.deepEqual(checks(store.getState(), "pull-a"), ["pull-a-02"]);
 
-  mainIds(pull).slice(1).forEach(toggle);
+  mainIds(pull).filter((id) => id !== "pull-a-02").forEach(toggle);
   assert.deepEqual(day(store.getState()).routineIds, ["pull-a"]);
 
-  toggle("pull-a-entry-009");
-  toggle("pull-a-entry-009");
+  toggle("pull-a-09");
+  toggle("pull-a-09");
   assert.deepEqual(day(store.getState()).routineIds, ["pull-a"], "Optional checks don't affect completion");
 
-  assert.equal(toggle("pull-a-entry-003"), false);
+  assert.equal(toggle("pull-a-03"), false);
   assert.deepEqual(day(store.getState()).routineIds, []);
-  assert.equal(isEntryChecked(store.getState(), DAY, "pull-a", "pull-a-entry-003"), false);
+  assert.equal(isEntryChecked(store.getState(), DAY, "pull-a", "pull-a-03"), false);
 });
 
 test("a routine with only Optional entries never completes from checks, but stays complete once marked in the Log", () => {
   const { store } = freshStore();
+  const PULL_B = "pull-b";
   save(store, (s) => {
-    for (const entry of routineById(s, "home-base").entries) setEntryChecked(s, "home-base", entry.id, true, DAY);
+    for (const entry of routineById(s, PULL_B).entries) updateEntry(s, PULL_B, entry.id, { role: "optional" });
   });
-  assert.equal(checks(store.getState(), "home-base").length, routineById(store.getState(), "home-base").entries.length);
+  save(store, (s) => {
+    for (const entry of routineById(s, PULL_B).entries) setEntryChecked(s, PULL_B, entry.id, true, DAY);
+  });
+  assert.equal(checks(store.getState(), PULL_B).length, routineById(store.getState(), PULL_B).entries.length);
   assert.deepEqual(day(store.getState()).routineIds, []);
 
-  save(store, (s) => setDay(s, DAY, ["home-base"], ""));
-  save(store, (s) => setEntryChecked(s, "home-base", "home-base-entry-001", false, DAY));
-  assert.deepEqual(day(store.getState()).routineIds, ["home-base"]);
+  save(store, (s) => setDay(s, DAY, [PULL_B], ""));
+  save(store, (s) => setEntryChecked(s, PULL_B, "pull-b-01", false, DAY));
+  assert.deepEqual(day(store.getState()).routineIds, [PULL_B]);
 });
 
 test("setDay checks Main entries of newly marked routines, clears checks of unmarked ones, and deletes an empty day", () => {
   const { store } = freshStore();
   const push = routineById(store.getState(), PUSH);
-  save(store, (s) => setEntryChecked(s, PUSH, "push-a-glutes-entry-011", true, DAY));
+  const pull = routineById(store.getState(), "pull-a");
+  save(store, (s) => setEntryChecked(s, PUSH, "push-a-12", true, DAY));
 
-  save(store, (s) => setDay(s, DAY, [PUSH, "home-base"], "Good day"));
+  save(store, (s) => setDay(s, DAY, [PUSH, "pull-a"], "Good day"));
   assert.deepEqual(day(store.getState()), {
-    routineIds: [PUSH, "home-base"],
-    checkedEntryIdsByRoutine: { [PUSH]: ["push-a-glutes-entry-011", ...mainIds(push)] },
+    routineIds: [PUSH, "pull-a"],
+    checkedEntryIdsByRoutine: { [PUSH]: ["push-a-12", ...mainIds(push)], "pull-a": mainIds(pull) },
     note: "Good day",
     logs: {},
   });
 
-  save(store, (s) => setDay(s, DAY, ["home-base"], "Good day"));
-  assert.deepEqual(day(store.getState()), { routineIds: ["home-base"], checkedEntryIdsByRoutine: {}, note: "Good day", logs: {} });
+  save(store, (s) => setDay(s, DAY, ["pull-a"], "Good day"));
+  assert.deepEqual(day(store.getState()), { routineIds: ["pull-a"], checkedEntryIdsByRoutine: { "pull-a": mainIds(pull) }, note: "Good day", logs: {} });
 
   save(store, (s) => setDay(s, DAY, [], ""));
   assert.equal(day(store.getState()), undefined);
@@ -130,7 +135,7 @@ test("setDay checks Main entries of newly marked routines, clears checks of unma
 test("deleting a routine keeps it in past completions but drops its checks", () => {
   const { store } = freshStore();
   save(store, (s) => setDay(s, DAY, [PUSH, "pull-a"], "Both"));
-  save(store, (s) => setEntryChecked(s, PUSH, "push-a-glutes-entry-001", true, "2026-10-06"));
+  save(store, (s) => setEntryChecked(s, PUSH, "push-a-01", true, "2026-10-06"));
 
   save(store, (s) => removeRoutine(s, PUSH));
   const state = store.getState();
@@ -165,10 +170,10 @@ test("deleting the last program leaves a valid empty app with history kept", () 
 test("removing an entry drops its checks and keeps the recorded completion", () => {
   const { state } = withStore((s) => {
     setDay(s, DAY, [PUSH], "");
-    removeEntry(s, PUSH, "push-a-glutes-entry-001");
+    removeEntry(s, PUSH, "push-a-01");
   });
-  assert.equal(checks(state, PUSH).includes("push-a-glutes-entry-001"), false);
-  assert.equal(checks(state, PUSH).length, 9);
+  assert.equal(checks(state, PUSH).includes("push-a-01"), false);
+  assert.equal(checks(state, PUSH).length, 7);
   assert.deepEqual(day(state).routineIds, [PUSH]);
 });
 
@@ -177,9 +182,9 @@ test("deleting an exercise promotes, removes or deletes its choices exactly as t
   save(store, (s) => {
     const choices = (n) => routineById(s, PUSH).entries[n].choices;
     saveExercise(s, newExercise(), [{ exerciseId: "rope-pushdown", relation: "similar" }]);
-    updateEntry(s, PUSH, "push-a-glutes-entry-001", { choices: [{ exerciseId: NEW_ID, prescription: "3 × 8" }, ...choices(0)] });
-    updateEntry(s, PUSH, "push-a-glutes-entry-002", { choices: [...choices(1), { exerciseId: NEW_ID, prescription: "2 × 12" }] });
-    updateEntry(s, PUSH, "push-a-glutes-entry-003", { choices: [{ exerciseId: NEW_ID, prescription: "1 × 20" }] });
+    updateEntry(s, PUSH, "push-a-01", { choices: [{ exerciseId: NEW_ID, prescription: "3 × 8" }, ...choices(0)] });
+    updateEntry(s, PUSH, "push-a-02", { choices: [...choices(1), { exerciseId: NEW_ID, prescription: "2 × 12" }] });
+    updateEntry(s, PUSH, "push-a-03", { choices: [{ exerciseId: NEW_ID, prescription: "1 × 20" }] });
     setDay(s, DAY, [PUSH], "Keep this note");
   });
   const before = store.getState();
@@ -196,8 +201,8 @@ test("deleting an exercise promotes, removes or deletes its choices exactly as t
   const [was, now] = [routineById(before, PUSH), routineById(after, PUSH)];
   assert.deepEqual(now.entries[0].choices, was.entries[0].choices.slice(1), "next choice promoted");
   assert.deepEqual(now.entries[1].choices, was.entries[1].choices.slice(0, -1), "alternative removed");
-  assert.equal(now.entries.some((entry) => entry.id === "push-a-glutes-entry-003"), false, "single-choice slot deleted");
-  assert.deepEqual(checks(after, PUSH), mainIds(was).filter((id) => id !== "push-a-glutes-entry-003"));
+  assert.equal(now.entries.some((entry) => entry.id === "push-a-03"), false, "single-choice slot deleted");
+  assert.deepEqual(checks(after, PUSH), mainIds(was).filter((id) => id !== "push-a-03"));
   assert.deepEqual(day(after).routineIds, [PUSH]);
   assert.equal(day(after).note, "Keep this note");
   assert.deepEqual(linksOf(after, "rope-pushdown"), []);
@@ -258,14 +263,14 @@ test("duplicating a program copies its routines with fresh ids and the same exer
 
 test("routine blocks can be renamed, reordered and deleted only when empty", () => {
   const { store } = freshStore();
-  const [work, glute, accessories, rehab] = routineById(store.getState(), PUSH).blocks;
-  save(store, (s) => updateRoutine(s, PUSH, { blocks: [{ ...rehab, name: "Rehab first" }, work, glute, accessories, { id: "spare", name: "Spare" }] }));
+  const [main, glute, rehab] = routineById(store.getState(), PUSH).blocks;
+  save(store, (s) => updateRoutine(s, PUSH, { blocks: [{ ...rehab, name: "Rehab first" }, main, glute, { id: "spare", name: "Spare" }] }));
   const routine = routineById(store.getState(), PUSH);
-  assert.deepEqual(routine.blocks.map((block) => block.name), ["Rehab first", work.name, glute.name, accessories.name, "Spare"]);
-  assert.deepEqual(entryIds(routine).slice(0, 4), ["011", "012", "013", "001"]);
+  assert.deepEqual(routine.blocks.map((block) => block.name), ["Rehab first", main.name, glute.name, "Spare"]);
+  assert.deepEqual(entryIds(routine).slice(0, 4), ["12", "13", "14", "01"]);
 
   save(store, (s) => updateRoutine(s, PUSH, { blocks: routine.blocks.slice(0, -1) }));
-  assert.equal(routineById(store.getState(), PUSH).blocks.length, 4);
+  assert.equal(routineById(store.getState(), PUSH).blocks.length, 3);
   refuse(store, (s) => updateRoutine(s, PUSH, { blocks: routine.blocks.slice(1, -1) }), "Move a block's exercises before deleting it.");
   refuse(store, (s) => updateRoutine(s, PUSH, { blocks: [] }), "A routine needs at least one block.");
 });
@@ -273,26 +278,26 @@ test("routine blocks can be renamed, reordered and deleted only when empty", () 
 test("moveRoutine reorders routines inside their program", () => {
   const { store } = freshStore();
   const before = store.getState().programs[0].routineIds;
-  save(store, (s) => moveRoutine(s, "home-base", 0));
-  assert.deepEqual(store.getState().programs[0].routineIds, ["home-base", ...before.filter((id) => id !== "home-base")]);
+  save(store, (s) => moveRoutine(s, "legs-b", 0));
+  assert.deepEqual(store.getState().programs[0].routineIds, ["legs-b", ...before.filter((id) => id !== "legs-b")]);
 });
 
 test("moveEntryInBlock reorders within the block only and ignores out-of-range moves", () => {
   const { store } = freshStore();
-  save(store, (s) => moveEntryInBlock(s, PUSH, "push-a-glutes-entry-010", 0));
-  const moved = ["001", "002", "003", "004", "005", "006", "010", "007", "008", "009", "011", "012", "013"];
+  save(store, (s) => moveEntryInBlock(s, PUSH, "push-a-08", 0));
+  const moved = ["08", "01", "02", "03", "04", "05", "06", "07", "09", "10", "11", "12", "13", "14"];
   assert.deepEqual(entryIds(routineById(store.getState(), PUSH)), moved);
-  save(store, (s) => moveEntryInBlock(s, PUSH, "push-a-glutes-entry-010", 4));
+  save(store, (s) => moveEntryInBlock(s, PUSH, "push-a-08", 8));
   assert.deepEqual(entryIds(routineById(store.getState(), PUSH)), moved);
 });
 
 test("updateEntry can move an entry to the end of another block and rejects bad changes", () => {
   const { store } = freshStore();
-  save(store, (s) => updateEntry(s, PUSH, "push-a-glutes-entry-001", { blockId: "push-a-glute-block", role: "optional", note: "Moved\nhere" }));
+  save(store, (s) => updateEntry(s, PUSH, "push-a-01", { blockId: "push-a-optional-glute-block", role: "optional", note: "Moved\nhere" }));
   const routine = routineById(store.getState(), PUSH);
-  const entry = routine.entries.find((item) => item.id === "push-a-glutes-entry-001");
-  assert.deepEqual([entry.blockId, entry.role, entry.note], ["push-a-glute-block", "optional", "Moved\nhere"]);
-  assert.equal(entryNumber(routine, entry.id), 6);
+  const entry = routine.entries.find((item) => item.id === "push-a-01");
+  assert.deepEqual([entry.blockId, entry.role, entry.note], ["push-a-optional-glute-block", "optional", "Moved\nhere"]);
+  assert.equal(entryNumber(routine, entry.id), 11);
 
   refuse(store, (s) => updateEntry(s, PUSH, entry.id, { blockId: "nope" }), "That block no longer exists.");
   const twice = [...entry.choices, { ...entry.choices[0], prescription: "1 × 5" }];
@@ -301,7 +306,7 @@ test("updateEntry can move an entry to the end of another block and rejects bad 
 
 test("addEntry needs a prescription and adds a Main entry at the end of the block", () => {
   const { store } = freshStore();
-  const fields = { exerciseId: "rope-pushdown", blockId: "push-a-glute-block" };
+  const fields = { exerciseId: "rope-pushdown", blockId: "push-a-optional-glute-block" };
   refuse(store, (s) => addEntry(s, PUSH, { ...fields, prescription: "   " }), "Add a prescription to every exercise choice.");
 
   const id = save(store, (s) => addEntry(s, PUSH, { ...fields, prescription: " 3 × 10 " }));
@@ -309,11 +314,11 @@ test("addEntry needs a prescription and adds a Main entry at the end of the bloc
   assert.deepEqual(routine.entries.find((entry) => entry.id === id), {
     id,
     choices: [{ exerciseId: "rope-pushdown", prescription: "3 × 10" }],
-    blockId: "push-a-glute-block",
+    blockId: "push-a-optional-glute-block",
     note: "",
     role: "main",
   });
-  assert.equal(entryNumber(routine, id), 7);
+  assert.equal(entryNumber(routine, id), 12);
 });
 
 test("switching programs keeps a valid active routine and repairs an invalid one", () => {
@@ -332,7 +337,7 @@ test("switching programs keeps a valid active routine and repairs an invalid one
 
 // ---------- set logging ----------
 
-const CHEST = "push-a-glutes-entry-003";
+const CHEST = "push-a-02";
 const chestExercise = (state) => routineById(state, PUSH).entries.find((entry) => entry.id === CHEST).choices[0].exerciseId;
 const logSets = (store, dateKey, sets, entryId = CHEST, routineId = PUSH) => save(store, (s) => {
   const exerciseId = routineById(s, routineId).entries.find((entry) => entry.id === entryId).choices[0].exerciseId;
@@ -449,7 +454,7 @@ test("the unit is saved with the sets: seconds for a timed prescription", () => 
 });
 
 test("a prescription says how many set rows to show and whether it's timed", () => {
-  assert.deepEqual(["3 × 8–12", "1–2 × 15–25/side", "2 × 15–30 sec/side", "AMRAP"].map(plannedSetCount), [3, 2, 2, 1]);
+  assert.deepEqual(["3 × 8–12", "1–2 × 15–25/side", "2 × 15–30 sec/side", "2 sets", "AMRAP"].map(plannedSetCount), [3, 2, 2, 2, 1]);
   assert.deepEqual(
     ["3 × 8–12", "2 × 15–30 sec/side", "3 × 45s", "5 × 8–10-sec holds", "3 × 8 (2s pause)", "3 x 10 @ 3s tempo",
       "2 × 8–12 with 3-sec holds", "2 rounds/side · 30–60 sec", "Max hold 30s"].map(isTimedPrescription),

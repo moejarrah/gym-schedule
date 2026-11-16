@@ -112,7 +112,7 @@ export function exerciseHistory(state, exerciseId, { beforeDateKey = "", limit =
 
 // How many set rows a prescription plans: "3 × 8–12" → 3, "1–2 × 15–25/side" → 2. Otherwise 1.
 export function plannedSetCount(prescription) {
-  const match = /^\s*(\d+)\s*(?:[–-]\s*(\d+))?\s*[×x]/i.exec(prescription);
+  const match = /^\s*(\d+)\s*(?:[–-]\s*(\d+))?\s*(?:[×x]|sets?\b)/i.exec(prescription);
   return match ? Math.min(10, Math.max(1, Number(match[2] || match[1]))) : 1;
 }
 

@@ -44,25 +44,27 @@ import {
 const { appTest } = suite();
 const { describe } = test;
 
-const PROGRAM = "PPLPPL 7 — Glute Specialization";
-const PUSH_A = "Push A + Glutes";
+const PROGRAM = "PPL 9";
+const PUSH_A = "Push A";
+const ROUTINES = [PUSH_A, "Pull A", "Legs A", "Push B", "Pull B", "Legs B"];
+// Push A's first block is unnamed and holds its eight Main slots; then come the
+// three-slot "Optional glute block" and the "Optional coverage / rehab" block below.
 const PUSH_A_MAIN = [
   "Low-incline dumbbell press",
-  "Machine overhead press",
   "Machine chest press",
-  "Single-leg hip thrust",
-  "Standing cable hip abduction",
-  "Cable kickback",
+  "Machine overhead press",
+  "Pec deck or Cable fly",
   "Dumbbell scaption raise",
-  "Rope triceps pushdown",
+  "Bar triceps pushdown",
   "Cable crunch",
   "Neck flexion",
 ];
 const PUSH_A_OPTIONAL = [
   "Cable serratus punch or Push-up plus",
-  "Cable shoulder external rotation or Side-lying dumbbell shoulder external rotation",
+  "Cable shoulder external rotation",
   "Cable shoulder internal rotation",
 ];
+const LIBRARY_SIZE = 191;
 const TODAY = "Wednesday, November 4, 2026";
 
 // ---- small locator helpers (visible hooks only) ----------------------------------------------
@@ -169,20 +171,26 @@ describe("Workout", () => {
   appTest("workout: shows the active program, ordered blocks, continuous numbering and the Manage program path", async ({ page }) => {
     await expect(activeProgramButton(page)).toHaveAccessibleName(`Choose active program, currently ${PROGRAM}`);
     await expect(routineTab(page, PUSH_A)).toHaveAttribute("aria-pressed", "true");
-    await expect(routineTabs(page)).toHaveCount(10);
-    // Block labels in order, and numbering continues across blocks (slot 4 opens the Glute block).
+    await expect(routineTabs(page)).toHaveCount(ROUTINES.length);
+    // Block labels in order (the unnamed Main block has none), and numbering continues across
+    // blocks (slot 9 opens the Optional glute block).
     const main = mainArea(page);
-    for (const label of ["Upper-body work", "Glute block", "Upper-body accessories", "Optional coverage · Rehab"]) {
+    for (const label of ["Optional glute block", "Optional coverage / rehab"]) {
       await expect(main.getByText(label, { exact: true })).toBeVisible();
     }
-    const glute = await main.getByText("Glute block", { exact: true }).boundingBox();
-    const upper = await main.getByText("Upper-body work", { exact: true }).boundingBox();
-    assert.ok(upper.y < glute.y, "Upper-body work is above Glute block");
-    await expect(numberButton(page, "Single-leg hip thrust")).toHaveText("4");
-    await expect(numberButton(page, PUSH_A_OPTIONAL[0])).toHaveText("11");
+    const glute = await main.getByText("Optional glute block", { exact: true }).boundingBox();
+    const rehab = await main.getByText("Optional coverage / rehab", { exact: true }).boundingBox();
+    assert.ok(glute.y < rehab.y, "Optional glute block is above Optional coverage / rehab");
+    await expect(numberButton(page, PUSH_A_MAIN.at(-1))).toHaveText("8");
+    await expect(numberButton(page, "Single-leg hip thrust")).toHaveText("9");
+    await expect(numberButton(page, PUSH_A_OPTIONAL[0])).toHaveText("12");
+    // Block names that already say "Optional" get no extra Optional tag.
+    await expect(main.getByText("Optional", { exact: true })).toHaveCount(0);
     // Routine prescription and compact programming-note preview are on the row.
-    await expect(main.getByRole("button", { name: "View Cable kickback details" })).toContainText("2 × 12–20/leg");
-    await expect(main.getByRole("button", { name: "View Cable kickback details" })).toContainText("Alternate straight-back");
+    await routineTab(page, "Pull A").click();
+    const pulldown = main.getByRole("button", { name: "View Pronated-grip lat pulldown details" });
+    await expect(pulldown).toContainText("3 × 6–10");
+    await expect(pulldown).toContainText("Pronated grip, shoulder-width");
     // Manage program path.
     await main.getByRole("button", { name: `Manage ${PROGRAM}` }).click();
     await expect(mainArea(page).getByRole("heading", { name: "Program", level: 1 })).toBeVisible();
@@ -190,14 +198,20 @@ describe("Workout", () => {
   });
 
   appTest("workout: select any routine; selection persists after reload; routine note sits above an independently scrolling list", async ({ page, reload }) => {
-    await routineTab(page, "Legs morning").click();
-    await expect(routineTab(page, "Legs morning")).toHaveAttribute("aria-pressed", "true");
+    await routineTab(page, "Legs B").click();
+    await expect(routineTab(page, "Legs B")).toHaveAttribute("aria-pressed", "true");
     await expect(routineTab(page, PUSH_A)).toHaveAttribute("aria-pressed", "false");
-    await expect(mainArea(page).getByRole("button", { name: "View Modified McGill curl-up details" })).toBeVisible();
+    await expect(mainArea(page).getByRole("button", { name: "View Romanian deadlift details" })).toBeVisible();
     await reload();
-    await expect(routineTab(page, "Legs morning")).toHaveAttribute("aria-pressed", "true");
+    await expect(routineTab(page, "Legs B")).toHaveAttribute("aria-pressed", "true");
 
-    await routineTab(page, "Home Base").click();
+    // The starting routines have no notes, so give Push A (the longest list) one.
+    const editor = await openRoutineEditor(page, PUSH_A);
+    await editor.getByRole("textbox", { name: "Routine note" }).fill("Choice menu: choose only what you need today.");
+    await editor.getByRole("button", { name: "Save routine" }).click();
+    await expect(toast(page)).toHaveText("Routine updated.");
+    await goToView(page, "Workout");
+    await expect(routineTab(page, PUSH_A)).toHaveAttribute("aria-pressed", "true");
     const note = mainArea(page).getByText(/^Choice menu: choose only what you need/).first();
     await expect(note).toBeVisible();
     const before = await note.boundingBox();
@@ -237,7 +251,7 @@ describe("Workout", () => {
 
   appTest("workout: routine auto-completes only when every Main entry is checked; Optional never blocks", async ({ page }) => {
     for (const title of PUSH_A_MAIN.slice(0, -1)) await setChecked(page, title, true);
-    assert.doesNotMatch(await todayLabel(page), /completed/, "9 of 10 Main entries is not complete");
+    assert.doesNotMatch(await todayLabel(page), /completed/, "7 of 8 Main entries is not complete");
 
     await setChecked(page, PUSH_A_MAIN.at(-1), true);
     assert.match(await todayLabel(page), /1 completed routine/, "all Main checked completes the routine with Optional unchecked");
@@ -251,7 +265,7 @@ describe("Workout", () => {
     await calendarDay(page, TODAY).click();
     const day = dialog(page, "Wednesday, November 4");
     await expect(day.getByRole("checkbox", { name: startsWith(`${PUSH_A} `) })).toBeChecked();
-    await expect(day.getByRole("checkbox", { name: startsWith(`${PUSH_A} `) })).toHaveAccessibleName(/10\/10 main/);
+    await expect(day.getByRole("checkbox", { name: startsWith(`${PUSH_A} `) })).toHaveAccessibleName(/8\/8 main/);
     await day.getByRole("button", { name: "Close day editor" }).click();
     await goToView(page, "Workout");
 
@@ -260,30 +274,50 @@ describe("Workout", () => {
   });
 
   appTest("workout: Optional-only routines never auto-complete but their checks are saved", async ({ page }) => {
-    await routineTab(page, "Home Base").click();
-    const first = mainArea(page).getByRole("button", { name: /^Log sets for / }).first();
-    const name = (await first.getAttribute("aria-label")).replace(/^Log sets for /, "");
-    await setChecked(page, name, true);
+    // The starting program has no Optional routine, so add one whose only slot is Optional.
+    await goToView(page, "Program");
+    await mainArea(page).getByRole("button", { name: "+ Add routine" }).click();
+    const add = dialog(page, "Add routine");
+    await add.getByRole("textbox", { name: "Name" }).fill("Home Base");
+    await add.getByRole("group", { name: "Routine location" }).getByRole("button", { name: "Home" }).click();
+    await add.getByRole("group", { name: "Routine status" }).getByRole("button", { name: "Optional" }).click();
+    await add.getByRole("button", { name: "Save routine" }).click();
+    await expect(toast(page)).toHaveText("Routine added.");
+    await mainArea(page).getByRole("button", { name: "+ Add exercise" }).click();
+    const picker = dialog(page, "Add exercise");
+    await picker.getByRole("searchbox", { name: "Search exercises" }).fill("Wall angel");
+    await picker.getByRole("button", { name: "Add Wall angel to this routine" }).click();
+    await expect(picker).toBeHidden();
+    const entry = await openEntryEditor(page, "Wall angel");
+    await entry.getByRole("group", { name: "Routine entry role" }).getByRole("button", { name: "Optional" }).click();
+    await entry.getByRole("button", { name: "Save entry" }).click();
+    await expect(toast(page)).toHaveText("Routine entry updated.");
+    await expect(mainArea(page).getByText("Home · Optional · 1 slot · 1 block")).toBeVisible();
+
+    await goToView(page, "Workout");
+    await expect(routineTab(page, "Home Base")).toHaveAttribute("aria-pressed", "true");
+    await setChecked(page, "Wall angel", true);
     await goToView(page, "Log");
     await expect(calendarDay(page, TODAY)).not.toHaveAccessibleName(/completed/);
     await expect(recentRows(page).first()).toContainText("Saved workout checks");
   });
 
   appTest("workout: one-choice row opens its reference with routine prescription and routine note separate from master facts", async ({ page }) => {
-    await mainArea(page).getByRole("button", { name: "View Cable kickback details" }).click();
-    const reference = dialog(page, "Cable kickback");
+    await routineTab(page, "Pull A").click();
+    await mainArea(page).getByRole("button", { name: "View Pronated-grip lat pulldown details" }).click();
+    const reference = dialog(page, "Pronated-grip lat pulldown");
     await expect(reference).toBeVisible();
     await expect(reference.getByText("Routine prescription", { exact: true })).toBeVisible();
-    await expect(reference.getByText("2 × 12–20/leg", { exact: true })).toBeVisible();
-    await expect(reference.getByText(`For this routine — ${PUSH_A}`)).toBeVisible();
-    await expect(reference.getByText(/^Alternate straight-back and high\/kneeling/)).toBeVisible();
+    await expect(reference.getByText("3 × 6–10", { exact: true })).toBeVisible();
+    await expect(reference.getByText("For this routine — Pull A")).toBeVisible();
+    await expect(reference.getByText(/^Pronated grip, shoulder-width, elbows 10–30°/)).toBeVisible();
     await expect(reference.getByText("Primary targets", { exact: true })).toBeVisible();
     await expect(reference.getByText("Exercise notes", { exact: true })).toBeVisible();
     await expect(reference.getByRole("link", { name: "Search YouTube" })).toHaveAttribute("href", /youtube\.com\/results/);
     await reference.getByRole("button", { name: "Close exercise reference" }).click();
     await expect(reference).toBeHidden();
     // Tapping the row did not change completion.
-    await expectDone(page, "Cable kickback", false);
+    await expectDone(page, "Pronated-grip lat pulldown", false);
   });
 
   appTest("workout: related exercise reference and deliberate master-editor entry from a reference", async ({ page }) => {
@@ -347,7 +381,7 @@ describe("Workout", () => {
     await routineTab(page, "Legs A").click();
     await activeProgramButton(page).click();
     const programs = dialog(page, "Programs");
-    await expect(programs.getByRole("button", { name: startsWith(`${PROGRAM} 10 routines`) })).toHaveAttribute("aria-pressed", "true");
+    await expect(programs.getByRole("button", { name: startsWith(`${PROGRAM} ${ROUTINES.length} routines`) })).toHaveAttribute("aria-pressed", "true");
     await programs.getByRole("button", { name: "Add program" }).click();
     const add = dialog(page, "Add program");
     await add.getByRole("textbox", { name: "Name" }).fill("Travel");
@@ -359,7 +393,7 @@ describe("Workout", () => {
 
     // Switch back from Workout: Legs A is not in Travel, so the program's first routine is selected.
     await activeProgramButton(page).click();
-    await dialog(page, "Programs").getByRole("button", { name: startsWith(`${PROGRAM} 10 routines`) }).click();
+    await dialog(page, "Programs").getByRole("button", { name: startsWith(`${PROGRAM} ${ROUTINES.length} routines`) }).click();
     await expect(toast(page)).toHaveText("Program selected.");
     await expect(activeProgramButton(page)).toHaveAccessibleName(`Choose active program, currently ${PROGRAM}`);
     await expect(routineTab(page, PUSH_A)).toHaveAttribute("aria-pressed", "true");
@@ -431,7 +465,7 @@ describe("Program", () => {
     await expect(calendarDay(page, TODAY)).toHaveAccessibleName(/1 completed routine/);
     await goToView(page, "Library");
     await expect(libraryRow(page, "Wall angel")).toBeVisible();
-    await expect(libraryCount(page)).toHaveText("177 exercises");
+    await expect(libraryCount(page)).toHaveText(`${LIBRARY_SIZE} exercises`);
   });
 
   appTest("program: duplicate a program (new routine IDs, shared Library) and switch between them", async ({ page }) => {
@@ -445,7 +479,7 @@ describe("Program", () => {
     await add.getByRole("button", { name: "Create program" }).click();
     await expect(toast(page)).toHaveText("Program created.");
     await expect(activeProgramButton(page)).toHaveAccessibleName(`Choose active program, currently ${PROGRAM} copy`);
-    await expect(routineTabs(page)).toHaveCount(10);
+    await expect(routineTabs(page)).toHaveCount(ROUTINES.length);
 
     // Editing the copy leaves the original untouched.
     const editor = await openRoutineEditor(page, PUSH_A);
@@ -455,21 +489,21 @@ describe("Program", () => {
 
     programs = await openProgramsFromProgram(page);
     await expect(programs.getByRole("button", { name: /routines/ })).toHaveCount(2);
-    await programs.getByRole("button", { name: startsWith(`${PROGRAM} 10 routines`) }).click();
+    await programs.getByRole("button", { name: startsWith(`${PROGRAM} ${ROUTINES.length} routines`) }).click();
     await expect(activeProgramButton(page)).toHaveAccessibleName(`Choose active program, currently ${PROGRAM}`);
     await expect(routineTab(page, PUSH_A)).toBeVisible();
     await expect(routineTab(page, "Push A copy")).toHaveCount(0);
     await goToView(page, "Library");
-    await expect(libraryCount(page)).toHaveText("177 exercises");
+    await expect(libraryCount(page)).toHaveText(`${LIBRARY_SIZE} exercises`);
   });
 
   appTest("program: shared program rules are readable through one disclosure", async ({ page }) => {
     await goToView(page, "Program");
     const rules = mainArea(page).getByText("Weekly layout & rules");
     await expect(rules).toBeVisible();
-    await expect(mainArea(page).getByText(/Day 7 — Rest/)).toBeHidden();
+    await expect(mainArea(page).getByText(/Sun — Rest/)).toBeHidden();
     await rules.click();
-    await expect(mainArea(page).getByText(/Day 7 — Rest/)).toBeVisible();
+    await expect(mainArea(page).getByText(/Sun — Rest/)).toBeVisible();
   });
 
   appTest("program: select a routine; add one with location, status and note; edit it; delete it with confirmation", async ({ page, reload }) => {
@@ -516,7 +550,7 @@ describe("Program", () => {
     await confirm(page, "Delete Mobility?", "Delete routine");
     await expect(toast(page)).toHaveText("Routine deleted.");
     await expect(routineTab(page, "Mobility")).toHaveCount(0);
-    await expect(routineTabs(page)).toHaveCount(10);
+    await expect(routineTabs(page)).toHaveCount(ROUTINES.length);
   });
 
   appTest("program: reorder routines with Move earlier / Move later", async ({ page, reload }) => {
@@ -549,16 +583,18 @@ describe("Program", () => {
     await block.getByRole("button", { name: "Move block earlier" }).click();
     await block.getByRole("button", { name: "Save block" }).click();
     await expect(block).toBeHidden();
-    await expect(editor.getByRole("button", { name: startsWith("Edit Finisher.") })).toContainText("0 entries · 4 of 5");
+    await expect(editor.getByRole("button", { name: startsWith("Edit Finisher.") })).toContainText("0 entries · 3 of 4");
 
-    await editor.getByRole("button", { name: startsWith("Edit Glute block.") }).click();
+    await editor.getByRole("button", { name: startsWith("Edit Optional glute block.") }).click();
     block = dialog(page, "Edit block");
     await block.getByRole("textbox", { name: "Name" }).fill("Glute focus");
     await block.getByRole("button", { name: "Save block" }).click();
-    await expect(editor.getByRole("button", { name: startsWith("Edit Glute focus.") })).toContainText("3 entries · 2 of 5");
+    await expect(editor.getByRole("button", { name: startsWith("Edit Glute focus.") })).toContainText("3 entries · 2 of 4");
 
-    await editor.getByRole("button", { name: startsWith("Edit Upper-body work.") }).click();
+    // The unnamed Main block holds entries.
+    await editor.getByRole("button", { name: startsWith("Edit Untitled block.") }).click();
     block = dialog(page, "Edit block");
+    await expect(block.getByText("8 entries")).toBeVisible();
     await expect(block.getByRole("button", { name: "Delete empty block" })).toBeDisabled();
     await block.getByRole("button", { name: "Close block editor" }).click();
     await editor.getByRole("button", { name: "Save routine" }).click();
@@ -569,12 +605,16 @@ describe("Program", () => {
     const main = mainArea(page);
     await expect(main.getByText("No exercises in Finisher.")).toBeVisible();
     await expect(main.getByText("Glute focus", { exact: true })).toBeVisible();
+    const gluteY = (await main.getByText("Glute focus", { exact: true }).boundingBox()).y;
     const finisherY = (await main.getByText("Finisher", { exact: true }).boundingBox()).y;
-    const accessoriesY = (await main.getByText("Upper-body accessories", { exact: true }).boundingBox()).y;
-    const optionalY = (await main.getByText("Optional coverage · Rehab", { exact: true }).boundingBox()).y;
-    assert.ok(accessoriesY < finisherY && finisherY < optionalY, "Finisher sits between Upper-body accessories and Optional coverage");
+    const optionalY = (await main.getByText("Optional coverage / rehab", { exact: true }).boundingBox()).y;
+    assert.ok(gluteY < finisherY && finisherY < optionalY, "Finisher sits between Glute focus and Optional coverage / rehab");
+    // An all-Optional block says so with a tag unless its name already does.
+    await expect(main.getByText("Glute focus", { exact: true }).locator("..")).toHaveText(/^Glute focus\s*Optional$/);
+    await expect(main.getByText("Optional coverage / rehab", { exact: true }).locator("..")).toHaveText(/^Optional coverage \/ rehab$/);
     await goToView(page, "Workout");
     await expect(mainArea(page).getByText("Glute focus", { exact: true })).toBeVisible();
+    await expect(mainArea(page).getByText("Glute focus", { exact: true }).locator("..")).toHaveText(/^Glute focus\s*Optional$/);
 
     editor = await openRoutineEditor(page, PUSH_A);
     await editor.getByRole("button", { name: startsWith("Edit Finisher.") }).click();
@@ -583,7 +623,7 @@ describe("Program", () => {
     await expect(editor.getByRole("button", { name: startsWith("Edit Finisher.") })).toHaveCount(0);
     await editor.getByRole("button", { name: "Save routine" }).click();
     await expect(mainArea(page).getByText("No exercises in Finisher.")).toHaveCount(0);
-    await expect(mainArea(page).getByText("Gym · Required · 13 slots · 4 blocks")).toBeVisible();
+    await expect(mainArea(page).getByText("Gym · Required · 14 slots · 3 blocks")).toBeVisible();
   });
 
   appTest("program: search the Library and add an exercise to a deliberate block", async ({ page, reload }) => {
@@ -591,16 +631,16 @@ describe("Program", () => {
     // The second "+ Add exercise" belongs to the second block; the picker names the block it targets.
     await mainArea(page).getByRole("button", { name: "+ Add exercise" }).nth(1).click();
     const picker = dialog(page, "Add exercise");
-    await expect(picker.getByText(`${PUSH_A} · Glute block · Library`)).toBeVisible();
-    await expect(picker.getByText("177 exercises")).toBeVisible();
+    await expect(picker.getByText(`${PUSH_A} · Optional glute block · Library`)).toBeVisible();
+    await expect(picker.getByText(`${LIBRARY_SIZE} exercises`)).toBeVisible();
     await picker.getByRole("searchbox", { name: "Search exercises" }).fill("barbell hip");
     await expect(picker.getByText("1 exercise", { exact: true })).toBeVisible();
     await picker.getByRole("button", { name: "Add Barbell hip thrust to this routine" }).click();
     await expect(picker).toBeHidden();
     await expect(toast(page)).toHaveText("Exercise added to routine.");
-    await expect(programRow(page, "Barbell hip thrust")).toHaveAccessibleName(/within Glute block\.$/);
-    await expect(programRow(page, "Barbell hip thrust")).toContainText("7");
-    await expect(programRow(page, "Dumbbell scaption raise")).toContainText("8");
+    await expect(programRow(page, "Barbell hip thrust")).toHaveAccessibleName(/within Optional glute block\.$/);
+    await expect(programRow(page, "Barbell hip thrust")).toContainText("12");
+    await expect(programRow(page, PUSH_A_OPTIONAL[0])).toContainText("13");
 
     // A master without a default prescription cannot become a new slot.
     await mainArea(page).getByRole("button", { name: "+ Add exercise" }).nth(0).click();
@@ -611,7 +651,7 @@ describe("Program", () => {
 
     await reload();
     await goToView(page, "Workout");
-    await expect(numberButton(page, "Barbell hip thrust")).toHaveText("7");
+    await expect(numberButton(page, "Barbell hip thrust")).toHaveText("12");
     await expect(mainArea(page).getByRole("button", { name: "View Barbell hip thrust details" })).toContainText("3 × 6–10");
   });
 
@@ -661,14 +701,17 @@ describe("Program", () => {
 
     // Role, block, note.
     await editor.getByRole("group", { name: "Routine entry role" }).getByRole("button", { name: "Main" }).click();
-    await editor.getByRole("combobox", { name: "Routine block" }).selectOption({ label: "Upper-body accessories" });
+    await editor.getByRole("combobox", { name: "Routine block" }).selectOption({ label: "Untitled block" });
     await editor.getByRole("textbox", { name: "Programming note — for this routine only" }).fill("Slow and controlled");
     await editor.getByRole("button", { name: "Save entry" }).click();
     await expect(editor).toBeHidden();
     await expect(toast(page)).toHaveText("Routine entry updated.");
 
+    // It moved to the end of the unnamed Main block, ahead of the Optional glute block.
     const row = programRow(page, "Wall angel or Push-up plus");
-    await expect(row).toHaveAccessibleName(/within Upper-body accessories\.$/);
+    await expect(row).toHaveAccessibleName(/within this block\.$/);
+    await expect(programRows(page).nth(PUSH_A_MAIN.length)).toHaveAccessibleName(startsWith("Wall angel or Push-up plus."));
+    await expect(programRows(page).nth(PUSH_A_MAIN.length + 1)).toHaveAccessibleName(startsWith("Single-leg hip thrust."));
     await expect(row).toContainText("1 × 10 or 2 × 12–20");
     await expect(row).toContainText("Slow and controlled");
 
@@ -693,11 +736,11 @@ describe("Program", () => {
     await expect(editor.getByRole("button", { name: "Move earlier" })).toBeDisabled();
     await editor.getByRole("button", { name: "Close entry editor" }).click();
 
-    editor = await openEntryEditor(page, "Machine overhead press");
+    editor = await openEntryEditor(page, "Machine chest press");
     await editor.getByRole("button", { name: "Move earlier" }).click();
     await expect(editor).toBeHidden();
     await expect(toast(page)).toHaveText("Exercise moved.");
-    await expect(programRows(page).nth(0)).toHaveAccessibleName(startsWith("Machine overhead press."));
+    await expect(programRows(page).nth(0)).toHaveAccessibleName(startsWith("Machine chest press."));
     await expect(programRows(page).nth(0)).toContainText("1");
 
     editor = await openEntryEditor(page, "Low-incline dumbbell press");
@@ -705,12 +748,16 @@ describe("Program", () => {
     await expect(editor).toBeHidden();
     await reload();
     await goToView(page, "Program");
-    await expect(programRows(page).nth(0)).toHaveAccessibleName(startsWith("Machine overhead press."));
-    await expect(programRows(page).nth(1)).toHaveAccessibleName(startsWith("Machine chest press."));
+    await expect(programRows(page).nth(0)).toHaveAccessibleName(startsWith("Machine chest press."));
+    await expect(programRows(page).nth(1)).toHaveAccessibleName(startsWith("Machine overhead press."));
     await expect(programRows(page).nth(2)).toHaveAccessibleName(startsWith("Low-incline dumbbell press."));
-    // Moving within a block never crosses into the next block.
-    editor = await openEntryEditor(page, "Low-incline dumbbell press");
+    // Moving within a block never crosses into the next block: Neck flexion ends the Main
+    // block and Single-leg hip thrust starts the Optional glute block.
+    editor = await openEntryEditor(page, "Neck flexion");
     await expect(editor.getByRole("button", { name: "Move later" })).toBeDisabled();
+    await editor.getByRole("button", { name: "Close entry editor" }).click();
+    editor = await openEntryEditor(page, "Single-leg hip thrust");
+    await expect(editor.getByRole("button", { name: "Move earlier" })).toBeDisabled();
   });
 
   appTest("program: remove an entry from the routine without deleting its master exercise", async ({ page }) => {
@@ -724,7 +771,7 @@ describe("Program", () => {
     await confirm(page, "Remove Neck flexion?", "Remove entry");
     await expect(toast(page)).toHaveText("Exercise removed from routine.");
     await expect(programRow(page, "Neck flexion")).toHaveCount(0);
-    await expect(mainArea(page).getByText("Gym · Required · 12 slots · 4 blocks")).toBeVisible();
+    await expect(mainArea(page).getByText("Gym · Required · 13 slots · 3 blocks")).toBeVisible();
     await goToView(page, "Library");
     await expect(libraryRow(page, "Neck flexion")).toBeVisible();
   });
@@ -734,7 +781,7 @@ describe("Program", () => {
 describe("Library", () => {
   appTest("library: search by name, alias, target and movement with punctuation-tolerant matching", async ({ page }) => {
     await goToView(page, "Library");
-    await expect(libraryCount(page)).toHaveText("177 exercises");
+    await expect(libraryCount(page)).toHaveText(`${LIBRARY_SIZE} exercises`);
     const search = mainArea(page).getByRole("searchbox", { name: "Search exercises" });
     for (const query of ["ab wheel", "abwheel", "AB-WHEEL"]) {
       await search.fill(query);
@@ -752,7 +799,7 @@ describe("Library", () => {
     await search.fill("zzzz no match");
     await expect(mainArea(page).getByRole("heading", { name: "No matching exercises" })).toBeVisible();
     await mainArea(page).getByRole("button", { name: "Clear filters" }).click();
-    await expect(libraryCount(page)).toHaveText("177 exercises");
+    await expect(libraryCount(page)).toHaveText(`${LIBRARY_SIZE} exercises`);
   });
 
   appTest("library: quick groups and the Primary only / Primary + secondary target scope", async ({ page }) => {
@@ -768,7 +815,7 @@ describe("Library", () => {
     await main.getByRole("button", { name: "Primary + secondary" }).click();
     await expect(libraryCount(page)).toHaveText("9 exercises");
     await main.getByRole("button", { name: "All", exact: true }).click();
-    await expect(libraryCount(page)).toHaveText("177 exercises");
+    await expect(libraryCount(page)).toHaveText(`${LIBRARY_SIZE} exercises`);
   });
 
   appTest("library: filters combine OR within a group and AND across groups, with apply and clear", async ({ page }) => {
@@ -795,8 +842,8 @@ describe("Library", () => {
     await mainArea(page).getByRole("button", { name: /^Filter exercises/ }).click();
     await filter.getByRole("button", { name: "Clear", exact: true }).click();
     await expect(filter.getByRole("button", { name: "Rehab", exact: true })).toHaveAttribute("aria-pressed", "false");
-    await filter.getByRole("button", { name: "Show 177 exercises" }).click();
-    await expect(libraryCount(page)).toHaveText("177 exercises");
+    await filter.getByRole("button", { name: `Show ${LIBRARY_SIZE} exercises` }).click();
+    await expect(libraryCount(page)).toHaveText(`${LIBRARY_SIZE} exercises`);
     await expect(mainArea(page).getByRole("button", { name: "Filter exercises", exact: true })).toBeVisible();
   });
 
@@ -836,7 +883,7 @@ describe("Library", () => {
     await editor.getByRole("button", { name: "Save exercise" }).click();
     await expect(editor).toBeHidden();
     await expect(toast(page)).toHaveText("Exercise added.");
-    await expect(libraryCount(page)).toHaveText("178 exercises");
+    await expect(libraryCount(page)).toHaveText(`${LIBRARY_SIZE + 1} exercises`);
 
     await reload();
     await goToView(page, "Library");
@@ -887,7 +934,7 @@ describe("Library", () => {
     await duplicate.getByRole("textbox", { name: /^Name/ }).fill("Banded clamshell");
     await duplicate.getByRole("button", { name: "Save exercise" }).click();
     await expect(toast(page)).toHaveText("Exercise duplicated.");
-    await expect(libraryCount(page)).toHaveText("178 exercises");
+    await expect(libraryCount(page)).toHaveText(`${LIBRARY_SIZE + 1} exercises`);
     await expect(libraryRow(page, "Banded clamshell")).toBeVisible();
     await expect(libraryRow(page, "Clamshell")).toBeVisible();
   });
@@ -918,9 +965,9 @@ describe("Library", () => {
     await confirm(page, "Delete exercise", "Delete exercise");
     await expect(toast(page)).toHaveText("Exercise deleted.");
     await expect(libraryRow(page, "Neck flexion")).toHaveCount(0);
-    await expect(libraryCount(page)).toHaveText("176 exercises");
+    await expect(libraryCount(page)).toHaveText(`${LIBRARY_SIZE - 1} exercises`);
     await goToView(page, "Program");
-    await expect(mainArea(page).getByText("Gym · Required · 12 slots · 4 blocks")).toBeVisible();
+    await expect(mainArea(page).getByText("Gym · Required · 13 slots · 3 blocks")).toBeVisible();
     await goToView(page, "Log");
     await expect(mainArea(page).getByText("No history yet")).toBeVisible();
   });
@@ -958,22 +1005,22 @@ describe("Log", () => {
     await expect(day.getByRole("textbox", { name: "Note" })).toHaveValue("Felt strong");
     // Active-program routines are listed in stored order.
     const names = await day.getByRole("checkbox").evaluateAll((boxes) => boxes.map((box) => box.closest("label").querySelector("strong").textContent));
-    assert.deepEqual(names, [PUSH_A, "Pull A", "Legs A", "Push B", "Pull B", "Legs B", "Home Base", "Push morning", "Pull morning", "Legs morning"]);
+    assert.deepEqual(names, ROUTINES);
   });
 
   appTest("log: marking today checks current Main entries; unmarking clears that routine's checks", async ({ page }) => {
     await saveDay(page, TODAY, { routines: { "Pull A": true } });
     await goToView(page, "Workout");
     await routineTab(page, "Pull A").click();
-    await expectDone(page, "Neutral-grip pull-up or Assisted neutral-grip pull-up", true);
+    await expectDone(page, "Chest-supported row or Chest-supported T-bar row", true);
     await expectDone(page, "Pallof press", true);
-    await expectDone(page, "Radial deviation", false);
-    await setChecked(page, "Radial deviation", true);
+    await expectDone(page, "Scapular pull-up", false);
+    await setChecked(page, "Scapular pull-up", true);
 
     await saveDay(page, TODAY, { routines: { "Pull A": false } });
     await goToView(page, "Workout");
     await expectDone(page, "Pallof press", false);
-    await expectDone(page, "Radial deviation", false);
+    await expectDone(page, "Scapular pull-up", false);
   });
 
   appTest("log: clearing all completions, checks and the note removes the day record", async ({ page }) => {
@@ -1022,7 +1069,7 @@ describe("Log", () => {
     await expect(inactive).toHaveAccessibleName(startsWith(`Pull A ${PROGRAM} · Gym · Inactive`));
     // The active (copied) program's routines are offered, unchecked, with no other inactive routines.
     await expect(day.getByRole("checkbox", { name: startsWith(`Pull A ${PROGRAM} copy`) })).not.toBeChecked();
-    await expect(day.getByRole("checkbox")).toHaveCount(11);
+    await expect(day.getByRole("checkbox")).toHaveCount(ROUTINES.length + 1);
   });
 });
 
@@ -1057,7 +1104,7 @@ describe("Settings", () => {
     assert.ok(backup.data && typeof backup.data === "object", "backup has data");
     assert.equal(backup.data.sessions["2026-11-02"].note, "Exported note");
     assert.equal(backup.data.programs[0].name, PROGRAM);
-    assert.equal(backup.data.exercises.length, 177);
+    assert.equal(backup.data.exercises.length, LIBRARY_SIZE);
     assert.deepEqual(backup.data, await readState(page), "backup data equals the stored state");
     await expect(settings.getByText("App data could not be exported.")).toHaveCount(0);
   });
