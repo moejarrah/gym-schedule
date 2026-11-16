@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
+import * as playwright from "playwright";
 import { expect as playwrightExpect } from "playwright/test";
 import { startServer as serve } from "../../tools/serve.mjs";
 
@@ -50,8 +50,10 @@ export async function startServer({ root = APP_ROOT } = {}) {
   };
 }
 
+// Chromium unless E2E_BROWSER=webkit asks for Safari's engine, the one the iPhone
+// uses (one-time setup: npx playwright install webkit).
 export function launchBrowser(options = {}) {
-  return chromium.launch(options);
+  return playwright[process.env.E2E_BROWSER || "chromium"].launch(options);
 }
 
 /** Waits until the app has drawn its first screen. */
