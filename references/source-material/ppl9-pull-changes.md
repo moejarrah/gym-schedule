@@ -61,4 +61,4 @@ The owner's changes to `ppl9.jpg`, kept verbatim. Together they are the source o
 
 - The italic cue lines under an exercise are that slot's note. "X OR Y" and "X / Y" are choices in one slot, except where the Library lists Y as another name of X (Machine shoulder press, Psoas march).
 - The weekly layout, the Day 7 rest text and the pulling grip and elbow guide are the program's note.
-- Kelso shrug has no sets × reps yet. The reverse wrist curl's note flags it for review.
+- Follow-up answers (same day): Kelso shrug is 2 × 10, and the reverse wrist curl stays in the schedule as it is.

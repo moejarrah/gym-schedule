@@ -2575,7 +2575,7 @@ export const SEED = {
       "emphases": [],
       "typicalChallenge": "shortened-top",
       "relatedExercises": [],
-      "defaultPrescription": "",
+      "defaultPrescription": "2 × 10",
       "instructions": "",
       "videoId": ""
     },
@@ -5563,7 +5563,7 @@ export const SEED = {
           "choices": [
             {
               "exerciseId": "kelso-shrug",
-              "prescription": "Sets × reps not set"
+              "prescription": "2 × 10"
             }
           ],
           "blockId": "pull-a-optional",
@@ -6072,7 +6072,7 @@ export const SEED = {
             }
           ],
           "blockId": "pull-b-main",
-          "note": "Flagged for review: keeping or removing this isn't decided yet (wrist pain).",
+          "note": "",
           "role": "main"
         }
       ]
