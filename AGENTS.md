@@ -14,24 +14,33 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 | Path | Owns |
 | --- | --- |
 | `index.html` | Page shell, bottom navigation, every `<dialog>` |
-| `js/app.js` | Startup: loads the screens, navigation, service-worker registration |
-| `js/context.js` | The one `store`, screen and action registration, `render()`, `navigate()` |
-| `js/store.js` | Saved-data schema, validation, migrations, load/save, backups |
+| `js/app.js` | Startup: loads the screens, routes every tap and form to its action, service-worker registration |
+| `js/context.js` | The one `store`, `registerView`, `registerActions`, `render()`, `navigate()` |
+| `js/store.js` | Saved data: schema version, upgrades from older versions, shape check, load/save, backups |
 | `js/model.js` | Reading data (selectors) and changing it (mutators) |
 | `js/search.js` | Exercise search and Library filters |
 | `js/vocab.js` | Fixed lists: targets, movements, equipment, … |
-| `js/seed.js` | Starting data (first launch and "Restore starting data") |
-| `js/dom.js` | DOM helpers: escaping, toasts, dialogs, confirmations, hold-to-drag |
-| `js/views/*.js` | One file per screen or editor, each with its markup and handlers |
+| `js/seed.js` | Starting data (first launch and "Restore starting data"), one exercise or slot per line |
+| `js/dom.js` | DOM helpers: escaping, toasts, `redraw`, dialogs, confirmations, hold-to-drag |
+| `js/views/*.js` | One file per screen or sheet, each with its markup and actions |
 | `styles/` | `base.css` (tokens, layout), `components.css`, `views.css` |
 | `sw.js` | Offline cache; its file list and version are stamped by `npm run check` |
-| `tests/` | Unit tests (`*.test.mjs`) and browser tests (`e2e/`) |
+| `tests/` | Unit tests (`*.test.mjs`) and browser tests (`e2e/`), all on the made-up program in `tests/sample.mjs` |
 | `tools/` | Check, preview server, the owner's phone preview page, screenshots and visual diff |
 | `references/` | The agreed design boards, older mock-ups and the starting program's source; not loaded by the app |
 
+## How a screen works
+
+- A screen is one function, `markup(state)`, registered with `registerView`. `render()` redraws the current screen from the saved state. A sheet fills its `<dialog>` the same way and opens it with `openDialog`.
+- Every tap is a `data-action="name"` on the element, handled by `registerActions({ name(element, event) { … } })`. A `<form data-submit="name">` runs its action when saved (its button, or Enter in a field). There are no other click listeners.
+- A handler changes data with `store.update((draft) => mutator(draft, …))` using functions from `js/model.js`, shows the result with `report()`, then calls `render()`.
+- Redrawing replaces the markup. A scroll area keeps its place if it is marked `data-keep-scroll="name"`. Text being typed that must survive a redraw lives in the module's own state (see the logging sheet's rows).
+- The browser handles dialog focus. Call `.focus()` only to put the cursor in a field the owner is about to type in.
+- Classes are for styling and `data-*` attributes are for behaviour. Don't select by class in JavaScript, or style by `data-action`.
+
 ## Saved data at a glance
 
-One JSON object in `localStorage` under `gymAppStateV1`. The schema version, currently 12, is set in `js/store.js`, which validates every save.
+One JSON object in `localStorage` under `gymAppStateV1`. The schema version, currently 12, is set in `js/store.js`. Before every save, `stateProblem` checks that the data has the shape the screens rely on and that references point at something; it doesn't police content. Saved data the app can't read is never overwritten: the starting program opens and nothing saves until the owner imports a backup or restores the starting data.
 
 - `exercises`: the Library's master exercises.
 - `programs` and `routines`: a program lists its routine IDs. A routine holds its blocks and entries, and each entry its choices (master exercise plus prescription).
@@ -40,24 +49,25 @@ One JSON object in `localStorage` under `gymAppStateV1`. The schema version, cur
 
 ## Rules
 
-- **Saved data is the owner's real history.** Never reset or discard it. To change the saved shape: bump `SCHEMA_VERSION`, add a migration in `js/store.js`, and add a test that loads data from the previous version (see `tests/fixtures/`). Backups from older versions must keep importing.
-- Vocabulary IDs in `js/vocab.js` are stored in saved data. Labels can change; IDs change only with a migration.
-- Change data only through `store.update((draft) => mutator(draft, …))` with functions from `js/model.js`, and show the result with `report()`. Never report success after a failed save.
-- Workout content, notes and training rules are the owner's own words. Don't rewrite them.
+- **Saved data is the owner's real history.** Never reset or discard it. To change the saved shape: bump `SCHEMA_VERSION`, add a migration in `js/store.js`, and add one test in `tests/store.test.mjs` that loads data of the previous version. Backups from older versions must keep importing.
+- Vocabulary IDs in `js/vocab.js` are stored in saved data. Labels can change; changing or removing an ID needs a migration, or saved exercises show the raw ID.
+- `store.getState()` is the saved state itself. Read it; change data only inside `store.update`. Never report success after a failed save.
+- Workout content, notes and training rules are the owner's own words. Don't rewrite them. The owner's program and Library live in `js/seed.js`; tests must not depend on them.
 - Keep it simple. No framework, bundler, backend, accounts, analytics or production dependency without asking. Dev-only tools (Playwright) are fine. Add an abstraction only when it removes real duplication. Delete dead code.
 - Phone UI: works at 320 px wide; tap targets at least 44 × 44 px; form fields at least 16 px text (smaller makes iOS zoom in); light and dark themes; safe areas; pinch zoom stays on.
 - Editors don't close on a backdrop tap (only read-only sheets marked `data-dismissable` do), and Enter in a field saves.
 
 ## Checks
 
-- `npm run check` — stamps `sw.js`, syntax-checks every script, runs the unit tests. Run it before every commit and commit the stamped `sw.js`.
-- `npm run e2e` — browser tests, one per main flow, in about 15 seconds (one-time setup: `npm install` and `npx playwright install chromium`). They run on the made-up program in `tests/sample.mjs` and find things by role, name or visible text, never by CSS class, id or `data-*` attribute; `tests/e2e/helpers.mjs` explains how.
+- `npm run check` — stamps `sw.js`, syntax-checks every script, runs the unit tests (a few seconds). Run it before every commit and commit the stamped `sw.js`.
+- `npm run e2e` — browser tests, one per main flow, in about 15 seconds (one-time setup: `npm install` and `npx playwright install chromium`). They find things by role, name or visible text, never by CSS class, id or `data-*` attribute; `tests/e2e/helpers.mjs` explains how. `E2E_BROWSER=webkit npm run e2e` runs them in Safari's engine, the one the iPhone uses (one-time: `npx playwright install webkit`).
+- The tests protect two things: saved data (load, save, upgrade, backup, unreadable data) and one happy path per main flow. Add a test when a change puts one of those at risk, not for every detail.
 - `npm run preview` — serves the app at `http://127.0.0.1:4173/`. `npm run preview -- --lan` also prints an address a phone on the same Wi-Fi can open. The owner watches changes at `/tools/iphone-preview.html`, which refreshes after every save; keep it working.
 - For UI changes, look at the result at 393 × 852 and 320 × 700 in both themes (`npm run screenshots -- <folder>` captures every screen and dialog; `tools/visual-diff.mjs` compares two runs).
 
 ## Releasing
 
-Pushing to `main` publishes the app on GitHub Pages. Installed apps download the new version the next time they're opened and reload once. Always run `npm run check` before pushing: an unstamped `sw.js` means phones never see the update. Run `npm run e2e` when a change touches how screens behave, not for docs, data or styling tweaks.
+Pushing to `main` publishes the app on GitHub Pages. Installed apps download the new version the next time they're opened and reload once. Always run `npm run check` before pushing: an unstamped `sw.js` means phones never see the update. Run `npm run e2e` too unless the change is docs only; both together take well under a minute.
 
 ## Working with the owner
 
