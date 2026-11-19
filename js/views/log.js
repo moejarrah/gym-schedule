@@ -1,24 +1,43 @@
-// Log screen: the month calendar, the recent-history list, and the day editor
-// sheet (#dayDialog) that sets a date's completed routines and note and shows
-// the sets logged that day.
+// Log screen, switched between two views: Calendar (the month, the recent-history
+// list) and Progress (the week's workouts, new bests, exercises getting stronger or
+// stalled, sets per muscle). Also the day editor sheet (#dayDialog) that sets a
+// date's completed routines and note and shows the sets logged that day.
 //
 // History outlives programs: a session can still name a routine that has since
-// been deleted. Those days count as completed and the editor lists them as
-// "Deleted routine" so they can be kept or unmarked.
+// been deleted. Those days count as completed and are shown by the name the
+// routine had when it was finished ("Deleted routine" when none was kept), so
+// they can be kept or unmarked.
 
 import { mainElement, registerActions, registerView, render, store } from "../context.js";
-import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, formatDate, openDialog, report } from "../dom.js";
-import { activeProgram, dateFromKey, entryLog, exerciseById, localDateKey, programRoutines, removeDayLog, routineById, routineProgram, sessionFor, setDay } from "../model.js";
+import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, formatDate, openDialog, report, segmentValue } from "../dom.js";
+import { activeProgram, dateFromKey, entryLog, exerciseById, localDateKey, programRoutines, removeDayLog, routineById, routineProgram, sessionFor, setDay, workoutName } from "../model.js";
+import { overview } from "../progress.js";
+import { label } from "../vocab.js";
+import { openExerciseHistory } from "./history.js";
 import { openLogger } from "./logger.js";
-import { locationLabel, setChipsMarkup } from "./shared.js";
+import { locationLabel, setChipsMarkup, shortDate } from "./shared.js";
 
 const LONG_DATE = { weekday: "long", month: "long", day: "numeric", year: "numeric" };
 const RECENT_LIMIT = 8;
 
 const monthStart = (date, offset = 0) => new Date(date.getFullYear(), date.getMonth() + offset, 1);
 const calendar = { month: monthStart(new Date()) };
+const log = { view: "calendar" }; // or "progress"; forgotten when the app is closed
+
+const WEEKLY_SETS_GUIDE = 20; // a full bar in "Sets per muscle"
 
 const deletedLabel = (count) => (count === 1 ? "Deleted routine" : `${count} deleted routines`);
+const minutesLabel = (minutes) => (typeof minutes === "number" ? `${minutes} min` : "");
+
+function logMarkup(state) {
+  const option = (value, name) => `<button type="button" data-value="${value}" aria-pressed="${log.view === value}">${name}</button>`;
+  return `<section class="page log-page">
+    <div class="segment log-switch" data-segment data-value="${log.view}" data-action="log-view" role="group" aria-label="Log shows">
+      ${option("calendar", "Calendar")}${option("progress", "Progress")}
+    </div>
+    ${log.view === "progress" ? progressMarkup(state) : calendarMarkup(state)}
+  </section>`;
+}
 
 // ---------- calendar and recent list ----------
 
@@ -57,8 +76,7 @@ function calendarMarkup(state) {
     cells.push(`<span aria-hidden="true"></span>`);
   }
 
-  return `<section class="page log-page">
-    <div class="bar">
+  return `<div class="bar">
       <strong class="bar-title">${escapeHtml(formatDate(calendar.month, { month: "long", year: "numeric" }))}</strong>
       <button class="icon-button" type="button" data-action="previous-month" aria-label="Previous month">${chevronIcon("left")}</button>
       <button class="icon-button" type="button" data-action="next-month" aria-label="Next month">${chevronIcon("right")}</button>
@@ -66,8 +84,7 @@ function calendarMarkup(state) {
     <div class="label log-weekdays" aria-hidden="true">${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => `<span>${day}</span>`).join("")}</div>
     <div class="log-calendar">${cells.join("")}</div>
     <div class="label section-label">Recent</div>
-    ${recentSessionsMarkup(state)}
-  </section>`;
+    ${recentSessionsMarkup(state)}`;
 }
 
 function recentSessionsMarkup(state) {
@@ -80,15 +97,20 @@ function recentSessionsMarkup(state) {
 
 function recentRowMarkup(state, dateKey) {
   const session = state.sessions[dateKey];
+  // A finished routine goes by the name it had that day; its program by today's name,
+  // or the one kept with the workout when the routine is gone.
   const routines = session.routineIds.map((id) => routineById(state, id)).filter(Boolean);
-  const deletedCount = session.routineIds.length - routines.length;
+  const kept = session.routineIds.filter((id) => !routineById(state, id)).map((id) => session.workouts[id]).filter((record) => record?.name);
+  const deletedCount = session.routineIds.length - routines.length - kept.length;
   const programs = [...new Set(routines.map((routine) => routineProgram(state, routine.id)))];
-  const names = routines.map((routine) => routine.name);
+  const names = [...routines.map((routine) => workoutName(state, dateKey, routine.id)), ...kept.map((record) => record.name)];
   if (deletedCount) names.push(deletedLabel(deletedCount));
   const loggedCount = Object.keys(session.logs).length;
   const title = names.length ? names.join(" · ") : loggedCount ? "Logged sets" : session.note ? "Note only" : "Saved workout checks";
+  const minutes = session.routineIds.reduce((sum, id) => sum + (session.workouts[id]?.minutes || 0), 0);
   const context = [
-    programs.map((program) => program.name).join(" · "),
+    [...new Set([...programs.map((program) => program.name), ...kept.map((record) => record.program).filter(Boolean)])].join(" · "),
+    minutes ? minutesLabel(minutes) : "",
     loggedCount ? `${loggedCount} ${loggedCount === 1 ? "exercise" : "exercises"} logged` : "",
     session.note ? "Note added" : "",
     programs.some((program) => program.id !== state.settings.activeProgramId) ? "Inactive program" : "",
@@ -96,10 +118,10 @@ function recentRowMarkup(state, dateKey) {
   const summary = context.join(" · ") || (deletedCount ? "No longer in any program" : "No completed routines");
   const date = dateFromKey(dateKey);
   const fullDate = formatDate(date, LONG_DATE);
-  const shortDate = formatDate(date, { day: "numeric", month: "short" });
+  const dayAndMonth = formatDate(date, { day: "numeric", month: "short" });
   const accessibleContext = context.length ? `. ${context.join(". ")}` : "";
   return `<button class="row tall card" type="button" data-action="open-day" data-date="${dateKey}" aria-label="Open ${escapeHtml(fullDate)}. ${escapeHtml(title)}${escapeHtml(accessibleContext)}">
-    <span class="row-meta log-recent-date">${escapeHtml(shortDate)}</span>
+    <span class="row-meta log-recent-date">${escapeHtml(dayAndMonth)}</span>
     <span class="row-main"><strong class="row-title">${escapeHtml(title)}</strong><small class="row-meta">${escapeHtml(summary)}</small></span>
     <span class="chev" aria-hidden="true">${chevronIcon("right")}</span>
   </button>`;
@@ -109,6 +131,35 @@ function changeCalendarMonth(offset) {
   calendar.month = monthStart(calendar.month, offset);
   render();
   mainElement().scrollTop = 0;
+}
+
+// ---------- progress ----------
+
+// From the logged sets: this week against the usual, new bests, which exercises are
+// moving and which aren't (each opens its progress sheet), and the week's sets per muscle.
+function progressMarkup(state) {
+  if (!Object.values(state.sessions).some((session) => Object.keys(session.logs).length)) {
+    return `<p class="hint log-progress-empty">No sets logged yet. Log them in a workout and your progress shows here.</p>`;
+  }
+  const { thisWeek, perWeek, bestsThisMonth, improving, stalled, muscles } = overview(state, localDateKey());
+  const tile = (name, value, unit) => `<div class="card log-tile"><span class="label">${name}</span><strong>${value}</strong><small class="row-meta">${unit}</small></div>`;
+  const exerciseRow = ({ exercise }, meta, end) => `<button class="row ${meta ? "" : "compact"}" type="button" data-action="open-progress" data-id="${escapeHtml(exercise.id)}">
+      <span class="row-main"><strong class="row-title">${escapeHtml(exercise.name)}</strong>${meta ? `<small class="row-meta">${escapeHtml(meta)}</small>` : ""}</span>
+      ${end}<span class="chev" aria-hidden="true">${chevronIcon("right")}</span>
+    </button>`;
+  const section = (title, body) => `<section><div class="label section-label">${title}</div>${body}</section>`;
+  const fullBar = Math.max(WEEKLY_SETS_GUIDE, ...muscles.map((muscle) => muscle.sets));
+  return `<div class="log-tiles">
+      ${tile("This week", thisWeek, thisWeek === 1 ? "workout" : "workouts")}
+      ${tile("4-week avg", perWeek, "a week")}
+      ${tile("New bests", bestsThisMonth, "this month")}
+    </div>
+    ${improving.length ? section("Getting stronger", improving.map((item) => exerciseRow(item, "", `<span class="row-action up">▲ ${item.percent}%</span>`)).join("")) : ""}
+    ${stalled.length ? section("Stalled", stalled.slice(0, 5).map((item) => exerciseRow(item, `No best since ${shortDate(item.since)}`, "")).join("")) : ""}
+    ${muscles.length ? section("Sets per muscle this week", `<p class="hint log-muscles-hint">A common guide is 10–20 a week per muscle.</p>
+      <div class="log-muscles">${muscles.map((muscle) => `<span>${escapeHtml(label(muscle.target))}</span>
+        <svg viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true"><rect width="${Math.round((muscle.sets / fullBar) * 100)}" height="8"/></svg>
+        <strong>${muscle.sets}</strong>`).join("")}</div>`) : ""}`;
 }
 
 // ---------- day editor ----------
@@ -127,8 +178,16 @@ function routineRowMarkup(state, session, routine, inactive = false) {
   const mainIds = routine.entries.filter((entry) => entry.role === "main").map((entry) => entry.id);
   const checkedMain = mainIds.filter((id) => checkedIds.has(id)).length;
   const completion = selected && mainIds.length ? `${checkedMain}/${mainIds.length} main` : "";
-  const context = [routineProgram(state, routine.id).name, locationLabel(routine.group), inactive ? "Inactive" : "", completion].filter(Boolean).join(" · ");
+  const minutes = selected ? minutesLabel(session.workouts[routine.id]?.minutes) : "";
+  const context = [routineProgram(state, routine.id).name, locationLabel(routine.group), inactive ? "Inactive" : "", completion, minutes].filter(Boolean).join(" · ");
   return checkRowMarkup({ routineId: routine.id, checked: selected, name: routine.name, context });
+}
+
+// A finished routine that has since been deleted, by the name it had that day.
+function deletedRowMarkup(session, routineId) {
+  const record = session.workouts[routineId];
+  const context = [record?.name ? "Deleted routine" : "", record?.program, minutesLabel(record?.minutes)].filter(Boolean).join(" · ");
+  return checkRowMarkup({ routineId, checked: true, name: record?.name || "Deleted routine", context: context || "No longer in any program" });
 }
 
 function routineSectionMarkup(heading, rows) {
@@ -178,7 +237,7 @@ function dayEditorMarkup(state, dateKey) {
         ${otherRoutines.length ? routineSectionMarkup(program ? "Already recorded from another program" : "Recorded routines",
           otherRoutines.map((routine) => routineRowMarkup(state, session, routine, Boolean(program)))) : ""}
         ${deletedIds.length ? routineSectionMarkup("Deleted routines",
-          deletedIds.map((routineId) => checkRowMarkup({ routineId, checked: true, name: "Deleted routine", context: "No longer in any program" }))) : ""}
+          deletedIds.map((routineId) => deletedRowMarkup(session, routineId))) : ""}
         ${!program && !recordedIds.length ? `<p class="hint">Add a program before logging a routine completion.</p>` : ""}
         ${loggedSetsMarkup(state, session, dateKey)}
         <label class="field"><span>Note</span><textarea class="control" id="dayNote" rows="4" maxlength="500" placeholder="Optional note">${escapeHtml(session.note)}</textarea></label>
@@ -203,9 +262,15 @@ function saveDay(form) {
   render();
 }
 
-registerView("calendar", { markup: calendarMarkup, title: "Log" });
+registerView("calendar", { markup: logMarkup, title: "Log" });
 
 registerActions({
+  "log-view": (group) => {
+    log.view = segmentValue(group);
+    render();
+    mainElement().scrollTop = 0;
+  },
+  "open-progress": (button) => openExerciseHistory(button.dataset.id),
   "previous-month": () => changeCalendarMonth(-1),
   "next-month": () => changeCalendarMonth(1),
   "open-day": (button) => openDayEditor(button.dataset.date),

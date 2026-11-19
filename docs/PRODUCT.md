@@ -13,7 +13,7 @@ Character: practical, calm, athletic. No social feeds, streak pressure, dense an
 - **Workout** — follow the selected routine and log today's sets. Program editing lives elsewhere.
 - **Program** — create and organize programs, routines and their exercise slots.
 - **Library** — find and maintain the shared master exercises.
-- **Log** — review and edit dated history and notes, and see the sets logged each day.
+- **Log** — review and edit dated history and notes, see the sets logged each day, and see progress: the week, new bests, what's getting stronger or stalled.
 - **Settings** — theme, backups, restore, training rules, app version.
 
 ## How the data is organized
@@ -42,7 +42,7 @@ Program
 - Rehab exercises aren't automatically Optional; the role is set per entry.
 - On Workout, tapping the number box opens the logging sheet; tapping the rest of the row opens the exercise reference (or the choices sheet).
 - In Log, marking a routine complete for a date also ticks its Main entries; unmarking it clears that routine's ticks for the date.
-- Deleting a routine or program keeps its past completions and logged sets in the history (shown as "Deleted routine" when the routine is gone) but drops its done marks. Removing an entry drops only its done marks; its logged sets stay in the exercise's history. Deleting a master exercise keeps its logged sets in Log under the name it had. If a slot's exercise is swapped in Program after sets were logged today, those sets stay in that exercise's history and the slot starts empty.
+- Deleting a routine or program keeps its past completions and logged sets in the history (under the name it had when finished, or "Deleted routine" for older days that kept no name) but drops its done marks. Removing an entry drops only its done marks; its logged sets stay in the exercise's history. Deleting a master exercise keeps its logged sets in Log under the name it had. If a slot's exercise is swapped in Program after sets were logged today, those sets stay in that exercise's history and the slot starts empty.
 - A workout's sets belong to the day the workout was started on. Sets fixed from Log belong to the day opened there.
 
 ## Actions that must keep working
@@ -57,7 +57,8 @@ Program
 - Log today's sets from a slot's number: the sheet shows the exercise's last 3 sessions (date, routine, every set and drop), one row per planned set (from the prescription's set count) with last time's set beside it, and grey suggestions that a tick takes when the fields are empty. Tap last time's set to copy it. Ticking saves straight away and a tick takes the grey value shown in an empty field; unticking a set takes it and its drops out of the log, and ticking it again brings the drops back; Enter in a field ticks its row (on a hardware keyboard). Add sets, chain any number of drop sets under the set just ticked, and remove any drop with its × (a saved drop is taken out of the log). Switch which choice a multi-choice slot is logging. Done marks the slot done, and Done or Close also save rows that were typed but not ticked; Not done undoes it and closes the sheet; the × in the sheet's header closes it without saving rows that were typed but not ticked. There is no rest timer.
 - See the workout's logged sets as small boxes under each slot's name, with drops counted. A block whose slots are all Optional has a dashed outline; slot numbers run on through it.
 - Add an exercise for today only: "Add exercise for today" opens the Library, and "You sometimes add" lists what was added to this routine in the last four weeks, most often first, with a + to add it again. Added exercises are numbered after the routine's slots, logged the same way, show in Log and in the exercise's history, and never change the program. One with nothing done can be removed from its logging sheet.
-- Open an exercise's full history from the logging sheet or its reference: best set, heaviest weight, change since the first session, a small trend of the top set's weight, and every session with its change from the one before.
+- Open an exercise's progress from the logging sheet, its reference or Log's Progress view: how many sessions since when; a chart of the last 20 sessions with a dot on each one that set a new best, and above it the latest number with its change since the first session; a switch for what the chart shows (Strength: the estimated 1-rep max, marked rough above 12 reps; Best set; Volume: kg × reps; only the ones that apply, so bodyweight and timed exercises get the best set alone); the bests (best set, and the most reps at each of the five heaviest weights); and every session newest first with its routine, a "Best" tag when it beat every earlier session, its sets (warm-ups tagged "W"), its change from the session before and that day's exercise note.
+- How sets compare: warm-up sets and drops never count. With weight, the best set is the one with the highest estimated 1-rep max (weight × (1 + reps ÷ 30)). Without weight (bodyweight, assisted, timed), less assistance or more added load wins first, then reps or seconds.
 - See when the routine was last finished, or that it's in progress or finished today.
 
 ### Program
@@ -81,8 +82,10 @@ Program
 ### Log
 
 - Move between months; see which dates have completions, logged sets or notes.
-- Reopen any of the eight most recent days from the list under the calendar.
-- Open any date: mark routines from the active program as completed and edit the note, and see the sets logged that day; tapping a logged exercise opens its logging sheet to fix the sets (when its slot is still in the program), and its × removes that exercise's sets from the day after a confirmation. Past routines from other programs are shown and labelled; deleted ones are labelled "Deleted routine". Clearing the routines and note removes the day unless it has logged sets.
+- Switch between Calendar and Progress at the top (Calendar each time the app is opened).
+- Reopen any of the eight most recent days from the list under the calendar. A finished routine goes by the name it had that day, with the workout's duration when it was timed.
+- Progress: this week's finished workouts (weeks start Monday), the average per week over the four weeks before, and the new bests this month; "Getting stronger", up to five exercises with three or more sessions in the last 42 days whose best set rose from the first of them to the last, with the percentage; "Stalled", up to five exercises of the active program trained in the last 42 days whose last four sessions set no new best, with the date of the last one; "Sets per muscle this week", where a working set counts 1 for each primary target of its exercise and 0.5 for each secondary one. A row opens the exercise's progress. Sections with nothing in them are left out.
+- Open any date: mark routines from the active program as completed and edit the note, and see the sets logged that day; tapping a logged exercise opens its logging sheet to fix the sets (when its slot is still in the program), and its × removes that exercise's sets from the day after a confirmation. Past routines from other programs are shown and labelled; deleted ones go by the name they had when finished, labelled "Deleted routine". A timed workout shows its duration. Clearing the routines and note removes the day unless it has logged sets.
 
 ### Settings
 

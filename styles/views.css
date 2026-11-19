@@ -1,6 +1,6 @@
 /* What only one screen or sheet needs, in this order: Workout, Program and its
    editors, Library, Log, Settings, the exercise editor and its pickers, the
-   exercise reference, the logging sheet and the exercise history sheet.
+   exercise reference, the logging sheet and the exercise progress sheet.
    Everything shared is in components.css. */
 
 /* ---------- Workout ---------- */
@@ -317,6 +317,64 @@
 
 .log-page .section-label {
   padding-block: 22px var(--space-2);
+}
+
+/* Calendar | Progress, above everything. */
+.log-switch {
+  margin: var(--space-2) var(--space-4) var(--space-1);
+}
+
+/* Progress: three number tiles, then lists. */
+.log-tiles {
+  margin: var(--space-3) var(--space-4) 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.log-tile {
+  padding: var(--space-3);
+  display: grid;
+  align-content: start;
+  gap: 2px;
+}
+
+.log-tile strong {
+  font-size: var(--fs-title);
+  line-height: 1.15;
+}
+
+.log-progress-empty,
+.log-muscles-hint {
+  padding-inline: var(--gutter);
+}
+
+.log-progress-empty {
+  margin-top: var(--space-4);
+}
+
+/* Sets per muscle: name, bar, number. A full bar is 20 sets. */
+.log-muscles {
+  padding: var(--space-2) var(--gutter) var(--space-4);
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 9fr) auto;
+  align-items: center;
+  gap: 10px var(--space-3);
+  font-size: var(--fs-body);
+}
+
+.log-muscles svg {
+  width: 100%;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  fill: var(--accent);
+  stroke: none;
+}
+
+.log-muscles strong {
+  min-width: 2ch;
+  text-align: right;
 }
 
 /* Recent workouts: one card each. */
@@ -692,31 +750,34 @@ a > svg {
   }
 }
 
-/* ---------- exercise history sheet ---------- */
+/* ---------- exercise progress sheet ---------- */
 
-.history-stats {
+/* The chart card: the measure's name, its latest number and change, then the line. */
+.history-chart {
+  padding-bottom: 10px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-2);
 }
 
-.history-stat {
-  padding: var(--space-3);
+.history-chart figcaption {
   display: grid;
-  gap: var(--space-1);
+  gap: 2px;
 }
 
-.history-stat strong {
-  font-size: var(--fs-head);
+.history-headline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-2);
 }
 
-.history-trend {
-  padding-bottom: 10px;
-  display: grid;
-  gap: 6px;
+.history-headline strong {
+  margin-right: var(--space-1);
+  font-size: var(--fs-title);
+  line-height: 1.2;
 }
 
-.history-trend svg {
+.history-chart svg {
   width: 100%;
   height: auto;
   color: var(--accent);
@@ -724,17 +785,51 @@ a > svg {
   stroke-width: 2.5;
 }
 
-.history-trend circle {
-  fill: currentColor;
-  stroke: none;
+.history-chart line {
+  stroke: var(--line);
+  stroke-width: 1;
 }
 
-.history-trend-ends {
+.history-chart circle {
+  fill: currentColor;
+  stroke: var(--surface-2);
+  stroke-width: 2;
+}
+
+.history-chart-ends {
   color: var(--faint);
   display: flex;
   justify-content: space-between;
   gap: var(--space-2);
   font-size: var(--fs-tag);
+}
+
+/* Bests: what, how much, when, one line each. */
+.history-bests {
+  display: grid;
+  gap: 6px;
+}
+
+.history-bests > div {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) minmax(0, 3fr);
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--fs-body);
+}
+
+.history-bests > div > span {
+  color: var(--text-muted);
+}
+
+.history-bests small {
+  color: var(--faint);
+  font-size: var(--fs-tag);
+  text-align: right;
+}
+
+.history-bests > p {
+  margin-top: var(--space-1);
 }
 
 .history-session {

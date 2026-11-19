@@ -87,7 +87,7 @@ Each token has a light and a dark value, which `:root` and `:root[data-theme="da
 
 Play buttons and today in the calendar are circles.
 
-Lists (exercise rows, Library, Program, pickers) stay flat rows, not one card per row: on a screen they run edge to edge with a soft inset divider between them, in a sheet each has a rule underneath. Cards are for grouped content: the routine note, the calendar, recent workouts, settings sections, the "Last 3 times" box, history stats and sessions.
+Lists (exercise rows, Library, Program, pickers) stay flat rows, not one card per row: on a screen they run edge to edge with a soft inset divider between them, in a sheet each has a rule underneath. Cards are for grouped content: the routine note, the calendar, recent workouts, settings sections, the "Last 3 times" box, the progress sheet's chart, bests and sessions, the Progress tiles.
 
 ## Components
 

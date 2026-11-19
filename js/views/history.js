@@ -1,104 +1,174 @@
-// Exercise history sheet: every logged session of a master exercise from any
-// routine, newest first, with its best set, heaviest weight, the change since the
-// first session and a small trend of the top set's weight. Read-only.
+// Exercise progress sheet (#historyDialog): how a master exercise has gone over
+// time, from any routine. A chart of one measure (estimated 1-rep max, best set or
+// volume, picked with the switch), the exercise's bests, and every session newest
+// first with its change from the one before. Read-only.
 
-import { store } from "../context.js";
-import { $, escapeHtml, openDialog, plural } from "../dom.js";
-import { exerciseById, exerciseHistory, routineById } from "../model.js";
+import { registerActions, store } from "../context.js";
+import { $, escapeHtml, openDialog, plural, segmentValue } from "../dom.js";
+import { exerciseById } from "../model.js";
+import { compareSets, exerciseProgress } from "../progress.js";
 import { formatKg, liftText, setChipsMarkup, shortDate } from "./shared.js";
 
-// The heaviest set of a session (most reps breaks a tie); sets without weight count as 0 kg.
-function topSet(sets) {
-  return sets.reduce((best, set) => {
-    const kg = set.kg ?? 0;
-    const bestKg = best.kg ?? 0;
-    return kg > bestKg || (kg === bestKg && set.reps > best.reps) ? set : best;
-  });
+const CHART_SESSIONS = 20;
+const MEASURES = {
+  strength: { tab: "Strength", title: "Estimated 1-rep max" },
+  best: { tab: "Best set", title: "Best set" },
+  volume: { tab: "Volume", title: "Volume" },
+};
+
+// The exercise the sheet shows and the measure its chart is on.
+const sheet = { exerciseId: "", measure: "" };
+
+const round1 = (value) => Math.round(value * 10) / 10;
+const scored = (progress) => progress.sessions.filter((session) => session.best);
+
+// Without weight there is no 1-rep max to estimate, and often no volume either.
+function measuresFor(progress) {
+  return [
+    progress.mode === "weight" ? "strength" : "",
+    "best",
+    progress.sessions.some((session) => session.volume > 0) ? "volume" : "",
+  ].filter(Boolean);
 }
 
-function round(value) {
-  return Math.round(value * 100) / 100;
+// What the best-set chart follows: the weight; or, when the load never changed
+// (bodyweight, timed), the reps or seconds.
+function bestUnit(progress) {
+  const loads = new Set(scored(progress).map((session) => session.best.kg ?? 0));
+  return progress.mode === "weight" || loads.size > 1 ? "kg" : progress.unit;
 }
 
-// "▲ 2.5 kg", "▼ 1 rep" or "Same", comparing two sessions' top sets.
-function change(newer, older) {
-  const a = topSet(newer);
-  const b = topSet(older);
-  const kg = round((a.kg ?? 0) - (b.kg ?? 0));
-  if (kg) return { kind: kg > 0 ? "up" : "down", text: `${kg > 0 ? "▲" : "▼"} ${formatKg(Math.abs(kg))} kg` };
-  const reps = a.reps - b.reps;
-  if (reps) return { kind: reps > 0 ? "up" : "down", text: `${reps > 0 ? "▲" : "▼"} ${plural(Math.abs(reps), "rep")}` };
-  return { kind: "same", text: "Same" };
+function measureValue(session, measure, progress) {
+  if (measure === "strength") return round1(session.score);
+  if (measure === "volume") return session.volume;
+  return bestUnit(progress) === "kg" ? session.best.kg ?? 0 : session.best.reps;
 }
 
-function trendMarkup(sessions) {
-  const points = sessions.slice(0, 12).reverse().map((item) => ({ dateKey: item.dateKey, kg: topSet(item.sets).kg }))
-    .filter((point) => point.kg !== null);
-  if (points.length < 2) return "";
-  const values = points.map((point) => point.kg);
+function valueText(value, unit) {
+  if (unit === "kg") return `${Math.abs(value) >= 1000 ? Math.round(value).toLocaleString("en-US") : formatKg(value)} kg`;
+  return unit === "sec" ? `${value} s` : plural(value, "rep");
+}
+
+const changeMarkup = (change) => `<em class="history-change ${change.kind}">${escapeHtml(change.text)}</em>`;
+
+// The latest session's number for the measure and how it compares with the first session's.
+function headlineMarkup(progress, measure) {
+  const sessions = scored(progress);
+  const first = sessions[0];
+  const last = sessions.at(-1);
+  const unit = measure === "best" ? bestUnit(progress) : "kg";
+  const value = measure === "best" ? liftText(last.best, progress.unit === "sec") : valueText(measureValue(last, measure, progress), unit);
+  let change = null;
+  if (sessions.length > 1 && measure === "best") {
+    change = compareSets(last.sets, first.sets, progress.mode, progress.unit);
+  } else if (sessions.length > 1) {
+    const difference = round1(measureValue(last, measure, progress) - measureValue(first, measure, progress));
+    change = difference ? { kind: difference > 0 ? "up" : "down", text: `${difference > 0 ? "▲" : "▼"} ${valueText(Math.abs(difference), "kg")}` } : { kind: "same", text: "Same" };
+  }
+  return `<figcaption>
+    <span class="label">${MEASURES[measure].title}</span>
+    <span class="history-headline"><strong>${escapeHtml(value)}</strong>${change ? `${changeMarkup(change)}<span class="row-meta">${change.kind === "same" ? "as" : "since"} the first session</span>` : ""}</span>
+    ${measure === "strength" && last.best.reps > 12 ? `<span class="hint">Rough above 12 reps.</span>` : ""}
+  </figcaption>`;
+}
+
+// A line through the last sessions, with a dot on each one that set a new best.
+function lineMarkup(progress, measure) {
+  const sessions = scored(progress).slice(-CHART_SESSIONS);
+  if (sessions.length < 2) return "";
+  const unit = measure === "best" ? bestUnit(progress) : "kg";
+  const values = sessions.map((session) => measureValue(session, measure, progress));
   const min = Math.min(...values);
-  const span = Math.max(...values) - min || 1;
+  const span = Math.max(...values) - min;
   const width = 300;
-  const height = 72;
-  const xy = points.map((point, index) => [
-    Math.round(8 + (index * (width - 16)) / (points.length - 1)),
-    Math.round(height - 8 - ((point.kg - min) / span) * (height - 16)),
+  const height = 96;
+  const pad = 8;
+  const xy = values.map((value, index) => [
+    Math.round(pad + (index * (width - 2 * pad)) / (values.length - 1)),
+    Math.round(span ? height - pad - ((value - min) / span) * (height - 2 * pad) : height / 2),
   ]);
-  const first = points[0];
-  const last = points.at(-1);
-  return `<figure class="card history-trend">
-    <figcaption class="label">Top set weight</figcaption>
-    <svg role="img" aria-label="Top set weight from ${formatKg(first.kg)} kg on ${escapeHtml(shortDate(first.dateKey))} to ${formatKg(last.kg)} kg on ${escapeHtml(shortDate(last.dateKey))}" viewBox="0 0 ${width} ${height}">
+  const end = (index) => `${valueText(values.at(index), unit)} on ${shortDate(sessions.at(index).dateKey)}`;
+  const bests = xy.filter((_, index) => sessions[index].isBest);
+  return `<svg role="img" aria-label="${escapeHtml(`${MEASURES[measure].title} from ${end(0)} to ${end(-1)}`)}" viewBox="0 0 ${width} ${height}">
+      ${[pad, height / 2, height - pad].map((y) => `<line x1="0" x2="${width}" y1="${y}" y2="${y}"/>`).join("")}
       <polyline points="${xy.map((pair) => pair.join(",")).join(" ")}"/>
-      <circle cx="${xy.at(-1)[0]}" cy="${xy.at(-1)[1]}" r="4"/>
+      ${bests.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="4"/>`).join("")}
     </svg>
-    <div class="history-trend-ends"><span>${formatKg(first.kg)} kg · ${escapeHtml(shortDate(first.dateKey))}</span><span>${formatKg(last.kg)} kg · ${escapeHtml(shortDate(last.dateKey))}</span></div>
-  </figure>`;
+    <div class="history-chart-ends">
+      <span>${escapeHtml(shortDate(sessions[0].dateKey))}</span>
+      ${bests.length ? `<span>● New best</span>` : ""}
+      <span>${escapeHtml(shortDate(sessions.at(-1).dateKey))}</span>
+    </div>`;
 }
 
-function statsMarkup(sessions) {
-  const best = topSet(sessions.flatMap((item) => item.sets));
-  const timed = sessions.find((item) => item.sets.includes(best)).unit === "sec";
-  const weights = sessions.flatMap((item) => item.sets.map((set) => set.kg)).filter((kg) => kg !== null);
-  const since = sessions.length > 1 ? change(sessions[0].sets, sessions.at(-1).sets) : null;
-  const tile = (label, value, kind = "") => `<div class="card history-stat ${kind}"><span class="label">${label}</span><strong>${escapeHtml(value)}</strong></div>`;
-  return `<div class="history-stats">
-    ${tile("Best set", liftText(best, timed))}
-    ${tile("Heaviest", weights.length ? `${formatKg(Math.max(...weights))} kg` : "—")}
-    ${tile("Since first", since ? since.text : "—", since?.kind || "")}
+function chartMarkup(progress, measure) {
+  if (!scored(progress).length) return "";
+  return `<figure class="card history-chart" id="historyChart">${headlineMarkup(progress, measure)}${lineMarkup(progress, measure)}</figure>`;
+}
+
+function switchMarkup(measures, chosen) {
+  if (measures.length < 2) return "";
+  return `<div class="segment" data-segment data-value="${chosen}" data-action="history-measure" role="group" aria-label="Chart shows">
+    ${measures.map((measure) => `<button type="button" data-value="${measure}" aria-pressed="${measure === chosen}">${MEASURES[measure].tab}</button>`).join("")}
   </div>`;
 }
 
-function sessionMarkup(state, item, older) {
-  const routine = routineById(state, item.routineId);
-  const delta = older ? change(item.sets, older.sets) : null;
+function bestsMarkup(progress) {
+  const { top, repsAtWeight } = progress.bests;
+  if (!top) return "";
+  const row = (name, value, dateKey) => `<div><span>${escapeHtml(name)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(shortDate(dateKey))}</small></div>`;
+  return `<section class="card history-bests" aria-labelledby="historyBestsTitle">
+    <h3 class="label" id="historyBestsTitle">Bests</h3>
+    ${row("Best set", liftText(top.set, progress.unit === "sec"), top.dateKey)}
+    ${repsAtWeight.length ? `<p class="label">Most ${progress.unit === "sec" ? "seconds" : "reps"} at each weight</p>
+      ${repsAtWeight.map((best) => row(`${formatKg(best.kg)} kg`, valueText(best.reps, progress.unit), best.dateKey)).join("")}` : ""}
+  </section>`;
+}
+
+function sessionMarkup(progress, item, older) {
+  const change = older?.best && item.best ? compareSets(item.sets, older.sets, progress.mode, item.unit) : null;
   return `<article class="card history-session">
     <header>
       <strong class="row-title">${escapeHtml(shortDate(item.dateKey))}</strong>
-      <span class="row-meta truncate">${escapeHtml(routine?.name || "Deleted routine")}</span>
-      ${delta ? `<em class="history-change ${delta.kind}">${escapeHtml(delta.text)}</em>` : ""}
+      <span class="row-meta truncate">${escapeHtml(item.routineName)}</span>
+      ${item.isBest ? `<span class="label tag accent">Best</span>` : ""}
+      ${change ? changeMarkup(change) : ""}
     </header>
     <div class="set-chips">${setChipsMarkup(item.sets, { timed: item.unit === "sec" })}</div>
+    ${item.note ? `<p class="hint">${escapeHtml(item.note)}</p>` : ""}
   </article>`;
 }
 
-function historyMarkup(state, exerciseId) {
+function historyMarkup(state, exerciseId, measure) {
   const exercise = exerciseById(state, exerciseId);
-  const sessions = exerciseHistory(state, exerciseId);
+  const progress = exerciseProgress(state, exerciseId);
+  const { sessions } = progress;
+  const newestFirst = sessions.map((item, index) => sessionMarkup(progress, item, sessions[index - 1])).reverse();
   return `<div class="sheet-panel">
     <header class="sheet-head">
-      <div><h2 id="historyTitle">${escapeHtml(exercise?.name || "Exercise")}</h2><p>${sessions.length ? plural(sessions.length, "session") : "History"}</p></div>
+      <div><h2 id="historyTitle">${escapeHtml(exercise?.name || "Exercise")}</h2><p>${sessions.length ? `${plural(sessions.length, "session")} since ${escapeHtml(shortDate(sessions[0].dateKey))}` : "History"}</p></div>
       <button class="icon-button" type="button" data-close-dialog="historyDialog" aria-label="Close history">×</button>
     </header>
     <div class="sheet-body stack tight">
-      ${sessions.length ? `${statsMarkup(sessions)}${trendMarkup(sessions)}
-        <section aria-label="Sessions" class="stack snug">${sessions.map((item, index) => sessionMarkup(state, item, sessions[index + 1])).join("")}</section>`
+      ${sessions.length ? `${switchMarkup(measuresFor(progress), measure)}${chartMarkup(progress, measure)}${bestsMarkup(progress)}
+        <section aria-labelledby="historySessionsTitle" class="stack snug"><h3 class="label" id="historySessionsTitle">Sessions</h3>${newestFirst.join("")}</section>`
         : `<p class="hint">No sets logged for this exercise yet. Tap an exercise's number on Workout to log one.</p>`}
     </div>
   </div>`;
 }
 
 export function openExerciseHistory(exerciseId) {
-  $("#historyContent").innerHTML = historyMarkup(store.getState(), exerciseId);
+  const state = store.getState();
+  sheet.exerciseId = exerciseId;
+  sheet.measure = measuresFor(exerciseProgress(state, exerciseId))[0];
+  $("#historyContent").innerHTML = historyMarkup(state, exerciseId, sheet.measure);
   openDialog("#historyDialog");
 }
+
+registerActions({
+  // The switch changes the chart only; the rest of the sheet stays where it is.
+  "history-measure": (group) => {
+    sheet.measure = segmentValue(group);
+    $("#historyChart").outerHTML = chartMarkup(exerciseProgress(store.getState(), sheet.exerciseId), sheet.measure);
+  },
+});

@@ -72,10 +72,13 @@ export function liftText(lift, timed = false) {
 function liftChip(lift, timed, kind = "") {
   const amount = timed ? `${lift.reps}<small>s</small>` : (lift.kg === null ? `${lift.reps}<small>reps</small>` : String(lift.reps));
   const weight = lift.kg === null ? "" : `${escapeHtml(formatKg(lift.kg))}<small>kg</small><span class="set-chip-x">×</span>`;
-  return `<span class="set-chip ${kind}">${kind ? `<span class="label accent set-chip-tag">Drop</span>` : ""}${weight}${amount}</span>`;
+  const tag = kind === "is-drop" ? `<span class="label accent set-chip-tag">Drop</span>`
+    : kind === "is-warmup" ? `<span class="label set-chip-tag">W<span class="visually-hidden">arm-up</span></span>` : "";
+  return `<span class="set-chip ${kind}">${tag}${weight}${amount}</span>`;
 }
 
 // Small boxes for logged sets, each followed by its drops as outlined boxes.
+// A warm-up set is tagged "W".
 export function setChipsMarkup(sets, { timed = false, drops = true } = {}) {
-  return sets.map((set) => [liftChip(set, timed), ...(drops ? set.drops.map((drop) => liftChip(drop, timed, "is-drop")) : [])].join("")).join("");
+  return sets.map((set) => [liftChip(set, timed, set.warmup ? "is-warmup" : ""), ...(drops ? set.drops.map((drop) => liftChip(drop, timed, "is-drop")) : [])].join("")).join("");
 }
