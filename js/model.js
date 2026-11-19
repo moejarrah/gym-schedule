@@ -97,7 +97,14 @@ export function sessionFor(state, dateKey) {
     note: session?.note || "",
     logs: structuredClone(session?.logs || {}),
     extras: structuredClone(session?.extras || {}),
+    workouts: structuredClone(session?.workouts || {}),
   };
+}
+
+// The name a routine had when its workout was finished on a day, so history
+// reads right after the routine is renamed or deleted.
+export function workoutName(state, dateKey, routineId) {
+  return state.sessions[dateKey]?.workouts?.[routineId]?.name || routineById(state, routineId)?.name || "Deleted routine";
 }
 
 // The workout in progress, { routineId, dateKey, startedAt }, or null. It belongs
@@ -206,10 +213,12 @@ function writeSession(state, dateKey, session) {
   const checked = nonEmpty(session.checkedEntryIdsByRoutine);
   for (const routineId of Object.keys(checked)) checked[routineId] = [...new Set(checked[routineId])];
   const extras = nonEmpty(session.extras);
+  const finished = new Set(session.routineIds);
+  const workouts = Object.fromEntries(Object.entries(session.workouts).filter(([routineId]) => finished.has(routineId)));
   if (!session.routineIds.length && !Object.keys(checked).length && !session.note && !Object.keys(session.logs).length && !Object.keys(extras).length) {
     delete state.sessions[dateKey];
   } else {
-    state.sessions[dateKey] = { routineIds: [...new Set(session.routineIds)], checkedEntryIdsByRoutine: checked, note: session.note, logs: session.logs, extras };
+    state.sessions[dateKey] = { routineIds: [...new Set(session.routineIds)], checkedEntryIdsByRoutine: checked, note: session.note, logs: session.logs, extras, workouts };
   }
 }
 
@@ -252,11 +261,19 @@ export function startWorkout(state, routineId, dateKey = localDateKey(), now = D
   state.settings.activeWorkout = { routineId, dateKey, startedAt: now };
 }
 
-export function finishWorkout(state) {
+// What a day keeps about a finished routine. `minutes` is null when it wasn't timed.
+function workoutRecord(state, routineId, minutes = null) {
+  return { name: routineById(state, routineId).name, program: routineProgram(state, routineId)?.name || "", minutes };
+}
+
+// `timed: false` for a workout logged for a past day or left open overnight.
+export function finishWorkout(state, { now = Date.now(), timed = true } = {}) {
   const workout = state.settings.activeWorkout;
   if (!workout) return;
   const session = sessionFor(state, workout.dateKey);
   session.routineIds.push(workout.routineId);
+  const minutes = timed && !workout.backdated ? Math.max(1, Math.round((now - workout.startedAt) / 60000)) : null;
+  session.workouts[workout.routineId] = workoutRecord(state, workout.routineId, minutes);
   writeSession(state, workout.dateKey, session);
   state.settings.activeWorkout = null;
 }
@@ -281,7 +298,7 @@ export function finishStaleWorkout(state, todayKey = localDateKey(), now = Date.
   const workout = state.settings.activeWorkout;
   if (!workout || workout.dateKey === todayKey || now - workout.startedAt < 12 * 60 * 60 * 1000) return "";
   const name = routineById(state, workout.routineId)?.name || "";
-  finishWorkout(state);
+  finishWorkout(state, { timed: false });
   return name;
 }
 
@@ -333,7 +350,7 @@ export function setEntryChecked(state, routineId, entryId, done, dateKey = local
 function cleanKg(value) {
   if (value === null || value === undefined || String(value).trim() === "") return null;
   const kg = Number(String(value).replace(",", "."));
-  if (!Number.isFinite(kg) || kg < 0 || kg > 1000) fail("Enter a weight between 0 and 1000 kg.");
+  if (!Number.isFinite(kg) || kg < -500 || kg > 1000) fail("Enter the weight in kg as a number.");
   return Math.round(kg * 100) / 100;
 }
 
@@ -347,7 +364,9 @@ function cleanReps(value) {
 // kg may be blank (no weight used). An empty list removes the log.
 // The unit is fixed when the sets are saved, so later prescription edits don't
 // change what old sets meant.
-export function saveEntrySets(state, { routineId, entryId, exerciseId, sets, dateKey = localDateKey() }) {
+// A set may be a warm-up (`warmup: true`), which progress leaves out. `note` is the
+// exercise's note for that day; left out, the note already saved stays.
+export function saveEntrySets(state, { routineId, entryId, exerciseId, sets, note, dateKey = localDateKey() }) {
   if (!isDateKey(dateKey)) fail("That date isn't valid.");
   const entry = findSlot(state, routineId, entryId, dateKey) || fail("That exercise is no longer in this routine.");
   const choice = entry.choices.find((item) => item.exerciseId === exerciseId) || fail("That exercise isn't a choice in this slot any more.");
@@ -355,6 +374,7 @@ export function saveEntrySets(state, { routineId, entryId, exerciseId, sets, dat
     kg: cleanKg(set.kg),
     reps: cleanReps(set.reps),
     drops: (set.drops || []).map((drop) => ({ kg: cleanKg(drop.kg), reps: cleanReps(drop.reps) })),
+    ...(set.warmup ? { warmup: true } : {}),
   }));
   const session = sessionFor(state, dateKey);
   // Sets logged earlier today for an exercise that has since left the slot stay in history.
@@ -367,7 +387,8 @@ export function saveEntrySets(state, { routineId, entryId, exerciseId, sets, dat
   }
   if (clean.length) {
     const exerciseName = exerciseById(state, exerciseId).name;
-    session.logs[entryId] = { routineId, exerciseId, exerciseName, unit: isTimedPrescription(choice.prescription) ? "sec" : "reps", sets: clean };
+    const kept = (note ?? session.logs[entryId]?.note ?? "").trim();
+    session.logs[entryId] = { routineId, exerciseId, exerciseName, unit: isTimedPrescription(choice.prescription) ? "sec" : "reps", sets: clean, ...(kept ? { note: kept } : {}) };
   } else {
     delete session.logs[entryId];
   }
@@ -390,6 +411,7 @@ export function setDay(state, dateKey, routineIds, note) {
     const checked = new Set(session.checkedEntryIdsByRoutine[routineId] || []);
     routine.entries.filter((entry) => entry.role === "main").forEach((entry) => checked.add(entry.id));
     session.checkedEntryIdsByRoutine[routineId] = [...checked];
+    session.workouts[routineId] = workoutRecord(state, routineId);
   }
   session.routineIds = [...selected];
   session.note = note;
@@ -610,6 +632,10 @@ export function removeExercise(state, exerciseId) {
 
 export function setTheme(state, theme) {
   state.settings.theme = theme === "dark" ? "dark" : "light";
+}
+
+export function setBackupDone(state, now = Date.now()) {
+  state.settings.lastBackupAt = now;
 }
 
 export function setTrainingRules(state, text) {

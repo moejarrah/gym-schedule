@@ -108,8 +108,9 @@ export function sampleState() {
           a4: { routineId: "day-a", exerciseId: "push-up", exerciseName: "Push-up", unit: "reps", sets: [{ kg: null, reps: 15, drops: [] }] },
         },
         extras: { "day-a": [{ id: "x1", exerciseId: "ab-wheel", prescription: "3 × 8" }] },
+        workouts: { "day-a": { name: "Day A", program: "Sample program", minutes: 48 } },
       },
     },
-    settings: { activeProgramId: "sample", activeRoutineId: "day-a", theme: "dark", activeWorkout: null, trainingRules: "Progression\n- Add weight slowly.\n\nPain rule\nStop if it's sharp." },
+    settings: { activeProgramId: "sample", activeRoutineId: "day-a", theme: "dark", activeWorkout: null, lastBackupAt: 0, trainingRules: "Progression\n- Add weight slowly.\n\nPain rule\nStop if it's sharp." },
   };
 }

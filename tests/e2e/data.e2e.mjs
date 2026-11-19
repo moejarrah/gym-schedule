@@ -48,7 +48,7 @@ appTest("Log: a routine and a note marked on a date show in Recent and are kept"
   // Marking the routine also ticks its Main slots.
   assert.deepEqual((await readState(page)).sessions, {
     ...sampleState().sessions,
-    "2026-11-03": { routineIds: ["day-b"], checkedEntryIdsByRoutine: { "day-b": ["b1", "b2"] }, note: "Easy day", logs: {}, extras: {} },
+    "2026-11-03": { routineIds: ["day-b"], checkedEntryIdsByRoutine: { "day-b": ["b1", "b2"] }, note: "Easy day", logs: {}, extras: {}, workouts: { "day-b": { name: "Day B", program: "Sample program", minutes: null } } },
   });
 });
 

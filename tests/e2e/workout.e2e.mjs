@@ -104,6 +104,7 @@ appTest("Logging: a tick takes last time's set, typed sets and a drop are saved,
       },
     },
     extras: {},
+    workouts: {},
   });
 });
 

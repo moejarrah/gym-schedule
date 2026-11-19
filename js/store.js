@@ -8,7 +8,7 @@
 import { isDateKey } from "./model.js";
 import { SEED } from "./seed.js";
 
-export const SCHEMA_VERSION = 13;
+export const SCHEMA_VERSION = 14;
 export const STORAGE_KEY = "gymAppStateV1";
 // Earlier versions copied unreadable data here before starting fresh. It's still offered for download.
 const OLD_RECOVERY_KEY = `${STORAGE_KEY}:unreadable`;
@@ -42,6 +42,19 @@ const MIGRATIONS = {
     state.settings.activeWorkout = null;
     for (const session of Object.values(state.sessions)) session.extras = {};
   },
+  // A finished workout keeps the routine's name, its program and how long it took;
+  // the time of the last backup is remembered.
+  13(state) {
+    state.settings.lastBackupAt = 0;
+    for (const session of Object.values(state.sessions)) {
+      session.workouts = {};
+      for (const routineId of session.routineIds) {
+        const routine = state.routines.find((item) => item.id === routineId);
+        const program = state.programs.find((item) => item.routineIds.includes(routineId));
+        if (routine) session.workouts[routineId] = { name: routine.name, program: program?.name || "", minutes: null };
+      }
+    }
+  },
 };
 
 function clone(value) {
@@ -59,11 +72,12 @@ const isId = (value) => isText(value) && value !== "";
 const allText = (object, keys) => keys.every((key) => isText(object[key]));
 const allLists = (object, keys) => keys.every((key) => Array.isArray(object[key]));
 
-// One logged lift: weight in kg (null when no weight is used) and whole reps (or seconds).
+// One logged lift: weight in kg (null when no weight is used, negative for
+// assistance) and whole reps (or seconds). A set may be marked as a warm-up.
 const isLift = (lift) => isRecord(lift)
-  && (lift.kg === null || (Number.isFinite(lift.kg) && lift.kg >= 0))
+  && (lift.kg === null || Number.isFinite(lift.kg))
   && Number.isInteger(lift.reps) && lift.reps >= 0;
-const isLoggedSet = (set) => isLift(set) && Array.isArray(set.drops) && set.drops.every(isLift);
+const isLoggedSet = (set) => isLift(set) && Array.isArray(set.drops) && set.drops.every(isLift) && [undefined, true].includes(set.warmup);
 
 // Checks what the screens rely on: every part has the right shape and every
 // reference points at something. It doesn't police content (vocabulary IDs,
@@ -132,6 +146,7 @@ export function stateProblem(state) {
   if (!["light", "dark"].includes(theme) || !isText(trainingRules)) return "settings";
   const workout = settings.activeWorkout;
   if (workout !== null && !(isRecord(workout) && routineIds.has(workout.routineId) && isDateKey(workout.dateKey) && Number.isFinite(workout.startedAt))) return "workout in progress";
+  if (!Number.isFinite(settings.lastBackupAt)) return "last backup time";
 
   // History outlives what it points at: the routine, slot and exercise IDs in a
   // day may belong to things deleted since.
@@ -146,8 +161,10 @@ export function stateProblem(state) {
     if (!isRecord(session.logs)) return `${where}: logs`;
     for (const [key, log] of Object.entries(session.logs)) {
       if (!isRecord(log) || !isId(log.routineId) || !isId(log.exerciseId) || !isName(log.exerciseName) || !["reps", "sec"].includes(log.unit)
-        || !Array.isArray(log.sets) || !log.sets.length || !log.sets.every(isLoggedSet)) return `${where}: log ${key}`;
+        || !Array.isArray(log.sets) || !log.sets.length || !log.sets.every(isLoggedSet) || ![undefined, "string"].includes(typeof log.note === "undefined" ? undefined : typeof log.note)) return `${where}: log ${key}`;
     }
+    if (!isRecord(session.workouts) || !Object.values(session.workouts).every((workout) => isRecord(workout) && isText(workout.name)
+      && isText(workout.program) && (workout.minutes === null || Number.isFinite(workout.minutes)))) return `${where}: workouts`;
   }
   return "";
 }

@@ -53,7 +53,7 @@ test("a workout runs from Start to Finish; finishing files the routine in that d
   done(store, "day-a", "a2");
   done(store, "day-a", "a3");
   done(store, "day-a", "a3", false);
-  assert.deepEqual(day(store.getState()), { routineIds: [], checkedEntryIdsByRoutine: { "day-a": ["a2"] }, note: "", logs: {}, extras: {} }, "doing slots doesn't complete anything");
+  assert.deepEqual(day(store.getState()), { routineIds: [], checkedEntryIdsByRoutine: { "day-a": ["a2"] }, note: "", logs: {}, extras: {}, workouts: {} }, "doing slots doesn't complete anything");
   save(store, finishWorkout);
   assert.deepEqual([day(store.getState()).routineIds, activeWorkout(store.getState())], [["day-a"], null]);
   // Starting it again the same day reopens it.
@@ -99,14 +99,14 @@ test("an exercise added for today is logged like a slot, stays out of the progra
   save(store, (draft) => setDay(draft, DAY, [], "Shoulder sore"));
   save(store, cancelWorkout);
   const after = store.getState();
-  assert.deepEqual([day(after), activeWorkout(after)], [{ routineIds: [], checkedEntryIdsByRoutine: {}, note: "Shoulder sore", logs: {}, extras: {} }, null]);
+  assert.deepEqual([day(after), activeWorkout(after)], [{ routineIds: [], checkedEntryIdsByRoutine: {}, note: "Shoulder sore", logs: {}, extras: {}, workouts: {} }, null]);
   assert.deepEqual(Object.keys(day(after, PAST_DAY).logs), ["a2", "a4"]);
 });
 
 test("Log: marking a routine ticks its Main slots, unmarking clears them, and an emptied day is removed", () => {
   const { store } = freshStore();
   save(store, (draft) => setDay(draft, DAY, ["day-b"], "Legs felt heavy"));
-  assert.deepEqual(day(store.getState()), { routineIds: ["day-b"], checkedEntryIdsByRoutine: { "day-b": ["b1", "b2"] }, note: "Legs felt heavy", logs: {}, extras: {} });
+  assert.deepEqual(day(store.getState()), { routineIds: ["day-b"], checkedEntryIdsByRoutine: { "day-b": ["b1", "b2"] }, note: "Legs felt heavy", logs: {}, extras: {}, workouts: { "day-b": { name: "Day B", program: "Sample program", minutes: null } } });
   save(store, (draft) => setDay(draft, DAY, [], ""));
   assert.equal(day(store.getState()), undefined);
   // Removing one exercise's sets from a day takes its done mark too.
@@ -135,7 +135,7 @@ test("ticked sets are saved with weight, reps and drops; an empty list removes t
 test("bad set values are refused and nothing is saved", () => {
   const stored = freshStore();
   const attempt = (sets) => (draft) => saveEntrySets(draft, { routineId: "day-a", entryId: "a2", exerciseId: "bench-press", sets, dateKey: DAY });
-  refuse(stored, attempt([{ kg: "heavy", reps: "8" }]), "Enter a weight between 0 and 1000 kg.");
+  refuse(stored, attempt([{ kg: "heavy", reps: "8" }]), "Enter the weight in kg as a number.");
   refuse(stored, attempt([{ kg: "60", reps: "" }]), "Enter whole reps for each set.");
   refuse(stored, attempt([{ kg: "60", reps: "7.5" }]), "Enter whole reps for each set.");
   refuse(stored, (draft) => saveEntrySets(draft, { routineId: "day-a", entryId: "a2", exerciseId: "squat", sets: [], dateKey: DAY }), "That exercise isn't a choice in this slot any more.");
