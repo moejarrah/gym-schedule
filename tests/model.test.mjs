@@ -20,6 +20,7 @@ import {
   moveEntryInBlock,
   orderedEntries,
   plannedSetCount,
+  removeDayLog,
   removeEntry,
   removeExercise,
   removeExtra,
@@ -108,9 +109,12 @@ test("Log: marking a routine ticks its Main slots, unmarking clears them, and an
   assert.deepEqual(day(store.getState()), { routineIds: ["day-b"], checkedEntryIdsByRoutine: { "day-b": ["b1", "b2"] }, note: "Legs felt heavy", logs: {}, extras: {} });
   save(store, (draft) => setDay(draft, DAY, [], ""));
   assert.equal(day(store.getState()), undefined);
+  // Removing one exercise's sets from a day takes its done mark too.
+  save(store, (draft) => removeDayLog(draft, PAST_DAY, "a4"));
+  assert.deepEqual([Object.keys(day(store.getState(), PAST_DAY).logs), day(store.getState(), PAST_DAY).checkedEntryIdsByRoutine], [["a2"], { "day-a": ["a2", "a3"] }]);
   // A day with logged sets stays even with no routine and no note.
   save(store, (draft) => setDay(draft, PAST_DAY, [], ""));
-  assert.deepEqual(Object.keys(day(store.getState(), PAST_DAY).logs), ["a2", "a4"]);
+  assert.deepEqual(Object.keys(day(store.getState(), PAST_DAY).logs), ["a2"]);
 });
 
 test("ticked sets are saved with weight, reps and drops; an empty list removes the log", () => {

@@ -7,8 +7,8 @@
 // "Deleted routine" so they can be kept or unmarked.
 
 import { mainElement, registerActions, registerView, render, store } from "../context.js";
-import { $, $$, chevronIcon, closeDialog, escapeHtml, formatDate, openDialog, report } from "../dom.js";
-import { activeProgram, dateFromKey, entryLog, exerciseById, localDateKey, programRoutines, routineById, routineProgram, sessionFor, setDay } from "../model.js";
+import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, formatDate, openDialog, report } from "../dom.js";
+import { activeProgram, dateFromKey, entryLog, exerciseById, localDateKey, programRoutines, removeDayLog, routineById, routineProgram, sessionFor, setDay } from "../model.js";
 import { openLogger } from "./logger.js";
 import { locationLabel, setChipsMarkup } from "./shared.js";
 
@@ -137,7 +137,8 @@ function routineSectionMarkup(heading, rows) {
 
 // What was lifted that day, one exercise per row (by the name it had when logged if
 // it has since been deleted). Read-only: sets are logged from Workout.
-// A row opens the logging sheet to fix its sets, as long as its slot still exists.
+// A row opens the logging sheet to fix its sets, as long as its slot is still in
+// the program; any row can be removed with its ×.
 function loggedSetsMarkup(state, session, dateKey) {
   const logs = Object.entries(session.logs);
   if (!logs.length) return "";
@@ -145,11 +146,14 @@ function loggedSetsMarkup(state, session, dateKey) {
     const name = exerciseById(state, log.exerciseId)?.name || log.exerciseName;
     const content = `<strong class="row-title">${escapeHtml(name)}</strong>
       <span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec" })}</span>`;
-    return entryLog(state, dateKey, slotId)
-      ? `<button class="row-main tap" type="button" data-action="edit-day-log" data-routine-id="${escapeHtml(log.routineId)}" data-id="${escapeHtml(slotId)}" data-date="${dateKey}" aria-label="Edit sets for ${escapeHtml(name)}">${content}</button>`
-      : `<div class="row-main">${content}</div>`;
+    const body = entryLog(state, dateKey, slotId)
+      ? `<button class="row-body" type="button" data-action="edit-day-log" data-routine-id="${escapeHtml(log.routineId)}" data-id="${escapeHtml(slotId)}" data-date="${dateKey}" aria-label="Edit sets for ${escapeHtml(name)}"><span class="row-main">${content}</span></button>`
+      : `<span class="row-body"><span class="row-main">${content}</span></span>`;
+    return `<div class="row split">${body}
+      <button class="icon-button" type="button" data-action="remove-day-log" data-id="${escapeHtml(slotId)}" data-date="${dateKey}" data-name="${escapeHtml(name)}" aria-label="Remove sets for ${escapeHtml(name)}">×</button>
+    </div>`;
   }).join("");
-  return `<section><p class="form-label">Logged sets — tap to fix</p><div class="stack tight">${rows}</div></section>`;
+  return `<section><p class="form-label">Logged sets</p><div>${rows}</div></section>`;
 }
 
 function dayEditorMarkup(state, dateKey) {
@@ -206,6 +210,20 @@ registerActions({
   "next-month": () => changeCalendarMonth(1),
   "open-day": (button) => openDayEditor(button.dataset.date),
   "save-day": saveDay,
+  "remove-day-log": async (button) => {
+    const { id, date, name } = button.dataset;
+    const confirmed = await confirmAction({
+      title: `Remove ${name}?`,
+      message: "Its sets for this day are deleted, and its done mark with them. This can't be undone.",
+      confirmLabel: "Remove sets",
+      cancelLabel: "Keep them",
+    });
+    if (!confirmed || !report(store.update((draft) => removeDayLog(draft, date, id)), "Sets removed.")) return;
+    render();
+    // The day itself goes when that was all it held.
+    if (store.getState().sessions[date]) $("#dayDialogContent").innerHTML = dayEditorMarkup(store.getState(), date);
+    else closeDialog("#dayDialog");
+  },
   "edit-day-log": (button) => {
     closeDialog("#dayDialog");
     openLogger(button.dataset.routineId, button.dataset.id, button.dataset.date);

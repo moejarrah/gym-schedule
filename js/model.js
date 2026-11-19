@@ -307,6 +307,18 @@ export function removeExtra(state, routineId, slotId, dateKey) {
   writeSession(state, dateKey, session);
 }
 
+// Log: deletes one exercise's sets from a day, with its done mark (and the day's
+// record of it as an added exercise).
+export function removeDayLog(state, dateKey, slotId) {
+  const session = sessionFor(state, dateKey);
+  delete session.logs[slotId];
+  for (const routineId of Object.keys(session.checkedEntryIdsByRoutine)) {
+    session.checkedEntryIdsByRoutine[routineId] = session.checkedEntryIdsByRoutine[routineId].filter((id) => id !== slotId);
+  }
+  for (const routineId of Object.keys(session.extras)) session.extras[routineId] = session.extras[routineId].filter((extra) => extra.id !== slotId);
+  writeSession(state, dateKey, session);
+}
+
 // Marks a slot done (Done in the logging sheet) or not done for a date.
 export function setEntryChecked(state, routineId, entryId, done, dateKey = localDateKey()) {
   if (!isDateKey(dateKey) || !findSlot(state, routineId, entryId, dateKey)) fail("That exercise is no longer in this routine.");

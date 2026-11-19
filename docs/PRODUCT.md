@@ -82,7 +82,7 @@ Program
 
 - Move between months; see which dates have completions, logged sets or notes.
 - Reopen any of the eight most recent days from the list under the calendar.
-- Open any date: mark routines from the active program as completed and edit the note, and see the sets logged that day; tapping a logged exercise opens its logging sheet to fix the sets. Past routines from other programs are shown and labelled; deleted ones are labelled "Deleted routine". Clearing the routines and note removes the day unless it has logged sets.
+- Open any date: mark routines from the active program as completed and edit the note, and see the sets logged that day; tapping a logged exercise opens its logging sheet to fix the sets (when its slot is still in the program), and its × removes that exercise's sets from the day after a confirmation. Past routines from other programs are shown and labelled; deleted ones are labelled "Deleted routine". Clearing the routines and note removes the day unless it has logged sets.
 
 ### Settings
 
