@@ -402,6 +402,28 @@ body:is([data-current-view="workout"], [data-current-view="routines"], [data-cur
   display: none;
 }
 
+/* A screen or routine that was just switched to eases in. */
+#appMain.is-entering > * {
+  animation: page-in 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* Nothing behind an open sheet scrolls, even when the sheet itself has nothing to scroll. */
+:root:has(dialog[open]) :is(#appMain, #appMain .scroll, #appMain .scroll-x) {
+  overflow: hidden;
+}
+
+dialog,
+dialog .sheet-body {
+  overscroll-behavior: contain;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

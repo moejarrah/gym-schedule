@@ -42,7 +42,8 @@ export function afterRender(hook) {
 
 export const mainElement = () => document.querySelector("#appMain");
 
-export function render() {
+// `entering`: the content is new to the eye (another screen or routine), so it eases in.
+export function render({ entering = false } = {}) {
   const state = store.getState();
   const view = views.get(current);
   document.body.dataset.currentView = current;
@@ -51,6 +52,12 @@ export function render() {
     else button.removeAttribute("aria-current");
   }
   redraw(mainElement(), view.markup(state));
+  if (entering) {
+    const main = mainElement();
+    main.classList.remove("is-entering");
+    void main.offsetWidth; // restarts the animation
+    main.classList.add("is-entering");
+  }
   view.afterDraw?.(mainElement());
   document.querySelector("#viewTitle").textContent = view.title || "";
   for (const hook of afterRenderHooks) hook(state);
@@ -59,7 +66,7 @@ export function render() {
 export function navigate(id) {
   if (!views.has(id)) return;
   current = id;
-  render();
+  render({ entering: true });
   mainElement().scrollTop = 0;
 }
 

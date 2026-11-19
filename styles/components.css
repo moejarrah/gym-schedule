@@ -868,6 +868,49 @@ textarea.control {
   border-radius: 0;
 }
 
+/* Sliding out before closing (closeDialog in js/dom.js). */
+:is(.sheet, .confirm)[data-closing] {
+  animation: sheet-out 160ms ease-in forwards;
+}
+
+:is(.sheet, .confirm)::backdrop {
+  animation: fade-in 180ms ease;
+}
+
+:is(.sheet, .confirm)[data-closing]::backdrop {
+  animation: fade-out 160ms ease forwards;
+}
+
+.confirm[open]:not([data-closing]) {
+  animation: pop-in 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes sheet-out {
+  to {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
 @keyframes sheet-in {
   from { transform: translateY(16px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }

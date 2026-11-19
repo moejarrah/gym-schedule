@@ -181,13 +181,7 @@ function tableMarkup(last, timed) {
   return `<div class="log-table">
     <div class="log-row label" aria-hidden="true"><span>Set</span><span>Last time</span><span>Weight</span><span>${timed ? "Sec" : "Reps"}</span><span></span></div>
     ${groups}
-    <div class="log-tools">
-      <button class="link-button" type="button" data-action="log-add-set">${plusIcon}Set</button>
-      ${timed ? "" : `<span class="log-steps" role="group" aria-label="Change the weight of the sets not ticked yet">
-        <button class="pill" type="button" data-action="log-step" data-by="-2.5">− 2.5 kg</button>
-        <button class="pill" type="button" data-action="log-step" data-by="2.5">+ 2.5 kg</button>
-      </span>`}
-    </div>
+    <button class="link-button" type="button" data-action="log-add-set">${plusIcon}Set</button>
     <p class="hint">Tap a set's number to mark it as a warm-up.</p>
   </div>`;
 }
@@ -282,19 +276,6 @@ function toggleWarmup(setIndex) {
   const row = sheet.rows[setIndex];
   row.warmup = !row.warmup;
   if (row.done && !saveRows()) row.warmup = !row.warmup;
-  refresh();
-}
-
-// Moves the weight of every set not ticked yet up or down, starting from the grey
-// suggestion when nothing is typed. The rows still need their tick.
-function stepWeights(by) {
-  const last = lastSession(store.getState());
-  sheet.rows.forEach((row, setIndex) => {
-    if (row.done) return;
-    const shown = row.kg || suggestion(last, setIndex).kg;
-    const base = Number(String(shown).replace(",", "."));
-    if (shown && Number.isFinite(base)) row.kg = formatKg(Math.max(0, Math.round((base + by) * 100) / 100));
-  });
   refresh();
 }
 
@@ -414,7 +395,6 @@ registerActions({
   "log-remove-drop": (button) => removeDrop(...position(button)),
   "log-add-set": addSet,
   "log-warmup": (button) => toggleWarmup(Number(button.dataset.set)),
-  "log-step": (button) => stepWeights(Number(button.dataset.by)),
   "log-use-last": (button) => useLast(...position(button)),
   "log-choose": (button) => choose(Number(button.dataset.index)),
   "log-history": () => openExerciseHistory(current(store.getState()).choice.exerciseId),

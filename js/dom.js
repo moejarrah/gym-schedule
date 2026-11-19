@@ -112,17 +112,32 @@ export function redraw(root, html) {
 
 const closeHandlers = new WeakMap();
 
+const closing = new WeakMap();
+
 export function openDialog(dialog, { onClose } = {}) {
   dialog = element(dialog);
   if (onClose) closeHandlers.set(dialog, onClose);
+  // Reopened while sliding out: it stays.
+  clearTimeout(closing.get(dialog));
+  delete dialog.dataset.closing;
   if (dialog.open) return;
   dialog.returnValue = "";
   dialog.showModal();
 }
 
-export function closeDialog(dialog) {
+// Closes after the sheet has slid out (see [data-closing] in components.css).
+export function closeDialog(dialog, returnValue) {
   dialog = element(dialog);
-  if (dialog?.open) dialog.close();
+  if (!dialog?.open || "closing" in dialog.dataset) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    dialog.close(returnValue);
+    return;
+  }
+  dialog.dataset.closing = "";
+  closing.set(dialog, setTimeout(() => {
+    delete dialog.dataset.closing;
+    dialog.close(returnValue);
+  }, 160));
 }
 
 export function initDialogs() {
@@ -137,7 +152,7 @@ export function initDialogs() {
     // Only read-only sheets close when the dimmed backdrop is tapped; editors keep their drafts.
     if (dialog.hasAttribute("data-dismissable")) {
       dialog.addEventListener("click", (event) => {
-        if (event.target === dialog) dialog.close("cancel");
+        if (event.target === dialog) closeDialog(dialog, "cancel");
       });
     }
   }

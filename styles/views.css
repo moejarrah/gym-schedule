@@ -657,18 +657,6 @@ a > svg {
   font-weight: 600;
 }
 
-/* Under the sets: add a set, and step the weight of the sets not ticked yet. */
-.log-tools,
-.log-steps {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.log-tools {
-  justify-content: space-between;
-}
-
 .log-last-cell {
   min-width: 0;
   display: flex;
