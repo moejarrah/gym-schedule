@@ -316,8 +316,8 @@ function finish() {
 function undoDone() {
   const result = store.update((draft) => setEntryChecked(draft, sheet.routineId, sheet.entryId, false, sheet.dateKey));
   if (!report(result)) return;
+  closeDialog("#logDialog");
   render();
-  refresh();
 }
 
 // ---------- opening ----------

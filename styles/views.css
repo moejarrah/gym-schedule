@@ -12,6 +12,20 @@
   font-weight: 700;
 }
 
+/* Under the list: "Finish workout", or a line saying it's in the Log with "Not finished". */
+.workout-finish {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--gutter) var(--space-4);
+  text-align: center;
+}
+
+.workout-finish p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-meta);
+}
+
 /* ---------- Program ---------- */
 
 .appbar .button {

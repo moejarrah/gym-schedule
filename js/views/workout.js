@@ -15,6 +15,7 @@ import {
   programRoutines,
   routineById,
   setActiveRoutine,
+  setRoutineFinished,
 } from "../model.js";
 import { openLogger } from "./logger.js";
 import { openExerciseReference, openExerciseVideo } from "./reference.js";
@@ -77,8 +78,20 @@ function pageMarkup(state) {
     ${emptyStateMarkup(program, routine)}
     ${routine?.entries.length ? `<div class="scroll" data-keep-scroll="workout-${escapeHtml(routine.id)}">
       ${routine.blocks.map((block) => blockMarkup(state, routine, block, todayKey)).join("")}
+      ${finishMarkup(state, routine, todayKey)}
     </div>` : ""}
   </section>`;
+}
+
+// Under the list: finish the workout with whatever was done (it then shows in
+// Log as completed), or take that back.
+function finishMarkup(state, routine, todayKey) {
+  const finished = Boolean(state.sessions[todayKey]?.routineIds.includes(routine.id));
+  return `<div class="workout-finish">
+    ${finished
+    ? `<p>${escapeHtml(routine.name)} is in today's Log.</p><button class="button text" type="button" data-action="finish-workout" data-id="${escapeHtml(routine.id)}" data-finished="false">Not finished</button>`
+    : `<button class="button" type="button" data-action="finish-workout" data-id="${escapeHtml(routine.id)}" data-finished="true">Finish workout</button>`}
+  </div>`;
 }
 
 // Today's sets as small boxes; drops are counted rather than shown.
@@ -178,6 +191,11 @@ function openRowReference(button) {
 registerActions({
   "select-routine": (button) => {
     const result = store.update((draft) => setActiveRoutine(draft, button.dataset.id));
+    if (report(result)) render();
+  },
+  "finish-workout": (button) => {
+    const finished = button.dataset.finished === "true";
+    const result = store.update((draft) => setRoutineFinished(draft, button.dataset.id, finished));
     if (report(result)) render();
   },
   "open-logger": (button) => openLogger(button.dataset.routineId, button.dataset.id),

@@ -110,12 +110,18 @@ appTest("Done on every Main slot completes the routine for today, and Not done u
   await numberOf(page, "Push-up").click();
   const sheet = logSheet(page);
   await sheet.getByRole("button", { name: "Not done" }).click();
-  await expect(done(sheet)).toBeVisible();
-  await sheet.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(sheet).toBeHidden(); // Not done closes the sheet
   await expect(numberOf(page, "Push-up")).toHaveAccessibleName("Log sets for Push-up");
   assert.deepEqual(await todaySaved(page), { routineIds: [], checkedEntryIdsByRoutine: { "day-a": ["a2", "a3"] }, note: "", logs: {} });
+
+  // Finish workout counts the day with only part of it done; Not finished takes it back.
+  await main(page).getByRole("button", { name: "Finish workout" }).click();
+  assert.deepEqual(await todaySaved(page), { routineIds: ["day-a"], checkedEntryIdsByRoutine: { "day-a": ["a2", "a3"] }, note: "", logs: {} });
   await goToView(page, "Log");
-  await expect(main(page).getByRole("button", { name: "Wednesday, November 4, 2026, today", exact: true })).toBeVisible();
+  await expect(main(page).getByRole("button", { name: "Wednesday, November 4, 2026, today, 1 completed routine", exact: true })).toBeVisible();
+  await goToView(page, "Workout");
+  await main(page).getByRole("button", { name: "Not finished" }).click();
+  assert.deepEqual(await todaySaved(page), { routineIds: [], checkedEntryIdsByRoutine: { "day-a": ["a2", "a3"] }, note: "", logs: {} });
 });
 
 appTest("A slot's row opens the exercise reference, and History there shows the past session", async ({ page }) => {

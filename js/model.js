@@ -211,10 +211,20 @@ export function setEntryChecked(state, routineId, entryId, done, dateKey = local
   if (entry.role === "main") {
     const mainIds = routine.entries.filter((item) => item.role === "main").map((item) => item.id);
     const complete = mainIds.length > 0 && mainIds.every((id) => checked.has(id));
-    session.routineIds = complete
-      ? [...new Set([...session.routineIds, routineId])]
-      : session.routineIds.filter((id) => id !== routineId);
+    // Doing another slot never takes back a workout finished early; "Not done" does.
+    if (complete) session.routineIds = [...new Set([...session.routineIds, routineId])];
+    else if (!done) session.routineIds = session.routineIds.filter((id) => id !== routineId);
   }
+  writeSession(state, dateKey, session);
+}
+
+// "Finish workout" on Workout: counts the routine as completed for the date with
+// whatever was done, leaving the other slots not done. `finished: false` undoes it.
+export function setRoutineFinished(state, routineId, finished, dateKey = localDateKey()) {
+  if (!routineById(state, routineId) || !isDateKey(dateKey)) fail("That routine no longer exists.");
+  const session = sessionFor(state, dateKey);
+  session.routineIds = session.routineIds.filter((id) => id !== routineId);
+  if (finished) session.routineIds.push(routineId);
   writeSession(state, dateKey, session);
 }
 

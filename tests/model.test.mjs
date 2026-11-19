@@ -25,6 +25,7 @@ import {
   setActiveProgram,
   setDay,
   setEntryChecked,
+  setRoutineFinished,
   updateEntry,
 } from "../js/model.js";
 import { PAST_DAY } from "./sample.mjs";
@@ -48,6 +49,14 @@ test("a routine is complete when every Main slot is done; Optional slots never b
   done(store, "day-a", "a3", false);
   assert.deepEqual(day(store.getState()).routineIds, []);
   assert.equal(isEntryChecked(store.getState(), DAY, "day-a", "a2"), true);
+
+  // Finish workout counts the day as it is; doing another slot afterwards keeps it.
+  save(store, (draft) => setRoutineFinished(draft, "day-a", true, DAY));
+  assert.deepEqual(day(store.getState()).routineIds, ["day-a"]);
+  done(store, "day-a", "a1");
+  assert.deepEqual([day(store.getState()).routineIds, isEntryChecked(store.getState(), DAY, "day-a", "a3")], [["day-a"], false]);
+  save(store, (draft) => setRoutineFinished(draft, "day-a", false, DAY));
+  assert.deepEqual(day(store.getState()).routineIds, []);
 });
 
 test("Log: marking a routine ticks its Main slots, unmarking clears them, and an emptied day is removed", () => {
