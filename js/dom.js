@@ -161,12 +161,14 @@ export const segmentValue = (group) => element(group).dataset.value;
 
 // ---------- confirmation ----------
 
-export function confirmAction({ title, message, confirmLabel, cancelLabel = "Keep it", variant = "" }) {
+export function confirmAction({ title, message, confirmLabel, cancelLabel = "Keep it", variant = "", danger = true }) {
   const dialog = $("#confirmDialog");
   $("#confirmTitle").textContent = title;
   $("#confirmMessage").textContent = message;
   $("#confirmAction").textContent = confirmLabel;
   $("#confirmCancel").textContent = cancelLabel;
+  $("#confirmAction").classList.toggle("danger", danger);
+  $("#confirmAction").classList.toggle("primary", !danger);
   dialog.dataset.variant = variant;
   return new Promise((resolve) => {
     openDialog(dialog, {

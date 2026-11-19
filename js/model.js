@@ -96,7 +96,49 @@ export function sessionFor(state, dateKey) {
     checkedEntryIdsByRoutine: structuredClone(session?.checkedEntryIdsByRoutine || {}),
     note: session?.note || "",
     logs: structuredClone(session?.logs || {}),
+    extras: structuredClone(session?.extras || {}),
   };
+}
+
+// The workout in progress, { routineId, dateKey, startedAt }, or null. It belongs
+// to the day it was started on, even when it runs past midnight.
+export const activeWorkout = (state) => state.settings.activeWorkout;
+
+// Exercises added to a routine for one day only: [{ id, exerciseId, prescription }].
+export function dayExtras(state, dateKey, routineId) {
+  return state.sessions[dateKey]?.extras?.[routineId] || [];
+}
+
+// What can be logged on a date: a slot of the routine, or an exercise added for
+// that day, shaped like a slot (with `extra: true`). Null when there's no such slot.
+export function findSlot(state, routineId, slotId, dateKey) {
+  const entry = routineById(state, routineId)?.entries.find((item) => item.id === slotId);
+  if (entry) return entry;
+  const extra = dayExtras(state, dateKey, routineId).find((item) => item.id === slotId);
+  return extra ? { id: extra.id, choices: [{ exerciseId: extra.exerciseId, prescription: extra.prescription }], note: "", role: "optional", extra: true } : null;
+}
+
+// Exercises the owner added to this routine in the four weeks before dateKey and
+// hasn't added on dateKey itself, most often first: [{ exercise, count }].
+export function usualExtras(state, routineId, dateKey) {
+  const from = new Date(dateFromKey(dateKey));
+  from.setDate(from.getDate() - 28);
+  const fromKey = localDateKey(from);
+  const today = new Set(dayExtras(state, dateKey, routineId).map((extra) => extra.exerciseId));
+  const counts = new Map();
+  for (const [key, session] of Object.entries(state.sessions)) {
+    if (key < fromKey || key >= dateKey) continue;
+    for (const extra of session.extras?.[routineId] || []) counts.set(extra.exerciseId, (counts.get(extra.exerciseId) || 0) + 1);
+  }
+  return [...counts]
+    .map(([exerciseId, count]) => ({ exercise: exerciseById(state, exerciseId), count }))
+    .filter((item) => item.exercise && !today.has(item.exercise.id))
+    .sort((a, b) => b.count - a.count || a.exercise.name.localeCompare(b.exercise.name));
+}
+
+// The last day before dateKey on which the routine was finished, or "".
+export function lastFinished(state, routineId, dateKey) {
+  return Object.keys(state.sessions).filter((key) => key < dateKey && state.sessions[key].routineIds.includes(routineId)).sort().at(-1) || "";
 }
 
 export function isEntryChecked(state, dateKey, routineId, entryId) {
@@ -107,8 +149,8 @@ export function isEntryChecked(state, dateKey, routineId, entryId) {
 // one of the slot's current choices: { routineId, exerciseId, exerciseName, unit, sets } or null.
 export function entryLog(state, dateKey, entryId) {
   const log = state.sessions[dateKey]?.logs?.[entryId];
-  const entry = state.routines.flatMap((routine) => routine.entries).find((item) => item.id === entryId);
-  return log && entry?.choices.some((choice) => choice.exerciseId === log.exerciseId) ? log : null;
+  const slot = log && findSlot(state, log.routineId, entryId, dateKey);
+  return slot?.choices.some((choice) => choice.exerciseId === log.exerciseId) ? log : null;
 }
 
 // Logged sessions of a master exercise from any routine, newest first:
@@ -160,15 +202,14 @@ export function exerciseDeletionImpact(state, exerciseId) {
 // ---------- sessions (internal) ----------
 
 function writeSession(state, dateKey, session) {
-  const checked = Object.fromEntries(
-    Object.entries(session.checkedEntryIdsByRoutine)
-      .filter(([, entryIds]) => entryIds.length)
-      .map(([routineId, entryIds]) => [routineId, [...new Set(entryIds)]]),
-  );
-  if (!session.routineIds.length && !Object.keys(checked).length && !session.note && !Object.keys(session.logs).length) {
+  const nonEmpty = (lists) => Object.fromEntries(Object.entries(lists).filter(([, items]) => items.length));
+  const checked = nonEmpty(session.checkedEntryIdsByRoutine);
+  for (const routineId of Object.keys(checked)) checked[routineId] = [...new Set(checked[routineId])];
+  const extras = nonEmpty(session.extras);
+  if (!session.routineIds.length && !Object.keys(checked).length && !session.note && !Object.keys(session.logs).length && !Object.keys(extras).length) {
     delete state.sessions[dateKey];
   } else {
-    state.sessions[dateKey] = { routineIds: [...new Set(session.routineIds)], checkedEntryIdsByRoutine: checked, note: session.note, logs: session.logs };
+    state.sessions[dateKey] = { routineIds: [...new Set(session.routineIds)], checkedEntryIdsByRoutine: checked, note: session.note, logs: session.logs, extras };
   }
 }
 
@@ -185,10 +226,12 @@ function dropChecks(state, shouldDrop) {
 
 function repairActiveSelection(state) {
   if (!state.programs.length) {
+    state.settings.activeWorkout = null;
     state.settings.activeProgramId = "";
     state.settings.activeRoutineId = "";
     return;
   }
+  if (state.settings.activeWorkout && !routineById(state, state.settings.activeWorkout.routineId)) state.settings.activeWorkout = null;
   const program = activeProgram(state) || state.programs[0];
   state.settings.activeProgramId = program.id;
   if (!program.routineIds.includes(state.settings.activeRoutineId)) state.settings.activeRoutineId = program.routineIds[0] || "";
@@ -196,35 +239,69 @@ function repairActiveSelection(state) {
 
 // ---------- workout and log ----------
 
-// Marks an entry done (Done in the logging sheet) or not done for a date. A routine
-// is complete when it has at least one Main entry and every Main entry is done;
-// Optional entries never block.
+// A workout runs from "Start workout" to "Finish workout". Finishing is what puts
+// the routine in that day's Log; slots that weren't done simply stay not done.
+
+export function startWorkout(state, routineId, dateKey = localDateKey(), now = Date.now()) {
+  if (!routineById(state, routineId)) fail("That routine no longer exists.");
+  if (state.settings.activeWorkout) fail("Finish the workout in progress first.");
+  // Starting again on a day it was already finished reopens that day's workout.
+  const session = sessionFor(state, dateKey);
+  session.routineIds = session.routineIds.filter((id) => id !== routineId);
+  writeSession(state, dateKey, session);
+  state.settings.activeWorkout = { routineId, dateKey, startedAt: now };
+}
+
+export function finishWorkout(state) {
+  const workout = state.settings.activeWorkout;
+  if (!workout) return;
+  const session = sessionFor(state, workout.dateKey);
+  session.routineIds.push(workout.routineId);
+  writeSession(state, workout.dateKey, session);
+  state.settings.activeWorkout = null;
+}
+
+// A workout left open from an earlier day (and started over 12 hours ago, so a
+// session running past midnight isn't cut off) is finished as it stands.
+// Returns the routine's name when it did that.
+export function finishStaleWorkout(state, todayKey = localDateKey(), now = Date.now()) {
+  const workout = state.settings.activeWorkout;
+  if (!workout || workout.dateKey === todayKey || now - workout.startedAt < 12 * 60 * 60 * 1000) return "";
+  const name = routineById(state, workout.routineId)?.name || "";
+  finishWorkout(state);
+  return name;
+}
+
+// Adds a Library exercise to the workout in progress, for that day only.
+export function addExtra(state, exerciseId) {
+  const workout = state.settings.activeWorkout || fail("Start the workout first.");
+  const exercise = exerciseById(state, exerciseId) || fail("That exercise no longer exists.");
+  const session = sessionFor(state, workout.dateKey);
+  const extras = session.extras[workout.routineId] || [];
+  if (extras.some((extra) => extra.exerciseId === exerciseId)) fail("That exercise is already added today.");
+  const id = makeId("extra");
+  session.extras[workout.routineId] = [...extras, { id, exerciseId, prescription: exercise.defaultPrescription }];
+  writeSession(state, workout.dateKey, session);
+  return id;
+}
+
+// Takes an added exercise off a day again, with its sets and done mark.
+export function removeExtra(state, routineId, slotId, dateKey) {
+  const session = sessionFor(state, dateKey);
+  session.extras[routineId] = (session.extras[routineId] || []).filter((extra) => extra.id !== slotId);
+  session.checkedEntryIdsByRoutine[routineId] = (session.checkedEntryIdsByRoutine[routineId] || []).filter((id) => id !== slotId);
+  delete session.logs[slotId];
+  writeSession(state, dateKey, session);
+}
+
+// Marks a slot done (Done in the logging sheet) or not done for a date.
 export function setEntryChecked(state, routineId, entryId, done, dateKey = localDateKey()) {
-  const routine = routineById(state, routineId);
-  const entry = routine?.entries.find((item) => item.id === entryId);
-  if (!entry || !isDateKey(dateKey)) fail("That exercise is no longer in this routine.");
+  if (!isDateKey(dateKey) || !findSlot(state, routineId, entryId, dateKey)) fail("That exercise is no longer in this routine.");
   const session = sessionFor(state, dateKey);
   const checked = new Set(session.checkedEntryIdsByRoutine[routineId] || []);
   if (done) checked.add(entryId);
   else checked.delete(entryId);
   session.checkedEntryIdsByRoutine[routineId] = [...checked];
-  if (entry.role === "main") {
-    const mainIds = routine.entries.filter((item) => item.role === "main").map((item) => item.id);
-    const complete = mainIds.length > 0 && mainIds.every((id) => checked.has(id));
-    // Doing another slot never takes back a workout finished early; "Not done" does.
-    if (complete) session.routineIds = [...new Set([...session.routineIds, routineId])];
-    else if (!done) session.routineIds = session.routineIds.filter((id) => id !== routineId);
-  }
-  writeSession(state, dateKey, session);
-}
-
-// "Finish workout" on Workout: counts the routine as completed for the date with
-// whatever was done, leaving the other slots not done. `finished: false` undoes it.
-export function setRoutineFinished(state, routineId, finished, dateKey = localDateKey()) {
-  if (!routineById(state, routineId) || !isDateKey(dateKey)) fail("That routine no longer exists.");
-  const session = sessionFor(state, dateKey);
-  session.routineIds = session.routineIds.filter((id) => id !== routineId);
-  if (finished) session.routineIds.push(routineId);
   writeSession(state, dateKey, session);
 }
 
@@ -246,9 +323,9 @@ function cleanReps(value) {
 // The unit is fixed when the sets are saved, so later prescription edits don't
 // change what old sets meant.
 export function saveEntrySets(state, { routineId, entryId, exerciseId, sets, dateKey = localDateKey() }) {
-  const { entry } = findEntry(state, routineId, entryId);
-  const choice = entry.choices.find((item) => item.exerciseId === exerciseId) || fail("That exercise isn't a choice in this slot any more.");
   if (!isDateKey(dateKey)) fail("That date isn't valid.");
+  const entry = findSlot(state, routineId, entryId, dateKey) || fail("That exercise is no longer in this routine.");
+  const choice = entry.choices.find((item) => item.exerciseId === exerciseId) || fail("That exercise isn't a choice in this slot any more.");
   const clean = sets.map((set) => ({
     kg: cleanKg(set.kg),
     reps: cleanReps(set.reps),
@@ -495,7 +572,12 @@ export function removeExercise(state, exerciseId) {
       return false;
     });
   }
-  // Its logged sets stay in Log under the name it had.
+  // Its logged sets stay in Log under the name it had; days it was added to forget it.
+  for (const dateKey of Object.keys(state.sessions)) {
+    const session = sessionFor(state, dateKey);
+    for (const routineId of Object.keys(session.extras)) session.extras[routineId] = session.extras[routineId].filter((extra) => extra.exerciseId !== exerciseId);
+    writeSession(state, dateKey, session);
+  }
   dropChecks(state, (_, entryId) => deletedEntries.has(entryId));
 }
 

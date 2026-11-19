@@ -33,11 +33,11 @@ const V9_UPGRADED = {
   routines: SEED.routines,
   programs: SEED.programs,
   sessions: {
-    "2026-10-05": { routineIds: ["push-a-glutes"], checkedEntryIdsByRoutine: {}, note: "Felt strong.\nShoulder fine.", logs: {} },
-    "2026-10-07": { routineIds: [], checkedEntryIdsByRoutine: {}, note: "Rest day, knee sore.", logs: {} },
-    "2026-10-09": { routineIds: ["legs-a", "legs-morning"], checkedEntryIdsByRoutine: {}, note: "Double day.", logs: {} },
+    "2026-10-05": { routineIds: ["push-a-glutes"], checkedEntryIdsByRoutine: {}, note: "Felt strong.\nShoulder fine.", logs: {}, extras: {} },
+    "2026-10-07": { routineIds: [], checkedEntryIdsByRoutine: {}, note: "Rest day, knee sore.", logs: {}, extras: {} },
+    "2026-10-09": { routineIds: ["legs-a", "legs-morning"], checkedEntryIdsByRoutine: {}, note: "Double day.", logs: {}, extras: {} },
   },
-  settings: { activeProgramId: "ppl-9", activeRoutineId: "push-a", theme: "dark", trainingRules: SEED.settings.trainingRules },
+  settings: { activeProgramId: "ppl-9", activeRoutineId: "push-a", theme: "dark", trainingRules: SEED.settings.trainingRules, activeWorkout: null },
 };
 
 test("the starting data and the test sample are valid", () => {
@@ -62,7 +62,7 @@ test("saved data loads unchanged and isn't rewritten", () => {
 
 test("a change is saved and is there after a reload", () => {
   const { store, storage } = freshStore();
-  save(store, (draft) => { draft.sessions["2026-11-03"] = { routineIds: [], checkedEntryIdsByRoutine: {}, note: "Two lines\nof notes", logs: {} }; });
+  save(store, (draft) => { draft.sessions["2026-11-03"] = { routineIds: [], checkedEntryIdsByRoutine: {}, note: "Two lines\nof notes", logs: {}, extras: {} }; });
   const reloaded = createStore(storage).getState();
   assert.equal(reloaded.sessions["2026-11-03"].note, "Two lines\nof notes");
   assert.deepEqual(reloaded.sessions["2026-11-02"], sampleState().sessions["2026-11-02"]);
@@ -80,7 +80,7 @@ test("data saved by version 11 keeps its logged sets through the upgrade", () =>
   const v11 = structuredClone({ ...V9_UPGRADED, version: 11 });
   v11.sessions["2026-10-06"] = { routineIds: [], checkedEntryIdsByRoutine: { "pull-a": ["pull-a-entry-001"] }, note: "", logs: { "push-a-glutes-entry-003": log } };
   const state = freshStore(v11).store.getState();
-  assert.deepEqual(state.sessions["2026-10-06"], { routineIds: [], checkedEntryIdsByRoutine: {}, note: "", logs: { "push-a-glutes-entry-003": log } });
+  assert.deepEqual(state.sessions["2026-10-06"], { routineIds: [], checkedEntryIdsByRoutine: {}, note: "", logs: { "push-a-glutes-entry-003": log }, extras: {} });
 });
 
 test("a backup imports back exactly, and a version-9 backup is upgraded", () => {

@@ -17,6 +17,7 @@ const logSheet = (page) => page.getByRole("dialog").filter({ has: page.getByRole
 const tick = (sheet, name) => sheet.getByRole("button", { name: `${name} done`, exact: true });
 const done = (sheet) => sheet.getByRole("button", { name: "Done", exact: true });
 const todaySaved = async (page) => (await readState(page)).sessions[TODAY];
+const start = (page) => main(page).getByRole("button", { name: "Start workout" }).click();
 
 appTest("Workout shows the selected routine's numbered slots, and the routine you pick is kept", async ({ page }) => {
   await expect(programPicker(page, "Sample program")).toBeVisible();
@@ -43,6 +44,11 @@ appTest("Workout shows the selected routine's numbered slots, and the routine yo
 });
 
 appTest("Logging: a tick takes last time's set, typed sets and a drop are saved, and Done shows them on Workout", async ({ page }) => {
+  // Nothing is logged before the workout is started.
+  await numberOf(page, "Bench press").click();
+  await expect(page.getByText("Start the workout first.")).toBeVisible();
+  await start(page);
+  await expect(main(page)).toContainText("Day A in progress");
   await numberOf(page, "Bench press").click();
   const sheet = logSheet(page);
   await expect(sheet.getByRole("heading", { name: "Bench press" })).toBeVisible();
@@ -91,37 +97,50 @@ appTest("Logging: a tick takes last time's set, typed sets and a drop are saved,
         sets: [{ kg: 60, reps: 10, drops: [] }, { kg: 62.5, reps: 8, drops: [{ kg: 50, reps: 6 }] }],
       },
     },
+    extras: {},
   });
 });
 
-appTest("Done on every Main slot completes the routine for today, and Not done undoes it", async ({ page }) => {
-  for (const title of ["Bench press", TWO_CHOICES, "Push-up"]) {
-    await numberOf(page, title).click();
-    await done(logSheet(page)).click();
-    await expect(numberOf(page, title)).toHaveAccessibleName(`Log sets for ${title}, done`);
-  }
-  // The Optional warm-up slot was left alone and doesn't hold the routine back.
-  assert.deepEqual(await todaySaved(page), { routineIds: ["day-a"], checkedEntryIdsByRoutine: { "day-a": ["a2", "a3", "a4"] }, note: "", logs: {} });
-  await goToView(page, "Log");
-  await expect(main(page).getByRole("button", { name: "Wednesday, November 4, 2026, today, 1 completed routine", exact: true })).toBeVisible();
-  await expect(main(page).getByRole("button", { name: "Open Wednesday, November 4, 2026. Day A. Sample program", exact: true })).toBeVisible();
+appTest("A workout: Done and Not done on slots, an exercise added for today, and Finish files it in the Log", async ({ page }) => {
+  await start(page);
+  // Done with no sets asks first.
+  await numberOf(page, "Bench press").click();
+  await done(logSheet(page)).click();
+  const confirm = dialog(page, "No sets logged");
+  await expect(confirm).toContainText("Mark Bench press done anyway?");
+  await confirm.getByRole("button", { name: "Mark done anyway" }).click();
+  await expect(numberOf(page, "Bench press")).toHaveAccessibleName("Log sets for Bench press, done");
 
-  await goToView(page, "Workout");
   await numberOf(page, "Push-up").click();
-  const sheet = logSheet(page);
-  await sheet.getByRole("button", { name: "Not done" }).click();
-  await expect(sheet).toBeHidden(); // Not done closes the sheet
-  await expect(numberOf(page, "Push-up")).toHaveAccessibleName("Log sets for Push-up");
-  assert.deepEqual(await todaySaved(page), { routineIds: [], checkedEntryIdsByRoutine: { "day-a": ["a2", "a3"] }, note: "", logs: {} });
+  await tick(logSheet(page), "Set 1").click();
+  await done(logSheet(page)).click();
+  await numberOf(page, "Push-up").click();
+  await logSheet(page).getByRole("button", { name: "Not done" }).click();
+  await expect(logSheet(page)).toBeHidden(); // Not done closes the sheet
+  await expect(numberOf(page, "Push-up")).toHaveAccessibleName("Log sets for Push-up, 1 set logged");
 
-  // Finish workout counts the day with only part of it done; Not finished takes it back.
+  // "You sometimes add" offers what was added to this routine before; it joins today's list.
+  await main(page).getByRole("button", { name: "Add Ab-wheel rollout for today" }).click();
+  await expect(numberOf(page, "Ab-wheel rollout")).toHaveText("5");
+  await expect(main(page).getByRole("button", { name: "Add Ab-wheel rollout for today" })).toHaveCount(0);
+  await main(page).getByRole("button", { name: "Add exercise for today" }).click();
+  await dialog(page, "Add exercise").getByRole("button", { name: "Add Squat for today" }).click();
+  await expect(numberOf(page, "Squat")).toHaveText("6");
+  assert.equal((await readState(page)).routines[0].entries.length, 4, "the program isn't changed");
+
+  // Finish shows what's in each group, then files the workout.
+  assert.deepEqual((await todaySaved(page)).routineIds, []);
   await main(page).getByRole("button", { name: "Finish workout" }).click();
-  assert.deepEqual(await todaySaved(page), { routineIds: ["day-a"], checkedEntryIdsByRoutine: { "day-a": ["a2", "a3"] }, note: "", logs: {} });
+  const summary = dialog(page, "Finish Day A?");
+  await expect(summary.getByText("Done", { exact: true })).toBeVisible();
+  await summary.getByText("Started, not marked done").click();
+  await expect(summary).toContainText("Push-up");
+  await summary.getByRole("button", { name: "Finish", exact: true }).click();
+  const saved = await readState(page);
+  assert.deepEqual([saved.sessions[TODAY].routineIds, saved.sessions[TODAY].checkedEntryIdsByRoutine, saved.settings.activeWorkout], [["day-a"], { "day-a": ["a2"] }, null]);
+  await expect(main(page)).toContainText("Finished today");
   await goToView(page, "Log");
-  await expect(main(page).getByRole("button", { name: "Wednesday, November 4, 2026, today, 1 completed routine", exact: true })).toBeVisible();
-  await goToView(page, "Workout");
-  await main(page).getByRole("button", { name: "Not finished" }).click();
-  assert.deepEqual(await todaySaved(page), { routineIds: [], checkedEntryIdsByRoutine: { "day-a": ["a2", "a3"] }, note: "", logs: {} });
+  await expect(main(page).getByRole("button", { name: /^Wednesday, November 4, 2026, today, 1 completed routine/ })).toBeVisible();
 });
 
 appTest("A slot's row opens the exercise reference, and History there shows the past session", async ({ page }) => {
@@ -160,6 +179,7 @@ appTest("A two-choice slot lists both choices, logs the one you did, and the Log
   await choices.getByRole("button", { name: "Close exercise choices" }).click();
   await expect(choices).toBeHidden();
 
+  await start(page);
   await numberOf(page, TWO_CHOICES).click();
   const sheet = logSheet(page);
   await expect(sheet.getByRole("heading", { name: "Incline dumbbell press" })).toBeVisible();

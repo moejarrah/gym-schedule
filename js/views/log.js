@@ -8,7 +8,8 @@
 
 import { mainElement, registerActions, registerView, render, store } from "../context.js";
 import { $, $$, chevronIcon, closeDialog, escapeHtml, formatDate, openDialog, report } from "../dom.js";
-import { activeProgram, dateFromKey, exerciseById, localDateKey, programRoutines, routineById, routineProgram, sessionFor, setDay } from "../model.js";
+import { activeProgram, dateFromKey, entryLog, exerciseById, localDateKey, programRoutines, routineById, routineProgram, sessionFor, setDay } from "../model.js";
+import { openLogger } from "./logger.js";
 import { locationLabel, setChipsMarkup } from "./shared.js";
 
 const LONG_DATE = { weekday: "long", month: "long", day: "numeric", year: "numeric" };
@@ -136,14 +137,19 @@ function routineSectionMarkup(heading, rows) {
 
 // What was lifted that day, one exercise per row (by the name it had when logged if
 // it has since been deleted). Read-only: sets are logged from Workout.
-function loggedSetsMarkup(state, session) {
-  const logs = Object.values(session.logs);
+// A row opens the logging sheet to fix its sets, as long as its slot still exists.
+function loggedSetsMarkup(state, session, dateKey) {
+  const logs = Object.entries(session.logs);
   if (!logs.length) return "";
-  const rows = logs.map((log) => `<div class="row-main">
-    <strong class="row-title">${escapeHtml(exerciseById(state, log.exerciseId)?.name || log.exerciseName)}</strong>
-    <span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec" })}</span>
-  </div>`).join("");
-  return `<section><p class="form-label">Logged sets</p><div class="stack tight">${rows}</div></section>`;
+  const rows = logs.map(([slotId, log]) => {
+    const name = exerciseById(state, log.exerciseId)?.name || log.exerciseName;
+    const content = `<strong class="row-title">${escapeHtml(name)}</strong>
+      <span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec" })}</span>`;
+    return entryLog(state, dateKey, slotId)
+      ? `<button class="row-main tap" type="button" data-action="edit-day-log" data-routine-id="${escapeHtml(log.routineId)}" data-id="${escapeHtml(slotId)}" data-date="${dateKey}" aria-label="Edit sets for ${escapeHtml(name)}">${content}</button>`
+      : `<div class="row-main">${content}</div>`;
+  }).join("");
+  return `<section><p class="form-label">Logged sets — tap to fix</p><div class="stack tight">${rows}</div></section>`;
 }
 
 function dayEditorMarkup(state, dateKey) {
@@ -170,7 +176,7 @@ function dayEditorMarkup(state, dateKey) {
         ${deletedIds.length ? routineSectionMarkup("Deleted routines",
           deletedIds.map((routineId) => checkRowMarkup({ routineId, checked: true, name: "Deleted routine", context: "No longer in any program" }))) : ""}
         ${!program && !recordedIds.length ? `<p class="hint">Add a program before logging a routine completion.</p>` : ""}
-        ${loggedSetsMarkup(state, session)}
+        ${loggedSetsMarkup(state, session, dateKey)}
         <label class="field"><span>Note</span><textarea class="control" id="dayNote" rows="4" maxlength="500" placeholder="Optional note">${escapeHtml(session.note)}</textarea></label>
         <p class="form-error" id="dayFormError" role="alert" aria-live="polite" data-dialog-error></p>
       </div>
@@ -200,4 +206,8 @@ registerActions({
   "next-month": () => changeCalendarMonth(1),
   "open-day": (button) => openDayEditor(button.dataset.date),
   "save-day": saveDay,
+  "edit-day-log": (button) => {
+    closeDialog("#dayDialog");
+    openLogger(button.dataset.routineId, button.dataset.id, button.dataset.date);
+  },
 });

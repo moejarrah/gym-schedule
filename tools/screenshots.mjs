@@ -269,7 +269,8 @@ const SHOTS = [
 async function seedState(page, theme, tempDir) {
   await page.goto(page.__appUrl);
   await waitForApp(page);
-  // Two exercises logged and done on today's Push A.
+  // Push A is started, with two exercises logged and done.
+  await main(page).getByRole("button", { name: "Start workout" }).click();
   for (const [title, sets] of [["Low-incline dumbbell press", [["22.5", "10"], ["22.5", "9"], ["22.5", "8"]]], ["Machine overhead press", [["35", "12"], ["35", "10"]]]]) {
     await main(page).getByRole("button", { name: `Log sets for ${title}` }).click();
     const sheet = await shown(page.locator("#logDialog"));

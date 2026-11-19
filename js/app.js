@@ -10,6 +10,7 @@ import "./views/log.js";
 import "./views/settings.js";
 import { afterRender, applyTheme, navigate, render, runAction, store } from "./context.js";
 import { closeDialog, initDialogs, setSegment, toast } from "./dom.js";
+import { finishStaleWorkout, localDateKey } from "./model.js";
 import { STORAGE_KEY } from "./store.js";
 
 initDialogs();
@@ -84,12 +85,23 @@ if ("serviceWorker" in navigator) {
 // Ask the phone to keep this app's data even when it's short of space.
 navigator.storage?.persist?.().catch(() => {});
 
+// A workout left open from an earlier day is filed in that day's Log as it stands.
+function fileStaleWorkout() {
+  const workout = store.getState().settings.activeWorkout;
+  if (!workout || workout.dateKey === localDateKey()) return;
+  let name = "";
+  if (!store.update((draft) => { name = finishStaleWorkout(draft); }).ok || !name) return;
+  toast(`${name} from last time was saved to the Log.`, { long: true });
+  render();
+}
+
 // Coming back to the app: "today" may have changed overnight, and iOS keeps
 // home-screen apps alive in the background, so also look for a new version.
 let renderedDay = new Date().toDateString();
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState !== "visible") return;
   checkForUpdate();
+  fileStaleWorkout();
   const today = new Date().toDateString();
   if (today !== renderedDay) {
     renderedDay = today;
@@ -98,5 +110,6 @@ document.addEventListener("visibilitychange", () => {
 });
 
 applyTheme(store.getState().settings.theme);
-render();
 if (store.getLastError()) toast(store.getLastError(), { long: true });
+else fileStaleWorkout();
+render();

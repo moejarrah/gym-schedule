@@ -8,7 +8,7 @@
 import { isDateKey } from "./model.js";
 import { SEED } from "./seed.js";
 
-export const SCHEMA_VERSION = 12;
+export const SCHEMA_VERSION = 13;
 export const STORAGE_KEY = "gymAppStateV1";
 // Earlier versions copied unreadable data here before starting fresh. It's still offered for download.
 const OLD_RECOVERY_KEY = `${STORAGE_KEY}:unreadable`;
@@ -36,6 +36,11 @@ const MIGRATIONS = {
       session.checkedEntryIdsByRoutine = {};
       if (!session.routineIds.length && !session.note && !Object.keys(session.logs).length) delete state.sessions[dateKey];
     }
+  },
+  // Workouts start and finish, and a day can have exercises added to a routine.
+  12(state) {
+    state.settings.activeWorkout = null;
+    for (const session of Object.values(state.sessions)) session.extras = {};
   },
 };
 
@@ -125,6 +130,8 @@ export function stateProblem(state) {
     if (active.routineIds.length ? !active.routineIds.includes(activeRoutineId) : activeRoutineId !== "") return "active routine";
   }
   if (!["light", "dark"].includes(theme) || !isText(trainingRules)) return "settings";
+  const workout = settings.activeWorkout;
+  if (workout !== null && !(isRecord(workout) && routineIds.has(workout.routineId) && isDateKey(workout.dateKey) && Number.isFinite(workout.startedAt))) return "workout in progress";
 
   // History outlives what it points at: the routine, slot and exercise IDs in a
   // day may belong to things deleted since.
@@ -134,6 +141,8 @@ export function stateProblem(state) {
     if (!Array.isArray(session.routineIds) || !session.routineIds.every(isId)) return `${where}: routines`;
     if (!isRecord(session.checkedEntryIdsByRoutine)
       || !Object.values(session.checkedEntryIdsByRoutine).every((ids) => Array.isArray(ids) && ids.every(isId))) return `${where}: checks`;
+    if (!isRecord(session.extras) || !Object.values(session.extras).every((extras) => Array.isArray(extras)
+      && extras.every((extra) => isRecord(extra) && isId(extra.id) && isId(extra.exerciseId) && isText(extra.prescription)))) return `${where}: extras`;
     if (!isRecord(session.logs)) return `${where}: logs`;
     for (const [key, log] of Object.entries(session.logs)) {
       if (!isRecord(log) || !isId(log.routineId) || !isId(log.exerciseId) || !isName(log.exerciseName) || !["reps", "sec"].includes(log.unit)

@@ -5,7 +5,8 @@
 // ├── Day A   Warm-up: a1 Plank (Optional, timed)
 // │           Main work: a2 Bench press · a3 Incline dumbbell press or Cable fly (with a note) · a4 Push-up
 // └── Day B   b1 Squat · b2 Pull-up
-// History: Day A was completed on PAST_DAY with bench press and push-up sets logged.
+// History: Day A was completed on PAST_DAY with bench press and push-up sets logged,
+// and Ab-wheel rollout added to it for that day. No workout is in progress.
 
 import { SCHEMA_VERSION } from "../js/store.js";
 
@@ -106,8 +107,9 @@ export function sampleState() {
           },
           a4: { routineId: "day-a", exerciseId: "push-up", exerciseName: "Push-up", unit: "reps", sets: [{ kg: null, reps: 15, drops: [] }] },
         },
+        extras: { "day-a": [{ id: "x1", exerciseId: "ab-wheel", prescription: "3 × 8" }] },
       },
     },
-    settings: { activeProgramId: "sample", activeRoutineId: "day-a", theme: "dark", trainingRules: "Progression\n- Add weight slowly.\n\nPain rule\nStop if it's sharp." },
+    settings: { activeProgramId: "sample", activeRoutineId: "day-a", theme: "dark", activeWorkout: null, trainingRules: "Progression\n- Add weight slowly.\n\nPain rule\nStop if it's sharp." },
   };
 }

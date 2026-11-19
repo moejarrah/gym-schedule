@@ -5,11 +5,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  activeWorkout,
+  addExtra,
   duplicateProgram,
   entryLog,
   exerciseById,
   exerciseDeletionImpact,
   exerciseHistory,
+  finishStaleWorkout,
+  finishWorkout,
   isEntryChecked,
   isTimedPrescription,
   moveEntryInBlock,
@@ -17,6 +21,7 @@ import {
   plannedSetCount,
   removeEntry,
   removeExercise,
+  removeExtra,
   removeProgram,
   removeRoutine,
   routineById,
@@ -25,8 +30,9 @@ import {
   setActiveProgram,
   setDay,
   setEntryChecked,
-  setRoutineFinished,
+  startWorkout,
   updateEntry,
+  usualExtras,
 } from "../js/model.js";
 import { PAST_DAY } from "./sample.mjs";
 import { freshStore, refuse, save } from "./support.mjs";
@@ -36,33 +42,59 @@ const day = (state, dateKey = DAY) => state.sessions[dateKey];
 const done = (store, routineId, entryId, value = true) => save(store, (draft) => setEntryChecked(draft, routineId, entryId, value, DAY));
 const logSets = (store, entryId, exerciseId, sets, routineId = "day-a") => save(store, (draft) => saveEntrySets(draft, { routineId, entryId, exerciseId, sets, dateKey: DAY }));
 
-test("a routine is complete when every Main slot is done; Optional slots never block it; Not done undoes it", () => {
-  const { store } = freshStore();
+test("a workout runs from Start to Finish; finishing files the routine in that day's Log with whatever was done", () => {
+  const stored = freshStore();
+  const { store } = stored;
+  save(store, (draft) => startWorkout(draft, "day-a", DAY, 1000));
+  assert.deepEqual(activeWorkout(store.getState()), { routineId: "day-a", dateKey: DAY, startedAt: 1000 });
+  refuse(stored, (draft) => startWorkout(draft, "day-b", DAY), "Finish the workout in progress first.");
   done(store, "day-a", "a2");
   done(store, "day-a", "a3");
-  assert.deepEqual(day(store.getState()).routineIds, []);
-  done(store, "day-a", "a4");
-  assert.deepEqual(day(store.getState()).routineIds, ["day-a"], "a1 is Optional and still not done");
-  done(store, "day-a", "a1");
-  done(store, "day-a", "a1", false);
-  assert.deepEqual(day(store.getState()).routineIds, ["day-a"]);
   done(store, "day-a", "a3", false);
-  assert.deepEqual(day(store.getState()).routineIds, []);
-  assert.equal(isEntryChecked(store.getState(), DAY, "day-a", "a2"), true);
+  assert.deepEqual(day(store.getState()), { routineIds: [], checkedEntryIdsByRoutine: { "day-a": ["a2"] }, note: "", logs: {}, extras: {} }, "doing slots doesn't complete anything");
+  save(store, finishWorkout);
+  assert.deepEqual([day(store.getState()).routineIds, activeWorkout(store.getState())], [["day-a"], null]);
+  // Starting it again the same day reopens it.
+  save(store, (draft) => startWorkout(draft, "day-a", DAY));
+  assert.deepEqual([day(store.getState()).routineIds, isEntryChecked(store.getState(), DAY, "day-a", "a2")], [[], true]);
+});
 
-  // Finish workout counts the day as it is; doing another slot afterwards keeps it.
-  save(store, (draft) => setRoutineFinished(draft, "day-a", true, DAY));
-  assert.deepEqual(day(store.getState()).routineIds, ["day-a"]);
-  done(store, "day-a", "a1");
-  assert.deepEqual([day(store.getState()).routineIds, isEntryChecked(store.getState(), DAY, "day-a", "a3")], [["day-a"], false]);
-  save(store, (draft) => setRoutineFinished(draft, "day-a", false, DAY));
-  assert.deepEqual(day(store.getState()).routineIds, []);
+test("a workout left open is filed the next day, but not while it's still running past midnight", () => {
+  const { store } = freshStore();
+  const hour = 60 * 60 * 1000;
+  save(store, (draft) => startWorkout(draft, "day-b", DAY, 0));
+  save(store, (draft) => assert.equal(finishStaleWorkout(draft, DAY, 20 * hour), "", "same day"));
+  save(store, (draft) => assert.equal(finishStaleWorkout(draft, "2026-11-05", 2 * hour), "", "an hour past midnight"));
+  save(store, (draft) => assert.equal(finishStaleWorkout(draft, "2026-11-05", 13 * hour), "Day B"));
+  assert.deepEqual([day(store.getState()).routineIds, activeWorkout(store.getState())], [["day-b"], null]);
+});
+
+test("an exercise added for today is logged like a slot, stays out of the program, and is offered again next time", () => {
+  const stored = freshStore();
+  const { store } = stored;
+  assert.deepEqual(usualExtras(store.getState(), "day-a", DAY).map((item) => [item.exercise.name, item.count]), [["Ab-wheel rollout", 1]]);
+  refuse(stored, (draft) => addExtra(draft, "squat"), "Start the workout first.");
+  save(store, (draft) => startWorkout(draft, "day-a", DAY));
+  const id = save(store, (draft) => addExtra(draft, "ab-wheel"));
+  refuse(stored, (draft) => addExtra(draft, "ab-wheel"), "That exercise is already added today.");
+  logSets(store, id, "ab-wheel", [{ kg: "", reps: "10" }]);
+  done(store, "day-a", id);
+  const state = store.getState();
+  assert.equal(entryLog(state, DAY, id).exerciseName, "Ab-wheel rollout");
+  assert.deepEqual(usualExtras(state, "day-a", DAY), [], "already added today");
+  assert.deepEqual(usualExtras(state, "day-a", "2026-11-06").map((item) => item.count), [2]);
+  assert.deepEqual(usualExtras(state, "day-a", "2026-12-20"), [], "more than four weeks ago");
+  assert.equal(routineById(state, "day-a").entries.length, 4);
+  assert.deepEqual(exerciseHistory(state, "ab-wheel").map((item) => item.dateKey), [DAY]);
+
+  save(store, (draft) => removeExtra(draft, "day-a", id, DAY));
+  assert.equal(day(store.getState()), undefined);
 });
 
 test("Log: marking a routine ticks its Main slots, unmarking clears them, and an emptied day is removed", () => {
   const { store } = freshStore();
   save(store, (draft) => setDay(draft, DAY, ["day-b"], "Legs felt heavy"));
-  assert.deepEqual(day(store.getState()), { routineIds: ["day-b"], checkedEntryIdsByRoutine: { "day-b": ["b1", "b2"] }, note: "Legs felt heavy", logs: {} });
+  assert.deepEqual(day(store.getState()), { routineIds: ["day-b"], checkedEntryIdsByRoutine: { "day-b": ["b1", "b2"] }, note: "Legs felt heavy", logs: {}, extras: {} });
   save(store, (draft) => setDay(draft, DAY, [], ""));
   assert.equal(day(store.getState()), undefined);
   // A day with logged sets stays even with no routine and no note.

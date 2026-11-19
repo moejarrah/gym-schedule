@@ -40,12 +40,12 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 
 ## Saved data at a glance
 
-One JSON object in `localStorage` under `gymAppStateV1`. The schema version, currently 12, is set in `js/store.js`. Before every save, `stateProblem` checks that the data has the shape the screens rely on and that references point at something; it doesn't police content. Saved data the app can't read is never overwritten: the starting program opens and nothing saves until the owner imports a backup or restores the starting data.
+One JSON object in `localStorage` under `gymAppStateV1`. The schema version, currently 13, is set in `js/store.js`. Before every save, `stateProblem` checks that the data has the shape the screens rely on and that references point at something; it doesn't police content. Saved data the app can't read is never overwritten: the starting program opens and nothing saves until the owner imports a backup or restores the starting data.
 
 - `exercises`: the Library's master exercises.
 - `programs` and `routines`: a program lists its routine IDs. A routine holds its blocks and entries, and each entry its choices (master exercise plus prescription).
-- `sessions`: one per date (`YYYY-MM-DD`) with `routineIds` (completed routines), `checkedEntryIdsByRoutine` (slots marked done), `note`, and `logs` (sets logged per slot, keyed by entry ID; see `saveEntrySets` in `js/model.js`).
-- `settings`: the active program and routine, the theme, and the training rules.
+- `sessions`: one per date (`YYYY-MM-DD`) with `routineIds` (routines whose workout was finished), `checkedEntryIdsByRoutine` (slots marked done), `note`, `logs` (sets logged per slot, keyed by slot ID; see `saveEntrySets` in `js/model.js`) and `extras` (exercises added to a routine for that day only; `findSlot` treats them like slots).
+- `settings`: the active program and routine, the theme, the training rules, and `activeWorkout` (the workout in progress: routine, the day it was started, and when; or null).
 
 ## Rules
 

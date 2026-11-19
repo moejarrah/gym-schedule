@@ -12,18 +12,95 @@
   font-weight: 700;
 }
 
-/* Under the list: "Finish workout", or a line saying it's in the Log with "Not finished". */
-.workout-finish {
+/* The line above the list: when the routine was last done, or that it's in progress. */
+.workout-status {
+  margin: 0;
+  padding: var(--space-3) var(--gutter) 0;
+  color: var(--text-muted);
+  font-size: var(--fs-meta);
+}
+
+.workout-status.is-running {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* An Optional block, and "You sometimes add": a dashed outline drawn around the
+   group without moving its rows, so their numbers line up with the rest. */
+.workout-group {
+  position: relative;
+  margin-top: var(--space-3);
+  padding-bottom: var(--space-1);
+}
+
+.workout-group::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--space-2);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-card);
+  pointer-events: none;
+}
+
+.workout-group > .section-label {
+  padding-top: var(--space-3);
+}
+
+/* "You sometimes add" rows have no number box, so their text takes the list gutter. */
+.workout-group .row > span.row-body {
+  padding-left: var(--gutter);
+}
+
+/* Under the list: Start workout, or Add exercise for today and Finish workout. */
+.workout-actions {
   display: grid;
   gap: var(--space-2);
   padding: var(--space-5) var(--gutter) var(--space-4);
-  text-align: center;
 }
 
-.workout-finish p {
+.workout-actions svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* Finish summary: one group per state; tap a group to see what's in it. */
+.finish-group {
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+}
+
+.finish-group summary {
+  min-height: 52px;
+  padding: 0 var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-weight: 600;
+}
+
+.finish-group summary > span {
+  flex: 1;
+}
+
+.finish-group summary > svg {
+  width: 20px;
+  height: 20px;
+  color: var(--faint);
+  transition: transform 120ms ease;
+}
+
+.finish-group[open] summary > svg {
+  transform: rotate(180deg);
+}
+
+.finish-group > :not(summary) {
   margin: 0;
-  color: var(--text-muted);
-  font-size: var(--fs-meta);
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--line);
 }
 
 /* ---------- Program ---------- */

@@ -1,28 +1,41 @@
 // Workout screen: the active-program bar, the routine tabs (whose "select-routine"
-// action also serves the Program screen's identical strip), today's list for the
-// selected routine (a slot's number opens its logging sheet; today's sets show
-// under its name), and the exercise-choices sheet of multi-choice slots.
+// action also serves the Program screen's identical strip) and the selected
+// routine's list. A workout runs from "Start workout" to "Finish workout": while
+// it runs, a slot's number opens its logging sheet, its sets show under its name,
+// and exercises can be added for that day only. Also here: the finish summary
+// and the exercise-choices sheet of multi-choice slots.
 
 import { afterRender, registerActions, registerView, render, store } from "../context.js";
-import { $, chevronIcon, closeDialog, escapeHtml, openDialog, playIcon, plural, redraw, report } from "../dom.js";
+import { $, chevronIcon, closeDialog, escapeHtml, openDialog, playIcon, plural, redraw, report, toast } from "../dom.js";
 import {
   activeProgram,
   activeRoutine,
+  activeWorkout,
+  addExtra,
+  dayExtras,
   entryLog,
   entryNumber,
+  findSlot,
+  finishWorkout,
   isEntryChecked,
+  lastFinished,
   localDateKey,
+  orderedEntries,
   programRoutines,
   routineById,
   setActiveRoutine,
-  setRoutineFinished,
+  startWorkout,
+  usualExtras,
 } from "../model.js";
+import { openPicker } from "./entry-editor.js";
 import { openLogger } from "./logger.js";
 import { openExerciseReference, openExerciseVideo } from "./reference.js";
-import { entryPresentation, revealSelectedTab, routineTabsMarkup, saysOptional, setChipsMarkup, videoUrl } from "./shared.js";
+import { entryPresentation, revealSelectedTab, routineTabsMarkup, saysOptional, setChipsMarkup, shortDate, videoUrl } from "./shared.js";
 
 // The routine slot shown in the open choices sheet.
 const choicesSheet = { routineId: "", entryId: "" };
+
+const plusIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>`;
 
 // ---------- markup ----------
 
@@ -65,33 +78,60 @@ function emptyStateMarkup(program, routine) {
   return "";
 }
 
+// What the screen is showing for a routine: `dateKey` is the day of its workout in
+// progress ("" when it isn't running), `other` the routine of a workout in
+// progress elsewhere.
+function workoutView(state, routine) {
+  const workout = activeWorkout(state);
+  const running = workout?.routineId === routine.id;
+  return { dateKey: running ? workout.dateKey : "", other: !running && workout ? routineById(state, workout.routineId) : null };
+}
+
 // The list keeps its scroll position while the same routine is shown, so ticking
 // a slot doesn't jump; another routine starts at its first exercise.
 function pageMarkup(state) {
   const program = activeProgram(state);
   const routine = activeRoutine(state);
-  const todayKey = localDateKey();
   return `<section class="page fills">
     ${programBarMarkup(program)}
     ${routineTabsMarkup(programRoutines(state, program), routine?.id)}
     ${routine ? routineNoteMarkup(routine.note) : ""}
     ${emptyStateMarkup(program, routine)}
-    ${routine?.entries.length ? `<div class="scroll" data-keep-scroll="workout-${escapeHtml(routine.id)}">
-      ${routine.blocks.map((block) => blockMarkup(state, routine, block, todayKey)).join("")}
-      ${finishMarkup(state, routine, todayKey)}
-    </div>` : ""}
+    ${routine?.entries.length ? `<div class="scroll" data-keep-scroll="workout-${escapeHtml(routine.id)}">${listMarkup(state, routine)}</div>` : ""}
   </section>`;
 }
 
-// Under the list: finish the workout with whatever was done (it then shows in
-// Log as completed), or take that back.
-function finishMarkup(state, routine, todayKey) {
-  const finished = Boolean(state.sessions[todayKey]?.routineIds.includes(routine.id));
-  return `<div class="workout-finish">
-    ${finished
-    ? `<p>${escapeHtml(routine.name)} is in today's Log.</p><button class="button text" type="button" data-action="finish-workout" data-id="${escapeHtml(routine.id)}" data-finished="false">Not finished</button>`
-    : `<button class="button" type="button" data-action="finish-workout" data-id="${escapeHtml(routine.id)}" data-finished="true">Finish workout</button>`}
-  </div>`;
+function listMarkup(state, routine) {
+  const { dateKey, other } = workoutView(state, routine);
+  const todayKey = localDateKey();
+  const extras = dateKey ? dayExtras(state, dateKey, routine.id) : [];
+  const usual = usualExtras(state, routine.id, dateKey || todayKey);
+  const finishedToday = Boolean(state.sessions[todayKey]?.routineIds.includes(routine.id));
+  const last = lastFinished(state, routine.id, todayKey);
+  const status = dateKey
+    ? `<p class="workout-status is-running">${escapeHtml(routine.name)} in progress</p>`
+    : `<p class="workout-status">${finishedToday ? "Finished today" : last ? `Last done ${escapeHtml(shortDate(last))}` : "Not done yet"}</p>`;
+  const action = dateKey
+    ? `<button class="button text" type="button" data-action="pick-extra">${plusIcon}Add exercise for today</button>
+       <button class="button primary" type="button" data-action="review-workout">Finish workout</button>`
+    : other
+      ? `<button class="button" type="button" data-action="select-routine" data-id="${escapeHtml(other.id)}">Go to ${escapeHtml(other.name)}, in progress</button>`
+      : `<button class="button primary" type="button" data-action="start-workout" data-id="${escapeHtml(routine.id)}">${finishedToday ? "Reopen today's workout" : "Start workout"}</button>`;
+  const firstExtraNumber = orderedEntries(routine).length + 1;
+  return `${status}
+    ${routine.blocks.map((block) => blockMarkup(state, routine, block, dateKey)).join("")}
+    ${extras.length ? `<section>
+      <div class="label section-label"><span>Added today</span></div>
+      ${extras.map((extra, index) => slotMarkup(state, routine, findSlot(state, routine.id, extra.id, dateKey), firstExtraNumber + index, dateKey)).join("")}
+    </section>` : ""}
+    ${usual.length ? `<section class="workout-group">
+      <div class="label section-label"><span>You sometimes add</span></div>
+      ${usual.map(({ exercise, count }) => `<div class="row split">
+        <span class="row-body"><span class="row-main"><span class="row-line"><span class="row-title">${escapeHtml(exercise.name)}</span><span class="row-meta">${count === 1 ? "once" : `${count} times`} in 4 weeks</span></span></span></span>
+        <button class="icon-button" type="button" data-action="add-extra" data-id="${escapeHtml(exercise.id)}" aria-label="Add ${escapeHtml(exercise.name)} for today">${plusIcon}</button>
+      </div>`).join("")}
+    </section>` : ""}
+    <div class="workout-actions">${action}</div>`;
 }
 
 // Today's sets as small boxes; drops are counted rather than shown.
@@ -101,26 +141,30 @@ function loggedSetsMarkup(log) {
   return `<span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec", drops: false })}${drops ? `<span class="row-meta">+ ${drops} drop${drops === 1 ? "" : "s"}</span>` : ""}</span>`;
 }
 
-function entryMarkup(state, routine, entry, { checked, log, showOptionalRole }) {
-  const { preferred, title: name, prescription } = entryPresentation(entry, state);
+// One row: a slot of the routine, or an exercise added for the day. Outside a
+// workout (no dateKey) it shows no progress.
+function slotMarkup(state, routine, slot, number, dateKey, showOptionalRole = false) {
+  const { preferred, title: name, prescription } = entryPresentation(slot, state);
   const exerciseId = preferred.exercise.id;
-  const note = entry.note.trim();
-  const multiChoice = entry.choices.length > 1;
+  const note = slot.note.trim();
+  const multiChoice = slot.choices.length > 1;
+  const checked = Boolean(dateKey) && isEntryChecked(state, dateKey, routine.id, slot.id);
+  const log = dateKey ? entryLog(state, dateKey, slot.id) : null;
   const status = checked ? ", done" : log ? `, ${plural(log.sets.length, "set")} logged` : "";
   const videoControl = preferred.exercise.videoId
     ? `<a class="icon-button is-linked" href="${videoUrl(preferred.exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for preferred choice ${escapeHtml(preferred.name)}"><span class="play">${playIcon()}</span></a>`
     : `<button class="icon-button" type="button" data-action="open-workout-video" data-id="${escapeHtml(exerciseId)}" aria-label="Find a video for preferred choice ${escapeHtml(preferred.name)}"><span class="play">${playIcon()}</span></button>`;
 
   return `<article class="row split tap ${checked ? "is-done" : ""} ${log ? "has-sets" : ""}">
-    <button class="icon-button" type="button" data-action="open-logger" data-routine-id="${escapeHtml(routine.id)}" data-id="${escapeHtml(entry.id)}" aria-label="Log sets for ${escapeHtml(name)}${status}">
+    <button class="icon-button" type="button" data-action="open-logger" data-routine-id="${escapeHtml(routine.id)}" data-id="${escapeHtml(slot.id)}" aria-label="Log sets for ${escapeHtml(name)}${status}">
       <span class="tickbox" aria-hidden="true">
-        <span>${entryNumber(routine, entry.id)}</span>
+        <span>${number}</span>
         <svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
       </span>
     </button>
-    <button class="row-body" type="button" data-action="${multiChoice ? "open-entry-choices" : "open-workout-exercise"}" data-id="${escapeHtml(exerciseId)}" data-entry-id="${escapeHtml(entry.id)}" data-routine-id="${escapeHtml(routine.id)}" data-prescription="${escapeHtml(prescription)}" aria-label="${multiChoice ? `Open exercise choices for ${escapeHtml(name)}` : `View ${escapeHtml(name)} details`}">
+    <button class="row-body" type="button" data-action="${multiChoice ? "open-entry-choices" : "open-workout-exercise"}" data-id="${escapeHtml(exerciseId)}" data-entry-id="${escapeHtml(slot.id)}" data-routine-id="${escapeHtml(routine.id)}" data-prescription="${escapeHtml(prescription)}" aria-label="${multiChoice ? `Open exercise choices for ${escapeHtml(name)}` : `View ${escapeHtml(name)} details`}">
       <span class="row-main">
-        <span class="row-line"><span class="row-title">${escapeHtml(name)}</span><span class="row-meta">${escapeHtml(prescription)}${showOptionalRole ? `<span class="label tag">Optional</span>` : ""}</span></span>
+        <span class="row-line"><span class="row-title">${escapeHtml(name)}</span><span class="row-meta">${escapeHtml(slot.choices[0].prescription ? prescription : "")}${showOptionalRole ? `<span class="label tag">Optional</span>` : ""}</span></span>
         ${loggedSetsMarkup(log)}
         ${note ? `<span class="row-meta clamp-2 faint">${escapeHtml(note)}</span>` : ""}
       </span>
@@ -129,22 +173,18 @@ function entryMarkup(state, routine, entry, { checked, log, showOptionalRole }) 
   </article>`;
 }
 
-// A block whose entries are all Optional says so once in its label (unless its
-// name already does, as in "Optional glute block"); in a mixed block each
-// Optional entry carries its own tag.
-function blockMarkup(state, routine, block, todayKey) {
+// A block whose entries are all Optional is outlined and says so once in its
+// label (unless its name already does, as in "Optional glute block"); in a mixed
+// block each Optional entry carries its own tag.
+function blockMarkup(state, routine, block, dateKey) {
   const name = block.name.trim();
   const entries = routine.entries.filter((entry) => entry.blockId === block.id);
   if (!entries.length && !name) return "";
   const optionalOnly = entries.length > 0 && entries.every((entry) => entry.role === "optional");
   const mixedRoles = !optionalOnly && entries.some((entry) => entry.role === "optional");
-  return `<section data-block-id="${escapeHtml(block.id)}">
+  return `<section class="${optionalOnly ? "workout-group" : ""}" data-block-id="${escapeHtml(block.id)}">
     ${(name || optionalOnly) ? `<div class="label section-label"><span>${escapeHtml(name)}</span>${optionalOnly && !saysOptional(name) ? `<span>Optional</span>` : ""}</div>` : ""}
-    ${entries.map((entry) => entryMarkup(state, routine, entry, {
-      checked: isEntryChecked(state, todayKey, routine.id, entry.id),
-      log: entryLog(state, todayKey, entry.id),
-      showOptionalRole: mixedRoles && entry.role === "optional",
-    })).join("")}
+    ${entries.map((entry) => slotMarkup(state, routine, entry, entryNumber(routine, entry.id), dateKey, mixedRoles && entry.role === "optional")).join("")}
   </section>`;
 }
 
@@ -176,6 +216,38 @@ function entryChoicesMarkup(state, routine, entry) {
   </div>`;
 }
 
+// The finish summary: every slot of the workout in one of three groups, each
+// opening to show what's in it.
+function finishMarkup(state) {
+  const { routineId, dateKey } = activeWorkout(state);
+  const routine = routineById(state, routineId);
+  const slots = [...orderedEntries(routine), ...dayExtras(state, dateKey, routineId).map((extra) => findSlot(state, routineId, extra.id, dateKey))];
+  const groups = { Done: [], "Started, not marked done": [], "Not touched": [] };
+  for (const slot of slots) {
+    const log = entryLog(state, dateKey, slot.id);
+    const name = isEntryChecked(state, dateKey, routineId, slot.id) ? "Done" : log ? "Started, not marked done" : "Not touched";
+    groups[name].push({ title: entryPresentation(slot, state).title, log });
+  }
+  const groupMarkup = ([name, items]) => `<details class="finish-group">
+    <summary><span>${name}</span><strong>${items.length}</strong>${chevronIcon("down")}</summary>
+    ${items.map(({ title, log }) => `<div class="row-main">
+      <span class="row-title">${escapeHtml(log ? log.exerciseName : title)}</span>
+      ${log ? `<span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec" })}</span>` : `<span class="row-meta">${name === "Done" ? "No sets logged" : ""}</span>`}
+    </div>`).join("") || `<p class="hint">None.</p>`}
+  </details>`;
+  return `<div class="sheet-panel">
+    <header class="sheet-head">
+      <div><h2 id="finishTitle">Finish ${escapeHtml(routine.name)}?</h2><p>It goes into the Log for ${escapeHtml(shortDate(dateKey))}.</p></div>
+      <button class="icon-button" type="button" data-close-dialog="finishDialog" aria-label="Close summary">×</button>
+    </header>
+    <div class="sheet-body stack tight">${Object.entries(groups).map(groupMarkup).join("")}</div>
+    <footer class="actions">
+      <button class="button text" type="button" data-close-dialog="finishDialog">Keep going</button>
+      <button class="button primary" type="button" data-action="finish-workout">Finish</button>
+    </footer>
+  </div>`;
+}
+
 // ---------- screen ----------
 
 registerView("workout", { markup: pageMarkup, afterDraw: revealSelectedTab });
@@ -185,7 +257,16 @@ function openRowReference(button) {
   const { id, routineId, entryId, prescription } = button.dataset;
   const routine = routineById(store.getState(), routineId);
   const entry = routine.entries.find((item) => item.id === entryId);
-  openExerciseReference(id, { prescription, routineName: routine.name, routineNote: entry.note });
+  openExerciseReference(id, { prescription, routineName: routine.name, routineNote: entry?.note || "" });
+}
+
+// Logging and adding exercises need a workout in progress on the routine shown.
+function runningWorkout() {
+  const state = store.getState();
+  const workout = activeWorkout(state);
+  if (workout?.routineId === activeRoutine(state)?.id) return workout;
+  toast("Start the workout first.");
+  return null;
 }
 
 registerActions({
@@ -193,12 +274,31 @@ registerActions({
     const result = store.update((draft) => setActiveRoutine(draft, button.dataset.id));
     if (report(result)) render();
   },
-  "finish-workout": (button) => {
-    const finished = button.dataset.finished === "true";
-    const result = store.update((draft) => setRoutineFinished(draft, button.dataset.id, finished));
+  "start-workout": (button) => {
+    const result = store.update((draft) => startWorkout(draft, button.dataset.id));
     if (report(result)) render();
   },
-  "open-logger": (button) => openLogger(button.dataset.routineId, button.dataset.id),
+  "review-workout": () => {
+    redraw("#finishContent", finishMarkup(store.getState()));
+    openDialog("#finishDialog");
+  },
+  "finish-workout": () => {
+    if (!report(store.update(finishWorkout), "Workout saved to the Log.")) return;
+    closeDialog("#finishDialog");
+    render();
+  },
+  "pick-extra": () => {
+    if (runningWorkout()) openPicker({ mode: "extra" });
+  },
+  "add-extra": (button) => {
+    if (!runningWorkout()) return;
+    const result = store.update((draft) => addExtra(draft, button.dataset.id));
+    if (report(result)) render();
+  },
+  "open-logger": (button) => {
+    const workout = runningWorkout();
+    if (workout) openLogger(button.dataset.routineId, button.dataset.id, workout.dateKey);
+  },
   "open-entry-choices": openEntryChoices,
   "open-workout-exercise": openRowReference,
   "open-workout-video": (button) => openExerciseVideo(button.dataset.id),

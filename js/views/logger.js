@@ -5,14 +5,16 @@
 // straight away; empty fields take the grey suggestion from last time.
 
 import { registerActions, render, store } from "../context.js";
-import { $, closeDialog, escapeHtml, openDialog, redraw, report, showError } from "../dom.js";
+import { $, closeDialog, confirmAction, escapeHtml, openDialog, redraw, report, showError } from "../dom.js";
 import {
   entryLog,
   exerciseHistory,
+  findSlot,
   isEntryChecked,
   isTimedPrescription,
   localDateKey,
   plannedSetCount,
+  removeExtra,
   routineById,
   saveEntrySets,
   setEntryChecked,
@@ -34,8 +36,8 @@ const removeIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 7l10
 
 function current(state) {
   const routine = routineById(state, sheet.routineId);
-  const entry = routine?.entries.find((item) => item.id === sheet.entryId);
-  if (!entry) return null;
+  const entry = findSlot(state, sheet.routineId, sheet.entryId, sheet.dateKey);
+  if (!routine || !entry) return null;
   const choice = entry.choices[Math.min(sheet.choiceIndex, entry.choices.length - 1)];
   return { routine, entry, choice, timed: isTimedPrescription(choice.prescription) };
 }
@@ -188,7 +190,7 @@ function sheetMarkup(state) {
   const done = isEntryChecked(state, sheet.dateKey, routine.id, entry.id);
   return `<div class="sheet-panel">
     <header class="sheet-head">
-      <div><h2 id="logTitle">${escapeHtml(name)}</h2><p>${escapeHtml(choice.prescription)}</p></div>
+      <div><h2 id="logTitle">${escapeHtml(name)}</h2><p>${escapeHtml([choice.prescription, entry.extra ? "Added for this day" : "", sheet.dateKey === localDateKey() ? "" : shortDate(sheet.dateKey)].filter(Boolean).join(" · "))}</p></div>
       <button class="icon-button" type="button" data-close-dialog="logDialog" aria-label="Close">×</button>
     </header>
     <div class="sheet-body stack tight" data-keep-scroll="log-${escapeHtml(entry.id)}">
@@ -198,7 +200,8 @@ function sheetMarkup(state) {
       <p class="form-error" role="alert" aria-live="polite" data-dialog-error></p>
     </div>
     <footer class="actions">
-      ${done ? `<button class="button text" type="button" data-action="log-undo-done">Not done</button>` : ""}
+      ${done ? `<button class="button text" type="button" data-action="log-undo-done">Not done</button>`
+    : entry.extra ? `<button class="button text" type="button" data-action="log-remove-extra">Remove</button>` : ""}
       <button class="button primary" type="button" data-action="log-done">${done ? "Close" : "Done"}</button>
     </footer>
   </div>`;
@@ -284,8 +287,8 @@ function choose(index) {
 }
 
 // Done (or Close once the slot is done) also saves rows that were typed in but not
-// ticked, then marks the slot done.
-function finish() {
+// ticked, then marks the slot done. Done with no sets at all asks first.
+async function finish() {
   const typedIn = (row) => row.edited && (row.kg.trim() || row.reps.trim());
   const typed = [];
   sheet.rows.forEach((row, setIndex) => {
@@ -306,6 +309,17 @@ function finish() {
     }
   }
   if (!isEntryChecked(store.getState(), sheet.dateKey, sheet.routineId, sheet.entryId)) {
+    if (!sheet.rows.some((row) => row.done)) {
+      const name = entryPresentation({ choices: [current(store.getState()).choice] }, store.getState()).title;
+      const anyway = await confirmAction({
+        title: "No sets logged",
+        message: `Mark ${name} done anyway? It won't appear in its history.`,
+        confirmLabel: "Mark done anyway",
+        cancelLabel: "Log sets",
+        danger: false,
+      });
+      if (!anyway) return;
+    }
     const result = store.update((draft) => setEntryChecked(draft, sheet.routineId, sheet.entryId, true, sheet.dateKey));
     if (!report(result)) return;
   }
@@ -322,9 +336,11 @@ function undoDone() {
 
 // ---------- opening ----------
 
-export function openLogger(routineId, entryId) {
+// Opens the sheet for a slot (or an exercise added that day) on a date: the day of
+// the workout in progress, or a past day opened from Log to fix its sets.
+export function openLogger(routineId, entryId, dateKey) {
   const state = store.getState();
-  Object.assign(sheet, { routineId, entryId, dateKey: localDateKey(), choiceIndex: 0 });
+  Object.assign(sheet, { routineId, entryId, dateKey, choiceIndex: 0 });
   const found = current(state);
   if (!found) return;
   const log = entryLog(state, sheet.dateKey, entryId);
@@ -347,6 +363,12 @@ registerActions({
   "log-history": () => openExerciseHistory(current(store.getState()).choice.exerciseId),
   "log-done": finish,
   "log-undo-done": undoDone,
+  "log-remove-extra": () => {
+    const result = store.update((draft) => removeExtra(draft, sheet.routineId, sheet.entryId, sheet.dateKey));
+    if (!report(result)) return;
+    closeDialog("#logDialog");
+    render();
+  },
 });
 
 {

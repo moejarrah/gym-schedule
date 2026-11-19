@@ -5,7 +5,7 @@
 
 import { registerActions, render, store } from "../context.js";
 import { $, chevronIcon, clearError, closeDialog, confirmAction, escapeHtml, openDialog, plural, report, segmentValue, setSegment, showError } from "../dom.js";
-import { activeRoutine, addEntry, entryNumber, exerciseById, moveEntryInBlock, removeEntry, routineById, updateEntry } from "../model.js";
+import { activeRoutine, activeWorkout, addEntry, addExtra, dayExtras, entryNumber, exerciseById, moveEntryInBlock, removeEntry, routineById, updateEntry } from "../model.js";
 import { searchExercises } from "../search.js";
 import { label } from "../vocab.js";
 import { entryPresentation } from "./shared.js";
@@ -13,7 +13,8 @@ import { entryPresentation } from "./shared.js";
 // The entry being edited. Its choices are a draft until Save; choiceIndex is the
 // choice open in the choice editor.
 const entryEditor = { routineId: "", entryId: "", choices: [], choiceIndex: -1 };
-// What the picker adds: a new Main entry to blockId ("entry") or a choice to the entry draft ("choice").
+// What the picker adds: a new Main entry to blockId ("entry"), a choice to the entry
+// draft ("choice"), or an exercise to the workout in progress, for that day only ("extra").
 const picker = { mode: "entry", blockId: "" };
 
 // ---------- markup ----------
@@ -27,8 +28,8 @@ function pickerListMarkup(exercises, existingExerciseIds, mode) {
     const prescription = exercise.defaultPrescription || "No default prescription";
     const details = [prescription, label(exercise.primaryTargets[0]), label(exercise.movementPattern)].filter(Boolean).join(" · ");
     const exists = existingExerciseIds.has(exercise.id);
-    const unavailable = mode === "choice" && exists;
-    return `<button class="row tall" type="button" data-action="pick-exercise" data-id="${escapeHtml(exercise.id)}" aria-label="${unavailable ? `${escapeHtml(exercise.name)} is already a choice` : `${exists ? "Add another" : "Add"} ${escapeHtml(exercise.name)} to this routine`}" ${unavailable ? "disabled" : ""}>
+    const unavailable = mode !== "entry" && exists;
+    return `<button class="row tall" type="button" data-action="pick-exercise" data-id="${escapeHtml(exercise.id)}" aria-label="${unavailable ? `${escapeHtml(exercise.name)} is already added` : `${exists ? "Add another" : "Add"} ${escapeHtml(exercise.name)}${mode === "extra" ? " for today" : " to this routine"}`}" ${unavailable ? "disabled" : ""}>
       <span class="row-main"><strong class="row-title truncate">${escapeHtml(exercise.name)}</strong><small class="row-meta truncate">${escapeHtml(details)}</small></span>
       <span class="row-action">${unavailable ? "Added" : exists ? "Add again" : "Add"}</span>
     </button>`;
@@ -209,9 +210,12 @@ function saveChoice() {
 
 function renderPickerList() {
   const state = store.getState();
+  const workout = activeWorkout(state);
   const used = picker.mode === "choice"
     ? entryEditor.choices
-    : activeRoutine(state).entries.flatMap((entry) => entry.choices);
+    : picker.mode === "extra"
+      ? dayExtras(state, workout.dateKey, workout.routineId)
+      : activeRoutine(state).entries.flatMap((entry) => entry.choices);
   const exercises = searchExercises(state.exercises, $("#pickerSearch").value);
   $("#pickerResultCount").textContent = plural(exercises.length, "exercise");
   $("#pickerList").innerHTML = pickerListMarkup(exercises, new Set(used.map((choice) => choice.exerciseId)), picker.mode);
@@ -223,7 +227,9 @@ export function openPicker({ blockId = "", mode }) {
   const block = routine.blocks.find((item) => item.id === blockId);
   $("#pickerRoutineContext").textContent = mode === "choice"
     ? `${routine.name} entry · add choice from Library`
-    : `${routine.name} · ${block.name.trim() || "Untitled block"} · Library`;
+    : mode === "extra"
+      ? `${routine.name} · today only · Library`
+      : `${routine.name} · ${block.name.trim() || "Untitled block"} · Library`;
   $("#pickerSearch").value = "";
   $("#pickerFormError").textContent = "";
   renderPickerList();
@@ -237,6 +243,13 @@ function pickExercise(exerciseId) {
     entryEditor.choices.push({ exerciseId, prescription: exercise.defaultPrescription });
     renderChoiceDraft();
     closeDialog("#pickerDialog");
+    return;
+  }
+  if (picker.mode === "extra") {
+    if (report(store.update((draft) => addExtra(draft, exerciseId)))) {
+      closeDialog("#pickerDialog");
+      render();
+    }
     return;
   }
   if (!exercise.defaultPrescription.trim()) {
