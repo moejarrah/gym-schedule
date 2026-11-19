@@ -885,10 +885,21 @@ textarea.control {
   animation: pop-in 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* A sheet pulled down by hand (enablePullDown in js/dom.js) carries on to the bottom. */
+.sheet[data-closing][style*="translateY"] {
+  animation-name: sheet-off;
+}
+
 @keyframes sheet-out {
   to {
     opacity: 0;
     transform: translateY(24px);
+  }
+}
+
+@keyframes sheet-off {
+  to {
+    transform: translateY(100%);
   }
 }
 

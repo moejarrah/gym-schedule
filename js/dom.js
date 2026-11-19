@@ -149,6 +149,7 @@ export function initDialogs() {
       closeHandlers.delete(dialog);
       onClose?.(dialog.returnValue);
     });
+    if (dialog.classList.contains("sheet")) enablePullDown(dialog);
     // Only read-only sheets close when the dimmed backdrop is tapped; editors keep their drafts.
     if (dialog.hasAttribute("data-dismissable")) {
       dialog.addEventListener("click", (event) => {
@@ -156,6 +157,65 @@ export function initDialogs() {
       });
     }
   }
+}
+
+// A sheet can be pulled down to close it, like the × in its corner. The pull
+// starts on the sheet's top (handle and title), or anywhere once its content is
+// scrolled to the top; a short or slow pull springs back.
+function enablePullDown(dialog) {
+  let pull = null;
+  const release = () => {
+    dialog.style.transition = "transform 160ms ease";
+    dialog.style.transform = "";
+    setTimeout(() => { dialog.style.transition = ""; }, 170);
+  };
+  dialog.addEventListener("touchstart", (event) => {
+    pull = null;
+    const { target } = event;
+    if (event.touches.length !== 1 || "closing" in dialog.dataset || target.closest("input, textarea, select, .drag-row")) return;
+    const scroller = target.closest(".sheet-body, .scroll-x") || dialog;
+    if (target.closest(".scroll-x") || scroller.scrollTop > 0 || dialog.scrollTop > 0) return;
+    pull = { x: event.touches[0].clientX, y: event.touches[0].clientY, time: event.timeStamp, distance: 0, active: false };
+  }, { passive: true });
+  dialog.addEventListener("touchmove", (event) => {
+    if (!pull) return;
+    const dx = event.touches[0].clientX - pull.x;
+    const dy = event.touches[0].clientY - pull.y;
+    if (!pull.active) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      // Sideways or upwards: it's a scroll or a swipe on something else.
+      if (dy <= 0 || Math.abs(dx) > Math.abs(dy) || document.body.classList.contains("drag-active")) {
+        pull = null;
+        return;
+      }
+      pull.active = true;
+      dialog.style.transition = "none";
+    }
+    event.preventDefault();
+    pull.distance = Math.max(0, dy);
+    dialog.style.transform = `translateY(${pull.distance}px)`;
+  }, { passive: false });
+  const end = (event) => {
+    if (!pull?.active) {
+      pull = null;
+      return;
+    }
+    const fast = pull.distance / Math.max(1, event.timeStamp - pull.time) > 0.6;
+    const far = pull.distance > Math.min(160, dialog.offsetHeight / 3);
+    pull = null;
+    if (event.type === "touchend" && (far || fast)) {
+      dialog.style.transition = "";
+      closeDialog(dialog, "cancel");
+    } else {
+      release();
+    }
+  };
+  dialog.addEventListener("touchend", end);
+  dialog.addEventListener("touchcancel", end);
+  dialog.addEventListener("close", () => {
+    dialog.style.transform = "";
+    dialog.style.transition = "";
+  });
 }
 
 // ---------- segmented controls ----------

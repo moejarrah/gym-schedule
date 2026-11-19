@@ -112,6 +112,7 @@ Program
 
 How the app looks (colours, type, shapes, components) is in `docs/DESIGN.md`.
 
+- A sheet closes with its ×, or by pulling it down from its top (or from anywhere once its content is scrolled to the top). Pulling down does what × does.
 - Current workout and the next useful action first; one-handed use on a narrow screen. Lean: nothing on screen that doesn't help during a workout.
 - History is preserved and predictable; editing and recovery are easy to trust. Editors keep their drafts until you save or close them (tapping outside doesn't discard them; Enter saves).
 - Comfortable tap targets, readable contrast and type, cues that don't rely on color alone, reduced-motion support, basic keyboard and screen-reader semantics.
