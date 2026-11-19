@@ -261,6 +261,19 @@ export function finishWorkout(state) {
   state.settings.activeWorkout = null;
 }
 
+// Cancel: the workout never happened. Its sets, done marks and added exercises go.
+export function cancelWorkout(state) {
+  const workout = state.settings.activeWorkout;
+  if (!workout) return;
+  const { routineId, dateKey } = workout;
+  const session = sessionFor(state, dateKey);
+  delete session.checkedEntryIdsByRoutine[routineId];
+  delete session.extras[routineId];
+  for (const [slotId, log] of Object.entries(session.logs)) if (log.routineId === routineId) delete session.logs[slotId];
+  writeSession(state, dateKey, session);
+  state.settings.activeWorkout = null;
+}
+
 // A workout left open from an earlier day (and started over 12 hours ago, so a
 // session running past midnight isn't cut off) is finished as it stands.
 // Returns the routine's name when it did that.

@@ -12,17 +12,41 @@
   font-weight: 700;
 }
 
-/* The line above the list: when the routine was last done, or that it's in progress. */
-.workout-status {
+/* Above the list: when the routine was last done with Start workout, or, while
+   it runs, its name, the stopwatch and Cancel. */
+.workout-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--gutter) var(--space-1);
+}
+
+.workout-top p {
+  min-width: 0;
   margin: 0;
-  padding: var(--space-3) var(--gutter) 0;
+  flex: 1;
   color: var(--text-muted);
   font-size: var(--fs-meta);
 }
 
-.workout-status.is-running {
+.workout-top.is-running p {
+  display: grid;
+  gap: 2px;
+}
+
+.workout-top.is-running strong {
   color: var(--accent);
-  font-weight: 600;
+}
+
+.workout-top [data-elapsed] {
+  color: var(--text);
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.workout-top .button {
+  min-height: var(--tap);
+  flex: none;
 }
 
 /* An Optional block, and "You sometimes add": a dashed outline drawn around the

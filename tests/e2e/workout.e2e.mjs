@@ -47,8 +47,14 @@ appTest("Logging: a tick takes last time's set, typed sets and a drop are saved,
   // Nothing is logged before the workout is started.
   await numberOf(page, "Bench press").click();
   await expect(page.getByText("Start the workout first.")).toBeVisible();
+  // Start, then Cancel (after a confirmation) leaves nothing behind.
   await start(page);
   await expect(main(page)).toContainText("Day A in progress");
+  await expect(main(page)).toContainText("0 min");
+  await main(page).getByRole("button", { name: "Cancel", exact: true }).click();
+  await dialog(page, "Cancel Day A?").getByRole("button", { name: "Cancel workout" }).click();
+  assert.equal((await readState(page)).settings.activeWorkout, null);
+  await start(page);
   await numberOf(page, "Bench press").click();
   const sheet = logSheet(page);
   await expect(sheet.getByRole("heading", { name: "Bench press" })).toBeVisible();

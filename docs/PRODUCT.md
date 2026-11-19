@@ -35,7 +35,7 @@ Program
 
 ## Completion rules
 
-- A **workout** runs from "Start workout" to "Finish workout" on Workout, one at a time. Until it's started, the routine's list is read-only and shows no progress; tapping a number says to start first. The workout belongs to the day it was started on, even past midnight.
+- A **workout** runs from "Start workout" to "Finish workout" on Workout, one at a time. Until it's started, the routine's list is read-only and shows no progress; tapping a number says to start first. The workout belongs to the day it was started on, even past midnight. Start is above the list. While the workout runs, the top shows a stopwatch in whole minutes since Start, and Cancel, which after a confirmation deletes everything logged in that workout (sets, done marks, added exercises).
 - A slot is done only when Done is tapped in its logging sheet (logging sets alone doesn't mark it done). Done with no sets logged asks first ("Mark done anyway" or "Log sets"). "Not done" undoes it and closes the sheet.
 - A routine is completed for a day when its workout is finished, with whatever was done: finishing shows a summary (Done, Started but not marked done, Not touched; each opens to list its exercises and sets), then files it in Log. Doing slots never completes a routine by itself, and Main or Optional makes no difference to finishing. Starting the same routine again that day reopens the workout. A workout left open from an earlier day (and started more than 12 hours ago) is filed as it stands the next time the app is opened, with a message.
 - A multi-choice entry is one slot: done applies to the slot, and its logged sets record which choice was done.

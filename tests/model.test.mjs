@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import {
   activeWorkout,
   addExtra,
+  cancelWorkout,
   duplicateProgram,
   entryLog,
   exerciseById,
@@ -89,6 +90,16 @@ test("an exercise added for today is logged like a slot, stays out of the progra
 
   save(store, (draft) => removeExtra(draft, "day-a", id, DAY));
   assert.equal(day(store.getState()), undefined);
+
+  // Cancel deletes what the workout logged and nothing else.
+  logSets(store, "a2", "bench-press", [{ kg: "60", reps: "8" }]);
+  done(store, "day-a", "a2");
+  save(store, (draft) => addExtra(draft, "squat"));
+  save(store, (draft) => setDay(draft, DAY, [], "Shoulder sore"));
+  save(store, cancelWorkout);
+  const after = store.getState();
+  assert.deepEqual([day(after), activeWorkout(after)], [{ routineIds: [], checkedEntryIdsByRoutine: {}, note: "Shoulder sore", logs: {}, extras: {} }, null]);
+  assert.deepEqual(Object.keys(day(after, PAST_DAY).logs), ["a2", "a4"]);
 });
 
 test("Log: marking a routine ticks its Main slots, unmarking clears them, and an emptied day is removed", () => {

@@ -6,12 +6,13 @@
 // and the exercise-choices sheet of multi-choice slots.
 
 import { afterRender, registerActions, registerView, render, store } from "../context.js";
-import { $, chevronIcon, closeDialog, escapeHtml, openDialog, playIcon, plural, redraw, report, toast } from "../dom.js";
+import { $, chevronIcon, closeDialog, confirmAction, escapeHtml, openDialog, playIcon, plural, redraw, report, toast } from "../dom.js";
 import {
   activeProgram,
   activeRoutine,
   activeWorkout,
   addExtra,
+  cancelWorkout,
   dayExtras,
   entryLog,
   entryNumber,
@@ -108,17 +109,26 @@ function listMarkup(state, routine) {
   const usual = usualExtras(state, routine.id, dateKey || todayKey);
   const finishedToday = Boolean(state.sessions[todayKey]?.routineIds.includes(routine.id));
   const last = lastFinished(state, routine.id, todayKey);
-  const status = dateKey
-    ? `<p class="workout-status is-running">${escapeHtml(routine.name)} in progress</p>`
-    : `<p class="workout-status">${finishedToday ? "Finished today" : last ? `Last done ${escapeHtml(shortDate(last))}` : "Not done yet"}</p>`;
+  // At the top: Start, or while it runs the stopwatch and Cancel.
+  const top = dateKey
+    ? `<div class="workout-top is-running">
+        <p><strong>${escapeHtml(routine.name)} in progress</strong><span data-elapsed>${elapsedText(activeWorkout(state).startedAt)}</span></p>
+        <button class="button text" type="button" data-action="cancel-workout">Cancel</button>
+      </div>`
+    : `<div class="workout-top">
+        <p>${finishedToday ? "Finished today" : last ? `Last done ${escapeHtml(shortDate(last))}` : "Not done yet"}</p>
+        ${other
+    ? `<button class="button" type="button" data-action="select-routine" data-id="${escapeHtml(other.id)}">Go to ${escapeHtml(other.name)}, in progress</button>`
+    : `<button class="button primary" type="button" data-action="start-workout" data-id="${escapeHtml(routine.id)}">${finishedToday ? "Reopen today's workout" : "Start workout"}</button>`}
+      </div>`;
   const action = dateKey
-    ? `<button class="button text" type="button" data-action="pick-extra">${plusIcon}Add exercise for today</button>
-       <button class="button primary" type="button" data-action="review-workout">Finish workout</button>`
-    : other
-      ? `<button class="button" type="button" data-action="select-routine" data-id="${escapeHtml(other.id)}">Go to ${escapeHtml(other.name)}, in progress</button>`
-      : `<button class="button primary" type="button" data-action="start-workout" data-id="${escapeHtml(routine.id)}">${finishedToday ? "Reopen today's workout" : "Start workout"}</button>`;
+    ? `<div class="workout-actions">
+        <button class="button text" type="button" data-action="pick-extra">${plusIcon}Add exercise for today</button>
+        <button class="button primary" type="button" data-action="review-workout">Finish workout</button>
+      </div>`
+    : "";
   const firstExtraNumber = orderedEntries(routine).length + 1;
-  return `${status}
+  return `${top}
     ${routine.blocks.map((block) => blockMarkup(state, routine, block, dateKey)).join("")}
     ${extras.length ? `<section>
       <div class="label section-label"><span>Added today</span></div>
@@ -131,8 +141,20 @@ function listMarkup(state, routine) {
         <button class="icon-button" type="button" data-action="add-extra" data-id="${escapeHtml(exercise.id)}" aria-label="Add ${escapeHtml(exercise.name)} for today">${plusIcon}</button>
       </div>`).join("")}
     </section>` : ""}
-    <div class="workout-actions">${action}</div>`;
+    ${action}`;
 }
+
+// The stopwatch: whole minutes since Start ("34 min", "1 h 05 min").
+function elapsedText(startedAt) {
+  const minutes = Math.max(0, Math.floor((Date.now() - startedAt) / 60000));
+  return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")} min`;
+}
+
+setInterval(() => {
+  const workout = activeWorkout(store.getState());
+  const label = $("[data-elapsed]");
+  if (workout && label) label.textContent = elapsedText(workout.startedAt);
+}, 10000);
 
 // Today's sets as small boxes; drops are counted rather than shown.
 function loggedSetsMarkup(log) {
@@ -277,6 +299,16 @@ registerActions({
   "start-workout": (button) => {
     const result = store.update((draft) => startWorkout(draft, button.dataset.id));
     if (report(result)) render();
+  },
+  "cancel-workout": async () => {
+    const { routineId } = activeWorkout(store.getState());
+    const confirmed = await confirmAction({
+      title: `Cancel ${routineById(store.getState(), routineId).name}?`,
+      message: "Everything logged in this workout is deleted: its sets, done marks and added exercises. This can't be undone.",
+      confirmLabel: "Cancel workout",
+      cancelLabel: "Keep going",
+    });
+    if (confirmed && report(store.update(cancelWorkout), "Workout cancelled.")) render();
   },
   "review-workout": () => {
     redraw("#finishContent", finishMarkup(store.getState()));
