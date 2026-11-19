@@ -54,11 +54,21 @@ test("a workout runs from Start to Finish; finishing files the routine in that d
   done(store, "day-a", "a3");
   done(store, "day-a", "a3", false);
   assert.deepEqual(day(store.getState()), { routineIds: [], checkedEntryIdsByRoutine: { "day-a": ["a2"] }, note: "", logs: {}, extras: {}, workouts: {} }, "doing slots doesn't complete anything");
-  save(store, finishWorkout);
+  save(store, (draft) => finishWorkout(draft, { now: 61000 }));
   assert.deepEqual([day(store.getState()).routineIds, activeWorkout(store.getState())], [["day-a"], null]);
-  // Starting it again the same day reopens it.
+  assert.deepEqual(day(store.getState()).workouts, { "day-a": { name: "Day A", program: "Sample program", minutes: 1 } });
+  // Starting it again the same day reopens it; closing it again deletes nothing and keeps its duration.
   save(store, (draft) => startWorkout(draft, "day-a", DAY));
   assert.deepEqual([day(store.getState()).routineIds, isEntryChecked(store.getState(), DAY, "day-a", "a2")], [[], true]);
+  save(store, cancelWorkout);
+  assert.deepEqual([day(store.getState()).routineIds, day(store.getState()).workouts["day-a"].minutes, isEntryChecked(store.getState(), DAY, "day-a", "a2")], [["day-a"], 1, true]);
+
+  // While a workout runs, Log can't tick or untick its routine, and the routine can't be deleted.
+  save(store, (draft) => startWorkout(draft, "day-b", DAY));
+  done(store, "day-b", "b1");
+  save(store, (draft) => setDay(draft, DAY, ["day-a", "day-b"], ""));
+  assert.deepEqual([day(store.getState()).routineIds, day(store.getState()).checkedEntryIdsByRoutine["day-b"]], [["day-a"], ["b1"]]);
+  refuse(stored, (draft) => removeRoutine(draft, "day-b"), "Finish or cancel the workout in progress first.");
 });
 
 test("a workout left open is filed the next day, but not while it's still running past midnight", () => {
@@ -163,8 +173,10 @@ test("exercise history comes from any routine, newest first, and can leave out t
 test("swapping a slot's exercise keeps the sets already logged today in the old exercise's history", () => {
   const { store } = freshStore();
   logSets(store, "a2", "bench-press", [{ kg: "60", reps: "10" }]);
+  done(store, "day-a", "a2");
   save(store, (draft) => updateEntry(draft, "day-a", "a2", { choices: [{ exerciseId: "squat", prescription: "3 × 5" }] }));
   assert.equal(entryLog(store.getState(), DAY, "a2"), null, "the slot starts empty");
+  assert.equal(isEntryChecked(store.getState(), DAY, "day-a", "a2"), false, "and not done");
   logSets(store, "a2", "squat", [{ kg: "100", reps: "5" }]);
   const state = store.getState();
   assert.equal(entryLog(state, DAY, "a2").exerciseId, "squat");

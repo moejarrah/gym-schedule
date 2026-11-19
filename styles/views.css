@@ -638,6 +638,25 @@ a > svg {
   color: var(--rehab);
 }
 
+/* A ticked set that beats every earlier session: "Best" under last time's value. */
+.log-last-cell.is-best {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.log-last-cell.is-best .log-last {
+  min-height: 0;
+}
+
+/* What beats last time, under "Last 3 times". */
+.log-target {
+  margin: var(--space-2) 0 0;
+  color: var(--accent);
+  font-size: var(--fs-meta);
+  font-weight: 600;
+}
+
 /* Under the sets: add a set, and step the weight of the sets not ticked yet. */
 .log-tools,
 .log-steps {

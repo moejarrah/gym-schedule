@@ -30,7 +30,7 @@ appTest("Log: a routine and a note marked on a date show in Recent and are kept"
   await main(page).getByRole("button", { name: "Tuesday, November 3, 2026", exact: true }).click();
   const day = dialog(page, "Tuesday, November 3");
   const completed = (routine) => day.getByRole("checkbox", { name: new RegExp(`^${routine}\\b`) });
-  await day.getByText("Day B", { exact: true }).click();
+  await day.getByText("Day B", { exact: true }).first().click();
   await expect(completed("Day B")).toBeChecked();
   await day.getByRole("textbox", { name: "Note" }).fill("Easy day");
   await day.getByRole("button", { name: "Save day" }).click();

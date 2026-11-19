@@ -143,6 +143,10 @@ appTest("A workout: Done and Not done on slots, an exercise added for today, and
   await summary.getByText("Started, not marked done").click();
   await expect(summary).toContainText("Push-up");
   await summary.getByRole("button", { name: "Finish", exact: true }).click();
+  // The result: what was done, against last time.
+  const result = dialog(page, "Day A finished");
+  await expect(result).toContainText("Push-up");
+  await result.getByRole("button", { name: "Close", exact: true }).click();
   const saved = await readState(page);
   assert.deepEqual([saved.sessions[TODAY].routineIds, saved.sessions[TODAY].checkedEntryIdsByRoutine, saved.settings.activeWorkout], [["day-a"], { "day-a": ["a2"] }, null]);
   await expect(main(page)).toContainText("Finished today");

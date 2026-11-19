@@ -20,6 +20,7 @@ import {
   workoutName,
   setEntryChecked,
 } from "../model.js";
+import { exerciseMode, isNewBest, targetHint } from "../progress.js";
 import { openExerciseHistory } from "./history.js";
 import { entryPresentation, formatKg, liftText, setChipsMarkup, shortDate } from "./shared.js";
 
@@ -122,7 +123,7 @@ function saveRows() {
 
 // ---------- markup ----------
 
-function historyMarkup(state, history) {
+function historyMarkup(state, history, hint) {
   const rows = history.map((item) => {
     return `<div class="log-history-row">
       <span class="row-main log-history-date"><strong class="row-title truncate">${escapeHtml(shortDate(item.dateKey))}</strong><small class="row-meta truncate">${escapeHtml(workoutName(state, item.dateKey, item.routineId))}</small></span>
@@ -135,6 +136,7 @@ function historyMarkup(state, history) {
       <button class="link-button" type="button" data-action="log-history">All history</button>
     </div>
     ${rows || `<p class="hint">No sets logged for this exercise yet.</p>`}
+    ${hint ? `<p class="log-target">${escapeHtml(hint)}</p>` : ""}
   </section>`;
 }
 
@@ -149,7 +151,9 @@ function rowMarkup({ setIndex, dropIndex, row, last, timed }) {
   const lastValue = lastLift
     ? `<button class="log-last" type="button" data-action="log-use-last" ${data} aria-label="${escapeHtml(shown)}, copy last time to ${name}">${escapeHtml(shown)}</button>`
     : `<span class="log-last is-empty" aria-hidden="true">—</span>`;
-  const lastCell = isDrop ? `<span class="log-last-cell"><span class="label accent">Drop</span>${lastValue}</span>` : lastValue;
+  const best = !isDrop && isSaved(setIndex, -1) && !row.warmup && isNewBest(store.getState(), current(store.getState()).choice.exerciseId, { kg: row.kg === "" ? null : Number(row.kg), reps: Number(row.reps), drops: [] }, sheet.dateKey);
+  const lastCell = isDrop ? `<span class="log-last-cell"><span class="label accent">Drop</span>${lastValue}</span>`
+    : best ? `<span class="log-last-cell is-best">${lastValue}<span class="label accent">Best</span></span>` : lastValue;
   // A drop row's first cell removes it; a set row's shows its number.
   const firstCell = isDrop
     ? `<button class="icon-button sm" type="button" data-action="log-remove-drop" ${data} aria-label="Remove ${name}">${removeIcon}</button>`
@@ -208,9 +212,9 @@ function sheetMarkup(state) {
     </header>
     <div class="sheet-body stack tight" data-keep-scroll="log-${escapeHtml(entry.id)}">
       ${choicesMarkup(entry, state)}
-      ${historyMarkup(state, history)}
+      ${historyMarkup(state, history, history[0] ? targetHint(history[0].sets, choice.prescription, exerciseMode(history), timed ? "sec" : "reps") : "")}
       ${tableMarkup(history[0], timed)}
-      <label class="field"><span>Note for this exercise today</span><input type="text" data-log-note value="${escapeHtml(sheet.note)}" maxlength="140" autocomplete="off" enterkeyhint="done" placeholder="Shown next time, e.g. seat at 4"></label>
+      ${sheet.rows.some((row) => row.done) ? `<label class="field"><span>Note for this exercise today</span><input class="control" type="text" data-log-note value="${escapeHtml(sheet.note)}" maxlength="140" autocomplete="off" enterkeyhint="done" placeholder="Shown next time, e.g. seat at 4"></label>` : ""}
       <p class="form-error" role="alert" aria-live="polite" data-dialog-error></p>
     </div>
     <footer class="actions">
@@ -232,6 +236,10 @@ function tick(setIndex, dropIndex) {
   const row = rowAt(setIndex, dropIndex);
   if (dropIndex >= 0 && !sheet.rows[setIndex].done) {
     showError("Tick the set before its drops.");
+    return;
+  }
+  if (row.done && row.edited) {
+    if (saveRows()) refresh();
     return;
   }
   const before = structuredClone(row);
@@ -283,8 +291,9 @@ function stepWeights(by) {
   const last = lastSession(store.getState());
   sheet.rows.forEach((row, setIndex) => {
     if (row.done) return;
-    const base = Number(String(row.kg || suggestion(last, setIndex).kg).replace(",", "."));
-    if (Number.isFinite(base)) row.kg = formatKg(Math.max(0, Math.round((base + by) * 100) / 100));
+    const shown = row.kg || suggestion(last, setIndex).kg;
+    const base = Number(String(shown).replace(",", "."));
+    if (shown && Number.isFinite(base)) row.kg = formatKg(Math.max(0, Math.round((base + by) * 100) / 100));
   });
   refresh();
 }
@@ -305,9 +314,21 @@ function useLast(setIndex, dropIndex) {
 
 // Switching to another choice moves today's sets to that exercise. With nothing
 // ticked yet, the rows follow the new choice's prescription.
-function choose(index) {
+async function choose(index) {
   if (index === sheet.choiceIndex) return;
   const previous = sheet.choiceIndex;
+  if (sheet.rows.some((row) => row.done)) {
+    const { entry } = current(store.getState());
+    const name = entryPresentation({ choices: [entry.choices[index]] }, store.getState()).title;
+    const move = await confirmAction({
+      title: `Switch to ${name}?`,
+      message: "The sets ticked here move to it: they were logged as the other exercise.",
+      confirmLabel: "Move the sets",
+      cancelLabel: "Keep as it is",
+      danger: false,
+    });
+    if (!move) return;
+  }
   sheet.choiceIndex = index;
   const planned = plannedSetCount(current(store.getState()).choice.prescription);
   // Untouched extra rows go; typed rows stay.
@@ -399,7 +420,13 @@ registerActions({
   "log-history": () => openExerciseHistory(current(store.getState()).choice.exerciseId),
   "log-done": finish,
   "log-undo-done": undoDone,
-  "log-remove-extra": () => {
+  "log-remove-extra": async () => {
+    if (sheet.rows.some((row) => row.done) && !await confirmAction({
+      title: "Remove this exercise?",
+      message: "The sets ticked here are deleted with it. This can't be undone.",
+      confirmLabel: "Remove",
+      cancelLabel: "Keep it",
+    })) return;
     const result = store.update((draft) => removeExtra(draft, sheet.routineId, sheet.entryId, sheet.dateKey));
     if (!report(result)) return;
     closeDialog("#logDialog");

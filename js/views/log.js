@@ -8,9 +8,9 @@
 // routine had when it was finished ("Deleted routine" when none was kept), so
 // they can be kept or unmarked.
 
-import { mainElement, registerActions, registerView, render, store } from "../context.js";
+import { mainElement, navigate, registerActions, registerView, render, store } from "../context.js";
 import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, formatDate, openDialog, report, segmentValue } from "../dom.js";
-import { activeProgram, dateFromKey, entryLog, exerciseById, localDateKey, programRoutines, removeDayLog, routineById, routineProgram, sessionFor, setDay, workoutName } from "../model.js";
+import { activeProgram, dateFromKey, entryLog, exerciseById, localDateKey, programRoutines, removeDayLog, routineById, routineProgram, sessionFor, setDay, startWorkout, workoutName } from "../model.js";
 import { overview } from "../progress.js";
 import { label } from "../vocab.js";
 import { openExerciseHistory } from "./history.js";
@@ -215,6 +215,21 @@ function loggedSetsMarkup(state, session, dateKey) {
   return `<section><p class="form-label">Logged sets</p><div>${rows}</div></section>`;
 }
 
+// Forgot to log a workout: start one for this day. It runs on Workout like any other.
+function backfillMarkup(state, routines, dateKey) {
+  if (state.settings.activeWorkout || dateKey > localDateKey() || !routines.length) return "";
+  return `<section><p class="form-label">Log a workout for this day</p><div class="chips">${routines.map((routine) => (
+    `<button class="pill" type="button" data-action="backfill-workout" data-id="${escapeHtml(routine.id)}" data-date="${dateKey}">${escapeHtml(routine.name)}</button>`
+  )).join("")}</div></section>`;
+}
+
+// What's typed in the day sheet is saved before the sheet is redrawn or left.
+function keepDayForm() {
+  const form = $("#dayForm");
+  const routineIds = $$('input[name="routine"]:checked', form).map((input) => input.value);
+  return store.update((draft) => setDay(draft, form.dataset.date, routineIds, $("#dayNote", form).value.trim())).ok;
+}
+
 function dayEditorMarkup(state, dateKey) {
   const session = sessionFor(state, dateKey);
   const program = activeProgram(state);
@@ -240,6 +255,7 @@ function dayEditorMarkup(state, dateKey) {
           deletedIds.map((routineId) => deletedRowMarkup(session, routineId))) : ""}
         ${!program && !recordedIds.length ? `<p class="hint">Add a program before logging a routine completion.</p>` : ""}
         ${loggedSetsMarkup(state, session, dateKey)}
+        ${backfillMarkup(state, activeRoutines, dateKey)}
         <label class="field"><span>Note</span><textarea class="control" id="dayNote" rows="4" maxlength="500" placeholder="Optional note">${escapeHtml(session.note)}</textarea></label>
         <p class="form-error" id="dayFormError" role="alert" aria-live="polite" data-dialog-error></p>
       </div>
@@ -283,13 +299,24 @@ registerActions({
       confirmLabel: "Remove sets",
       cancelLabel: "Keep them",
     });
-    if (!confirmed || !report(store.update((draft) => removeDayLog(draft, date, id)), "Sets removed.")) return;
+    if (!confirmed) return;
+    keepDayForm();
+    if (!report(store.update((draft) => removeDayLog(draft, date, id)), "Sets removed.")) return;
     render();
     // The day itself goes when that was all it held.
     if (store.getState().sessions[date]) $("#dayDialogContent").innerHTML = dayEditorMarkup(store.getState(), date);
     else closeDialog("#dayDialog");
   },
+  "backfill-workout": (button) => {
+    const { id, date } = button.dataset;
+    keepDayForm();
+    if (!report(store.update((draft) => startWorkout(draft, id, date, Date.now(), date !== localDateKey())))) return;
+    closeDialog("#dayDialog");
+    store.update((draft) => { draft.settings.activeRoutineId = id; });
+    navigate("workout");
+  },
   "edit-day-log": (button) => {
+    keepDayForm();
     closeDialog("#dayDialog");
     openLogger(button.dataset.routineId, button.dataset.id, button.dataset.date);
   },

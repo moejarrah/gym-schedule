@@ -215,7 +215,7 @@ function writeSession(state, dateKey, session) {
   const extras = nonEmpty(session.extras);
   const finished = new Set(session.routineIds);
   const workouts = Object.fromEntries(Object.entries(session.workouts).filter(([routineId]) => finished.has(routineId)));
-  if (!session.routineIds.length && !Object.keys(checked).length && !session.note && !Object.keys(session.logs).length && !Object.keys(extras).length) {
+  if (!session.routineIds.length && !Object.keys(checked).length && !session.note && !Object.keys(session.logs).length && !(Object.keys(extras).length && state.settings.activeWorkout?.dateKey === dateKey)) {
     delete state.sessions[dateKey];
   } else {
     state.sessions[dateKey] = { routineIds: [...new Set(session.routineIds)], checkedEntryIdsByRoutine: checked, note: session.note, logs: session.logs, extras, workouts };
@@ -251,14 +251,16 @@ function repairActiveSelection(state) {
 // A workout runs from "Start workout" to "Finish workout". Finishing is what puts
 // the routine in that day's Log; slots that weren't done simply stay not done.
 
-export function startWorkout(state, routineId, dateKey = localDateKey(), now = Date.now()) {
+// `backdated`: a workout logged afterwards for a past day; it isn't timed.
+export function startWorkout(state, routineId, dateKey = localDateKey(), now = Date.now(), backdated = false) {
   if (!routineById(state, routineId)) fail("That routine no longer exists.");
   if (state.settings.activeWorkout) fail("Finish the workout in progress first.");
   // Starting again on a day it was already finished reopens that day's workout.
   const session = sessionFor(state, dateKey);
+  const reopened = session.routineIds.includes(routineId) ? { minutes: session.workouts[routineId]?.minutes ?? null } : null;
   session.routineIds = session.routineIds.filter((id) => id !== routineId);
+  state.settings.activeWorkout = { routineId, dateKey, startedAt: now, ...(reopened ? { reopened } : {}), ...(backdated ? { backdated: true } : {}) };
   writeSession(state, dateKey, session);
-  state.settings.activeWorkout = { routineId, dateKey, startedAt: now };
 }
 
 // What a day keeps about a finished routine. `minutes` is null when it wasn't timed.
@@ -272,16 +274,23 @@ export function finishWorkout(state, { now = Date.now(), timed = true } = {}) {
   if (!workout) return;
   const session = sessionFor(state, workout.dateKey);
   session.routineIds.push(workout.routineId);
-  const minutes = timed && !workout.backdated ? Math.max(1, Math.round((now - workout.startedAt) / 60000)) : null;
+  // A reopened workout keeps its first duration; one left running for hours isn't a duration.
+  const elapsed = Math.max(1, Math.round((now - workout.startedAt) / 60000));
+  const minutes = workout.reopened ? workout.reopened.minutes : timed && !workout.backdated && elapsed <= 300 ? elapsed : null;
   session.workouts[workout.routineId] = workoutRecord(state, workout.routineId, minutes);
   writeSession(state, workout.dateKey, session);
   state.settings.activeWorkout = null;
 }
 
 // Cancel: the workout never happened. Its sets, done marks and added exercises go.
+// Cancelling a reopened workout only closes it again, as finished.
 export function cancelWorkout(state) {
   const workout = state.settings.activeWorkout;
   if (!workout) return;
+  if (workout.reopened) {
+    finishWorkout(state);
+    return;
+  }
   const { routineId, dateKey } = workout;
   const session = sessionFor(state, dateKey);
   delete session.checkedEntryIdsByRoutine[routineId];
@@ -399,8 +408,11 @@ export function saveEntrySets(state, { routineId, entryId, exerciseId, sets, not
 // routines get their Main entries checked; unmarked ones lose their checks.
 export function setDay(state, dateKey, routineIds, note) {
   if (!isDateKey(dateKey)) fail("That date isn't valid.");
+  if (dateKey > localDateKey()) fail("That day hasn't happened yet.");
   const session = sessionFor(state, dateKey);
   const selected = new Set(routineIds);
+  const running = state.settings.activeWorkout;
+  if (running?.dateKey === dateKey) selected.delete(running.routineId);
   for (const routineId of session.routineIds) {
     if (!selected.has(routineId)) delete session.checkedEntryIdsByRoutine[routineId];
   }
@@ -458,6 +470,7 @@ export function updateProgram(state, programId, { name, note }) {
 export function removeProgram(state, programId) {
   const program = state.programs.find((item) => item.id === programId) || fail("That program no longer exists.");
   const removed = new Set(program.routineIds);
+  if (removed.has(state.settings.activeWorkout?.routineId)) fail("Finish or cancel the workout in progress first.");
   state.programs = state.programs.filter((item) => item !== program);
   state.routines = state.routines.filter((routine) => !removed.has(routine.id));
   dropChecks(state, (routineId) => removed.has(routineId));
@@ -509,6 +522,7 @@ export function moveRoutine(state, routineId, toIndex) {
 
 export function removeRoutine(state, routineId) {
   const program = routineProgram(state, routineId) || fail("That routine no longer exists.");
+  if (state.settings.activeWorkout?.routineId === routineId) fail("Finish or cancel the workout in progress first.");
   program.routineIds = program.routineIds.filter((id) => id !== routineId);
   state.routines = state.routines.filter((routine) => routine.id !== routineId);
   dropChecks(state, (checkedRoutineId) => checkedRoutineId === routineId);
@@ -546,6 +560,9 @@ export function updateEntry(state, routineId, entryId, { choices, role, blockId,
   if (choices) {
     const trimmed = choices.map((choice) => ({ exerciseId: choice.exerciseId, prescription: choice.prescription.trim() }));
     checkChoices(state, trimmed);
+    // A slot whose exercises changed starts not done.
+    const before = new Set(entry.choices.map((choice) => choice.exerciseId));
+    if (trimmed.some((choice) => !before.has(choice.exerciseId))) dropChecks(state, (_, checkedEntryId) => checkedEntryId === entryId);
     entry.choices = trimmed;
   }
   if (role) entry.role = role;

@@ -12,7 +12,9 @@ import {
   activeRoutine,
   activeWorkout,
   addExtra,
+  backupAge,
   cancelWorkout,
+  exerciseHistory,
   dayExtras,
   entryLog,
   entryNumber,
@@ -28,6 +30,7 @@ import {
   startWorkout,
   usualExtras,
 } from "../model.js";
+import { compareSets, exerciseMode, exerciseProgress } from "../progress.js";
 import { openPicker } from "./entry-editor.js";
 import { openLogger } from "./logger.js";
 import { openExerciseReference, openExerciseVideo } from "./reference.js";
@@ -98,7 +101,8 @@ function pageMarkup(state) {
     ${routineTabsMarkup(programRoutines(state, program), routine?.id)}
     ${routine ? routineNoteMarkup(routine.note) : ""}
     ${emptyStateMarkup(program, routine)}
-    ${routine?.entries.length ? `<div class="scroll" data-keep-scroll="workout-${escapeHtml(routine.id)}">${listMarkup(state, routine)}</div>` : ""}
+    ${!routine && activeWorkout(state) ? `<div class="workout-actions"><button class="button" type="button" data-action="select-routine" data-id="${escapeHtml(activeWorkout(state).routineId)}">Go to ${escapeHtml(routineById(state, activeWorkout(state).routineId).name)}, in progress</button></div>` : ""}
+    ${routine?.entries.length || activeWorkout(state)?.routineId === routine?.id && routine ? `<div class="scroll" data-keep-scroll="workout-${escapeHtml(routine.id)}">${listMarkup(state, routine)}</div>` : ""}
   </section>`;
 }
 
@@ -112,8 +116,8 @@ function listMarkup(state, routine) {
   // At the top: Start, or while it runs the stopwatch and Cancel.
   const top = dateKey
     ? `<div class="workout-top is-running">
-        <p><strong>${escapeHtml(routine.name)} in progress</strong><span data-elapsed>${elapsedText(activeWorkout(state).startedAt)}</span></p>
-        <button class="button text" type="button" data-action="cancel-workout">Cancel</button>
+        <p><strong>${escapeHtml(routine.name)} in progress${dateKey === todayKey ? "" : ` · for ${escapeHtml(shortDate(dateKey))}`}</strong>${activeWorkout(state).backdated || activeWorkout(state).reopened ? "" : `<span data-elapsed>${elapsedText(activeWorkout(state).startedAt)}</span>`}</p>
+        <button class="button text" type="button" data-action="cancel-workout">${activeWorkout(state).reopened ? "Close again" : "Cancel"}</button>
       </div>`
     : `<div class="workout-top">
         <p>${finishedToday ? "Finished today" : last ? `Last done ${escapeHtml(shortDate(last))}` : "Not done yet"}</p>
@@ -270,6 +274,36 @@ function finishMarkup(state) {
   </div>`;
 }
 
+// After Finish: duration, what was done, and each logged exercise against its
+// session before this one.
+function resultMarkup(state, routineId, dateKey) {
+  const session = state.sessions[dateKey];
+  const record = session.workouts[routineId];
+  const logs = Object.values(session.logs).filter((log) => log.routineId === routineId);
+  const sets = logs.reduce((count, log) => count + log.sets.filter((set) => !set.warmup).length, 0);
+  let bests = 0;
+  const rows = logs.map((log) => {
+    const progress = exerciseProgress(state, log.exerciseId);
+    if (progress.sessions.find((item) => item.dateKey === dateKey)?.isBest) bests += 1;
+    const before = exerciseHistory(state, log.exerciseId, { beforeDateKey: dateKey, limit: 1 })[0];
+    const change = before ? compareSets(log.sets, before.sets, exerciseMode(progress.sessions), log.unit) : { kind: "same", text: "First time" };
+    return `<div class="row"><span class="row-title">${escapeHtml(log.exerciseName)}</span><em class="history-change ${change.kind}">${escapeHtml(change.text)}</em></div>`;
+  }).join("");
+  const facts = [record?.minutes ? `${record.minutes} min` : "", plural(logs.length, "exercise"), plural(sets, "set"), bests ? plural(bests, "new best", "new bests") : ""].filter(Boolean).join(" · ");
+  const age = backupAge(state);
+  return `<div class="sheet-panel">
+    <header class="sheet-head">
+      <div><h2 id="finishTitle">${escapeHtml(record?.name || "Workout")} finished</h2><p>${escapeHtml(facts)}</p></div>
+      <button class="icon-button" type="button" data-close-dialog="finishDialog" aria-label="Close summary">×</button>
+    </header>
+    <div class="sheet-body">
+      ${rows ? `<p class="label">Against last time</p>${rows}` : `<p class="hint">No sets were logged.</p>`}
+      ${age === null || age > 14 ? `<p class="hint">${age === null ? "No backup yet." : `Last backup was ${age} days ago.`} Export one in Settings.</p>` : ""}
+    </div>
+    <footer class="actions"><button class="button primary full" type="button" data-close-dialog="finishDialog">Close</button></footer>
+  </div>`;
+}
+
 // ---------- screen ----------
 
 registerView("workout", { markup: pageMarkup, afterDraw: revealSelectedTab });
@@ -287,7 +321,7 @@ function runningWorkout() {
   const state = store.getState();
   const workout = activeWorkout(state);
   if (workout?.routineId === activeRoutine(state)?.id) return workout;
-  toast("Start the workout first.");
+  toast(workout ? `${routineById(state, workout.routineId).name} is in progress. Finish it first.` : "Start the workout first.");
   return null;
 }
 
@@ -301,7 +335,12 @@ registerActions({
     if (report(result)) render();
   },
   "cancel-workout": async () => {
-    const { routineId } = activeWorkout(store.getState());
+    const { routineId, reopened } = activeWorkout(store.getState());
+    // A reopened workout just closes again; nothing is deleted.
+    if (reopened) {
+      if (report(store.update(cancelWorkout))) render();
+      return;
+    }
     const confirmed = await confirmAction({
       title: `Cancel ${routineById(store.getState(), routineId).name}?`,
       message: "Everything logged in this workout is deleted: its sets, done marks and added exercises. This can't be undone.",
@@ -314,9 +353,11 @@ registerActions({
     redraw("#finishContent", finishMarkup(store.getState()));
     openDialog("#finishDialog");
   },
+  // Finishing swaps the summary for the result: how it went against last time.
   "finish-workout": () => {
-    if (!report(store.update(finishWorkout), "Workout saved to the Log.")) return;
-    closeDialog("#finishDialog");
+    const { routineId, dateKey } = activeWorkout(store.getState());
+    if (!report(store.update((draft) => finishWorkout(draft)))) return;
+    redraw("#finishContent", resultMarkup(store.getState(), routineId, dateKey));
     render();
   },
   "pick-extra": () => {
