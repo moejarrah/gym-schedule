@@ -78,6 +78,7 @@ Program
 ### Library
 
 - Search by name, alias, target, movement or other classification; punctuation and case don't matter ("ab wheel" finds "Ab-wheel rollout"). The same search is used when adding exercises to routines and linking related exercises.
+- The list is grouped by the muscle each exercise mainly trains (its first primary target), each group outlined with its name and count; inside a group it is alphabetical. Search and filters keep the grouping.
 - Browse groups (Push, Pull, Legs, Glutes, Core, Arms, Forearms, Neck, Full body, …), derived from targets and movements. Target scope "Primary only" (default) or "Primary + secondary".
 - Filter by targets, movement, equipment, purpose and the optional classifications: OR within a group, AND across groups.
 - Open an exercise's reference before editing. Add, edit, duplicate and delete master exercises. Deleting shows how many slots use it, which choices are removed or promoted, which slots disappear and how many related links go.

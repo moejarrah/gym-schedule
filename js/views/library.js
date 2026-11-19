@@ -27,6 +27,19 @@ function libraryRowsMarkup(exercises, { libraryEmpty = false } = {}) {
   if (!exercises.length) {
     return `<div class="empty"><h3>No matching exercises</h3><p>Change the search or filters, or add a new exercise.</p><div class="actions"><button class="button" type="button" data-action="clear-library-filters">Clear filters</button><button class="button primary" type="button" data-action="new-exercise">Add exercise</button></div></div>`;
   }
+  // Grouped by the muscle each exercise mainly trains, in the vocabulary's order
+  // (chest, back, shoulders, arms, core, legs …), alphabetical inside a group.
+  const groups = TARGETS.map((target) => ({ target, items: exercises.filter((exercise) => exercise.primaryTargets[0] === target.id) })).filter((group) => group.items.length);
+  const known = new Set(TARGETS.map((target) => target.id));
+  const other = exercises.filter((exercise) => !known.has(exercise.primaryTargets[0]));
+  if (other.length) groups.push({ target: { label: "Other" }, items: other });
+  return groups.map(({ target, items }) => `<section class="workout-group is-solid" aria-label="${escapeHtml(target.label)}">
+    <div class="label section-label"><span>${escapeHtml(target.label)}</span><span>${items.length}</span></div>
+    ${rowsMarkup(items)}
+  </section>`).join("");
+}
+
+function rowsMarkup(exercises) {
   return `<div>${exercises.map((exercise) => {
     const decisionContext = exercise.purpose === "strength"
       ? `<span>${escapeHtml(label(exercise.movementPattern))}</span>`

@@ -66,6 +66,12 @@
   pointer-events: none;
 }
 
+/* The same outline, solid, around each muscle's exercises in the Library. */
+.workout-group.is-solid::before {
+  border-style: solid;
+  border-color: var(--line);
+}
+
 .workout-group > .section-label {
   padding-top: var(--space-3);
 }
