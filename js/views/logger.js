@@ -17,6 +17,7 @@ import {
   removeExtra,
   routineById,
   saveEntrySets,
+  workoutName,
   setEntryChecked,
 } from "../model.js";
 import { openExerciseHistory } from "./history.js";
@@ -26,7 +27,9 @@ import { entryPresentation, formatKg, liftText, setChipsMarkup, shortDate } from
 // fields; `edited` marks rows typed in since they were last saved or unticked. A
 // ticked set is saved with its ticked drops; unticking a set keeps its drops'
 // ticks so ticking it again brings them back.
-const sheet = { routineId: "", entryId: "", dateKey: "", choiceIndex: 0, rows: [], lastTicked: -1 };
+// A set row can be a warm-up (`warmup`), which progress leaves out. `note` is the
+// exercise's note for the day; it is saved with the sets.
+const sheet = { routineId: "", entryId: "", dateKey: "", choiceIndex: 0, rows: [], lastTicked: -1, note: "" };
 
 const checkIcon = `<svg class="tickbox" aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>`;
 const plusIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>`;
@@ -47,10 +50,13 @@ const rowFromLift = (lift) => ({ kg: formatKg(lift.kg), reps: String(lift.reps),
 function loadRows(state) {
   const { choice } = current(state);
   const log = entryLog(state, sheet.dateKey, sheet.entryId);
-  const rows = (log?.sets || []).map((set) => ({ ...rowFromLift(set), drops: set.drops.map(rowFromLift) }));
+  const rows = (log?.sets || []).map((set) => ({ ...rowFromLift(set), warmup: Boolean(set.warmup), drops: set.drops.map(rowFromLift) }));
   sheet.lastTicked = rows.length - 1;
-  while (rows.length < plannedSetCount(choice.prescription)) rows.push({ kg: "", reps: "", done: false, drops: [] });
+  // Rows not logged yet are warm-ups where last time's were.
+  const last = lastSession(state);
+  while (rows.length < plannedSetCount(choice.prescription)) rows.push({ kg: "", reps: "", done: false, warmup: Boolean(last?.sets[rows.length]?.warmup), drops: [] });
   sheet.rows = rows;
+  sheet.note = log?.note || "";
 }
 
 // The grey values an empty row would be saved with: the same set last time, or
@@ -94,9 +100,10 @@ function saveRows() {
     kg: row.kg,
     reps: row.reps,
     drops: row.drops.filter((drop) => drop.done).map((drop) => ({ kg: drop.kg, reps: drop.reps })),
+    warmup: row.warmup,
   }));
   const result = store.update((draft) => saveEntrySets(draft, {
-    routineId: sheet.routineId, entryId: sheet.entryId, exerciseId: choice.exerciseId, sets, dateKey: sheet.dateKey,
+    routineId: sheet.routineId, entryId: sheet.entryId, exerciseId: choice.exerciseId, sets, note: sheet.note, dateKey: sheet.dateKey,
   }));
   if (!report(result)) return false;
   for (const row of sheet.rows) {
@@ -117,10 +124,9 @@ function saveRows() {
 
 function historyMarkup(state, history) {
   const rows = history.map((item) => {
-    const routine = routineById(state, item.routineId);
     return `<div class="log-history-row">
-      <span class="row-main log-history-date"><strong class="row-title truncate">${escapeHtml(shortDate(item.dateKey))}</strong><small class="row-meta truncate">${escapeHtml(routine?.name || "Deleted routine")}</small></span>
-      <span class="set-chips">${setChipsMarkup(item.sets, { timed: item.unit === "sec" })}</span>
+      <span class="row-main log-history-date"><strong class="row-title truncate">${escapeHtml(shortDate(item.dateKey))}</strong><small class="row-meta truncate">${escapeHtml(workoutName(state, item.dateKey, item.routineId))}</small></span>
+      <span class="row-main"><span class="set-chips">${setChipsMarkup(item.sets, { timed: item.unit === "sec" })}</span>${item.note ? `<span class="row-meta">${escapeHtml(item.note)}</span>` : ""}</span>
     </div>`;
   }).join("");
   return `<section class="card log-history" aria-labelledby="logHistoryTitle">
@@ -147,7 +153,7 @@ function rowMarkup({ setIndex, dropIndex, row, last, timed }) {
   // A drop row's first cell removes it; a set row's shows its number.
   const firstCell = isDrop
     ? `<button class="icon-button sm" type="button" data-action="log-remove-drop" ${data} aria-label="Remove ${name}">${removeIcon}</button>`
-    : `<span class="log-set-label" aria-hidden="true">${setIndex + 1}</span>`;
+    : `<button class="log-set-label" type="button" data-action="log-warmup" data-set="${setIndex}" aria-pressed="${Boolean(row.warmup)}" aria-label="Set ${setIndex + 1} is a warm-up">${row.warmup ? "W" : setIndex + 1}</button>`;
   const saved = isSaved(setIndex, dropIndex);
   const label = `${name[0].toUpperCase()}${name.slice(1)} done`;
   return `<div class="log-row ${saved ? "is-done" : ""} ${isDrop ? "is-drop" : ""}">
@@ -171,7 +177,14 @@ function tableMarkup(last, timed) {
   return `<div class="log-table">
     <div class="log-row label" aria-hidden="true"><span>Set</span><span>Last time</span><span>Weight</span><span>${timed ? "Sec" : "Reps"}</span><span></span></div>
     ${groups}
-    <button class="link-button" type="button" data-action="log-add-set">${plusIcon}Set</button>
+    <div class="log-tools">
+      <button class="link-button" type="button" data-action="log-add-set">${plusIcon}Set</button>
+      ${timed ? "" : `<span class="log-steps" role="group" aria-label="Change the weight of the sets not ticked yet">
+        <button class="pill" type="button" data-action="log-step" data-by="-2.5">− 2.5 kg</button>
+        <button class="pill" type="button" data-action="log-step" data-by="2.5">+ 2.5 kg</button>
+      </span>`}
+    </div>
+    <p class="hint">Tap a set's number to mark it as a warm-up.</p>
   </div>`;
 }
 
@@ -197,6 +210,7 @@ function sheetMarkup(state) {
       ${choicesMarkup(entry, state)}
       ${historyMarkup(state, history)}
       ${tableMarkup(history[0], timed)}
+      <label class="field"><span>Note for this exercise today</span><input type="text" data-log-note value="${escapeHtml(sheet.note)}" maxlength="140" autocomplete="off" enterkeyhint="done" placeholder="Shown next time, e.g. seat at 4"></label>
       <p class="form-error" role="alert" aria-live="polite" data-dialog-error></p>
     </div>
     <footer class="actions">
@@ -252,6 +266,26 @@ function removeDrop(setIndex, dropIndex) {
     set.drops.splice(dropIndex, 0, removed);
     return;
   }
+  refresh();
+}
+
+// A warm-up doesn't count towards progress. Marking a ticked set saves straight away.
+function toggleWarmup(setIndex) {
+  const row = sheet.rows[setIndex];
+  row.warmup = !row.warmup;
+  if (row.done && !saveRows()) row.warmup = !row.warmup;
+  refresh();
+}
+
+// Moves the weight of every set not ticked yet up or down, starting from the grey
+// suggestion when nothing is typed. The rows still need their tick.
+function stepWeights(by) {
+  const last = lastSession(store.getState());
+  sheet.rows.forEach((row, setIndex) => {
+    if (row.done) return;
+    const base = Number(String(row.kg || suggestion(last, setIndex).kg).replace(",", "."));
+    if (Number.isFinite(base)) row.kg = formatKg(Math.max(0, Math.round((base + by) * 100) / 100));
+  });
   refresh();
 }
 
@@ -358,6 +392,8 @@ registerActions({
   "log-add-drop": (button) => addDrop(Number(button.dataset.set)),
   "log-remove-drop": (button) => removeDrop(...position(button)),
   "log-add-set": addSet,
+  "log-warmup": (button) => toggleWarmup(Number(button.dataset.set)),
+  "log-step": (button) => stepWeights(Number(button.dataset.by)),
   "log-use-last": (button) => useLast(...position(button)),
   "log-choose": (button) => choose(Number(button.dataset.index)),
   "log-history": () => openExerciseHistory(current(store.getState()).choice.exerciseId),
@@ -375,6 +411,7 @@ registerActions({
   const content = $("#logContent");
   // Typing updates the row; editing a ticked row saves it when the field is left.
   content.addEventListener("input", (event) => {
+    if ("logNote" in event.target.dataset) sheet.note = event.target.value;
     const field = event.target.dataset.field;
     if (!field) return;
     const row = rowAt(Number(event.target.dataset.set), Number(event.target.dataset.drop));
@@ -382,6 +419,8 @@ registerActions({
     row.edited = true;
   });
   content.addEventListener("change", (event) => {
+    // The note is saved with the sets, so it needs at least one ticked set.
+    if ("logNote" in event.target.dataset && sheet.rows.some((row) => row.done)) saveRows();
     const { field, set, drop } = event.target.dataset;
     if (field && rowAt(Number(set), Number(drop))?.done && !saveRows()) event.target.focus();
   });

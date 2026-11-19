@@ -161,14 +161,14 @@ export function entryLog(state, dateKey, entryId) {
 }
 
 // Logged sessions of a master exercise from any routine, newest first:
-// [{ dateKey, routineId, unit, sets }]. `beforeDateKey` leaves out that day and later.
+// [{ dateKey, routineId, unit, sets, note }]. `beforeDateKey` leaves out that day and later.
 export function exerciseHistory(state, exerciseId, { beforeDateKey = "", limit = Infinity } = {}) {
   const items = [];
   for (const dateKey of Object.keys(state.sessions).sort().reverse()) {
     if (items.length >= limit) break;
     if (beforeDateKey && dateKey >= beforeDateKey) continue;
     for (const log of Object.values(state.sessions[dateKey].logs)) {
-      if (log.exerciseId === exerciseId) items.push({ dateKey, routineId: log.routineId, unit: log.unit, sets: log.sets });
+      if (log.exerciseId === exerciseId) items.push({ dateKey, routineId: log.routineId, unit: log.unit, sets: log.sets, note: log.note || "" });
     }
   }
   return items.slice(0, limit);
@@ -632,6 +632,11 @@ export function removeExercise(state, exerciseId) {
 
 export function setTheme(state, theme) {
   state.settings.theme = theme === "dark" ? "dark" : "light";
+}
+
+// Whole days since the last exported backup, or null when there has never been one.
+export function backupAge(state, now = Date.now()) {
+  return state.settings.lastBackupAt ? Math.max(0, Math.floor((now - state.settings.lastBackupAt) / 86400000)) : null;
 }
 
 export function setBackupDone(state, now = Date.now()) {

@@ -4,7 +4,7 @@
 
 import { applyTheme, mainElement, registerActions, registerView, render, store } from "../context.js";
 import { $, confirmAction, escapeHtml, report, toast } from "../dom.js";
-import { localDateKey, setTheme, setTrainingRules } from "../model.js";
+import { backupAge, localDateKey, setBackupDone, setTheme, setTrainingRules } from "../model.js";
 import { createBackup, createDefaultState, parseBackup } from "../store.js";
 
 const CACHE_PREFIX = "gym-schedule-"; // sw.js names its offline cache with this prefix
@@ -80,6 +80,12 @@ function recoveryMarkup() {
   </div>`;
 }
 
+function backupLine(state) {
+  const days = backupAge(state);
+  if (days === null) return "<strong>No backup yet.</strong>";
+  return `<strong>Last backup: ${days === 0 ? "today" : days === 1 ? "yesterday" : `${days} days ago`}.</strong>`;
+}
+
 function settingsMarkup(state) {
   return `<section class="page stack settings-page" aria-label="Settings">
     <section class="stack tight" aria-labelledby="settingsAppearanceTitle">
@@ -89,7 +95,7 @@ function settingsMarkup(state) {
     <section class="stack tight" aria-labelledby="settingsDataTitle">
       <h2 class="label" id="settingsDataTitle">Data</h2>
       ${recoveryMarkup()}
-      <p>Export a copy, import a compatible file, or restore the starting program.</p>
+      <p>${backupLine(state)} Your workouts live only on this phone: export a copy now and then, and keep it in Files or iCloud.</p>
       <div class="stack snug">
         <button class="button" id="exportButton" type="button" data-action="export-data">Export app data</button>
         <button class="button" id="importButton" type="button" data-action="import-data">Import app data</button>
@@ -117,15 +123,17 @@ function clearDataError() {
 }
 
 // The share sheet's "Save to Files" is the dependable way to get a file out of the
-// installed iPhone app; elsewhere a download link does it. Cancelling isn't an error.
+// installed iPhone app; elsewhere a download link does it. Cancelling isn't an
+// error: it resolves to false, and to true once the file was handed over.
 async function saveFile(file) {
   if (navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file] });
     } catch (error) {
       if (error.name !== "AbortError") throw error;
+      return false;
     }
-    return;
+    return true;
   }
   const url = URL.createObjectURL(file);
   const link = document.createElement("a");
@@ -135,6 +143,7 @@ async function saveFile(file) {
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return true;
 }
 
 const jsonFile = (text, name) => new File([text], name, { type: "application/json" });
@@ -167,7 +176,11 @@ function toggleTheme() {
 function exportData() {
   clearDataError();
   const backup = JSON.stringify(createBackup(store.getState()), null, 2);
-  saveFile(jsonFile(backup, `gym-schedule-${localDateKey()}.json`)).catch(() => showDataError("App data couldn't be exported."));
+  saveFile(jsonFile(backup, `gym-schedule-${localDateKey()}.json`))
+    .then((saved) => {
+      if (saved && store.update((draft) => setBackupDone(draft)).ok) render();
+    })
+    .catch(() => showDataError("App data couldn't be exported."));
 }
 
 function downloadUnreadableData() {
