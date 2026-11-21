@@ -22,7 +22,7 @@ import {
 } from "../model.js";
 import { exerciseMode, isNewBest, targetHint } from "../progress.js";
 import { openExerciseHistory } from "./history.js";
-import { entryPresentation, formatKg, liftText, setChipsMarkup, shortDate } from "./shared.js";
+import { entryPresentation, formatKg, liftText, setChipsMarkup, shortDate, weightNote } from "./shared.js";
 
 // The slot being logged and the rows on screen. Row values are the text in the
 // fields; `edited` marks rows typed in since they were last saved or unticked. A
@@ -199,18 +199,18 @@ function choicesMarkup(entry, state) {
   if (entry.choices.length < 2) return "";
   const { choices } = entryPresentation(entry, state);
   return `<div class="chips scroll-x" role="group" aria-label="Exercise you're doing">
-    ${choices.map((item, index) => `<button class="pill" type="button" data-action="log-choose" data-index="${index}" aria-pressed="${index === sheet.choiceIndex}">${escapeHtml(item.name)}</button>`).join("")}
+    ${choices.map((item, index) => `<button class="pill" type="button" data-action="log-choose" data-index="${index}" aria-pressed="${index === sheet.choiceIndex}">${item.inlineMarkup}</button>`).join("")}
   </div>`;
 }
 
 function sheetMarkup(state) {
   const { routine, entry, choice, timed } = current(state);
-  const name = entryPresentation({ ...entry, choices: [choice] }, state).title;
+  const { title: name, titleMarkup, version, preferred } = entryPresentation({ ...entry, choices: [choice] }, state);
   const history = exerciseHistory(state, choice.exerciseId, { beforeDateKey: sheet.dateKey, limit: 3 });
   const done = isEntryChecked(state, sheet.dateKey, routine.id, entry.id);
   return `<div class="sheet-panel">
     <header class="sheet-head">
-      <div><h2 id="logTitle">${escapeHtml(name)}</h2><p>${escapeHtml([choice.prescription, entry.extra ? "Added for this day" : "", sheet.dateKey === localDateKey() ? "" : shortDate(sheet.dateKey)].filter(Boolean).join(" · "))}</p></div>
+      <div><h2 id="logTitle" aria-label="${escapeHtml(name)}">${titleMarkup}</h2><p>${escapeHtml([version, choice.prescription, weightNote(preferred.exercise), entry.extra ? "Added for this day" : "", sheet.dateKey === localDateKey() ? "" : shortDate(sheet.dateKey)].filter(Boolean).join(" · "))}</p></div>
       <button class="icon-button" type="button" data-close-dialog="logDialog" aria-label="Close">×</button>
     </header>
     <div class="sheet-body stack tight" data-keep-scroll="log-${escapeHtml(entry.id)}">

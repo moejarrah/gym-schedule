@@ -4,7 +4,7 @@
 
 import { applyTheme, mainElement, registerActions, registerView, render, store } from "../context.js";
 import { $, confirmAction, escapeHtml, report, toast } from "../dom.js";
-import { backupAge, localDateKey, setBackupDone, setTheme, setTrainingRules } from "../model.js";
+import { backupAge, exerciseLabels, localDateKey, setBackupDone, setExerciseLabels, setTheme, setTrainingRules } from "../model.js";
 import { createBackup, createDefaultState, parseBackup } from "../store.js";
 
 const CACHE_PREFIX = "gym-schedule-"; // sw.js names its offline cache with this prefix
@@ -16,6 +16,7 @@ const rulesEditor = { draft: null };
 const about = { version: "Checking offline copy…" };
 
 const themeLabel = (theme) => (theme === "dark" ? "Dark" : "Light");
+const labelsLabel = (state) => (exerciseLabels(state) === "letter" ? "Coloured letter before the name" : "On the line below the name");
 
 // ---------- markup ----------
 
@@ -91,6 +92,7 @@ function settingsMarkup(state) {
     <section class="stack tight" aria-labelledby="settingsAppearanceTitle">
       <h2 class="label" id="settingsAppearanceTitle">Appearance</h2>
       <button class="row card" id="settingsThemeButton" type="button" data-action="toggle-theme"><span class="row-main"><strong class="row-title">Theme</strong><small class="row-meta" id="settingsThemeValue">${themeLabel(state.settings.theme)}</small></span><span class="chev" aria-hidden="true">›</span></button>
+      <button class="row card" type="button" data-action="toggle-exercise-labels"><span class="row-main"><strong class="row-title">Exercise version</strong><small class="row-meta" id="settingsLabelsValue">${labelsLabel(state)}</small></span><span class="chev" aria-hidden="true">›</span></button>
     </section>
     <section class="stack tight" aria-labelledby="settingsDataTitle">
       <h2 class="label" id="settingsDataTitle">Data</h2>
@@ -173,6 +175,13 @@ function toggleTheme() {
   $("#settingsThemeValue").textContent = themeLabel(theme);
 }
 
+// Only this row's text changes here; the other screens draw names when they open.
+function toggleExerciseLabels() {
+  const mode = exerciseLabels(store.getState()) === "letter" ? "line" : "letter";
+  if (!report(store.update((draft) => setExerciseLabels(draft, mode)))) return;
+  $("#settingsLabelsValue").textContent = labelsLabel(store.getState());
+}
+
 function exportData() {
   clearDataError();
   const backup = JSON.stringify(createBackup(store.getState()), null, 2);
@@ -228,9 +237,9 @@ async function restoreStartingData() {
     confirmLabel: "Restore data",
   });
   if (!confirmed) return;
-  const { theme, trainingRules } = store.getState().settings;
+  const { theme, trainingRules, exerciseLabels: labels } = store.getState().settings;
   const next = createDefaultState();
-  Object.assign(next.settings, { theme, trainingRules });
+  Object.assign(next.settings, { theme, trainingRules, ...(labels ? { exerciseLabels: labels } : {}) });
   const result = store.replace(next);
   if (!result.ok) {
     showDataError(result.error);
@@ -267,6 +276,7 @@ registerView("settings", { markup: settingsMarkup, afterDraw: refreshVersion, ti
 
 registerActions({
   "toggle-theme": toggleTheme,
+  "toggle-exercise-labels": toggleExerciseLabels,
   "export-data": exportData,
   "import-data": () => {
     clearDataError();

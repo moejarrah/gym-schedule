@@ -7,6 +7,7 @@ import { activeLibraryFilterCount, availableBrowseGroups, createLibraryFilters, 
 import { CHALLENGES, EMPHASES, EQUIPMENT, LATERALITIES, MOVEMENTS, PURPOSES, STYLES, TARGETS, label } from "../vocab.js";
 import { openExerciseEditor } from "./exercise-editor.js";
 import { openExerciseReference } from "./reference.js";
+import { exerciseLabel, nameMarkup } from "./shared.js";
 
 const library = {
   query: "",
@@ -46,7 +47,7 @@ function rowsMarkup(exercises) {
       : `<span class="label tag rehab">${escapeHtml(label(exercise.purpose))}</span>`;
     return `
     <button class="row tall" type="button" data-action="view-exercise" data-id="${escapeHtml(exercise.id)}" aria-label="View ${escapeHtml(exercise.name)} details">
-      <span class="row-main"><span class="row-title">${escapeHtml(exercise.name)}</span><span class="row-meta"><span class="rx">${escapeHtml(exercise.defaultPrescription || "No prescription")}</span><span>${escapeHtml(rowTargetSummary(exercise))}</span>${decisionContext}</span></span>
+      <span class="row-main"><span class="row-title">${nameMarkup(exercise)}</span><span class="row-meta">${exerciseLabel(exercise).version ? `<span>${escapeHtml(exerciseLabel(exercise).version)}</span>` : ""}<span class="rx">${escapeHtml(exercise.defaultPrescription || "No prescription")}</span><span>${escapeHtml(rowTargetSummary(exercise))}</span>${decisionContext}</span></span>
       <span class="chev" aria-hidden="true">${chevronIcon("right")}</span>
     </button>`;
   }).join("")}</div>`;

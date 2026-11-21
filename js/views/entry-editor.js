@@ -8,7 +8,7 @@ import { $, chevronIcon, clearError, closeDialog, confirmAction, enableHoldDrag,
 import { activeRoutine, activeWorkout, addEntry, addExtra, dayExtras, entryNumber, exerciseById, removeEntry, routineById, updateEntry } from "../model.js";
 import { searchExercises } from "../search.js";
 import { label } from "../vocab.js";
-import { entryPresentation } from "./shared.js";
+import { entryPresentation, exerciseLabel, inlineNameMarkup, nameMarkup } from "./shared.js";
 
 // The entry being edited. Its choices are a draft until Save; choiceIndex is the
 // choice open in the choice editor.
@@ -27,11 +27,11 @@ function pickerListMarkup(exercises, existingExerciseIds, mode) {
 
   return exercises.map((exercise) => {
     const prescription = exercise.defaultPrescription || "No default prescription";
-    const details = [prescription, label(exercise.primaryTargets[0]), label(exercise.movementPattern)].filter(Boolean).join(" · ");
+    const details = [exerciseLabel(exercise).version, prescription, label(exercise.primaryTargets[0]), label(exercise.movementPattern)].filter(Boolean).join(" · ");
     const exists = existingExerciseIds.has(exercise.id);
     const unavailable = mode !== "entry" && exists;
     return `<button class="row tall" type="button" data-action="pick-exercise" data-id="${escapeHtml(exercise.id)}" aria-label="${unavailable ? `${escapeHtml(exercise.name)} is already added` : `${exists ? "Add another" : "Add"} ${escapeHtml(exercise.name)}${mode === "extra" ? " for today" : mode === "replace" ? " instead" : " to this routine"}`}" ${unavailable ? "disabled" : ""}>
-      <span class="row-main"><strong class="row-title truncate">${escapeHtml(exercise.name)}</strong><small class="row-meta truncate">${escapeHtml(details)}</small></span>
+      <span class="row-main"><strong class="row-title truncate">${nameMarkup(exercise)}</strong><small class="row-meta truncate">${escapeHtml(details)}</small></span>
       <span class="row-action">${unavailable ? "Added" : exists ? "Add again" : "Add"}</span>
     </button>`;
   }).join("");
@@ -60,7 +60,7 @@ function entryChoicesEditorMarkup(choices, state) {
 function renderChoiceDraft() {
   const state = store.getState();
   $("#entryChoicesList").innerHTML = entryChoicesEditorMarkup(entryEditor.choices, state);
-  $("#entryExerciseName").textContent = entryPresentation({ choices: entryEditor.choices }, state).title;
+  $("#entryExerciseName").innerHTML = entryPresentation({ choices: entryEditor.choices }, state).inlineMarkup;
 }
 
 export function openEntryEditor(entryId) {
@@ -213,7 +213,7 @@ function pickExercise(exerciseId) {
   if (picker.mode === "replace") {
     // The prescription stays: it was written for this slot.
     entryEditor.choices[entryEditor.choiceIndex].exerciseId = exerciseId;
-    $("#entryChoiceDialogTitle").textContent = exercise.name;
+    $("#entryChoiceDialogTitle").innerHTML = inlineNameMarkup(exercise);
     renderChoiceDraft();
     closeDialog("#pickerDialog");
     return;
@@ -269,7 +269,7 @@ $("#pickerSearch").addEventListener("input", () => {
 function previewChoiceOrder(row, toIndex) {
   const order = [...entryEditor.choices];
   order.splice(toIndex, 0, ...order.splice(Number(row.dataset.choiceIndex), 1));
-  $("#entryExerciseName").textContent = entryPresentation({ choices: order }, store.getState()).title;
+  $("#entryExerciseName").innerHTML = entryPresentation({ choices: order }, store.getState()).inlineMarkup;
   const rows = [...$("#entryChoicesList").querySelectorAll(".drag-row")];
   rows.splice(toIndex, 0, row);
   rows.forEach((item, index) => {

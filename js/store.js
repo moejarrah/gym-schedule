@@ -5,11 +5,11 @@
 // upgrades the previous version in place, with a test in tests/store.test.mjs.
 // Saved data and backups from older versions must keep loading.
 
-import { applyLibraryUpdate, LIBRARY_UPDATE_2 } from "./library-update.js";
+import { applyLibraryUpdate, applyMachineKinds, LIBRARY_UPDATE_2 } from "./library-update.js";
 import { isDateKey } from "./model.js";
 import { SEED } from "./seed.js";
 
-export const SCHEMA_VERSION = 16;
+export const SCHEMA_VERSION = 17;
 export const STORAGE_KEY = "gymAppStateV1";
 // Earlier versions copied unreadable data here before starting fresh. It's still offered for download.
 const OLD_RECOVERY_KEY = `${STORAGE_KEY}:unreadable`;
@@ -63,6 +63,10 @@ const MIGRATIONS = {
   // Its second pass: movement first, the version in brackets.
   15(state) {
     applyLibraryUpdate(state, LIBRARY_UPDATE_2);
+  },
+  // Plate-loaded and Smith machines become their own equipment.
+  16(state) {
+    applyMachineKinds(state);
   },
 };
 
@@ -156,6 +160,7 @@ export function stateProblem(state) {
   const workout = settings.activeWorkout;
   if (workout !== null && !(isRecord(workout) && routineIds.has(workout.routineId) && isDateKey(workout.dateKey) && Number.isFinite(workout.startedAt))) return "workout in progress";
   if (!Number.isFinite(settings.lastBackupAt)) return "last backup time";
+  if (![undefined, "line", "letter"].includes(settings.exerciseLabels)) return "exercise labels";
 
   // History outlives what it points at: the routine, slot and exercise IDs in a
   // day may belong to things deleted since.

@@ -656,6 +656,14 @@ export function removeExercise(state, exerciseId) {
 
 // ---------- settings ----------
 
+// How an exercise's version (equipment, attachment, grip) shows next to its name:
+// "line" puts it on the line below, "letter" puts a coloured letter in front.
+export const exerciseLabels = (state) => (state.settings.exerciseLabels === "letter" ? "letter" : "line");
+
+export function setExerciseLabels(state, mode) {
+  state.settings.exerciseLabels = mode === "letter" ? "letter" : "line";
+}
+
 export function setTheme(state, theme) {
   state.settings.theme = theme === "dark" ? "dark" : "light";
 }

@@ -9,7 +9,7 @@ import { exerciseById } from "../model.js";
 import { RELATIONS, label } from "../vocab.js";
 import { openExerciseEditor } from "./exercise-editor.js";
 import { openExerciseHistory } from "./history.js";
-import { videoUrl } from "./shared.js";
+import { exerciseLabel, inlineNameMarkup, nameMarkup, videoUrl } from "./shared.js";
 
 const RELATION_ORDER = RELATIONS.map((relation) => relation.id);
 
@@ -85,7 +85,7 @@ function relationshipsMarkup(state, exercise) {
     ${related.length ? related.map(({ relation, exercise: other }) => `
       <button class="row compact" type="button" data-action="view-alternative" data-id="${escapeHtml(other.id)}">
         <span class="row-meta">${escapeHtml(label(relation))}</span>
-        <strong class="row-title">${escapeHtml(other.name)}</strong>
+        <strong class="row-title">${inlineNameMarkup(other)}</strong>
       </button>`).join("") : `<p class="hint">None linked yet.</p>`}
   </div>`;
 }
@@ -98,7 +98,7 @@ function referenceMarkup(state, exercise, { prescription, routineName, routineNo
 
   return `<article class="sheet-panel">
     <header class="sheet-head">
-      <div><h2 id="detailExerciseName">${escapeHtml(exercise.name)}</h2><small>${contextLabel}</small></div>
+      <div><h2 id="detailExerciseName" aria-label="${escapeHtml(exercise.name)}">${nameMarkup(exercise)}</h2><small>${exerciseLabel(exercise).version ? `${escapeHtml(exerciseLabel(exercise).version)} · ` : ""}${contextLabel}</small></div>
       <button class="icon-button" data-close-dialog="exerciseDetailDialog" aria-label="Close exercise reference" type="button">×</button>
     </header>
     <div class="sheet-body">

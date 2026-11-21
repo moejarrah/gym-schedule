@@ -176,3 +176,19 @@ test("the Library tidy-up reaches a saved Library: old names change, the owner's
   assert.equal(find(state, "plank").name, "Plank");
   assert.deepEqual([state.routines, state.programs, state.sessions], [v14.routines, v14.programs, v14.sessions]);
 });
+
+test("plate-loaded and Smith machines get their own equipment on upgrade; an exercise the owner re-equipped is left alone", () => {
+  const v16 = structuredClone({ ...createDefaultState(), version: 16 });
+  const find = (state, id) => state.exercises.find((exercise) => exercise.id === id);
+  find(v16, "hack-squat").equipment = ["machine"];
+  find(v16, "smith-hip-thrust").equipment = ["machine", "bench"];
+  find(v16, "leg-press").equipment = ["cable"];
+
+  const { store } = freshStore(v16);
+  const state = store.getState();
+  assert.equal(store.getLastError(), "");
+  assert.deepEqual(find(state, "hack-squat").equipment, ["plate-loaded"]);
+  assert.deepEqual(find(state, "smith-hip-thrust").equipment, ["smith-machine", "bench"]);
+  assert.deepEqual(find(state, "leg-press").equipment, ["cable"]);
+  assert.deepEqual([state.routines, state.sessions], [v16.routines, v16.sessions]);
+});

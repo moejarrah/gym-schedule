@@ -139,8 +139,8 @@ function routineEntriesMarkup(state, routine) {
       const note = entry.note.trim();
       const content = `<span class="row-number">${number}</span>
         <span class="row-main">
-          <span class="row-title">${escapeHtml(presentation.title)}</span>
-          <span class="row-meta">${escapeHtml(presentation.prescription)}${mixedRoles && entry.role === "optional" ? `<span class="label tag">Optional</span>` : ""}</span>
+          <span class="row-title">${presentation.titleMarkup}</span>
+          <span class="row-meta">${escapeHtml([presentation.version, presentation.prescription].filter(Boolean).join(" · "))}${mixedRoles && entry.role === "optional" ? `<span class="label tag">Optional</span>` : ""}</span>
           ${note ? `<span class="row-meta clamp-2 faint">${escapeHtml(note)}</span>` : ""}
         </span>
         <span class="grip" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h8"/></svg></span>`;

@@ -133,7 +133,7 @@ const SHOTS = [
   }],
   ["dialog-exercise-reference-related", async (page) => {
     await main(page).getByRole("button", { name: "View Low-incline press (dumbbell) details" }).click();
-    await dialog(page, "Low-incline press (dumbbell)").getByRole("button", { name: "Alternative Chest press (machine)" }).click();
+    await dialog(page, "Low-incline press (dumbbell)").getByRole("button", { name: /^Alternative Chest press/ }).click();
     await shown(dialog(page, "Chest press (machine)"));
   }],
   ["dialog-log", async (page) => {

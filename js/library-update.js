@@ -468,6 +468,22 @@ export const LIBRARY_UPDATE_2 = {
   ],
 };
 
+// Saved data version 17: "Machine" now means a pin-loaded stack; plate-loaded and
+// Smith machines are their own equipment. Only an exercise still marked plain
+// "machine" is changed.
+const MACHINE_KINDS = {
+  "plate-loaded": ["hack-squat", "leg-press", "leg-press-calf-raise", "chest-supported-t-bar-row", "chest-supported-high-row-machine"],
+  "smith-machine": ["smith-squat", "smith-hip-thrust", "smith-romanian-deadlift"],
+};
+
+export function applyMachineKinds(state) {
+  for (const [kind, ids] of Object.entries(MACHINE_KINDS)) {
+    for (const exercise of state.exercises) {
+      if (ids.includes(exercise.id) && exercise.equipment.includes("machine")) exercise.equipment = exercise.equipment.map((id) => (id === "machine" ? kind : id));
+    }
+  }
+}
+
 export function applyLibraryUpdate(state, update = LIBRARY_UPDATE) {
   const byId = (id) => state.exercises.find((exercise) => exercise.id === id);
   const taken = (except) => new Set(state.exercises.filter((exercise) => exercise !== except).flatMap((exercise) => [exercise.name, ...exercise.aliases]).map(normalizedName));

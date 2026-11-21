@@ -1,25 +1,74 @@
 // Markup pieces used by more than one screen.
 
 import { escapeHtml, formatDate } from "../dom.js";
-import { dateFromKey, exerciseById } from "../model.js";
+import { store } from "../context.js";
+import { dateFromKey, exerciseById, exerciseLabels } from "../model.js";
 
 export const locationLabel = (group) => (group === "home" ? "Home" : "Gym");
 
 export const videoUrl = (videoId) => `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
+
+// ---------- an exercise's name and version ----------
+// A name like "Romanian deadlift (barbell)" is shown as the movement, with the
+// version beside it the way Settings says: on the line below, or as a coloured
+// letter for the equipment (and the rest of the version on the line below).
+
+const KINDS = [["smith-machine", "S"], ["plate-loaded", "P"], ["machine", "M"], ["barbell", "B"], ["dumbbells", "D"], ["cable", "C"], ["kettlebell", "K"]];
+const KIND_WORDS = new Set(["barbell", "dumbbell", "cable", "machine", "smith machine", "kettlebell"]);
+const capitalised = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+
+// { title, version, kind: [equipment id, letter] or null } for an exercise (or a saved name).
+export function exerciseLabel(exercise, name = exercise?.name || "Missing exercise") {
+  const match = /^(.*\S) \(([^()]+)\)$/.exec(name);
+  const letters = exerciseLabels(store.getState()) === "letter";
+  const kind = (letters && KINDS.find(([id]) => exercise?.equipment.includes(id))) || null;
+  const parts = match ? match[2].split(", ").filter((part) => !kind || !KIND_WORDS.has(part.toLowerCase())) : [];
+  return { title: match ? match[1] : name, version: capitalised(parts.join(", ")), kind };
+}
+
+// The name as markup: the letter (if that's the setting) and the movement.
+function kindMarkup(exercise, name) {
+  const { kind } = exerciseLabel(exercise, name);
+  return kind ? `<span class="kind kind-${kind[0]}" aria-hidden="true">${kind[1]}</span>` : "";
+}
+
+export function nameMarkup(exercise, name) {
+  return `${kindMarkup(exercise, name)}${escapeHtml(exerciseLabel(exercise, name).title)}`;
+}
+
+// For a place with no line below: the version follows the name, muted.
+export function inlineNameMarkup(exercise, name) {
+  const { version } = exerciseLabel(exercise, name);
+  return `${nameMarkup(exercise, name)}${version ? ` <span class="version">${escapeHtml(version)}</span>` : ""}`;
+}
+
+// What the number in the weight box means, when it isn't the whole load.
+export function weightNote(exercise) {
+  if (exercise?.equipment.includes("plate-loaded")) return "kg per side";
+  if (exercise?.equipment.includes("dumbbells")) return "kg per dumbbell";
+  return "";
+}
 
 // Display data for a routine entry: its choices with names, the derived title,
 // and one prescription line ("3 × 8" or "3 × 8 or 2 × 12").
 export function entryPresentation(entry, state) {
   const choices = entry.choices.map((choice) => {
     const exercise = exerciseById(state, choice.exerciseId);
-    return { choice, exercise, name: exercise?.name || "Missing exercise", prescription: choice.prescription || "No prescription" };
+    const name = exercise?.name || "Missing exercise";
+    return { choice, exercise, name, titleMarkup: nameMarkup(exercise, name), inlineMarkup: inlineNameMarkup(exercise, name), version: exerciseLabel(exercise, name).version, prescription: choice.prescription || "No prescription" };
   });
   const prescriptions = choices.map((item) => item.prescription);
+  // Two versions of one movement ("Hip thrust", barbell or Smith machine) show its name once.
+  const labels = choices.map((item) => exerciseLabel(item.exercise, item.name));
+  const sameMovement = choices.length > 1 && labels.every((label) => label.title === labels[0].title);
   const shared = prescriptions.length > 0 && prescriptions.every((prescription) => prescription === prescriptions[0]);
   return {
     choices,
     preferred: choices[0] || null,
     title: choices.map((item) => item.name).join(" or ") || "No exercise choices",
+    titleMarkup: sameMovement ? `${choices.map((item) => kindMarkup(item.exercise, item.name)).join("")}${escapeHtml(labels[0].title)}` : choices.map((item) => item.titleMarkup).join(" or ") || "No exercise choices",
+    inlineMarkup: choices.map((item) => item.inlineMarkup).join(" or ") || "No exercise choices",
+    version: [...new Set(choices.map((item) => item.version).filter(Boolean))].join(" or "),
     prescription: shared ? prescriptions[0] : prescriptions.join(" or "),
   };
 }
