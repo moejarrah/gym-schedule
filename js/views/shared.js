@@ -54,9 +54,6 @@ export function exerciseMarkup(exercise, savedName = "Missing exercise") {
 // A quiet row names only the movement (with its letter, if that's the setting).
 export const movementMarkup = (exercise, savedName = "Missing exercise") => (exercise ? lettered(exercise, exercise.name) : escapeHtml(savedName));
 
-// The setup as one plain line, for under a name: "Dumbbell · Neutral".
-export const setupLine = (exercise) => (exercise ? setupText(exercise) : "");
-
 // Logged sets in one short line: "60 × 10, 9, 8", "30 × 9 · 32.5 × 8 +1 drop", "45, 40 sec".
 export function setsSummary({ sets, unit }) {
   const working = sets.some((set) => !set.warmup) ? sets.filter((set) => !set.warmup) : sets;

@@ -6,13 +6,14 @@
 // and the exercise-choices sheet of multi-choice slots.
 
 import { afterRender, registerActions, registerView, render, scrollToTop, store } from "../context.js";
-import { $, chevronIcon, closeDialog, confirmAction, escapeHtml, fresh, openDialog, playIcon, plural, redraw, report, toast } from "../dom.js";
-import { activeProgram, activeRoutine, activeWorkout, addExtra, backupAge, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseById, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, localDateKey, orderedEntries, programRoutines, routineById, setActiveRoutine, startWorkout, usualExtras } from "../model.js";
+import { $, chevronIcon, closeDialog, confirmAction, escapeHtml, openDialog, playIcon, plural, redraw, report, toast } from "../dom.js";
+import { activeProgram, activeRoutine, activeWorkout, addExtra, backupAge, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseById, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, localDateKey, mainEquipment, orderedEntries, programRoutines, routineById, setActiveRoutine, startWorkout, usualExtras } from "../model.js";
 import { compareSets, exerciseMode, exerciseProgress } from "../progress.js";
+import { label } from "../vocab.js";
 import { openPicker } from "./entry-editor.js";
 import { openLogger } from "./logger.js";
 import { openExerciseReference, openExerciseVideo } from "./reference.js";
-import { entryPresentation, exerciseMarkup, movementMarkup, revealSelectedTab, routineTabsMarkup, saysOptional, setChipsMarkup, setsSummary, setupLine, shortDate, videoUrl, weightWords } from "./shared.js";
+import { entryPresentation, exerciseMarkup, movementMarkup, revealSelectedTab, routineTabsMarkup, saysOptional, setChipsMarkup, setsSummary, shortDate, videoUrl } from "./shared.js";
 
 // When Start was last tapped (page time), to ignore a double-tap landing on Cancel.
 let startedTapAt = -Infinity;
@@ -187,7 +188,7 @@ function slotMarkup(state, routine, slot, number, dateKey, showOptionalRole = fa
   const open = openSlotId(state, routine, dateKey) === slot.id;
   const data = `data-routine-id="${escapeHtml(routine.id)}" data-entry-id="${escapeHtml(slot.id)}"`;
   const end = log ? setsSummary(log) : checked ? "Done" : slot.choices[0].prescription ? prescription : "";
-  const row = `<article class="row split tap slot ${checked ? "is-done" : ""} ${log ? "has-sets" : ""}">
+  const row = `<article class="row split tap slot ${checked ? "is-done" : ""} ${log ? "has-sets" : ""} ${open ? "is-open" : ""}">
     <button class="icon-button" type="button" data-action="open-logger" data-routine-id="${escapeHtml(routine.id)}" data-id="${escapeHtml(slot.id)}" aria-label="Log sets for ${escapeHtml(name)}${status}">
       <span class="tickbox" aria-hidden="true">
         <span>${number}</span>
@@ -196,7 +197,7 @@ function slotMarkup(state, routine, slot, number, dateKey, showOptionalRole = fa
     </button>
     <button class="row-body" type="button" data-action="toggle-slot" ${data} aria-expanded="${open}" aria-label="View ${escapeHtml(name)} details">
       <span class="row-main"><span class="row-title">${movementMarkup(shown.exercise)}${others.length ? ` <span class="version">+${others.length}</span>` : ""}${showOptionalRole ? ` <span class="label tag">Optional</span>` : ""}</span></span>
-      <span class="slot-end ${log || checked ? "is-result" : ""}">${escapeHtml(end)}</span>
+      ${open ? chevronIcon("up") : `<span class="slot-end ${log || checked ? "is-result" : ""}">${escapeHtml(end)}</span>`}
     </button>
   </article>`;
   if (!open) return row;
@@ -204,25 +205,58 @@ function slotMarkup(state, routine, slot, number, dateKey, showOptionalRole = fa
   const exercise = shown.exercise;
   const last = exercise ? exerciseHistory(state, exercise.id, { beforeDateKey: dateKey || localDateKey(), limit: 1 })[0] : null;
   const note = slot.note.trim();
-  const fact = (label, value) => (value ? `<div class="slot-fact"><span class="row-meta">${label}</span><span>${value}</span></div>` : "");
+  // One labelled line per fact, always in this order; a line with nothing to say is left out.
+  const line = (name, value) => (value ? `<div class="slot-line"><span>${name}</span><span>${value}</span></div>` : "");
+  const word = (id) => (id ? escapeHtml(label(id)) : "");
   const video = exercise?.videoId
     ? `<a class="button" href="${videoUrl(exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for preferred choice ${escapeHtml(shown.name)}">Video</a>`
     : `<button class="button" type="button" data-action="open-workout-video" data-id="${escapeHtml(exercise?.id || "")}" aria-label="Find a video for preferred choice ${escapeHtml(shown.name)}">Video</button>`;
   return `<div class="slot-open" data-open-slot>
     ${row}
-    <div class="slot-detail">
-      <p class="row-meta">${escapeHtml([setupLine(exercise), shown.prescription, weightWords(exercise)].filter(Boolean).join(" · "))}</p>
-      ${fact("Today", log ? `<span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec" })}</span>` : "")}
-      ${fact("Last time", last ? `${escapeHtml(setsSummary(last))} <span class="row-meta">${escapeHtml(shortDate(last.dateKey))}</span>` : "")}
-      ${fact("Note", escapeHtml(note))}
-      ${fact("Or do", others.length ? `<button class="link-button" type="button" data-action="open-entry-choices" ${data} aria-label="Open exercise choices for ${escapeHtml(name)}">${others.map((item) => escapeHtml(item.exercise?.name || item.name)).join(", ")}</button>` : "")}
+    <div class="slot-detail" data-slot="${escapeHtml(slot.id)}">
+      ${line("Sets × reps", escapeHtml(shown.prescription))}
+      ${line("Equipment", word(mainEquipment(exercise)) || word(exercise?.equipment[0]))}
+      ${line("Attachment", word(exercise?.attachment))}
+      ${line("Grip", word(exercise?.grip))}
+      ${line("Grip width", word(exercise?.width))}
+      ${line("Detail", escapeHtml(exercise?.detail ? exercise.detail.charAt(0).toUpperCase() + exercise.detail.slice(1) : ""))}
+      ${line("Weight", word(exercise?.weightMode))}
+      ${line("Today", log ? `<span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec" })}</span>` : "")}
+      ${line("Last time", last ? `${escapeHtml(setsSummary(last))} <span class="row-meta">· ${escapeHtml(shortDate(last.dateKey))}</span>` : "")}
+      ${line("Note", escapeHtml(note))}
+      ${line(others.length > 1 ? "Alternatives" : "Alternative", others.length ? `<button class="link-button" type="button" data-action="open-entry-choices" ${data} aria-label="Open exercise choices for ${escapeHtml(name)}">${others.map((item) => escapeHtml(item.exercise?.name || item.name)).join(", ")}${chevronIcon("right")}</button>` : "")}
       <div class="actions">
         ${dateKey ? `<button class="button primary" type="button" data-action="open-logger" data-routine-id="${escapeHtml(routine.id)}" data-id="${escapeHtml(slot.id)}">Log sets</button>` : ""}
-        <button class="button" type="button" data-action="open-workout-exercise" data-id="${escapeHtml(exercise?.id || "")}" ${data} data-prescription="${escapeHtml(shown.prescription)}" aria-label="Open exercise page for ${escapeHtml(shown.name)}">Exercise page</button>
+        <button class="button" type="button" data-action="open-workout-exercise" data-id="${escapeHtml(exercise?.id || "")}" ${data} data-prescription="${escapeHtml(shown.prescription)}" aria-label="Open exercise page for ${escapeHtml(shown.name)}">Details</button>
         ${video}
       </div>
     </div>
   </div>`;
+}
+
+// The open slot's lines unfold and fold; nothing snaps. Called after a draw: if a
+// different slot is open than at the last draw of this routine, it unfolds.
+const UNFOLD = { duration: 220, easing: "cubic-bezier(0.22, 0.8, 0.26, 1)" };
+const calm = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let lastDrawn = { routineId: "", slotId: "" };
+
+function unfoldOpenSlot(root) {
+  const detail = root.querySelector("[data-open-slot] > .slot-detail");
+  const drawn = { routineId: store.getState().settings.activeRoutineId, slotId: detail?.dataset.slot || "" };
+  const changed = drawn.routineId === lastDrawn.routineId && drawn.slotId && drawn.slotId !== lastDrawn.slotId;
+  lastDrawn = drawn;
+  if (!changed || calm()) return;
+  const height = detail.offsetHeight;
+  detail.style.overflow = "hidden";
+  detail.animate([{ height: "0px", paddingBottom: "0px", opacity: 0 }, { height: `${height}px`, opacity: 1 }], UNFOLD).onfinish = () => { detail.style.overflow = ""; };
+}
+
+// Folds the open slot away, then runs what comes next (the redraw).
+function foldOpenSlot(then) {
+  const detail = document.querySelector("#appMain [data-open-slot] > .slot-detail");
+  if (!detail || calm()) return then();
+  detail.style.overflow = "hidden";
+  detail.animate([{ height: `${detail.offsetHeight}px`, opacity: 1 }, { height: "0px", paddingBottom: "0px", opacity: 0 }], { ...UNFOLD, duration: 170, fill: "forwards" }).onfinish = then;
 }
 
 // A block whose entries are all Optional is outlined and says so once in its
@@ -332,7 +366,7 @@ function resultMarkup(state, routineId, dateKey) {
 
 // ---------- screen ----------
 
-registerView("workout", { markup: pageMarkup, afterDraw: revealSelectedTab });
+registerView("workout", { markup: pageMarkup, afterDraw(root) { revealSelectedTab(root); unfoldOpenSlot(root); } });
 
 // A one-choice row opens its exercise's reference in the context of this slot.
 function openRowReference(button) {
@@ -414,8 +448,7 @@ registerActions({
     const done = (slotId) => Boolean(dateKey) && isEntryChecked(state, dateKey, routine.id, slotId);
     const slotId = button.getAttribute("aria-expanded") === "true" ? "" : button.dataset.entryId;
     chosen = { routineId: routine.id, slotId, wasDone: slotId ? done(slotId) : false, doneIds: daySlots(state, routine, dateKey).filter((slot) => done(slot.id)).map((slot) => slot.id) };
-    render();
-    fresh("[data-open-slot] > .slot-detail");
+    foldOpenSlot(() => render());
   },
   "open-entry-choices": openEntryChoices,
   "open-workout-exercise": openRowReference,
