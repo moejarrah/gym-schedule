@@ -363,7 +363,10 @@ export function enableHoldDrag(container, { rowSelector, listSelector, placehold
     window.getSelection()?.removeAllRanges();
     // A focused field would make the browser scroll it back into view as the finger moves.
     if (document.activeElement?.matches?.("input, textarea, select")) document.activeElement.blur();
+    // Lifted out of its list it would lose the list's padding and change size.
+    const { paddingLeft, paddingRight } = getComputedStyle(row);
     row.classList.add("is-dragging");
+    Object.assign(row.style, { paddingLeft, paddingRight });
     Object.assign(row.style, { left: `${bounds.left}px`, top: `${bounds.top}px`, width: `${bounds.width}px`, height: `${bounds.height}px` });
     // Inside an open dialog the row must stay in the dialog, or the backdrop hides it.
     (drag.list.closest("dialog") || document.body).append(row);

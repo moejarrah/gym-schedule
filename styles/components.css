@@ -1092,7 +1092,6 @@ textarea.control {
   position: fixed;
   z-index: var(--z-drag);
   margin: 0;
-  padding-inline: var(--space-3);
   border: 0;
   border-radius: var(--radius-button);
   background: var(--surface-2);
@@ -1126,6 +1125,18 @@ textarea.control {
 .icon-button:active,
 .bottom-nav button:active,
 .tap:active {
+  background: var(--press);
+}
+
+/* A draggable row presses and lifts as one piece: the whole row tints, not the
+   name inside it. */
+.drag-row .row-body:active,
+.drag-row.is-dragging .row-body {
+  background: none;
+}
+
+.drag-row:has(.row-body:active):not(.is-dragging) {
+  border-radius: var(--radius-control);
   background: var(--press);
 }
 
