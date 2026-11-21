@@ -120,7 +120,7 @@ appTest("Library: search and browse, add an exercise, edit it, and delete one th
   const adding = dialog(page, "Add exercise");
   await adding.getByRole("textbox", { name: /^Name/ }).fill("Face pull");
   await adding.getByRole("textbox", { name: "Default prescription" }).fill("3 × 15");
-  await adding.getByLabel("Dominant target").selectOption({ label: "Rear delts" });
+  await adding.getByLabel(/^Primary target/).selectOption({ label: "Rear delts" });
   await adding.getByLabel(/^Movement/).selectOption({ label: "Horizontal pull" });
   await adding.getByRole("button", { name: /^Equipment/ }).click();
   await dialog(page, "Equipment").getByRole("button", { name: "Cable" }).click();

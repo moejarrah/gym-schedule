@@ -64,44 +64,41 @@
         <div><p class="label">Master exercise</p><h2 id="exerciseDialogTitle">Add exercise</h2></div>
       </header>
       <div class="sheet-body stack">
-        <label class="field"><span>Name <small>Required</small></span><input class="control" id="exerciseName" name="name" autocomplete="off" required maxlength="100"></label>
-        <label class="field"><span>Aliases <small>Optional · one per line</small></span><textarea class="control" id="exerciseAliases" rows="2" maxlength="500" placeholder="Alternate name"></textarea></label>
-        <label class="field"><span>Default prescription</span><input class="control" id="exercisePrescription" name="prescription" autocomplete="off" placeholder="3 × 8–12" maxlength="60"></label>
+        <section class="form-section" aria-labelledby="exerciseBasicsHeading">
+          <h3 class="label" id="exerciseBasicsHeading">Exercise</h3>
+          <label class="field"><span>Name <small>Required</small></span><input class="control" id="exerciseName" name="name" autocomplete="off" required maxlength="100"></label>
+          <label class="field"><span>Other names <small>One per line</small></span><textarea class="control" id="exerciseAliases" rows="2" maxlength="500" placeholder="Alternate name"></textarea></label>
+          <label class="field"><span>Default prescription</span><input class="control" id="exercisePrescription" name="prescription" autocomplete="off" placeholder="3 × 8–12" maxlength="60"></label>
+        </section>
 
-        <section class="editor-section stack tight" aria-labelledby="exerciseEssentialHeading">
-          <div class="label-row"><h3 id="exerciseEssentialHeading">Essential classification</h3><span class="label">Required</span></div>
-          <div class="ruled">
-            <label class="row"><span class="row-number">1</span><span class="field"><strong>Dominant target</strong><select class="control" id="exercisePrimaryTarget1" required><option value="" disabled>Choose dominant target</option></select></span></label>
-            <label class="row"><span class="row-number">2</span><span class="field"><strong>Second primary target</strong><select class="control" id="exercisePrimaryTarget2"><option value="">No second primary target</option></select></span></label>
-          </div>
-          <button class="row ruled" id="chooseSecondaryTargetsButton" data-action="open-classification-picker" type="button" data-classification-picker="secondaryTargets" aria-haspopup="dialog">
-            <span class="row-main"><strong class="row-title">Secondary involvement</strong><small class="row-meta" id="secondaryTargetsSummary">None selected</small></span><span class="chev" aria-hidden="true">›</span>
-          </button>
+        <section class="form-section" aria-labelledby="exerciseMusclesHeading">
+          <h3 class="label" id="exerciseMusclesHeading">Muscles</h3>
+          <label class="field"><span>Primary target <small>Required</small></span><select class="control" id="exercisePrimaryTarget1" required><option value="" disabled>Choose primary target</option></select></label>
+          <label class="field"><span>Second primary target</span><select class="control" id="exercisePrimaryTarget2"><option value="">None</option></select></label>
+          <div class="field"><span id="chooseSecondaryTargetsButtonLabel">Secondary involvement</span><button class="control picker" id="chooseSecondaryTargetsButton" data-action="open-classification-picker" data-classification-picker="secondaryTargets" type="button" aria-haspopup="dialog" aria-labelledby="chooseSecondaryTargetsButtonLabel secondaryTargetsSummary"><span id="secondaryTargetsSummary">None selected</span><span class="chev" aria-hidden="true">›</span></button></div>
+        </section>
+
+        <section class="form-section" aria-labelledby="exerciseTypeHeading">
+          <h3 class="label" id="exerciseTypeHeading">Type</h3>
           <label class="field"><span>Movement <small>Required</small></span><select class="control" id="exerciseMovement" required><option value="" disabled>Choose movement</option></select></label>
-          <button class="row ruled" id="chooseEquipmentButton" data-action="open-classification-picker" type="button" data-classification-picker="equipment" aria-haspopup="dialog">
-            <span class="row-main"><strong class="row-title">Equipment <small>Required</small></strong><small class="row-meta" id="exerciseEquipmentSummary">Choose at least one</small></span><span class="chev" aria-hidden="true">›</span>
-          </button>
+          <div class="field"><span id="chooseEquipmentButtonLabel">Equipment <small>Required</small></span><button class="control picker" id="chooseEquipmentButton" data-action="open-classification-picker" data-classification-picker="equipment" type="button" aria-haspopup="dialog" aria-labelledby="chooseEquipmentButtonLabel exerciseEquipmentSummary"><span id="exerciseEquipmentSummary">Choose at least one</span><span class="chev" aria-hidden="true">›</span></button></div>
           <label class="field"><span>Purpose <small>Required</small></span><select class="control" id="exercisePurpose" required><option value="" disabled>Choose purpose</option></select></label>
         </section>
 
-        <details class="more plus" id="exerciseOptionalClassification">
-          <summary><strong>Optional classification</strong><span id="optionalClassificationSummary">Style · side · support · emphasis · challenge</span></summary>
-          <div class="stack tight">
-            <label class="field"><span>Style</span><select class="control" id="exerciseStyle"><option value="">Not classified</option></select></label>
-            <label class="field"><span>Laterality</span><select class="control" id="exerciseLaterality"><option value="">Not classified</option></select></label>
-            <label class="field"><span>Support</span><select class="control" id="exerciseSupport"><option value="">Not classified</option></select></label>
-            <button class="row ruled" id="chooseEmphasesButton" data-action="open-classification-picker" type="button" data-classification-picker="emphases" aria-haspopup="dialog">
-              <span class="row-main"><strong class="row-title">Emphasis</strong><small class="row-meta" id="exerciseEmphasesSummary">Not classified</small></span><span class="chev" aria-hidden="true">›</span>
-            </button>
-            <label class="field"><span>Typical challenge</span><select class="control" id="exerciseChallenge"><option value="">Not classified</option></select></label>
-          </div>
+        <details class="form-section" id="exerciseOptionalClassification">
+          <summary><h3 class="label">More detail</h3><span id="optionalClassificationSummary">Optional</span></summary>
+          <label class="field"><span>Style</span><select class="control" id="exerciseStyle"><option value="">Not set</option></select></label>
+          <label class="field"><span>Laterality</span><select class="control" id="exerciseLaterality"><option value="">Not set</option></select></label>
+          <label class="field"><span>Support</span><select class="control" id="exerciseSupport"><option value="">Not set</option></select></label>
+          <div class="field"><span id="chooseEmphasesButtonLabel">Emphasis</span><button class="control picker" id="chooseEmphasesButton" data-action="open-classification-picker" data-classification-picker="emphases" type="button" aria-haspopup="dialog" aria-labelledby="chooseEmphasesButtonLabel exerciseEmphasesSummary"><span id="exerciseEmphasesSummary">Not set</span><span class="chev" aria-hidden="true">›</span></button></div>
+          <label class="field"><span>Typical challenge</span><select class="control" id="exerciseChallenge"><option value="">Not set</option></select></label>
         </details>
 
-        <section class="editor-section stack tight" aria-labelledby="exerciseReferenceHeading">
-          <div class="label-row"><h3 id="exerciseReferenceHeading">Reference</h3></div>
+        <section class="form-section" aria-labelledby="exerciseReferenceHeading">
+          <h3 class="label" id="exerciseReferenceHeading">Reference</h3>
           <label class="field"><span>YouTube link or video ID</span><input class="control" id="exerciseVideo" name="video" inputmode="url" autocomplete="off" placeholder="Optional"></label>
           <label class="field"><span>Notes and cues</span><textarea class="control" id="exerciseInstructions" name="instructions" rows="5" placeholder="Stable setup, execution, and focus cues"></textarea></label>
-          <button class="row ruled" id="chooseAlternativesButton" data-action="open-related-editor" type="button" aria-haspopup="dialog"><span class="row-main"><strong class="row-title">Alternatives and progressions</strong><small class="row-meta" id="alternativesCount">None linked</small></span><span class="chev" aria-hidden="true">›</span></button>
+          <div class="field"><span id="chooseAlternativesButtonLabel">Alternatives and progressions</span><button class="control picker" id="chooseAlternativesButton" data-action="open-related-editor" type="button" aria-haspopup="dialog" aria-labelledby="chooseAlternativesButtonLabel alternativesCount"><span id="alternativesCount">None linked</span><span class="chev" aria-hidden="true">›</span></button></div>
         </section>
 
         <p class="card tinted hint"><strong>Routine execution stays in Program.</strong> Sets, reps, tempo, pauses, partial range, role, and exercise choices can change per routine without changing this master.</p>

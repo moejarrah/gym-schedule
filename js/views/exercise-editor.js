@@ -90,7 +90,7 @@ const selectionSummary = (values, emptyLabel) => (values.length ? values.map(lab
 function updateExerciseEditorSummaries() {
   $("#secondaryTargetsSummary").textContent = selectionSummary(editor.selections.secondaryTargets, "None selected");
   $("#exerciseEquipmentSummary").textContent = selectionSummary(editor.selections.equipment, "Choose at least one");
-  $("#exerciseEmphasesSummary").textContent = selectionSummary(editor.selections.emphases, "Not classified");
+  $("#exerciseEmphasesSummary").textContent = selectionSummary(editor.selections.emphases, "Not set");
   const optionalCount = [
     $("#exerciseStyle").value,
     $("#exerciseLaterality").value,
@@ -98,7 +98,7 @@ function updateExerciseEditorSummaries() {
     $("#exerciseChallenge").value,
     ...editor.selections.emphases,
   ].filter(Boolean).length;
-  $("#optionalClassificationSummary").textContent = optionalCount ? `${optionalCount} classified` : "Style · side · support · emphasis · challenge";
+  $("#optionalClassificationSummary").textContent = optionalCount ? `${optionalCount} set` : "Optional";
 }
 
 function updateRelatedCount() {
@@ -133,13 +133,13 @@ function fillForm(source) {
   $("#deleteExerciseButton").hidden = !editing;
   $("#duplicateExerciseButton").hidden = !editing;
   setExerciseSelectOptions("#exercisePrimaryTarget1", TARGETS, "Choose dominant target", source?.primaryTargets[0], true);
-  setExerciseSelectOptions("#exercisePrimaryTarget2", TARGETS, "No second primary target", source?.primaryTargets[1]);
+  setExerciseSelectOptions("#exercisePrimaryTarget2", TARGETS, "None", source?.primaryTargets[1]);
   setExerciseSelectOptions("#exerciseMovement", MOVEMENTS, "Choose movement", source?.movementPattern, true);
   setExerciseSelectOptions("#exercisePurpose", PURPOSES, "Choose purpose", source?.purpose, true);
-  setExerciseSelectOptions("#exerciseStyle", STYLES, "Not classified", source?.style);
-  setExerciseSelectOptions("#exerciseLaterality", LATERALITIES, "Not classified", source?.laterality);
-  setExerciseSelectOptions("#exerciseSupport", SUPPORTS, "Not classified", source?.support);
-  setExerciseSelectOptions("#exerciseChallenge", CHALLENGES, "Not classified", source?.typicalChallenge);
+  setExerciseSelectOptions("#exerciseStyle", STYLES, "Not set", source?.style);
+  setExerciseSelectOptions("#exerciseLaterality", LATERALITIES, "Not set", source?.laterality);
+  setExerciseSelectOptions("#exerciseSupport", SUPPORTS, "Not set", source?.support);
+  setExerciseSelectOptions("#exerciseChallenge", CHALLENGES, "Not set", source?.typicalChallenge);
   updateRelatedCount();
   syncExerciseTargetOptions();
 }

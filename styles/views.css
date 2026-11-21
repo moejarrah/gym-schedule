@@ -487,19 +487,63 @@
   min-height: 74px;
 }
 
-.editor-section {
+/* The exercise editor: sections that all look alike. A small label heads each one,
+   and every line in it is a field (a label over its box), whether you type in it,
+   pick from a list or open a sheet to choose. */
+.form-section {
   padding-top: var(--space-4);
-  border-top: 1px solid var(--border-strong);
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: var(--space-3);
 }
 
-.editor-section > .label-row {
-  min-height: 0;
-  border: 0;
-  align-items: baseline;
+.form-section:first-child {
+  padding-top: 0;
+  border-top: 0;
 }
 
-.editor-section h3 {
+.field small {
+  margin-left: 6px;
+  color: var(--faint);
+  font-weight: 500;
+}
+
+/* A field's box that opens a sheet: what is chosen, and a chevron. */
+.control.picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--text);
   font-size: var(--fs-field);
+  font-weight: 400;
+  text-align: left;
+}
+
+/* The optional section opens from its heading. */
+details.form-section > summary {
+  min-height: 44px;
+  margin-block: -12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--fs-meta);
+}
+
+details.form-section > summary::after {
+  content: "+";
+  color: var(--faint);
+  font-size: var(--fs-head);
+}
+
+details.form-section[open] > summary::after {
+  content: "−";
+}
+
+details.form-section > summary > span {
+  margin-left: auto;
 }
 
 .row > .field {
@@ -936,4 +980,17 @@ a > svg {
 
 .history-change.same {
   color: var(--text-muted);
+}
+
+details.form-section > :not(summary) {
+  margin-top: var(--space-3);
+}
+
+details.form-section > summary + * {
+  margin-top: var(--space-3);
+}
+
+/* A list's own text sits 4px in from its box; this lines it up with typed fields. */
+.form-section select.control {
+  padding-left: 10px;
 }
