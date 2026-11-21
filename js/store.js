@@ -5,11 +5,11 @@
 // upgrades the previous version in place, with a test in tests/store.test.mjs.
 // Saved data and backups from older versions must keep loading.
 
-import { applyLibraryUpdate, applyMachineKinds, applySetupFields, LIBRARY_UPDATE_2 } from "./library-update.js";
+import { applyCoachEdits, applyLibraryUpdate, applyMachineKinds, applySetupFields, LIBRARY_UPDATE_2 } from "./library-update.js";
 import { isDateKey } from "./model.js";
 import { SEED } from "./seed.js";
 
-export const SCHEMA_VERSION = 18;
+export const SCHEMA_VERSION = 19;
 export const STORAGE_KEY = "gymAppStateV1";
 // Earlier versions copied unreadable data here before starting fresh. It's still offered for download.
 const OLD_RECOVERY_KEY = `${STORAGE_KEY}:unreadable`;
@@ -71,6 +71,10 @@ const MIGRATIONS = {
   // The version leaves the name and gets its own fields (attachment, grip, width, detail, weightMode).
   17(state) {
     applySetupFields(state);
+  },
+  // The coach's edits to PPL 9.
+  18(state) {
+    applyCoachEdits(state);
   },
 };
 

@@ -7,7 +7,7 @@
 
 import { afterRender, registerActions, registerView, render, scrollToTop, store } from "../context.js";
 import { $, chevronIcon, closeDialog, confirmAction, escapeHtml, openDialog, playIcon, plural, redraw, report, toast } from "../dom.js";
-import { activeProgram, activeRoutine, activeWorkout, addExtra, backupAge, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseById, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, localDateKey, mainEquipment, orderedEntries, programRoutines, routineById, setActiveRoutine, startWorkout, usualExtras } from "../model.js";
+import { activeProgram, activeRoutine, activeWorkout, addExtra, backupAge, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseById, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, localDateKey, mainEquipment, orderedEntries, setupWords, programRoutines, routineById, setActiveRoutine, startWorkout, usualExtras } from "../model.js";
 import { compareSets, exerciseMode, exerciseProgress } from "../progress.js";
 import { label } from "../vocab.js";
 import { openPicker } from "./entry-editor.js";
@@ -175,6 +175,14 @@ function openSlotId(state, routine, dateKey) {
   return dateKey ? slots.find((slot) => !done(slot.id))?.id || "" : "";
 }
 
+// How an alternative is named in the open slot: its movement, or, when it is another
+// version of the same movement, what sets it apart ("Chest press · Machine").
+function otherName(item, shown) {
+  if (!item.exercise) return item.name;
+  const setup = [label(mainEquipment(item.exercise)), ...setupWords(item.exercise)].filter(Boolean).join(" · ");
+  return item.exercise.name === shown?.name && setup ? `${item.exercise.name} · ${setup}` : item.exercise.name;
+}
+
 // One slot of the routine, or an exercise added for the day. Outside a workout
 // (no dateKey) it shows no progress and can't be logged.
 function slotMarkup(state, routine, slot, number, dateKey, showOptionalRole = false) {
@@ -224,7 +232,7 @@ function slotMarkup(state, routine, slot, number, dateKey, showOptionalRole = fa
       ${line("Today", log ? `<span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec" })}</span>` : "")}
       ${line("Last time", last ? `${escapeHtml(setsSummary(last))} <span class="row-meta">· ${escapeHtml(shortDate(last.dateKey))}</span>` : "")}
       ${line("Note", escapeHtml(note))}
-      ${line(others.length > 1 ? "Alternatives" : "Alternative", others.length ? `<button class="link-button" type="button" data-action="open-entry-choices" ${data} aria-label="Open exercise choices for ${escapeHtml(name)}">${others.map((item) => escapeHtml(item.exercise?.name || item.name)).join(", ")}${chevronIcon("right")}</button>` : "")}
+      ${line(others.length > 1 ? "Alternatives" : "Alternative", others.length ? `<button class="link-button" type="button" data-action="open-entry-choices" ${data} aria-label="Open exercise choices for ${escapeHtml(name)}">${others.map((item) => escapeHtml(otherName(item, exercise))).join(", ")}${chevronIcon("right")}</button>` : "")}
       <div class="actions">
         ${dateKey ? `<button class="button primary" type="button" data-action="open-logger" data-routine-id="${escapeHtml(routine.id)}" data-id="${escapeHtml(slot.id)}">Log sets</button>` : ""}
         <button class="button" type="button" data-action="open-workout-exercise" data-id="${escapeHtml(exercise?.id || "")}" ${data} data-prescription="${escapeHtml(shown.prescription)}" aria-label="Open exercise page for ${escapeHtml(shown.name)}">Details</button>

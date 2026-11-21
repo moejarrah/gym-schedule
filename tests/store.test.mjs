@@ -233,3 +233,35 @@ test("after the upgrade a plate-loaded exercise is logged per side, a dumbbell o
   assert.equal(fullName(find(state, "smith-squat")), "Squat (Smith machine)");
   assert.ok(!find(state, "leg-press").aliases.includes("Squat (Smith machine)"));
 });
+
+test("the coach's edits reach a saved program; a slot the owner changed himself is left as he had it", () => {
+  // The program as version 18 had it, where it matters, plus one slot the owner had changed.
+  const v18 = structuredClone({ ...createDefaultState(), version: 18 });
+  const routine = (state, id) => state.routines.find((item) => item.id === id);
+  const slot = (state, routineId, id) => routine(state, routineId).entries.find((item) => item.id === id);
+  const ids = (entry) => entry.choices.map((choice) => choice.exerciseId);
+  v18.exercises = v18.exercises.filter((exercise) => exercise.id !== "isolateral-chest-press");
+  for (const exercise of v18.exercises) exercise.relatedExercises = exercise.relatedExercises.filter((related) => related.exerciseId !== "isolateral-chest-press");
+  slot(v18, "push-a", "push-a-02").choices = [{ exerciseId: "machine-chest-press", prescription: "2 × 8–12" }];
+  Object.assign(slot(v18, "push-a", "push-a-05"), { choices: [{ exerciseId: "scaption-raise", prescription: "3 × 12–20" }], note: "" });
+  routine(v18, "push-a").entries = routine(v18, "push-a").entries.filter((entry) => entry.id !== "push-a-lateral-raise");
+  Object.assign(slot(v18, "push-a", "push-a-13"), { blockId: "push-a-optional-coverage-rehab", role: "optional", note: "" });
+  routine(v18, "legs-b").entries = routine(v18, "legs-b").entries.filter((entry) => entry.id !== "legs-b-leg-extension");
+  slot(v18, "legs-b", "legs-b-05").choices = [{ exerciseId: "lying-leg-curl", prescription: "2 × 10–15" }];
+  slot(v18, "legs-b", "legs-b-08").choices = [{ exerciseId: "leg-extension", prescription: "5 × 5" }]; // the owner's own change
+
+  const { store } = freshStore(v18);
+  const state = store.getState();
+  assert.equal(store.getLastError(), "");
+  assert.deepEqual(ids(slot(state, "push-a", "push-a-02")), ["isolateral-chest-press", "machine-chest-press"]);
+  const press = state.exercises.find((exercise) => exercise.id === "isolateral-chest-press");
+  assert.deepEqual([fullName(press), press.weightMode], ["Chest press (plate-loaded)", "per-side"]);
+  assert.deepEqual(slot(state, "push-a", "push-a-05"), { ...slot(v18, "push-a", "push-a-05"), choices: [{ exerciseId: "scaption-raise", prescription: "2 × 12–20" }], note: "Light, rehab, not to failure" });
+  const main = routine(state, "push-a").entries.filter((entry) => entry.blockId === "push-a-main").map((entry) => entry.id);
+  assert.deepEqual(main.slice(4, 8), ["push-a-05", "push-a-lateral-raise", "push-a-13", "push-a-06"], "lateral raise, then external rotation, after the scaption raise");
+  assert.deepEqual([slot(state, "push-a", "push-a-13").role, slot(state, "push-a", "push-a-13").note], ["main", "Light, controlled"]);
+  assert.deepEqual(slot(state, "legs-b", "legs-b-05").choices, [{ exerciseId: "lying-leg-curl", prescription: "3 × 10–15" }]);
+  assert.deepEqual(ids(slot(state, "legs-b", "legs-b-leg-extension")), ["leg-extension"]);
+  assert.deepEqual(slot(state, "legs-b", "legs-b-08").choices, [{ exerciseId: "leg-extension", prescription: "5 × 5" }], "left as the owner had it");
+  assert.deepEqual(routine(state, "legs-a"), routine(v18, "legs-a"), "already edited: nothing is done twice");
+});

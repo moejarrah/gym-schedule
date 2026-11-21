@@ -624,6 +624,75 @@ export function applySetupFields(state, table = SETUP_UPDATE) {
   }
 }
 
+// Saved data version 19: the coach's edits to PPL 9 (November 2026). Each edit is made
+// only where the slot is still as the starting program had it, so a slot the owner
+// changed himself is left alone; running it twice changes nothing more.
+export function applyCoachEdits(state) {
+  const exercise = (id) => state.exercises.find((item) => item.id === id);
+  const routine = (id) => state.routines.find((item) => item.id === id);
+  const entry = (list, id) => list?.entries.find((item) => item.id === id);
+  const does = (slot, ...ids) => Boolean(slot) && slot.choices.map((choice) => choice.exerciseId).join() === ids.join() && ids.every(exercise);
+  const choice = (exerciseId, prescription) => ({ exerciseId, prescription });
+  // Puts a slot right after another one (or first in its block when there is none to follow).
+  const place = (list, slot, afterId) => {
+    list.entries = list.entries.filter((item) => item !== slot);
+    const after = list.entries.findIndex((item) => item.id === afterId);
+    const first = list.entries.findIndex((item) => item.blockId === slot.blockId);
+    list.entries.splice(after >= 0 ? after + 1 : first >= 0 ? first : list.entries.length, 0, slot);
+  };
+  const add = (list, id, blockId, role, choices, afterId) => {
+    if (!list || entry(list, id) || !choices.every((item) => exercise(item.exerciseId))) return;
+    place(list, { id, choices, blockId, note: "", role }, afterId);
+  };
+
+  // The isolateral chest press: a plate-loaded machine, each side loaded on its own.
+  const pin = exercise("machine-chest-press");
+  if (pin && !exercise("isolateral-chest-press") && !state.exercises.some((item) => normalizedName(fullName(item)) === "chestpressplateloaded")) {
+    state.exercises.push({ ...structuredClone(pin), id: "isolateral-chest-press", aliases: ["Isolateral chest press", "Isolateral chest press machine"], equipment: ["plate-loaded"], weightMode: "per-side", relatedExercises: [], instructions: "", videoId: "" });
+    exercise("isolateral-chest-press").relatedExercises.push({ exerciseId: pin.id, relation: "similar" });
+    pin.relatedExercises.push({ exerciseId: "isolateral-chest-press", relation: "similar" });
+  }
+
+  const pushA = routine("push-a");
+  if (does(entry(pushA, "push-a-02"), "machine-chest-press") && exercise("isolateral-chest-press")) {
+    entry(pushA, "push-a-02").choices = [choice("isolateral-chest-press", "2 × 8–12"), choice("machine-chest-press", "2 × 8–12")];
+  }
+  if (does(entry(pushA, "push-a-05"), "scaption-raise")) {
+    Object.assign(entry(pushA, "push-a-05"), { choices: [choice("scaption-raise", "2 × 12–20")], note: "Light, rehab, not to failure" });
+  }
+  add(pushA, "push-a-lateral-raise", "push-a-main", "main", [choice("machine-lateral-raise", "3 × 12–20"), choice("cable-lateral-raise", "3 × 12–20")], "push-a-05");
+  const rotation = entry(pushA, "push-a-13");
+  if (does(rotation, "cable-external-rotation") && rotation.blockId !== "push-a-main" && entry(pushA, "push-a-lateral-raise")) {
+    Object.assign(rotation, { blockId: "push-a-main", role: "main", choices: [choice("cable-external-rotation", "2 × 15–25/side")], note: "Light, controlled" });
+    place(pushA, rotation, "push-a-lateral-raise");
+  }
+
+  const pullA = routine("pull-a");
+  if (does(entry(pullA, "pull-a-02"), "chest-supported-row", "chest-supported-t-bar-row")) entry(pullA, "pull-a-02").note = "Flat handles, palms down, elbows about 60°, pull to lower chest";
+
+  const legsA = routine("legs-a");
+  if (does(entry(legsA, "legs-a-02"), "hack-squat") && exercise("leg-press")) entry(legsA, "legs-a-02").choices.push(choice("leg-press", "3 × 6–10"));
+  const tibialis = entry(legsA, "legs-a-08");
+  if (does(tibialis, "tibialis-raise") && tibialis.blockId === "legs-a-main" && legsA.blocks.some((block) => block.id === "legs-a-optional-coverage-rehab")) {
+    Object.assign(tibialis, { blockId: "legs-a-optional-coverage-rehab", role: "optional" });
+    place(legsA, tibialis, "");
+  }
+
+  const pullB = routine("pull-b");
+  if (pullB && !entry(pullB, "pull-b-reverse-pec-deck") && exercise("reverse-pec-deck")) {
+    if (!pullB.blocks.some((block) => block.id === "pull-b-optional")) pullB.blocks.push({ id: "pull-b-optional", name: "Optional" });
+    add(pullB, "pull-b-reverse-pec-deck", "pull-b-optional", "optional", [choice("reverse-pec-deck", "2 × 12–20")], "");
+  }
+  if (does(entry(pullB, "pull-b-08"), "hammer-curl") && exercise("reverse-curl")) entry(pullB, "pull-b-08").choices.push(choice("reverse-curl", "2 × 10–15"));
+
+  const legsB = routine("legs-b");
+  if (does(entry(legsB, "legs-b-05"), "lying-leg-curl")) entry(legsB, "legs-b-05").choices = [choice("lying-leg-curl", "3 × 10–15")];
+  add(legsB, "legs-b-leg-extension", "legs-b-main", "main", [choice("leg-extension", "2 × 12–20")], "legs-b-05");
+  if (does(entry(legsB, "legs-b-08"), "seated-calf-raise") && exercise("standing-calf-raise") && exercise("leg-press-calf-raise")) {
+    entry(legsB, "legs-b-08").choices = [choice("standing-calf-raise", "3 × 10–20"), choice("leg-press-calf-raise", "3 × 10–20")];
+  }
+}
+
 export function applyLibraryUpdate(state, update = LIBRARY_UPDATE) {
   const byId = (id) => state.exercises.find((exercise) => exercise.id === id);
   const taken = (except) => new Set(state.exercises.filter((exercise) => exercise !== except).flatMap((exercise) => [exercise.name, ...exercise.aliases]).map(normalizedName));

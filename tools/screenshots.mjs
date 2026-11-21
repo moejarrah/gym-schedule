@@ -148,7 +148,7 @@ const SHOTS = [
     await shown(dialog(page, "Chest press (machine)"));
   }],
   ["dialog-log", async (page) => {
-    await main(page).getByRole("button", { name: "Log sets for Chest press (machine)" }).click();
+    await main(page).getByRole("button", { name: "Log sets for Chest press (plate-loaded) or Chest press (machine)" }).click();
     await page.locator("#logDialog").getByLabel("Weight for set 1, kg").fill("50");
     await page.locator("#logDialog").getByLabel("Reps for set 1").fill("10");
     await page.locator("#logDialog").getByRole("button", { name: "Set 1 done", exact: true }).click();
@@ -156,8 +156,8 @@ const SHOTS = [
     await shown(page.locator("#logDialog"));
   }],
   ["dialog-history", async (page) => {
-    await openSlot(page, "Chest press (machine)");
-    await main(page).getByRole("button", { name: "Open exercise page for Chest press (machine)" }).click();
+    await openSlot(page, "Chest press (plate-loaded) or Chest press (machine)");
+    await main(page).getByRole("button", { name: "Open exercise page for Chest press (plate-loaded)" }).click();
     await page.locator("#exerciseDetailDialog").getByRole("button", { name: "History" }).click();
     await shown(page.locator("#historyDialog"));
   }],
