@@ -408,16 +408,15 @@ body:is([data-current-view="workout"], [data-current-view="routines"], [data-cur
   display: none;
 }
 
-/* A screen that was just switched to fades in. Switching routine fades in only
-   what's under the routine tabs. Nothing moves: a rise read as a jump. */
-#appMain.is-entering > *,
+/* Switching routine fades in what's under the routine tabs. Nothing moves (a rise
+   read as a jump), and switching screen has no effect at all, as on iPhone. */
 #appMain.is-switching [data-keep-scroll="routine-tabs"] ~ * {
-  animation: page-in 180ms ease-out;
+  animation: page-in 150ms ease-out;
 }
 
 @keyframes page-in {
   from {
-    opacity: 0;
+    opacity: 0.35;
   }
 }
 

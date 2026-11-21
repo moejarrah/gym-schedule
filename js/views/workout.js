@@ -5,7 +5,7 @@
 // and exercises can be added for that day only. Also here: the finish summary
 // and the exercise-choices sheet of multi-choice slots.
 
-import { afterRender, registerActions, registerView, render, store } from "../context.js";
+import { afterRender, registerActions, registerView, render, scrollToTop, store } from "../context.js";
 import { $, chevronIcon, closeDialog, confirmAction, escapeHtml, openDialog, playIcon, plural, redraw, report, toast } from "../dom.js";
 import {
   activeProgram,
@@ -336,6 +336,11 @@ function runningWorkout() {
 
 registerActions({
   "select-routine": (button) => {
+    // The routine already showing isn't redrawn: its tab goes back to the top.
+    if (button.dataset.id === store.getState().settings.activeRoutineId) {
+      scrollToTop();
+      return;
+    }
     const result = store.update((draft) => setActiveRoutine(draft, button.dataset.id));
     if (report(result)) render({ entering: "routine" });
   },

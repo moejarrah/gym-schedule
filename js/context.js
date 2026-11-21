@@ -43,9 +43,8 @@ export function afterRender(hook) {
 
 export const mainElement = () => document.querySelector("#appMain");
 
-// `entering`: the content is new to the eye, so it fades in: "screen" for another
-// screen (everything), "routine" for another routine (only what's under the tabs,
-// which stay still under the finger).
+// `entering: "routine"`: another routine was picked, so what's under the routine
+// tabs fades in (the tabs stay still under the finger).
 export function render({ entering = "" } = {}) {
   const state = store.getState();
   const view = views.get(current);
@@ -55,23 +54,34 @@ export function render({ entering = "" } = {}) {
     else button.removeAttribute("aria-current");
   }
   const main = mainElement();
-  main.classList.remove("is-entering", "is-switching");
+  main.classList.remove("is-switching");
   redraw(main, view.markup(state));
   if (entering) {
     void main.offsetWidth; // restarts the animation
-    main.classList.add(entering === "routine" ? "is-switching" : "is-entering");
+    main.classList.add("is-switching");
     clearTimeout(enteringTimer);
-    enteringTimer = setTimeout(() => main.classList.remove("is-entering", "is-switching"), 260);
+    enteringTimer = setTimeout(() => main.classList.remove("is-switching"), 220);
   }
   view.afterDraw?.(mainElement());
   document.querySelector("#viewTitle").textContent = view.title || "";
   for (const hook of afterRenderHooks) hook(state);
 }
 
+// Scrolls what's on screen back to its top, as tapping the tab you're on does on iPhone.
+export function scrollToTop() {
+  for (const area of [mainElement(), ...mainElement().querySelectorAll(".scroll")]) area.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// Another screen appears at once, as iPhone tab bars do. The tab already showing
+// isn't redrawn: tapping it goes back to the top.
 export function navigate(id) {
   if (!views.has(id)) return;
+  if (id === current) {
+    scrollToTop();
+    return;
+  }
   current = id;
-  render({ entering: "screen" });
+  render();
   mainElement().scrollTop = 0;
 }
 
