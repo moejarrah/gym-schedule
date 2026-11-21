@@ -78,7 +78,7 @@ Program
 
 ### Library
 
-- Exercise names follow one pattern: equipment first, then the movement, with a variant in brackets ("Cable triceps pushdown (rope)", "Lat pulldown (neutral grip)"); the old names still find them in search. An exercise's links are its "Alternatives and progressions": each is tagged Easier, Alternative or Harder, and a link always shows on both exercises.
+- Exercise names follow one pattern: the movement as lifters say it, then the version (equipment, attachment or grip) in brackets, so versions of one movement list together ("Romanian deadlift (barbell)", "Romanian deadlift (dumbbell)", "Triceps pushdown (rope)", "Triceps pushdown (straight bar)"); a movement with only one version has no brackets ("Leg press", "Pec deck"); the old names still find them in search. An exercise's links are its "Alternatives and progressions": each is tagged Easier, Alternative or Harder, and a link always shows on both exercises.
 - Search by name, alias, target, movement or other classification; punctuation and case don't matter ("ab wheel" finds "Ab-wheel rollout"). The same search is used when adding exercises to routines and linking related exercises.
 - The list is grouped by the muscle each exercise mainly trains (its first primary target), each group outlined with its name and count; inside a group it is alphabetical. Search and filters keep the grouping.
 - Browse groups (Push, Pull, Legs, Glutes, Core, Arms, Forearms, Neck, Full body, …), derived from targets and movements. Target scope "Primary only" (default) or "Primary + secondary".

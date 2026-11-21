@@ -21,7 +21,7 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 | `js/search.js` | Exercise search and Library filters |
 | `js/vocab.js` | Fixed lists: targets, movements, equipment, … |
 | `js/seed.js` | Starting data (first launch and "Restore starting data"), one exercise or slot per line |
-| `js/library-update.js` | The Library tidy-up (renames, links, added exercises) that the version 14 → 15 upgrade applies to a saved Library |
+| `js/library-update.js` | The Library tidy-up (renames, links, added exercises) that the version 14 → 15 and 15 → 16 upgrades apply to a saved Library |
 | `js/dom.js` | DOM helpers: escaping, toasts, `redraw`, dialogs, confirmations, hold-to-drag |
 | `js/views/*.js` | One file per screen or sheet, each with its markup and actions |
 | `styles/` | `base.css` (tokens, element defaults, page shell), `components.css` (the shared classes every screen is built from), `views.css` (what only one screen needs) |
@@ -41,7 +41,7 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 
 ## Saved data at a glance
 
-One JSON object in `localStorage` under `gymAppStateV1`. The schema version, currently 15, is set in `js/store.js`. Before every save, `stateProblem` checks that the data has the shape the screens rely on and that references point at something; it doesn't police content. Saved data the app can't read is never overwritten: the starting program opens and nothing saves until the owner imports a backup or restores the starting data.
+One JSON object in `localStorage` under `gymAppStateV1`. The schema version, currently 16, is set in `js/store.js`. Before every save, `stateProblem` checks that the data has the shape the screens rely on and that references point at something; it doesn't police content. Saved data the app can't read is never overwritten: the starting program opens and nothing saves until the owner imports a backup or restores the starting data.
 
 - `exercises`: the Library's master exercises.
 - `programs` and `routines`: a program lists its routine IDs. A routine holds its blocks and entries, and each entry its choices (master exercise plus prescription).

@@ -62,7 +62,7 @@ async function openRoutineEditor(page, name = PUSH_A) {
   return shown(dialog(page, `Edit ${name}`));
 }
 
-async function openEntry(page, title = "Cable serratus punch or Push-up plus") {
+async function openEntry(page, title = "Serratus punch (cable) or Push-up plus") {
   await goToView(page, "Program");
   await programRow(page, title).click();
   return shown(entryEditor(page));
@@ -132,12 +132,12 @@ const SHOTS = [
     await shown(dialog(page, "Lat pulldown (overhand grip)"));
   }],
   ["dialog-exercise-reference-related", async (page) => {
-    await main(page).getByRole("button", { name: "View Dumbbell low-incline press details" }).click();
-    await dialog(page, "Dumbbell low-incline press").getByRole("button", { name: "Alternative Machine chest press" }).click();
-    await shown(dialog(page, "Machine chest press"));
+    await main(page).getByRole("button", { name: "View Low-incline press (dumbbell) details" }).click();
+    await dialog(page, "Low-incline press (dumbbell)").getByRole("button", { name: "Alternative Chest press (machine)" }).click();
+    await shown(dialog(page, "Chest press (machine)"));
   }],
   ["dialog-log", async (page) => {
-    await main(page).getByRole("button", { name: "Log sets for Machine chest press" }).click();
+    await main(page).getByRole("button", { name: "Log sets for Chest press (machine)" }).click();
     await page.locator("#logDialog").getByLabel("Weight for set 1, kg").fill("50");
     await page.locator("#logDialog").getByLabel("Reps for set 1").fill("10");
     await page.locator("#logDialog").getByRole("button", { name: "Set 1 done", exact: true }).click();
@@ -145,22 +145,22 @@ const SHOTS = [
     await shown(page.locator("#logDialog"));
   }],
   ["dialog-history", async (page) => {
-    await main(page).getByRole("button", { name: "View Machine chest press details" }).click();
+    await main(page).getByRole("button", { name: "View Chest press (machine) details" }).click();
     await page.locator("#exerciseDetailDialog").getByRole("button", { name: "History" }).click();
     await shown(page.locator("#historyDialog"));
   }],
   ["dialog-choice-sheet", async (page) => {
-    await main(page).getByRole("button", { name: "Open exercise choices for Cable serratus punch or Push-up plus" }).click();
+    await main(page).getByRole("button", { name: "Open exercise choices for Serratus punch (cable) or Push-up plus" }).click();
     await shown(dialog(page, "Exercise choices"));
   }],
   ["dialog-choice-reference", async (page) => {
-    await main(page).getByRole("button", { name: "Open exercise choices for Cable serratus punch or Push-up plus" }).click();
+    await main(page).getByRole("button", { name: "Open exercise choices for Serratus punch (cable) or Push-up plus" }).click();
     await dialog(page, "Exercise choices").getByRole("button", { name: "Open reference for Push-up plus" }).click();
     await shown(dialog(page, "Push-up plus"));
   }],
   ["dialog-video-search", async (page) => {
-    await main(page).getByRole("button", { name: "Find a video for preferred choice Dumbbell low-incline press" }).click();
-    await shown(dialog(page, "Dumbbell low-incline press"));
+    await main(page).getByRole("button", { name: "Find a video for preferred choice Low-incline press (dumbbell)" }).click();
+    await shown(dialog(page, "Low-incline press (dumbbell)"));
   }],
 
   // ---- Program sheets ----
@@ -225,19 +225,19 @@ const SHOTS = [
     await main(page).getByRole("button", { name: "Filter exercises" }).click();
     await shown(dialog(page, "Filter exercises"));
   }],
-  ["dialog-exercise-editor", async (page) => { await openMasterEditor(page, "Dumbbell low-incline press"); }],
+  ["dialog-exercise-editor", async (page) => { await openMasterEditor(page, "Low-incline press (dumbbell)"); }],
   ["dialog-exercise-editor-add", async (page) => {
     await goToView(page, "Library");
     await main(page).getByRole("button", { name: "Add exercise" }).click();
     await shown(dialog(page, "Add exercise"));
   }],
   ["dialog-classification-picker", async (page) => {
-    const editor = await openMasterEditor(page, "Dumbbell low-incline press");
+    const editor = await openMasterEditor(page, "Low-incline press (dumbbell)");
     await editor.getByRole("button", { name: /^Equipment/ }).click();
     await shown(dialog(page, "Equipment"));
   }],
   ["dialog-relationship-editor", async (page) => {
-    const editor = await openMasterEditor(page, "Dumbbell low-incline press");
+    const editor = await openMasterEditor(page, "Low-incline press (dumbbell)");
     await editor.getByRole("button", { name: /^Alternatives and progressions/ }).click();
     await shown(dialog(page, "Alternatives and progressions"));
   }],
@@ -271,7 +271,7 @@ async function seedState(page, theme, tempDir) {
   await waitForApp(page);
   // Push A is started, with two exercises logged and done.
   await main(page).getByRole("button", { name: "Start workout" }).click();
-  for (const [title, sets] of [["Dumbbell low-incline press", [["22.5", "10"], ["22.5", "9"], ["22.5", "8"]]], ["Machine overhead press", [["35", "12"], ["35", "10"]]]]) {
+  for (const [title, sets] of [["Low-incline press (dumbbell)", [["22.5", "10"], ["22.5", "9"], ["22.5", "8"]]], ["Overhead press (machine)", [["35", "12"], ["35", "10"]]]]) {
     await main(page).getByRole("button", { name: `Log sets for ${title}` }).click();
     const sheet = await shown(page.locator("#logDialog"));
     for (const [index, [kg, reps]] of sets.entries()) {

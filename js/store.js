@@ -5,11 +5,11 @@
 // upgrades the previous version in place, with a test in tests/store.test.mjs.
 // Saved data and backups from older versions must keep loading.
 
-import { applyLibraryUpdate } from "./library-update.js";
+import { applyLibraryUpdate, LIBRARY_UPDATE_2 } from "./library-update.js";
 import { isDateKey } from "./model.js";
 import { SEED } from "./seed.js";
 
-export const SCHEMA_VERSION = 15;
+export const SCHEMA_VERSION = 16;
 export const STORAGE_KEY = "gymAppStateV1";
 // Earlier versions copied unreadable data here before starting fresh. It's still offered for download.
 const OLD_RECOVERY_KEY = `${STORAGE_KEY}:unreadable`;
@@ -59,6 +59,10 @@ const MIGRATIONS = {
   // The Library tidy-up: consistent names, links, missing exercises (js/library-update.js).
   14(state) {
     applyLibraryUpdate(state);
+  },
+  // Its second pass: movement first, the version in brackets.
+  15(state) {
+    applyLibraryUpdate(state, LIBRARY_UPDATE_2);
   },
 };
 

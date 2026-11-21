@@ -170,7 +170,7 @@ test("the Library tidy-up reaches a saved Library: old names change, the owner's
   const { store } = freshStore(v14);
   const state = store.getState();
   assert.equal(store.getLastError(), "");
-  assert.deepEqual([find(state, "adductor-machine").name, find(state, "adductor-machine").aliases], ["Machine hip adduction", ["Adductor machine"]]);
+  assert.deepEqual([find(state, "adductor-machine").name, find(state, "adductor-machine").aliases], ["Hip adduction (machine)", ["Adductor machine"]]);
   assert.ok(find(state, "adductor-machine").relatedExercises.some((related) => related.exerciseId === "short-lever-copenhagen-plank" && related.relation === "easier"));
   assert.equal(find(state, "flat-dumbbell-press").name, "My dumbbell press", "a name the owner chose is left alone");
   assert.equal(find(state, "plank").name, "Plank");
