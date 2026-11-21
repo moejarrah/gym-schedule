@@ -265,13 +265,17 @@ export function confirmAction({ title, message, confirmLabel, cancelLabel = "Kee
 //   scroller()      element to auto-scroll near its edges
 //   canStart(row)   optional guard
 //   acrossLists     rows may also be dropped into another list of the container
+//   onPlace(row, toIndex, list) optional: called while dragging, each time the gap moves,
+//                   so the screen can already show what dropping here would give
 //   onDrop(row, toIndex, list) called with the new 0-based index in its (new) list when the position changed
 // Returns { cancel() }. The click that ends a drag is swallowed so it doesn't open the row.
 
 const HOLD_DELAY = 240;
 const HOLD_TOLERANCE = 10;
 
-export function enableHoldDrag(container, { rowSelector, listSelector, placeholderClass, activeBodyClass, scroller, canStart = () => true, acrossLists = false, onDrop }) {
+export function enableHoldDrag(container, { rowSelector, listSelector, placeholderClass, activeBodyClass, scroller, canStart = () => true, acrossLists = false, onPlace, onDrop }) {
+  const placeIndex = (state) => [...state.list.children].filter((child) => child === state.placeholder || child.matches(rowSelector)).indexOf(state.placeholder);
+
   let drag = null;
   let swallowNextClick = false;
   const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -326,6 +330,7 @@ export function enableHoldDrag(container, { rowSelector, listSelector, placehold
       if (next) drag.list.insertBefore(drag.placeholder, next);
       else drag.list.append(drag.placeholder);
     });
+    onPlace?.(drag.row, placeIndex(drag), drag.list);
   }
 
   function autoScroll() {
@@ -419,10 +424,11 @@ export function enableHoldDrag(container, { rowSelector, listSelector, placehold
       const reference = rows[current.originIndex] || null;
       if (reference) current.list.insertBefore(current.placeholder, reference);
       else current.list.append(current.placeholder);
+      onPlace?.(current.row, current.originIndex, current.list);
     }
     const done = () => {
       drag = null;
-      const toIndex = [...current.list.children].filter((child) => child === current.placeholder || child.matches(rowSelector)).indexOf(current.placeholder);
+      const toIndex = placeIndex(current);
       current.placeholder.replaceWith(current.row);
       current.row.classList.remove("is-dragging");
       current.row.removeAttribute("style");

@@ -262,6 +262,21 @@ registerActions({
 
 $("#pickerSearch").addEventListener("input", renderPickerList);
 
+// While a choice is dragged, the title, the numbers and the Preferred tag already
+// show the order dropping here would give, so nothing jumps on release.
+function previewChoiceOrder(row, toIndex) {
+  const order = [...entryEditor.choices];
+  order.splice(toIndex, 0, ...order.splice(Number(row.dataset.choiceIndex), 1));
+  $("#entryExerciseName").textContent = entryPresentation({ choices: order }, store.getState()).title;
+  const rows = [...$("#entryChoicesList").querySelectorAll(".drag-row")];
+  rows.splice(toIndex, 0, row);
+  rows.forEach((item, index) => {
+    item.querySelector(".row-number").textContent = index + 1;
+    item.querySelector(".label.accent")?.remove();
+    if (index === 0) item.querySelector(".row-body").insertAdjacentHTML("afterend", `<span class="label accent">Preferred</span>`);
+  });
+}
+
 // Hold and drag a choice to reorder; the first is the preferred one.
 enableHoldDrag($("#entryChoicesList"), {
   rowSelector: ".drag-row",
@@ -269,6 +284,7 @@ enableHoldDrag($("#entryChoicesList"), {
   placeholderClass: "drag-placeholder",
   activeBodyClass: "drag-active",
   scroller: () => $("#entryDialog .sheet-body"),
+  onPlace: previewChoiceOrder,
   onDrop(row, toIndex) {
     const [choice] = entryEditor.choices.splice(Number(row.dataset.choiceIndex), 1);
     entryEditor.choices.splice(toIndex, 0, choice);
