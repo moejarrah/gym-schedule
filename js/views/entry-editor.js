@@ -47,9 +47,8 @@ function entryChoicesEditorMarkup(choices, state) {
     return `<div class="row drag-row" data-choice-index="${index}">
       <span class="row-number">${index + 1}</span>
       <button class="row-body" type="button" data-action="replace-entry-choice" data-index="${index}" aria-label="Replace ${escapeHtml(name)} with another exercise. Hold and drag to reorder.">
-        <span class="row-main"><strong class="row-title">${escapeHtml(name)}</strong><small class="row-meta">${escapeHtml(prescription)}</small></span>
+        <span class="row-main"><strong class="row-title">${escapeHtml(name)}</strong><small class="row-meta">${escapeHtml(prescription)}<span class="label accent" data-preferred style="visibility: ${index === 0 ? "visible" : "hidden"}">Preferred</span></small></span>
       </button>
-      ${index === 0 ? `<span class="label accent">Preferred</span>` : ""}
       <button class="icon-button sm" type="button" data-action="edit-entry-choice" data-index="${index}" aria-label="Edit ${escapeHtml(name)} choice">${chevronIcon("right")}</button>
       <button class="icon-button sm" type="button" data-action="remove-entry-choice" data-index="${index}" aria-label="Remove ${escapeHtml(name)} choice">×</button>
     </div>`;
@@ -272,8 +271,7 @@ function previewChoiceOrder(row, toIndex) {
   rows.splice(toIndex, 0, row);
   rows.forEach((item, index) => {
     item.querySelector(".row-number").textContent = index + 1;
-    item.querySelector(".label.accent")?.remove();
-    if (index === 0) item.querySelector(".row-body").insertAdjacentHTML("afterend", `<span class="label accent">Preferred</span>`);
+    item.querySelector("[data-preferred]").style.visibility = index === 0 ? "visible" : "hidden";
   });
 }
 

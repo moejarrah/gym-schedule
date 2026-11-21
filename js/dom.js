@@ -376,6 +376,8 @@ export function enableHoldDrag(container, { rowSelector, listSelector, placehold
     // Inside an open dialog the row must stay in the dialog, or the backdrop hides it.
     (drag.list.closest("dialog") || document.body).append(row);
     document.body.classList.add(activeBodyClass);
+    drag.locked = scroller?.();
+    if (drag.locked) Object.assign(drag.locked.style, { overflow: "hidden", touchAction: "none" });
     row.style.transition = "transform 140ms ease, box-shadow 140ms ease";
     row.style.transform = "translate3d(0, 0, 0) scale(1.015)";
     drag.frame = requestAnimationFrame(autoScroll);
@@ -433,6 +435,7 @@ export function enableHoldDrag(container, { rowSelector, listSelector, placehold
       current.row.classList.remove("is-dragging");
       current.row.removeAttribute("style");
       document.body.classList.remove(activeBodyClass);
+      if (current.locked) Object.assign(current.locked.style, { overflow: "", touchAction: "" });
       if (save && (toIndex !== current.originIndex || current.list !== current.originList)) onDrop(current.row, toIndex, current.list);
     };
     if (reducedMotion()) {
