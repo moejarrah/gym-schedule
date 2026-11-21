@@ -28,8 +28,15 @@ appTest("Workout shows the selected routine's numbered slots, and the routine yo
   }
   await expect(rowOf(page, "Plank")).toContainText("2 × 30 sec");
   await expect(rowOf(page, "Bench press (barbell)")).toContainText("3 × 8–12");
-  await expect(choicesRow(page)).toContainText("3 × 10 or 2 × 12–15");
-  await expect(choicesRow(page)).toContainText("Pick by how the shoulder feels.");
+  // A quiet row: the movement and its sets. Tapping it opens the rest in place.
+  await expect(rowOf(page, TWO_CHOICES)).toContainText("3 × 10 or 2 × 12–15");
+  await expect(main(page)).not.toContainText("Pick by how the shoulder feels.");
+  await rowOf(page, TWO_CHOICES).click();
+  await expect(rowOf(page, TWO_CHOICES)).toHaveAttribute("aria-expanded", "true");
+  await expect(main(page)).toContainText("Pick by how the shoulder feels.");
+  await expect(choicesRow(page)).toContainText("Cable fly");
+  await rowOf(page, TWO_CHOICES).click();
+  await expect(main(page)).not.toContainText("Pick by how the shoulder feels.");
 
   await routineTab(page, "Day B").click();
   await expect(routineTab(page, "Day B")).toHaveAttribute("aria-pressed", "true");
@@ -96,13 +103,11 @@ appTest("Logging: a tick takes last time's set, typed sets and a drop are saved,
   await done(sheet).click();
   await expect(sheet).toBeHidden();
   await expect(numberOf(page, "Bench press (barbell)")).toHaveAccessibleName("Log sets for Bench press (barbell), done");
-  await expect(rowOf(page, "Bench press (barbell)")).toContainText(/60\s*kg\s*×\s*10/);
-  await expect(rowOf(page, "Bench press (barbell)")).toContainText(/62\.5\s*kg\s*×\s*8/);
-  await expect(rowOf(page, "Bench press (barbell)")).toContainText("+ 1 drop");
+  await expect(rowOf(page, "Bench press (barbell)")).toContainText("60 × 10 · 62.5 × 8 +1 drop");
 
   await page.reload();
   await expect(numberOf(page, "Bench press (barbell)")).toHaveAccessibleName("Log sets for Bench press (barbell), done");
-  await expect(rowOf(page, "Bench press (barbell)")).toContainText(/62\.5\s*kg\s*×\s*8/);
+  await expect(rowOf(page, "Bench press (barbell)")).toContainText("62.5 × 8");
   assert.deepEqual(await todaySaved(page), {
     routineIds: [],
     checkedEntryIdsByRoutine: { "day-a": ["a2"] },
@@ -167,12 +172,13 @@ appTest("A workout: Done and Not done on slots, an exercise added for today, and
   await expect(main(page).getByRole("button", { name: /^Wednesday, November 4, 2026, today, 1 completed routine/ })).toBeVisible();
 });
 
-appTest("A slot's row opens the exercise reference, and History there shows the past session", async ({ page }) => {
+appTest("A slot's row opens in place, its Exercise page button opens the reference, and History there shows the past session", async ({ page }) => {
   // Both sheets are titled with the exercise's name, so they're told apart by their close buttons.
   const reference = page.getByRole("dialog").filter({ has: page.getByRole("button", { name: "Close exercise reference" }) });
   const history = page.getByRole("dialog").filter({ has: page.getByRole("button", { name: "Close history" }) });
 
   await rowOf(page, "Bench press (barbell)").click();
+  await main(page).getByRole("button", { name: "Open exercise page for Bench press (barbell)" }).click();
   await expect(reference.getByRole("heading", { name: "Bench press (barbell)" })).toBeVisible();
   await expect(reference).toContainText("Routine prescription");
   await expect(reference).toContainText("3 × 8–12");
@@ -195,6 +201,7 @@ appTest("A slot's row opens the exercise reference, and History there shows the 
 });
 
 appTest("A two-choice slot lists both choices, logs the one you did, and the Log day shows its sets", async ({ page }) => {
+  await rowOf(page, TWO_CHOICES).click();
   await choicesRow(page).click();
   const choices = dialog(page, "Exercise choices");
   await expect(choices.getByRole("button", { name: "Open reference for Incline dumbbell press (dumbbell)" })).toContainText("3 × 10");
@@ -214,7 +221,7 @@ appTest("A two-choice slot lists both choices, logs the one you did, and the Log
   await tick(sheet, "Set 1").click();
   await done(sheet).click();
   await expect(sheet).toBeHidden();
-  await expect(choicesRow(page)).toContainText(/20\s*kg\s*×\s*12/);
+  await expect(rowOf(page, TWO_CHOICES)).toContainText("20 × 12");
 
   const saved = await readState(page);
   assert.deepEqual(saved.sessions[TODAY].logs, {

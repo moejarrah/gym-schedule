@@ -12,6 +12,75 @@
   font-weight: 700;
 }
 
+/* A slot is quiet: number, movement, and at the end its sets (or what was done). */
+.slot .row-title {
+  font-size: var(--fs-field);
+}
+
+.slot-end {
+  max-width: 52%;
+  flex: none;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slot-end.is-result,
+.slot.is-done .row-title {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* The open slot: an accent outline around its row and its details. The row inside
+   keeps its place, so opening and closing moves nothing sideways. */
+.slot-open {
+  margin: var(--space-1) 6px;
+  border-radius: var(--radius-card);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.page .slot-open > .row.split {
+  padding-inline: 6px 4px;
+}
+
+.page .slot-open + .row::before,
+.page .row + .slot-open > .row::before {
+  content: none;
+}
+
+.slot-detail {
+  padding: 0 var(--space-4) var(--space-4) calc(var(--gutter) - 6px);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.slot-fact {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--fs-small);
+}
+
+.slot-fact .link-button {
+  min-height: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.slot-detail > .actions {
+  margin-top: var(--space-2);
+}
+
+.slot-detail .button {
+  min-height: var(--tap);
+  padding-inline: var(--space-3);
+  font-size: var(--fs-small);
+}
+
 /* Workout's top bar: the program on the left; on the right Start, or while a
    workout runs its stopwatch and Cancel. Compact pills, not full-size buttons. */
 .workout-bar {
@@ -1007,4 +1076,9 @@ details.form-section > summary + * {
 .versions {
   margin-left: var(--gutter);
   border-left: 2px solid var(--line);
+}
+
+/* The sets at a slot's end stand in from the edge like the rest of the page. */
+.slot > .row-body {
+  padding-right: 10px;
 }

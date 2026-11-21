@@ -51,6 +51,25 @@ export function exerciseMarkup(exercise, savedName = "Missing exercise") {
   return `${lettered(exercise, exercise.name)}${setupMarkup(setupText(exercise))}`;
 }
 
+// A quiet row names only the movement (with its letter, if that's the setting).
+export const movementMarkup = (exercise, savedName = "Missing exercise") => (exercise ? lettered(exercise, exercise.name) : escapeHtml(savedName));
+
+// The setup as one plain line, for under a name: "Dumbbell · Neutral".
+export const setupLine = (exercise) => (exercise ? setupText(exercise) : "");
+
+// Logged sets in one short line: "60 × 10, 9, 8", "30 × 9 · 32.5 × 8 +1 drop", "45, 40 sec".
+export function setsSummary({ sets, unit }) {
+  const working = sets.some((set) => !set.warmup) ? sets.filter((set) => !set.warmup) : sets;
+  const groups = [];
+  for (const set of working) {
+    if (groups.at(-1)?.kg === set.kg) groups.at(-1).reps.push(set.reps);
+    else groups.push({ kg: set.kg, reps: [set.reps] });
+  }
+  const drops = sets.reduce((count, set) => count + set.drops.length, 0);
+  const text = groups.map(({ kg, reps }) => `${kg === null ? "" : `${formatKg(kg)} × `}${reps.join(", ")}`).join(" · ");
+  return `${text}${unit === "sec" ? " sec" : ""}${drops ? ` +${drops} drop${drops === 1 ? "" : "s"}` : ""}`;
+}
+
 // One version under its movement's name in the Library: the setup alone, equipment spelled out.
 export function versionMarkup(exercise) {
   const rest = setupWords(exercise).map(capitalised);

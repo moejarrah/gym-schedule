@@ -62,6 +62,12 @@ async function openRoutineEditor(page, name = PUSH_A) {
   return shown(dialog(page, `Edit ${name}`));
 }
 
+// Opens a Workout slot in place, unless it is open already.
+async function openSlot(page, name) {
+  const row = main(page).getByRole("button", { name: `View ${name} details`, exact: true });
+  if ((await row.getAttribute("aria-expanded")) !== "true") await row.click();
+}
+
 async function openEntry(page, title = "Serratus punch (cable) or Push-up plus") {
   await goToView(page, "Program");
   await programRow(page, title).click();
@@ -125,14 +131,19 @@ const SHOTS = [
   }],
 
   // ---- Workout sheets ----
+  ["workout-slot-open", async (page) => {
+    await openSlot(page, "Low-incline press (dumbbell)");
+  }],
   ["dialog-exercise-reference", async (page) => {
     // A Pull A row, so the reference shows its "For this routine" note.
     await routineTab(page, "Pull A").click();
-    await main(page).getByRole("button", { name: "View Lat pulldown (machine, overhand) details" }).click();
+    await openSlot(page, "Lat pulldown (machine, overhand)");
+    await main(page).getByRole("button", { name: "Open exercise page for Lat pulldown (machine, overhand)" }).click();
     await shown(dialog(page, "Lat pulldown (machine, overhand)"));
   }],
   ["dialog-exercise-reference-related", async (page) => {
-    await main(page).getByRole("button", { name: "View Low-incline press (dumbbell) details" }).click();
+    await openSlot(page, "Low-incline press (dumbbell)");
+    await main(page).getByRole("button", { name: "Open exercise page for Low-incline press (dumbbell)" }).click();
     await dialog(page, "Low-incline press (dumbbell)").getByRole("button", { name: /^Alternative Chest press/ }).click();
     await shown(dialog(page, "Chest press (machine)"));
   }],
@@ -145,20 +156,24 @@ const SHOTS = [
     await shown(page.locator("#logDialog"));
   }],
   ["dialog-history", async (page) => {
-    await main(page).getByRole("button", { name: "View Chest press (machine) details" }).click();
+    await openSlot(page, "Chest press (machine)");
+    await main(page).getByRole("button", { name: "Open exercise page for Chest press (machine)" }).click();
     await page.locator("#exerciseDetailDialog").getByRole("button", { name: "History" }).click();
     await shown(page.locator("#historyDialog"));
   }],
   ["dialog-choice-sheet", async (page) => {
+    await openSlot(page, "Serratus punch (cable) or Push-up plus");
     await main(page).getByRole("button", { name: "Open exercise choices for Serratus punch (cable) or Push-up plus" }).click();
     await shown(dialog(page, "Exercise choices"));
   }],
   ["dialog-choice-reference", async (page) => {
+    await openSlot(page, "Serratus punch (cable) or Push-up plus");
     await main(page).getByRole("button", { name: "Open exercise choices for Serratus punch (cable) or Push-up plus" }).click();
     await dialog(page, "Exercise choices").getByRole("button", { name: "Open reference for Push-up plus" }).click();
     await shown(dialog(page, "Push-up plus"));
   }],
   ["dialog-video-search", async (page) => {
+    await openSlot(page, "Low-incline press (dumbbell)");
     await main(page).getByRole("button", { name: "Find a video for preferred choice Low-incline press (dumbbell)" }).click();
     await shown(dialog(page, "Low-incline press (dumbbell)"));
   }],

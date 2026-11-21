@@ -6,13 +6,13 @@
 // and the exercise-choices sheet of multi-choice slots.
 
 import { afterRender, registerActions, registerView, render, scrollToTop, store } from "../context.js";
-import { $, chevronIcon, closeDialog, confirmAction, escapeHtml, openDialog, playIcon, plural, redraw, report, toast } from "../dom.js";
+import { $, chevronIcon, closeDialog, confirmAction, escapeHtml, fresh, openDialog, playIcon, plural, redraw, report, toast } from "../dom.js";
 import { activeProgram, activeRoutine, activeWorkout, addExtra, backupAge, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseById, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, localDateKey, orderedEntries, programRoutines, routineById, setActiveRoutine, startWorkout, usualExtras } from "../model.js";
 import { compareSets, exerciseMode, exerciseProgress } from "../progress.js";
 import { openPicker } from "./entry-editor.js";
 import { openLogger } from "./logger.js";
 import { openExerciseReference, openExerciseVideo } from "./reference.js";
-import { entryPresentation, exerciseMarkup, revealSelectedTab, routineTabsMarkup, saysOptional, setChipsMarkup, shortDate, videoUrl } from "./shared.js";
+import { entryPresentation, exerciseMarkup, movementMarkup, revealSelectedTab, routineTabsMarkup, saysOptional, setChipsMarkup, setsSummary, setupLine, shortDate, videoUrl, weightWords } from "./shared.js";
 
 // When Start was last tapped (page time), to ignore a double-tap landing on Cancel.
 let startedTapAt = -Infinity;
@@ -152,43 +152,77 @@ setInterval(() => {
 }, 10000);
 
 // Today's sets as small boxes; drops are counted rather than shown.
-function loggedSetsMarkup(log) {
-  if (!log) return "";
-  const drops = log.sets.reduce((count, set) => count + set.drops.length, 0);
-  return `<span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec", drops: false })}${drops ? `<span class="row-meta">+ ${drops} drop${drops === 1 ? "" : "s"}</span>` : ""}</span>`;
+// ---------- a slot ----------
+// The list is quiet: a slot is its number, its movement and its sets. One slot at a
+// time is open, showing the rest (setup, last time, note, alternatives) in place.
+// While a workout runs the app opens the first slot not done yet; tapping a row
+// opens that one instead, and tapping the open one closes it.
+
+// The owner's own choice: { routineId, slotId ("" = none open), wasDone }.
+let chosen = null;
+
+const daySlots = (state, routine, dateKey) => [
+  ...orderedEntries(routine),
+  ...(dateKey ? dayExtras(state, dateKey, routine.id).map((extra) => findSlot(state, routine.id, extra.id, dateKey)) : []),
+];
+
+function openSlotId(state, routine, dateKey) {
+  const done = (slotId) => Boolean(dateKey) && isEntryChecked(state, dateKey, routine.id, slotId);
+  const slots = daySlots(state, routine, dateKey);
+  // The choice stands until the chosen slot gets done; then the next one opens by itself.
+  if (chosen?.routineId === routine.id && (chosen.slotId === "" || slots.some((slot) => slot.id === chosen.slotId)) && (chosen.slotId === "" ? !slots.some((slot) => done(slot.id) && !chosen.doneIds.includes(slot.id)) : done(chosen.slotId) === chosen.wasDone)) return chosen.slotId;
+  return dateKey ? slots.find((slot) => !done(slot.id))?.id || "" : "";
 }
 
-// One row: a slot of the routine, or an exercise added for the day. Outside a
-// workout (no dateKey) it shows no progress.
+// One slot of the routine, or an exercise added for the day. Outside a workout
+// (no dateKey) it shows no progress and can't be logged.
 function slotMarkup(state, routine, slot, number, dateKey, showOptionalRole = false) {
-  const { preferred, title: name, titleMarkup, prescription } = entryPresentation(slot, state);
-  const exerciseId = preferred.exercise.id;
-  const note = slot.note.trim();
-  const multiChoice = slot.choices.length > 1;
+  const { choices, preferred, title: name, prescription } = entryPresentation(slot, state);
   const checked = Boolean(dateKey) && isEntryChecked(state, dateKey, routine.id, slot.id);
   const log = dateKey ? entryLog(state, dateKey, slot.id) : null;
+  // What was logged today is the exercise the slot shows; otherwise its preferred choice.
+  const shown = choices.find((item) => item.exercise && item.exercise.id === log?.exerciseId) || preferred;
+  const others = choices.filter((item) => item !== shown);
   const status = checked ? ", done" : log ? `, ${plural(log.sets.length, "set")} logged` : "";
-  const videoControl = preferred.exercise.videoId
-    ? `<a class="icon-button is-linked" href="${videoUrl(preferred.exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for preferred choice ${escapeHtml(preferred.name)}"><span class="play">${playIcon()}</span></a>`
-    : `<button class="icon-button" type="button" data-action="open-workout-video" data-id="${escapeHtml(exerciseId)}" aria-label="Find a video for preferred choice ${escapeHtml(preferred.name)}"><span class="play">${playIcon()}</span></button>`;
-
-  return `<article class="row split tap ${checked ? "is-done" : ""} ${log ? "has-sets" : ""}">
+  const open = openSlotId(state, routine, dateKey) === slot.id;
+  const data = `data-routine-id="${escapeHtml(routine.id)}" data-entry-id="${escapeHtml(slot.id)}"`;
+  const end = log ? setsSummary(log) : checked ? "Done" : slot.choices[0].prescription ? prescription : "";
+  const row = `<article class="row split tap slot ${checked ? "is-done" : ""} ${log ? "has-sets" : ""}">
     <button class="icon-button" type="button" data-action="open-logger" data-routine-id="${escapeHtml(routine.id)}" data-id="${escapeHtml(slot.id)}" aria-label="Log sets for ${escapeHtml(name)}${status}">
       <span class="tickbox" aria-hidden="true">
         <span>${number}</span>
         <svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
       </span>
     </button>
-    <button class="row-body" type="button" data-action="${multiChoice ? "open-entry-choices" : "open-workout-exercise"}" data-id="${escapeHtml(exerciseId)}" data-entry-id="${escapeHtml(slot.id)}" data-routine-id="${escapeHtml(routine.id)}" data-prescription="${escapeHtml(prescription)}" aria-label="${multiChoice ? `Open exercise choices for ${escapeHtml(name)}` : `View ${escapeHtml(name)} details`}">
-      <span class="row-main">
-        <span class="row-title">${titleMarkup}</span>
-        <span class="row-meta">${escapeHtml(slot.choices[0].prescription ? prescription : "")}${showOptionalRole ? `<span class="label tag">Optional</span>` : ""}</span>
-        ${loggedSetsMarkup(log)}
-        ${note ? `<span class="row-meta clamp-2 faint">${escapeHtml(note)}</span>` : ""}
-      </span>
+    <button class="row-body" type="button" data-action="toggle-slot" ${data} aria-expanded="${open}" aria-label="View ${escapeHtml(name)} details">
+      <span class="row-main"><span class="row-title">${movementMarkup(shown.exercise)}${others.length ? ` <span class="version">+${others.length}</span>` : ""}${showOptionalRole ? ` <span class="label tag">Optional</span>` : ""}</span></span>
+      <span class="slot-end ${log || checked ? "is-result" : ""}">${escapeHtml(end)}</span>
     </button>
-    ${videoControl}
   </article>`;
+  if (!open) return row;
+
+  const exercise = shown.exercise;
+  const last = exercise ? exerciseHistory(state, exercise.id, { beforeDateKey: dateKey || localDateKey(), limit: 1 })[0] : null;
+  const note = slot.note.trim();
+  const fact = (label, value) => (value ? `<div class="slot-fact"><span class="row-meta">${label}</span><span>${value}</span></div>` : "");
+  const video = exercise?.videoId
+    ? `<a class="button" href="${videoUrl(exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for preferred choice ${escapeHtml(shown.name)}">Video</a>`
+    : `<button class="button" type="button" data-action="open-workout-video" data-id="${escapeHtml(exercise?.id || "")}" aria-label="Find a video for preferred choice ${escapeHtml(shown.name)}">Video</button>`;
+  return `<div class="slot-open" data-open-slot>
+    ${row}
+    <div class="slot-detail">
+      <p class="row-meta">${escapeHtml([setupLine(exercise), shown.prescription, weightWords(exercise)].filter(Boolean).join(" · "))}</p>
+      ${fact("Today", log ? `<span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec" })}</span>` : "")}
+      ${fact("Last time", last ? `${escapeHtml(setsSummary(last))} <span class="row-meta">${escapeHtml(shortDate(last.dateKey))}</span>` : "")}
+      ${fact("Note", escapeHtml(note))}
+      ${fact("Or do", others.length ? `<button class="link-button" type="button" data-action="open-entry-choices" ${data} aria-label="Open exercise choices for ${escapeHtml(name)}">${others.map((item) => escapeHtml(item.exercise?.name || item.name)).join(", ")}</button>` : "")}
+      <div class="actions">
+        ${dateKey ? `<button class="button primary" type="button" data-action="open-logger" data-routine-id="${escapeHtml(routine.id)}" data-id="${escapeHtml(slot.id)}">Log sets</button>` : ""}
+        <button class="button" type="button" data-action="open-workout-exercise" data-id="${escapeHtml(exercise?.id || "")}" ${data} data-prescription="${escapeHtml(shown.prescription)}" aria-label="Open exercise page for ${escapeHtml(shown.name)}">Exercise page</button>
+        ${video}
+      </div>
+    </div>
+  </div>`;
 }
 
 // A block whose entries are all Optional is outlined and says so once in its
@@ -371,6 +405,17 @@ registerActions({
   "open-logger": (button) => {
     const workout = runningWorkout();
     if (workout) openLogger(button.dataset.routineId, button.dataset.id, workout.dateKey);
+  },
+  // Opens a slot in place, or closes the one that's open.
+  "toggle-slot": (button) => {
+    const state = store.getState();
+    const routine = activeRoutine(state);
+    const { dateKey } = workoutView(state, routine);
+    const done = (slotId) => Boolean(dateKey) && isEntryChecked(state, dateKey, routine.id, slotId);
+    const slotId = button.getAttribute("aria-expanded") === "true" ? "" : button.dataset.entryId;
+    chosen = { routineId: routine.id, slotId, wasDone: slotId ? done(slotId) : false, doneIds: daySlots(state, routine, dateKey).filter((slot) => done(slot.id)).map((slot) => slot.id) };
+    render();
+    fresh("[data-open-slot] > .slot-detail");
   },
   "open-entry-choices": openEntryChoices,
   "open-workout-exercise": openRowReference,
