@@ -32,7 +32,7 @@ import { entryPresentation, formatKg, liftText, setChipsMarkup, shortDate } from
 // exercise's note for the day; it is saved with the sets.
 const sheet = { routineId: "", entryId: "", dateKey: "", choiceIndex: 0, rows: [], lastTicked: -1, note: "" };
 
-const checkIcon = `<svg class="tickbox" aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>`;
+const doneIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>`;
 const plusIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>`;
 const removeIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17"/></svg>`;
 
@@ -165,7 +165,7 @@ function rowMarkup({ setIndex, dropIndex, row, last, timed }) {
     ${lastCell}
     <label class="log-field"><input type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" data-field="kg" ${data} value="${escapeHtml(row.kg)}" placeholder="${escapeHtml(hint.kg)}" aria-label="Weight for ${name}, kg"><span aria-hidden="true">kg</span></label>
     <label class="log-field"><input type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" data-field="reps" ${data} value="${escapeHtml(row.reps)}" placeholder="${escapeHtml(hint.reps)}" aria-label="${timed ? "Seconds" : "Reps"} for ${name}"></label>
-    <button class="icon-button" type="button" data-action="log-tick" ${data} aria-pressed="${saved}" aria-label="${label}">${checkIcon}</button>
+    <button class="log-done" type="button" data-action="log-tick" ${data} aria-pressed="${saved}" aria-label="${label}"><span>${saved ? doneIcon : "Done"}</span></button>
   </div>`;
 }
 
@@ -185,13 +185,13 @@ function tableMarkup(last, timed) {
   }).join("");
   const target = dropTarget();
   return `<div class="log-table">
-    <div class="log-row label" aria-hidden="true"><span>Set</span><span>Last time</span><span>Weight</span><span>${timed ? "Sec" : "Reps"}</span><span>Done</span></div>
+    <div class="log-row label" aria-hidden="true"><span>Set</span><span>Last time</span><span>Weight</span><span>${timed ? "Sec" : "Reps"}</span><span></span></div>
     ${groups}
     <div class="log-tools">
       <button class="link-button" type="button" data-action="log-add-set">${plusIcon}Set</button>
       <button class="link-button" type="button" data-action="log-add-drop" ${target < 0 ? "disabled" : `data-set="${target}"`}>${plusIcon}Drop set${target < 0 ? "" : ` after set ${target + 1}`}</button>
     </div>
-    <p class="hint">Tick a set when it's done. A drop set goes under the set you ticked last. Tap a set's number to mark it as a warm-up.</p>
+    <p class="hint">Tap Done when you've finished a set. A drop set goes under the set you finished last. Tap a set's number to mark it as a warm-up.</p>
   </div>`;
 }
 

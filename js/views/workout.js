@@ -120,7 +120,7 @@ function listMarkup(state, routine) {
         <button class="button text" type="button" data-action="cancel-workout">${activeWorkout(state).reopened ? "Close again" : "Cancel"}</button>
       </div>`
     : `<div class="workout-top">
-        <p>${finishedToday ? "Finished today" : last ? `Last done ${escapeHtml(shortDate(last))}` : "Not done yet"}</p>
+        <p>${finishedToday ? "Finished today" : last ? `Last done ${escapeHtml(shortDate(last))}` : plural(routine.entries.length, "exercise")}</p>
         ${other
     ? `<button class="button" type="button" data-action="select-routine" data-id="${escapeHtml(other.id)}">Go to ${escapeHtml(other.name)}, in progress</button>`
     : `<button class="button primary" type="button" data-action="start-workout" data-id="${escapeHtml(routine.id)}">${finishedToday ? "Reopen today's workout" : "Start workout"}</button>`}

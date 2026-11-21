@@ -44,9 +44,18 @@
   font-weight: 700;
 }
 
+/* Start, and Cancel: compact pills, not full-size buttons. */
 .workout-top .button {
-  min-height: var(--tap);
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
   flex: none;
+  font-size: var(--fs-small);
+}
+
+.workout-top:not(.is-running) {
+  min-height: var(--tap);
+  padding-block: var(--space-1) 0;
 }
 
 /* An Optional block, and "You sometimes add": a dashed outline drawn around the
@@ -618,7 +627,7 @@ a > svg {
   padding: 0 var(--space-1);
   border-radius: var(--radius-control);
   display: grid;
-  grid-template-columns: var(--tap) minmax(0, 1fr) 84px 60px var(--tap);
+  grid-template-columns: var(--tap) minmax(0, 1fr) 84px 60px 56px;
   column-gap: 6px;
   align-items: center;
 }
@@ -630,6 +639,41 @@ a > svg {
 
 .log-row.label > :nth-child(n + 3) {
   text-align: center;
+}
+
+/* The button that marks a set or drop done: it reads "Done" until it is, then shows a tick. */
+.log-done {
+  min-height: var(--tap);
+  display: grid;
+  place-items: center;
+}
+
+.log-done span {
+  width: 100%;
+  height: 32px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  font-size: var(--fs-tag);
+  font-weight: 600;
+}
+
+.log-done[aria-pressed="true"] span {
+  border-color: var(--accent-fill);
+  background: var(--accent-fill);
+  color: var(--on-accent, #fff);
+}
+
+.log-done svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* A set's number; tapping it marks the set as a warm-up ("W"). */
