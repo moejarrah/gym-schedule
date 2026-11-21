@@ -7,12 +7,13 @@
 
 import { afterRender, registerActions, registerView, render, scrollToTop, store } from "../context.js";
 import { $, chevronIcon, closeDialog, confirmAction, escapeHtml, openDialog, playIcon, plural, redraw, report, toast } from "../dom.js";
-import { activeProgram, activeRoutine, activeWorkout, addExtra, backupAge, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseById, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, localDateKey, mainEquipment, orderedEntries, setupWords, programRoutines, routineById, setActiveRoutine, startWorkout, usualExtras } from "../model.js";
+import { activeProgram, activeRoutine, activeWorkout, addExtra, backupAge, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseById, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, localDateKey, mainEquipment, orderedEntries, roundProgram, roundSummary, setupWords, programRoutines, routineById, setActiveRoutine, startWorkout, usualExtras } from "../model.js";
 import { compareSets, exerciseMode, exerciseProgress } from "../progress.js";
 import { label } from "../vocab.js";
 import { openPicker } from "./entry-editor.js";
 import { openLogger } from "./logger.js";
 import { openExerciseReference, openExerciseVideo } from "./reference.js";
+import { openStartPanel, roundLineMarkup } from "./rounds.js";
 import { entryPresentation, exerciseMarkup, movementMarkup, revealSelectedTab, routineTabsMarkup, saysOptional, setChipsMarkup, setsSummary, shortDate, videoUrl } from "./shared.js";
 
 // When Start was last tapped (page time), to ignore a double-tap landing on Cancel.
@@ -58,11 +59,11 @@ function workoutControlMarkup(state, routine) {
     <button class="button primary" type="button" data-action="start-workout" data-id="${escapeHtml(routine.id)}"${finishedToday ? ` aria-label="Reopen today's workout"` : ""}>${finishedToday ? "Reopen" : "Start workout"}</button>`;
 }
 
-// A dot on the tab of the routine in progress, a tick on the ones finished today.
+// A dot on the tab of the routine in progress, a tick on the ones done in this round.
 function tabMarks(state, routines) {
-  const todayKey = localDateKey();
   const marks = {};
-  for (const routine of routines) if (state.sessions[todayKey]?.routineIds.includes(routine.id)) marks[routine.id] = "done";
+  const done = roundSummary(state)?.done || new Set();
+  for (const routine of routines) if (done.has(routine.id)) marks[routine.id] = "done";
   if (activeWorkout(state)) marks[activeWorkout(state).routineId] = "running";
   return marks;
 }
@@ -104,6 +105,7 @@ function pageMarkup(state) {
   const routine = activeRoutine(state);
   return `<section class="page fills">
     ${programBarMarkup(state, program, routine)}
+    ${roundLineMarkup(state, roundProgram(state))}
     ${routineTabsMarkup(programRoutines(state, program), routine?.id, tabMarks(state, programRoutines(state, program)))}
     ${routine ? routineNoteMarkup(routine.note) : ""}
     ${emptyStateMarkup(program, routine)}
@@ -403,7 +405,13 @@ registerActions({
     const result = store.update((draft) => setActiveRoutine(draft, button.dataset.id));
     if (report(result)) render({ entering: "routine" });
   },
+  // Start opens the panel that says where things stand (js/views/rounds.js); reopening
+  // today's finished workout needs no panel.
   "start-workout": (button) => {
+    if (!store.getState().sessions[localDateKey()]?.routineIds.includes(button.dataset.id)) {
+      openStartPanel(button.dataset.id);
+      return;
+    }
     const result = store.update((draft) => startWorkout(draft, button.dataset.id));
     startedTapAt = performance.now();
     if (report(result)) render();

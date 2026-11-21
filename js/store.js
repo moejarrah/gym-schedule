@@ -173,6 +173,7 @@ export function stateProblem(state) {
   if (workout !== null && !(isRecord(workout) && routineIds.has(workout.routineId) && isDateKey(workout.dateKey) && Number.isFinite(workout.startedAt))) return "workout in progress";
   if (!Number.isFinite(settings.lastBackupAt)) return "last backup time";
   if (![undefined, "line", "letter"].includes(settings.exerciseLabels)) return "exercise labels";
+  if (settings.rounds !== undefined && !(isRecord(settings.rounds) && Object.values(settings.rounds).every((counter) => isRecord(counter) && Number.isInteger(counter.number) && counter.number >= 1 && Number.isInteger(counter.block) && counter.block >= 1))) return "rounds";
 
   // History outlives what it points at: the routine, slot and exercise IDs in a
   // day may belong to things deleted since.

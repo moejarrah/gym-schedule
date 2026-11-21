@@ -17,7 +17,11 @@ const logSheet = (page) => page.getByRole("dialog").filter({ has: page.getByRole
 const tick = (sheet, name) => sheet.getByRole("button", { name: `${name} done`, exact: true });
 const done = (sheet) => sheet.getByRole("button", { name: "Exercise done", exact: true });
 const todaySaved = async (page) => (await readState(page)).sessions[TODAY];
-const start = (page) => main(page).getByRole("button", { name: "Start workout" }).click();
+// Start workout opens the panel that says where things stand; its Start button starts the clock.
+const start = async (page) => {
+  await main(page).getByRole("button", { name: "Start workout" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: /^Start Day [AB]$/ }).click();
+};
 
 appTest("Workout shows the selected routine's numbered slots, and the routine you pick is kept", async ({ page }) => {
   await expect(programPicker(page, "Sample program")).toBeVisible();
@@ -235,4 +239,48 @@ appTest("A two-choice slot lists both choices, logs the one you did, and the Log
   await expect(day).toContainText("Logged sets");
   await expect(day).toContainText("Cable fly");
   await expect(day).toContainText(/20\s*kg\s*×\s*12/);
+});
+
+appTest("Rounds: the first Start asks which round you're on, a round takes every routine once, and it can be ended early", async ({ page }) => {
+  const roundLine = main(page).getByRole("button", { name: /Open the round/ });
+  const panel = page.getByRole("dialog");
+  const finish = async () => {
+    await main(page).getByRole("button", { name: "Finish workout" }).click();
+    await panel.getByRole("button", { name: "Finish", exact: true }).click();
+    await panel.getByRole("button", { name: "Close", exact: true }).click();
+  };
+
+  // Until the owner says which round he is on, the line is the calendar week alone.
+  await expect(roundLine).toHaveText("Week 45");
+  await main(page).getByRole("button", { name: "Start workout" }).click();
+  await expect(panel).toContainText("2026 · week 45");
+  await panel.getByRole("button", { name: "One round more" }).click();
+  await panel.getByRole("button", { name: "One round more" }).click();
+  await panel.getByRole("button", { name: "Start Day A", exact: true }).click();
+  await finish();
+  await expect(roundLine).toContainText("Round 3 · 1 of 2 done");
+  await expect(main(page).getByRole("button", { name: /^Day A, .*done this round$/ })).toBeVisible();
+  assert.deepEqual((await readState(page)).sessions[TODAY].workouts["day-a"].round, 3);
+
+  // The round's own sheet: what's done, what isn't, and ending it where it stands.
+  await roundLine.click();
+  await expect(panel.getByRole("heading", { name: "Round 3" })).toBeVisible();
+  await expect(panel).toContainText("Not done");
+  await panel.getByRole("button", { name: "End round 3 now" }).click();
+  await expect(panel.getByRole("heading", { name: "Round 4" })).toBeVisible();
+  await panel.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(roundLine).toContainText("Round 4 · 0 of 2 done");
+
+  // Doing a different routine today, from the Start panel; finishing both routines ends the round by itself.
+  await main(page).getByRole("button", { name: "Reopen today's workout" }).click();
+  await finish();
+  await routineTab(page, "Day B").click();
+  await main(page).getByRole("button", { name: "Start workout" }).click();
+  await expect(panel).not.toContainText("One round");
+  await panel.getByRole("button", { name: "Do a different workout today" }).click();
+  await panel.getByRole("button", { name: "Start Day B", exact: true }).click();
+  await finish();
+  await expect(roundLine).toContainText("Round 4 · 1 of 2 done");
+  assert.equal((await readState(page)).sessions[TODAY].workouts["day-b"].round, 4);
+  assert.equal((await readState(page)).sessions[TODAY].workouts["day-a"].round, 3, "the reopened workout kept its round");
 });

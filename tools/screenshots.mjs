@@ -46,7 +46,7 @@ const PUSH_A = "Push A";
 
 const main = (page) => page.getByRole("main");
 const dialog = (page, name) => page.getByRole("dialog", { name, exact: typeof name === "string" });
-const routineTab = (page, name) => main(page).getByRole("button", { name: new RegExp(`^${escapeRegExp(name)}, (Gym|Home)$`) });
+const routineTab = (page, name) => main(page).getByRole("button", { name: new RegExp(`^${escapeRegExp(name)}, (Gym|Home)(, .*)?$`) });
 const programRow = (page, title) => main(page).getByRole("button", { name: startsWith(`${title}. Tap to edit.`) });
 const entryEditor = (page) => page.getByRole("dialog").filter({ has: page.getByRole("region", { name: "Choices — first is preferred" }) });
 
@@ -286,6 +286,7 @@ async function seedState(page, theme, tempDir) {
   await waitForApp(page);
   // Push A is started, with two exercises logged and done.
   await main(page).getByRole("button", { name: "Start workout" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Start Push A", exact: true }).click();
   for (const [title, sets] of [["Low-incline press (dumbbell)", [["22.5", "10"], ["22.5", "9"], ["22.5", "8"]]], ["Overhead press (machine)", [["35", "12"], ["35", "10"]]]]) {
     await main(page).getByRole("button", { name: `Log sets for ${title}` }).click();
     const sheet = await shown(page.locator("#logDialog"));

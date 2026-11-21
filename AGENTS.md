@@ -23,6 +23,7 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 | `js/seed.js` | Starting data (first launch and "Restore starting data"), one exercise or slot per line |
 | `js/library-update.js` | What the upgrades from version 14 to 19 apply to saved data: Library renames, links and added exercises, machine kinds, moving the version out of the name into the setup fields, and the coach's edits to PPL 9 |
 | `js/dom.js` | DOM helpers: escaping, toasts, `redraw`, dialogs, confirmations, hold-to-drag |
+| `js/views/rounds.js` | The round line on Workout and the one sheet behind Start workout: the start panel, the break question, the different-workout list and the round's page |
 | `js/views/*.js` | One file per screen or sheet, each with its markup and actions |
 | `styles/` | `base.css` (tokens, element defaults, page shell), `components.css` (the shared classes every screen is built from), `views.css` (what only one screen needs) |
 | `sw.js` | Offline cache; its file list and version are stamped by `npm run check` |
@@ -47,6 +48,7 @@ One JSON object in `localStorage` under `gymAppStateV1`. The schema version, cur
 - `exercises`: the Library's master exercises. `name` is the movement; the setup is `equipment` (several allowed; `mainEquipment` picks the one that loads it), `attachment`, `grip`, `width`, `detail`, `laterality` (shown as "Sides") and `weightMode`. Names repeat; `fullName(exercise)` in `js/model.js` is what tells two exercises apart, and it must stay unique.
 - `programs` and `routines`: a program lists its routine IDs. A routine holds its blocks and entries, and each entry its choices (master exercise plus prescription).
 - `sessions`: one per date (`YYYY-MM-DD`) with `routineIds` (routines whose workout was finished), `checkedEntryIdsByRoutine` (slots marked done), `note`, `logs` (sets logged per slot, keyed by slot ID; see `saveEntrySets` in `js/model.js`) and `extras` (exercises added to a routine for that day only; `findSlot` treats them like slots).
+- Rounds: `settings.rounds[programId] = { number, block }` is a program's round counter (absent until the owner starts counting), and each finished workout in `sessions[date].workouts[routineId]` may carry `round`, `block`, `roundOf` (the program whose round it is) and `guest` (a routine from another program). Both are optional, so older data needs no upgrade. See "rounds and calendar weeks" in `js/model.js`.
 - `settings`: the active program and routine, the theme, `exerciseLabels` ("line" or "letter": how an exercise's version shows), the training rules, and `activeWorkout` (the workout in progress: routine, the day it was started, and when; or null).
 
 ## Rules

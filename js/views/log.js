@@ -10,12 +10,13 @@
 
 import { mainElement, navigate, registerActions, registerView, render, store } from "../context.js";
 import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, formatDate, fresh, openDialog, redraw, report, segmentValue } from "../dom.js";
-import { activeProgram, dateFromKey, entryLog, exerciseById, fullName, localDateKey, programRoutines, removeDayLog, routineById, routineProgram, sessionFor, setDay, startWorkout, workoutName } from "../model.js";
+import { activeProgram, dateFromKey, entryLog, exerciseById, fullName, localDateKey, programRoutines, removeDayLog, routineById, routineProgram, sessionFor, setDay, startWorkout, workoutName, calendarWeek, roundCounter, roundWorkouts } from "../model.js";
 import { overview } from "../progress.js";
 import { label } from "../vocab.js";
 import { openExerciseHistory } from "./history.js";
 import { openLogger } from "./logger.js";
 import { exerciseMarkup, locationLabel, setChipsMarkup, shortDate } from "./shared.js";
+import { roundName, weeksText } from "./rounds.js";
 
 const LONG_DATE = { weekday: "long", month: "long", day: "numeric", year: "numeric" };
 const RECENT_LIMIT = 8;
@@ -44,7 +45,7 @@ function logMarkup(state) {
 function calendarMarkup(state) {
   const year = calendar.month.getFullYear();
   const month = calendar.month.getMonth();
-  const firstWeekday = new Date(year, month, 1).getDay();
+  const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7; // Monday first
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const todayKey = localDateKey();
   const cells = [];
@@ -58,22 +59,30 @@ function calendarMarkup(state) {
     const completedCount = session?.routineIds.length || 0;
     const loggedCount = Object.keys(session?.logs || {}).length;
     const trained = Boolean(completedCount || loggedCount);
+    const guest = Object.values(session?.workouts || {}).some((record) => record.guest);
     const hasNote = Boolean(session?.note);
     const isToday = key === todayKey;
     const labelParts = [
       formatDate(date, LONG_DATE),
       isToday ? "today" : "",
       completedCount ? `${completedCount} completed ${completedCount === 1 ? "routine" : "routines"}` : "",
+      guest ? "from another program" : "",
       loggedCount ? `sets logged for ${loggedCount} ${loggedCount === 1 ? "exercise" : "exercises"}` : "",
       hasNote ? "note recorded" : "",
     ].filter(Boolean);
     cells.push(`<button class="log-calendar-day tap ${isToday ? "is-today" : ""}" type="button" data-action="open-day" data-date="${key}" aria-label="${escapeHtml(labelParts.join(", "))}"${isToday ? ` aria-current="date"` : ""}>
-      <span>${day}</span><span class="log-calendar-markers" aria-hidden="true">${trained ? `<i class="completion-marker"></i>` : ""}${hasNote ? `<i class="note-marker"></i>` : ""}</span>
+      <span>${day}</span><span class="log-calendar-markers" aria-hidden="true">${trained ? `<i class="completion-marker ${guest ? "is-guest" : ""}"></i>` : ""}${hasNote ? `<i class="note-marker"></i>` : ""}</span>
     </button>`);
   }
   const trailingBlanks = (7 - (cells.length % 7)) % 7;
   for (let index = 0; index < trailingBlanks; index += 1) {
     cells.push(`<span aria-hidden="true"></span>`);
+  }
+  // Each row starts with its calendar week number.
+  const rows = [];
+  for (let row = 0; row * 7 < cells.length; row += 1) {
+    const monday = localDateKey(new Date(year, month, 1 - firstWeekday + row * 7));
+    rows.push(`<span class="log-week" aria-hidden="true">${calendarWeek(monday).week}</span>`, ...cells.slice(row * 7, row * 7 + 7));
   }
 
   return `<div class="bar">
@@ -81,8 +90,8 @@ function calendarMarkup(state) {
       <button class="icon-button" type="button" data-action="previous-month" aria-label="Previous month">${chevronIcon("left")}</button>
       <button class="icon-button" type="button" data-action="next-month" aria-label="Next month">${chevronIcon("right")}</button>
     </div>
-    <div class="label log-weekdays" aria-hidden="true">${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => `<span>${day}</span>`).join("")}</div>
-    <div class="log-calendar">${cells.join("")}</div>
+    <div class="label log-weekdays" aria-hidden="true"><span>Wk</span>${["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => `<span>${day}</span>`).join("")}</div>
+    <div class="log-calendar">${rows.join("")}</div>
     <div class="label section-label">Recent</div>
     ${recentSessionsMarkup(state)}`;
 }
@@ -92,7 +101,43 @@ function recentSessionsMarkup(state) {
   if (!recentKeys.length) {
     return `<div class="card row-main log-recent"><strong class="row-title">No history yet</strong><span class="row-meta">Completed routines and day notes will appear here.</span></div>`;
   }
-  return `<div class="stack snug log-recent">${recentKeys.map((dateKey) => recentRowMarkup(state, dateKey)).join("")}</div>`;
+  const parts = [];
+  let previous = null;
+  for (const dateKey of recentKeys) {
+    const round = dayRound(state, dateKey);
+    if (previous) {
+      const days = Math.round((dateFromKey(previous.dateKey) - dateFromKey(dateKey)) / 86400000);
+      if (days >= 21) parts.push(`<p class="hint log-gap">${Math.floor(days / 7)} weeks off${previous.round && previous.round.block > (round?.block || 1) ? ` · block ${previous.round.block} started ${escapeHtml(shortDate(previous.round.from))}` : ""}</p>`);
+    }
+    if (round && round.key !== previous?.round?.key) {
+      parts.push(`<div class="label-row log-round"><strong>${escapeHtml(round.title)}</strong><span class="row-meta">${escapeHtml(round.span)}</span></div>`);
+    }
+    parts.push(recentRowMarkup(state, dateKey));
+    previous = { dateKey, round };
+  }
+  return `<div class="stack snug log-recent">${parts.join("")}</div>`;
+}
+
+const monthDay = (dateKey) => formatDate(dateFromKey(dateKey), { month: "short", day: "numeric" });
+
+// The round a day's workouts were filed in: its heading for the list, or null.
+function dayRound(state, dateKey) {
+  const record = Object.values(state.sessions[dateKey].workouts || {}).filter((item) => item.round).sort((a, b) => (b.block || 1) - (a.block || 1) || b.round - a.round)[0];
+  if (!record) return null;
+  const tag = { number: record.round, block: record.block || 1 };
+  const workouts = roundWorkouts(state, record.roundOf, tag);
+  const from = workouts[0]?.dateKey || dateKey;
+  const to = workouts.at(-1)?.dateKey || dateKey;
+  const program = state.programs.find((item) => item.id === record.roundOf);
+  const counter = roundCounter(state, record.roundOf);
+  const open = counter?.number === tag.number && counter.block === tag.block;
+  return {
+    key: `${record.roundOf}:${tag.block}:${tag.number}`,
+    block: tag.block,
+    from,
+    title: `${roundName(tag)}${program && program.id !== state.settings.activeProgramId ? ` · ${program.name}` : ""}`,
+    span: `${open ? `from ${monthDay(from)}` : from === to ? monthDay(from) : `${monthDay(from)} – ${monthDay(to)}`} · ${weeksText(from, open ? localDateKey() : to).replace(/^\d+ · /, "")}`,
+  };
 }
 
 function recentRowMarkup(state, dateKey) {

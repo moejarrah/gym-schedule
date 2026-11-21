@@ -278,3 +278,19 @@ test("on upgrade Pull A's row slot prefers the T-bar row, unless the owner had c
   slot(changed).choices = [slot(changed).choices[0]];
   assert.deepEqual(ids(freshStore(changed).store.getState()), ["chest-supported-row"]);
 });
+
+test("rounds are saved, loaded and backed up with the rest; a malformed round counter is refused", () => {
+  const state = sampleState();
+  state.settings.rounds = { sample: { number: 6, block: 2, breakAnswered: "2026-10-12" } };
+  state.settings.activeWorkout = { routineId: "day-a", dateKey: "2026-11-04", startedAt: 1, home: { programId: "sample", routineId: "day-b" } };
+  Object.assign(state.sessions[Object.keys(state.sessions)[0]].workouts["day-a"], { round: 5, block: 2, roundOf: "sample", guest: true });
+  assert.equal(stateProblem(state), "");
+  const { store } = freshStore(state);
+  assert.equal(store.getLastError(), "");
+  assert.deepEqual(store.getState(), state);
+  assert.deepEqual(parseBackup(JSON.stringify(createBackup(store.getState()))), state);
+
+  for (const counter of [{ number: 0, block: 1 }, { number: 2 }, { number: "6", block: 1 }, null]) {
+    assert.equal(stateProblem({ ...state, settings: { ...state.settings, rounds: { sample: counter } } }), "rounds");
+  }
+});

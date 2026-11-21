@@ -280,6 +280,7 @@ svg.tickbox {
 
 .is-done > * > .tickbox,
 [aria-pressed="true"] > .tickbox,
+.tickbox.is-ticked,
 :checked + .tickbox {
   border-color: var(--accent-fill);
   background: var(--accent-fill);
@@ -287,6 +288,7 @@ svg.tickbox {
 }
 
 .is-done > * > .tickbox > svg,
+.tickbox.is-ticked > svg,
 :checked + .tickbox > svg {
   display: block;
 }
@@ -1084,6 +1086,15 @@ textarea.control {
 }
 
 .actions > .button.text {
+  flex: none;
+}
+
+/* Stacked: one action under another, for a sheet whose second action is a quiet link. */
+.actions.stacked {
+  flex-direction: column;
+}
+
+.actions.stacked > * {
   flex: none;
 }
 

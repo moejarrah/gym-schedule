@@ -2,6 +2,7 @@
 
 import "./views/workout.js";
 import "./views/reference.js";
+import "./views/rounds.js";
 import "./views/program.js";
 import "./views/entry-editor.js";
 import "./views/library.js";
