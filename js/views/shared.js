@@ -48,8 +48,9 @@ export function revealSelectedTab(root) {
   const stripBox = strip.getBoundingClientRect();
   const tabBox = tab.getBoundingClientRect();
   const margin = Math.ceil(strip.clientWidth * 0.12); // the strip's fade-out edge (12%, see .scroll-x)
-  if (tabBox.left < stripBox.left) strip.scrollLeft -= stripBox.left - tabBox.left + margin;
-  else if (tabBox.right > stripBox.right) strip.scrollLeft += tabBox.right - stripBox.right + margin;
+  // Glides there; a strip that jumped sideways under the finger read as a glitch.
+  if (tabBox.left < stripBox.left) strip.scrollBy({ left: -(stripBox.left - tabBox.left + margin), behavior: "smooth" });
+  else if (tabBox.right > stripBox.right) strip.scrollBy({ left: tabBox.right - stripBox.right + margin, behavior: "smooth" });
 }
 
 // ---------- logged sets ----------

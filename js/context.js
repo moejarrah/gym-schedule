@@ -43,8 +43,10 @@ export function afterRender(hook) {
 
 export const mainElement = () => document.querySelector("#appMain");
 
-// `entering`: the content is new to the eye (another screen or routine), so it eases in.
-export function render({ entering = false } = {}) {
+// `entering`: the content is new to the eye, so it fades in: "screen" for another
+// screen (everything), "routine" for another routine (only what's under the tabs,
+// which stay still under the finger).
+export function render({ entering = "" } = {}) {
   const state = store.getState();
   const view = views.get(current);
   document.body.dataset.currentView = current;
@@ -53,13 +55,13 @@ export function render({ entering = false } = {}) {
     else button.removeAttribute("aria-current");
   }
   const main = mainElement();
-  main.classList.remove("is-entering");
+  main.classList.remove("is-entering", "is-switching");
   redraw(main, view.markup(state));
   if (entering) {
     void main.offsetWidth; // restarts the animation
-    main.classList.add("is-entering");
+    main.classList.add(entering === "routine" ? "is-switching" : "is-entering");
     clearTimeout(enteringTimer);
-    enteringTimer = setTimeout(() => main.classList.remove("is-entering"), 260);
+    enteringTimer = setTimeout(() => main.classList.remove("is-entering", "is-switching"), 260);
   }
   view.afterDraw?.(mainElement());
   document.querySelector("#viewTitle").textContent = view.title || "";
@@ -69,7 +71,7 @@ export function render({ entering = false } = {}) {
 export function navigate(id) {
   if (!views.has(id)) return;
   current = id;
-  render({ entering: true });
+  render({ entering: "screen" });
   mainElement().scrollTop = 0;
 }
 

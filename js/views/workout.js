@@ -328,7 +328,7 @@ function runningWorkout() {
 registerActions({
   "select-routine": (button) => {
     const result = store.update((draft) => setActiveRoutine(draft, button.dataset.id));
-    if (report(result)) render({ entering: true });
+    if (report(result)) render({ entering: "routine" });
   },
   "start-workout": (button) => {
     const result = store.update((draft) => startWorkout(draft, button.dataset.id));
