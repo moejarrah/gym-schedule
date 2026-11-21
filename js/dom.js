@@ -104,6 +104,17 @@ export function redraw(root, html) {
   }
 }
 
+// Fades in content that was just swapped in place (another month, another chart,
+// a filtered list, a new row). It never moves anything; see "Motion" in docs/DESIGN.md.
+export function fresh(...targets) {
+  for (const item of targets.map(element).filter(Boolean)) {
+    item.classList.remove("is-fresh");
+    void item.offsetWidth; // restarts the animation
+    item.classList.add("is-fresh");
+    setTimeout(() => item.classList.remove("is-fresh"), 220);
+  }
+}
+
 // ---------- dialogs ----------
 //
 // The browser does the focus work: showModal() focuses the dialog's first control

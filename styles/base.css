@@ -111,6 +111,10 @@
   --radius-sheet: 22px; /* sheets */
   --radius-pill: 999px;
 
+  /* Motion: one short duration for colour changes, one for content fading in. */
+  --dur-fast: 120ms;
+  --dur: 160ms;
+
   --z-nav: 20;
   --z-drag: 80;
   --z-toast: 100;
@@ -411,7 +415,13 @@ body:is([data-current-view="workout"], [data-current-view="routines"], [data-cur
 /* Switching routine fades in what's under the routine tabs. Nothing moves (a rise
    read as a jump), and switching screen has no effect at all, as on iPhone. */
 #appMain.is-switching [data-keep-scroll="routine-tabs"] ~ * {
-  animation: page-in 150ms ease-out;
+  animation: page-in var(--dur) ease-out;
+}
+
+/* Content swapped in place by hand (fresh() in js/dom.js), and what a disclosure reveals. */
+.is-fresh,
+details[open] > :not(summary) {
+  animation: page-in var(--dur) ease-out;
 }
 
 @keyframes page-in {

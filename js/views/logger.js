@@ -5,7 +5,7 @@
 // straight away; empty fields take the grey suggestion from last time.
 
 import { registerActions, render, store } from "../context.js";
-import { $, closeDialog, confirmAction, escapeHtml, openDialog, redraw, report, showError } from "../dom.js";
+import { $, closeDialog, confirmAction, escapeHtml, fresh, openDialog, redraw, report, showError } from "../dom.js";
 import {
   entryLog,
   exerciseHistory,
@@ -266,7 +266,9 @@ function addDrop(setIndex) {
   const dropIndex = sheet.rows[setIndex].drops.length - 1;
   refresh();
   // Ready to type the drop's weight.
-  $(`#logContent [data-field="kg"][data-set="${setIndex}"][data-drop="${dropIndex}"]`).focus();
+  const field = $(`#logContent [data-field="kg"][data-set="${setIndex}"][data-drop="${dropIndex}"]`);
+  fresh(field.closest(".log-row"));
+  field.focus();
 }
 
 // Removing a drop that was saved saves the set without it.
@@ -291,6 +293,7 @@ function toggleWarmup(setIndex) {
 function addSet() {
   sheet.rows.push({ kg: "", reps: "", done: false, drops: [] });
   refresh();
+  fresh($(`#logContent [data-field="kg"][data-set="${sheet.rows.length - 1}"][data-drop="-1"]`).closest(".log-row"));
 }
 
 function useLast(setIndex, dropIndex) {

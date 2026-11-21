@@ -4,7 +4,7 @@
 // first with its change from the one before. Read-only.
 
 import { registerActions, store } from "../context.js";
-import { $, escapeHtml, openDialog, plural, segmentValue } from "../dom.js";
+import { $, escapeHtml, fresh, openDialog, plural, segmentValue } from "../dom.js";
 import { exerciseById } from "../model.js";
 import { compareSets, exerciseProgress } from "../progress.js";
 import { formatKg, liftText, setChipsMarkup, shortDate } from "./shared.js";
@@ -168,7 +168,9 @@ export function openExerciseHistory(exerciseId) {
 registerActions({
   // The switch changes the chart only; the rest of the sheet stays where it is.
   "history-measure": (group) => {
+    if (sheet.measure === segmentValue(group)) return;
     sheet.measure = segmentValue(group);
     $("#historyChart").outerHTML = chartMarkup(exerciseProgress(store.getState(), sheet.exerciseId), sheet.measure);
+    fresh("#historyChart");
   },
 });

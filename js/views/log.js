@@ -9,7 +9,7 @@
 // they can be kept or unmarked.
 
 import { mainElement, navigate, registerActions, registerView, render, store } from "../context.js";
-import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, formatDate, openDialog, report, segmentValue } from "../dom.js";
+import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, formatDate, fresh, openDialog, report, segmentValue } from "../dom.js";
 import { activeProgram, dateFromKey, entryLog, exerciseById, localDateKey, programRoutines, removeDayLog, routineById, routineProgram, sessionFor, setDay, startWorkout, workoutName } from "../model.js";
 import { overview } from "../progress.js";
 import { label } from "../vocab.js";
@@ -131,6 +131,7 @@ function changeCalendarMonth(offset) {
   calendar.month = monthStart(calendar.month, offset);
   render();
   mainElement().scrollTop = 0;
+  fresh($(".log-calendar", mainElement()));
 }
 
 // ---------- progress ----------
@@ -282,9 +283,11 @@ registerView("calendar", { markup: logMarkup, title: "Log" });
 
 registerActions({
   "log-view": (group) => {
+    if (log.view === segmentValue(group)) return;
     log.view = segmentValue(group);
     render();
     mainElement().scrollTop = 0;
+    fresh(...$$(".log-switch ~ *", mainElement()));
   },
   "open-progress": (button) => openExerciseHistory(button.dataset.id),
   "previous-month": () => changeCalendarMonth(-1),

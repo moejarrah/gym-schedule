@@ -2,7 +2,7 @@
 // target scope and the filter sheet. Search and filters last for the session only.
 
 import { mainElement, registerActions, registerView, render, store } from "../context.js";
-import { $, $$, chevronIcon, closeDialog, escapeHtml, openDialog, plural } from "../dom.js";
+import { $, $$, chevronIcon, closeDialog, escapeHtml, fresh, openDialog, plural } from "../dom.js";
 import { activeLibraryFilterCount, availableBrowseGroups, createLibraryFilters, filteredExercises } from "../search.js";
 import { CHALLENGES, EMPHASES, EQUIPMENT, LATERALITIES, MOVEMENTS, PURPOSES, STYLES, TARGETS, label } from "../vocab.js";
 import { openExerciseEditor } from "./exercise-editor.js";
@@ -175,13 +175,17 @@ registerActions({
   "new-exercise": () => openExerciseEditor(),
   "view-exercise": (button) => openExerciseReference(button.dataset.id),
   "select-library-quick-group": (button) => {
+    // The group already chosen redraws nothing.
+    if (library.filters.quickGroup === button.dataset.id && !library.filters.targets.length) return;
     library.filters.quickGroup = button.dataset.id;
     library.filters.targets = [];
     render();
+    fresh("#exerciseList");
   },
   "toggle-library-target-scope": () => {
     library.filters.targetScope = library.filters.targetScope === "primary" ? "all" : "primary";
     render();
+    fresh("#exerciseList");
   },
   "clear-library-filters": () => {
     library.query = "";
@@ -205,5 +209,6 @@ registerActions({
     library.filters = structuredClone(library.draft);
     closeDialog("#exerciseFilterDialog");
     render();
+    fresh("#exerciseList");
   },
 });

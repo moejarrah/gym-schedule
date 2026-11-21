@@ -1124,6 +1124,11 @@ textarea.control {
   user-select: none;
 }
 
+/* Pressed, chosen and done states ease in and out; nothing switches colour with a snap. */
+:is(.row, .row-body, .icon-button, .pill, .segment button, .routine-tab, .link-button, .tickbox, .bottom-nav button, .tap) {
+  transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease, color var(--dur-fast) ease;
+}
+
 /* ---------- utilities ---------- */
 
 /* Pressed state of everything tappable that isn't a .button. */
