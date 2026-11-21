@@ -35,6 +35,9 @@ import { openLogger } from "./logger.js";
 import { openExerciseReference, openExerciseVideo } from "./reference.js";
 import { entryPresentation, revealSelectedTab, routineTabsMarkup, saysOptional, setChipsMarkup, shortDate, videoUrl } from "./shared.js";
 
+// When Start was last tapped (page time), to ignore a double-tap landing on Cancel.
+let startedTapAt = -Infinity;
+
 // The routine slot shown in the open choices sheet.
 const choicesSheet = { routineId: "", entryId: "" };
 
@@ -66,8 +69,8 @@ function workoutControlMarkup(state, routine) {
     const clock = workout.reopened ? "" : workout.backdated || dateKey !== todayKey
       ? `<span class="workout-clock">for ${escapeHtml(shortDate(dateKey))}</span>`
       : `<span class="workout-clock" data-elapsed>${elapsedText(workout.startedAt)}</span>`;
-    return `<span class="visually-hidden">${escapeHtml(routine.name)} in progress</span>${clock}
-      <button class="button text" type="button" data-action="cancel-workout">${workout.reopened ? "Close again" : "Cancel"}</button>`;
+    return `<span class="visually-hidden">${escapeHtml(routine.name)} in progress</span>
+      <button class="button text" type="button" data-action="cancel-workout">${workout.reopened ? "Close again" : "Cancel"}</button>${clock}`;
   }
   if (other) return `<button class="button" type="button" data-action="select-routine" data-id="${escapeHtml(other.id)}" aria-label="Go to ${escapeHtml(other.name)}, in progress">Go to ${escapeHtml(other.name)}</button>`;
   const finishedToday = Boolean(state.sessions[todayKey]?.routineIds.includes(routine.id));
@@ -86,7 +89,7 @@ function tabMarks(state, routines) {
 
 function routineNoteMarkup(note) {
   if (!note.trim()) return "";
-  return `<details class="note">
+  return `<details class="note" data-keep-open="routine-note">
     <summary><span class="hint clamp-2">${escapeHtml(note.trim())}</span>${chevronIcon("down")}</summary>
     <p class="hint">${escapeHtml(note)}</p>
   </details>`;
@@ -263,7 +266,7 @@ function finishMarkup(state) {
     const name = isEntryChecked(state, dateKey, routineId, slot.id) ? "Done" : log ? "Started, not marked done" : "Not touched";
     groups[name].push({ title: entryPresentation(slot, state).title, log });
   }
-  const groupMarkup = ([name, items]) => `<details class="finish-group">
+  const groupMarkup = ([name, items]) => `<details class="finish-group" data-keep-open="${name}">
     <summary><span>${name}</span><strong>${items.length}</strong>${chevronIcon("down")}</summary>
     ${items.map(({ title, log }) => `<div class="row-main">
       <span class="row-title">${escapeHtml(log ? log.exerciseName : title)}</span>
@@ -309,7 +312,7 @@ function resultMarkup(state, routineId, dateKey) {
       ${rows ? `<p class="label">Against last time</p>${rows}` : `<p class="hint">No sets were logged.</p>`}
       ${age === null || age > 14 ? `<p class="hint">${age === null ? "No backup yet." : `Last backup was ${age} days ago.`} Export one in Settings.</p>` : ""}
     </div>
-    <footer class="actions"><button class="button primary full" type="button" data-close-dialog="finishDialog">Close</button></footer>
+    <footer class="actions"><button class="button" type="button" data-close-dialog="finishDialog">Close</button><span></span></footer>
   </div>`;
 }
 
@@ -346,10 +349,13 @@ registerActions({
   },
   "start-workout": (button) => {
     const result = store.update((draft) => startWorkout(draft, button.dataset.id));
+    startedTapAt = performance.now();
     if (report(result)) render();
   },
   "cancel-workout": async () => {
     const { routineId, reopened } = activeWorkout(store.getState());
+    // The second tap of a double-tap on Start lands here; it isn't a wish to cancel.
+    if (performance.now() - startedTapAt < 500) return;
     // A reopened workout just closes again; nothing is deleted.
     if (reopened) {
       if (report(store.update(cancelWorkout))) render();

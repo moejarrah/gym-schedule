@@ -87,6 +87,10 @@ export function navigate(id) {
 
 export function applyTheme(theme) {
   const dark = theme === "dark";
-  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  // No colour eases during the switch, or the page and its cards change at two speeds.
+  const root = document.documentElement;
+  root.classList.add("is-switching-theme");
+  setTimeout(() => root.classList.remove("is-switching-theme"), 60);
+  root.dataset.theme = dark ? "dark" : "light";
   document.querySelector('meta[name="theme-color"]').content = dark ? "#0d0f12" : "#f3f4f6";
 }

@@ -259,7 +259,10 @@ registerActions({
   "pick-exercise": (button) => pickExercise(button.dataset.id),
 });
 
-$("#pickerSearch").addEventListener("input", renderPickerList);
+$("#pickerSearch").addEventListener("input", () => {
+  renderPickerList();
+  for (let area = $("#pickerList"); area && area.tagName !== "DIALOG"; area = area.parentElement) area.scrollTop = 0;
+});
 
 // While a choice is dragged, the title, the numbers and the Preferred tag already
 // show the order dropping here would give, so nothing jumps on release.

@@ -64,9 +64,6 @@ function programBarMarkup(program) {
       <strong class="truncate">${escapeHtml(name)}</strong>
       ${chevronIcon("down")}
     </button>
-    <button class="icon-button" type="button" data-action="open-programs" aria-label="Manage programs">
-      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-    </button>
   </div>`;
 }
 
@@ -110,7 +107,7 @@ function routineBlocksEditorMarkup(blocks, entries) {
 function programNoteMarkup(note) {
   if (!note.trim()) return "";
   const preview = note.split(/\r?\n/).find((line) => line.trim()) || note;
-  return `<details class="note program-note">
+  return `<details class="note program-note" data-keep-open="program-note">
     <summary>
       <span class="row-main"><strong class="row-title truncate">Weekly layout &amp; rules</strong><small class="row-meta truncate">${escapeHtml(preview)}</small></span>
       ${chevronIcon("right")}
@@ -121,7 +118,7 @@ function programNoteMarkup(note) {
 
 function routineNoteMarkup(note) {
   if (!note.trim()) return "";
-  return `<details class="note">
+  return `<details class="note" data-keep-open="routine-note">
     <summary><span class="hint clamp-2">${escapeHtml(note.trim())}</span>${chevronIcon("down")}</summary>
     <p class="hint">${escapeHtml(note)}</p>
   </details>`;
@@ -190,6 +187,10 @@ function openPrograms() {
 }
 
 function selectProgram(id) {
+  if (id === store.getState().settings.activeProgramId) {
+    closeDialog("#programsDialog");
+    return;
+  }
   const result = store.update((draft) => setActiveProgram(draft, id));
   if (report(result, "Program selected.")) {
     closeDialog("#programsDialog");
@@ -396,7 +397,15 @@ function openBlockEditor(blockId) {
   $("#routineBlockDialogSubtitle").textContent = plural(savedBlockEntryCount(blockId), "entry", "entries");
   $("#routineBlockFormError").textContent = "";
   updateBlockButtons();
-  openDialog("#routineBlockDialog");
+  openDialog("#routineBlockDialog", {
+    // Closed without saving: a block that was only just added goes again.
+    onClose() {
+      if (!routineEditor.newBlockId) return;
+      routineEditor.blocks = routineEditor.blocks.filter((block) => block.id !== routineEditor.newBlockId);
+      routineEditor.newBlockId = "";
+      renderBlocksEditor();
+    },
+  });
 }
 
 function syncBlockName() {
@@ -404,6 +413,7 @@ function syncBlockName() {
 }
 
 function saveBlock() {
+  routineEditor.newBlockId = "";
   syncBlockName();
   renderBlocksEditor();
   closeDialog("#routineBlockDialog");
@@ -418,6 +428,7 @@ function deleteBlock() {
 function addBlock() {
   const block = { id: makeId("block"), name: "" };
   routineEditor.blocks.push(block);
+  routineEditor.newBlockId = block.id;
   renderBlocksEditor();
   openBlockEditor(block.id);
 }

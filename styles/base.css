@@ -430,6 +430,10 @@ details[open] > :not(summary) {
   }
 }
 
+:root.is-switching-theme * {
+  transition: none !important;
+}
+
 /* Nothing behind an open sheet scrolls, even when the sheet itself has nothing to scroll. */
 :root:has(dialog[open]) :is(#appMain, #appMain .scroll, #appMain .scroll-x) {
   overflow: hidden;

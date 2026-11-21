@@ -377,6 +377,8 @@ for (const id of ["#exerciseStyle", "#exerciseLaterality", "#exerciseSupport", "
 $("#alternativesSearch").addEventListener("input", (event) => {
   relatedEditor.query = event.target.value;
   renderRelatedEditor();
+  // New results start at their top.
+  for (let area = $("#alternativesList"); area && area.tagName !== "DIALOG"; area = area.parentElement) area.scrollTop = 0;
 });
 $("#alternativesList").addEventListener("change", (event) => {
   const related = relatedEditor.draft.find((item) => item.exerciseId === event.target.dataset.relatedRelation);

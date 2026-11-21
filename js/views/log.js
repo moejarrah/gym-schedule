@@ -9,7 +9,7 @@
 // they can be kept or unmarked.
 
 import { mainElement, navigate, registerActions, registerView, render, store } from "../context.js";
-import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, formatDate, fresh, openDialog, report, segmentValue } from "../dom.js";
+import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, formatDate, fresh, openDialog, redraw, report, segmentValue } from "../dom.js";
 import { activeProgram, dateFromKey, entryLog, exerciseById, localDateKey, programRoutines, removeDayLog, routineById, routineProgram, sessionFor, setDay, startWorkout, workoutName } from "../model.js";
 import { overview } from "../progress.js";
 import { label } from "../vocab.js";
@@ -165,23 +165,24 @@ function progressMarkup(state) {
 
 // ---------- day editor ----------
 
-function checkRowMarkup({ routineId, checked, name, context }) {
-  return `<label class="row">
-    <input class="visually-hidden" type="checkbox" name="routine" value="${escapeHtml(routineId)}" ${checked ? "checked" : ""}>
+function checkRowMarkup({ routineId, checked, name, context, locked = false }) {
+  return `<label class="row ${locked ? "is-locked" : ""}">
+    <input class="visually-hidden" type="checkbox" name="routine" value="${escapeHtml(routineId)}" ${checked ? "checked" : ""} ${locked ? "disabled" : ""}>
     <span class="tickbox" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span>
     <span class="row-main"><strong class="row-title">${escapeHtml(name)}</strong><small class="row-meta">${escapeHtml(context)}</small></span>
   </label>`;
 }
 
-function routineRowMarkup(state, session, routine, inactive = false) {
+function routineRowMarkup(state, session, routine, dateKey, inactive = false) {
   const selected = session.routineIds.includes(routine.id);
   const checkedIds = new Set(session.checkedEntryIdsByRoutine[routine.id] || []);
   const mainIds = routine.entries.filter((entry) => entry.role === "main").map((entry) => entry.id);
   const checkedMain = mainIds.filter((id) => checkedIds.has(id)).length;
   const completion = selected && mainIds.length ? `${checkedMain}/${mainIds.length} main` : "";
   const minutes = selected ? minutesLabel(session.workouts[routine.id]?.minutes) : "";
-  const context = [routineProgram(state, routine.id).name, locationLabel(routine.group), inactive ? "Inactive" : "", completion, minutes].filter(Boolean).join(" · ");
-  return checkRowMarkup({ routineId: routine.id, checked: selected, name: routine.name, context });
+  const running = state.settings.activeWorkout?.routineId === routine.id && state.settings.activeWorkout.dateKey === dateKey;
+  const context = [running ? "In progress: finish it on Workout" : "", routineProgram(state, routine.id).name, locationLabel(routine.group), inactive ? "Inactive" : "", completion, minutes].filter(Boolean).join(" · ");
+  return checkRowMarkup({ routineId: routine.id, checked: selected, name: routine.name, context, locked: running || dateKey > localDateKey() });
 }
 
 // A finished routine that has since been deleted, by the name it had that day.
@@ -210,7 +211,7 @@ function loggedSetsMarkup(state, session, dateKey) {
       ? `<button class="row-body" type="button" data-action="edit-day-log" data-routine-id="${escapeHtml(log.routineId)}" data-id="${escapeHtml(slotId)}" data-date="${dateKey}" aria-label="Edit sets for ${escapeHtml(name)}"><span class="row-main">${content}</span></button>`
       : `<span class="row-body"><span class="row-main">${content}</span></span>`;
     return `<div class="row split">${body}
-      <button class="icon-button" type="button" data-action="remove-day-log" data-id="${escapeHtml(slotId)}" data-date="${dateKey}" data-name="${escapeHtml(name)}" aria-label="Remove sets for ${escapeHtml(name)}">×</button>
+      <button class="icon-button" type="button" data-action="remove-day-log" data-id="${escapeHtml(slotId)}" data-date="${dateKey}" data-name="${escapeHtml(name)}" aria-label="Delete sets for ${escapeHtml(name)}">×</button>
     </div>`;
   }).join("");
   return `<section><p class="form-label">Logged sets</p><div>${rows}</div></section>`;
@@ -246,12 +247,12 @@ function dayEditorMarkup(state, dateKey) {
       <button class="icon-button" type="button" data-close-dialog="dayDialog" aria-label="Close day editor">×</button>
     </header>
     <form id="dayForm" class="contents" data-submit="save-day" data-date="${dateKey}">
-      <div class="sheet-body stack">
+      <div class="sheet-body stack" data-keep-scroll="day">
         ${program ? routineSectionMarkup("Completed routines", activeRoutines.length
-          ? activeRoutines.map((routine) => routineRowMarkup(state, session, routine))
+          ? activeRoutines.map((routine) => routineRowMarkup(state, session, routine, dateKey))
           : [`<p class="hint">This program has no routines yet.</p>`]) : ""}
         ${otherRoutines.length ? routineSectionMarkup(program ? "Already recorded from another program" : "Recorded routines",
-          otherRoutines.map((routine) => routineRowMarkup(state, session, routine, Boolean(program)))) : ""}
+          otherRoutines.map((routine) => routineRowMarkup(state, session, routine, dateKey, Boolean(program)))) : ""}
         ${deletedIds.length ? routineSectionMarkup("Deleted routines",
           deletedIds.map((routineId) => deletedRowMarkup(session, routineId))) : ""}
         ${!program && !recordedIds.length ? `<p class="hint">Add a program before logging a routine completion.</p>` : ""}
@@ -260,7 +261,7 @@ function dayEditorMarkup(state, dateKey) {
         <label class="field"><span>Note</span><textarea class="control" id="dayNote" rows="4" maxlength="500" placeholder="Optional note">${escapeHtml(session.note)}</textarea></label>
         <p class="form-error" id="dayFormError" role="alert" aria-live="polite" data-dialog-error></p>
       </div>
-      <footer class="actions"><button class="button primary full" type="submit">Save day</button></footer>
+      <footer class="actions">${dateKey > localDateKey() ? `<p class="hint">This day hasn't happened yet.</p>` : `<button class="button primary full" type="submit">Save day</button>`}</footer>
     </form>
   </div>`;
 }
@@ -297,17 +298,17 @@ registerActions({
   "remove-day-log": async (button) => {
     const { id, date, name } = button.dataset;
     const confirmed = await confirmAction({
-      title: `Remove ${name}?`,
+      title: `Delete ${name}'s sets?`,
       message: "Its sets for this day are deleted, and its done mark with them. This can't be undone.",
-      confirmLabel: "Remove sets",
+      confirmLabel: "Delete sets",
       cancelLabel: "Keep them",
     });
     if (!confirmed) return;
     keepDayForm();
-    if (!report(store.update((draft) => removeDayLog(draft, date, id)), "Sets removed.")) return;
+    if (!report(store.update((draft) => removeDayLog(draft, date, id)), "Sets deleted.")) return;
     render();
     // The day itself goes when that was all it held.
-    if (store.getState().sessions[date]) $("#dayDialogContent").innerHTML = dayEditorMarkup(store.getState(), date);
+    if (store.getState().sessions[date]) redraw("#dayDialogContent", dayEditorMarkup(store.getState(), date));
     else closeDialog("#dayDialog");
   },
   "backfill-workout": (button) => {

@@ -47,6 +47,9 @@ export function toast(message, { long = false } = {}) {
   const element = $("#toast");
   if (!element || !message) return;
   clearTimeout(toastTimer);
+  // Open dialogs sit above the page: the toast goes inside the top one to be seen.
+  const host = $$("dialog[open]").at(-1) || document.body;
+  if (element.parentElement !== host) host.append(element);
   element.textContent = message;
   element.classList.add("show");
   toastTimer = setTimeout(() => element.classList.remove("show"), long ? 6000 : 2600);
@@ -92,11 +95,14 @@ export function report(result, successMessage = "") {
 // ---------- redrawing ----------
 
 // Replaces an element's markup. Scroll areas marked data-keep-scroll="name" stay
-// where they were when the new markup has an area of the same name.
+// where they were, and <details data-keep-open="name"> stay open, when the new
+// markup has one of the same name.
 export function redraw(root, html) {
   root = element(root);
   const positions = new Map($$("[data-keep-scroll]", root).map((area) => [area.dataset.keepScroll, [area.scrollTop, area.scrollLeft]]));
+  const open = new Set($$("details[data-keep-open][open]", root).map((item) => item.dataset.keepOpen));
   root.innerHTML = html;
+  for (const item of $$("details[data-keep-open]", root)) if (open.has(item.dataset.keepOpen)) item.open = true;
   for (const area of $$("[data-keep-scroll]", root)) {
     const [top, left] = positions.get(area.dataset.keepScroll) || [0, 0];
     area.scrollTop = top;
@@ -161,6 +167,12 @@ export function initDialogs() {
       onClose?.(dialog.returnValue);
     });
     if (dialog.classList.contains("sheet")) enablePullDown(dialog);
+    if (dialog.classList.contains("confirm")) {
+      dialog.addEventListener("submit", (event) => {
+        event.preventDefault();
+        closeDialog(dialog, event.submitter?.value || "cancel");
+      });
+    }
     // Only read-only sheets close when the dimmed backdrop is tapped; editors keep their drafts.
     if (dialog.hasAttribute("data-dismissable")) {
       dialog.addEventListener("click", (event) => {

@@ -64,7 +64,7 @@ appTest("Backup: an exported file brings everything back, and a file that isn't 
 
   // Lose the program and its routines.
   await goToView(page, "Program");
-  await main(page).getByRole("button", { name: "Manage programs" }).click();
+  await main(page).getByRole("button", { name: /^Choose active program/ }).click();
   await dialog(page, "Programs").getByRole("button", { name: "Edit Sample program", exact: true }).click();
   await dialog(page, "Edit program").getByRole("button", { name: "Delete program" }).click();
   await dialog(page, "Delete Sample program?").getByRole("button", { name: "Delete program" }).click();

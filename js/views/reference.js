@@ -4,7 +4,7 @@
 // reference also opens the exercise's logged history.
 
 import { registerActions, store } from "../context.js";
-import { $, closeDialog, escapeHtml, openDialog, playIcon } from "../dom.js";
+import { $, closeDialog, escapeHtml, fresh, openDialog, playIcon } from "../dom.js";
 import { exerciseById } from "../model.js";
 import { RELATIONS, label } from "../vocab.js";
 import { openExerciseEditor } from "./exercise-editor.js";
@@ -160,7 +160,10 @@ export function openExerciseVideo(exerciseId) {
 }
 
 registerActions({
-  "view-alternative": (button) => openExerciseReference(button.dataset.id),
+  "view-alternative": (button) => {
+    openExerciseReference(button.dataset.id);
+    fresh("#exerciseDetailContent");
+  },
   "view-history": (button) => openExerciseHistory(button.dataset.id),
   // The editor takes over from the sheet (the reference or the video sheet).
   "edit-master-exercise": (button) => {

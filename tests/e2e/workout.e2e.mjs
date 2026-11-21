@@ -15,7 +15,7 @@ const rowOf = (page, title) => main(page).getByRole("button", { name: `View ${ti
 const choicesRow = (page) => main(page).getByRole("button", { name: `Open exercise choices for ${TWO_CHOICES}`, exact: true });
 const logSheet = (page) => page.getByRole("dialog").filter({ has: page.getByRole("region", { name: "Last 3 times" }) });
 const tick = (sheet, name) => sheet.getByRole("button", { name: `${name} done`, exact: true });
-const done = (sheet) => sheet.getByRole("button", { name: "Done", exact: true });
+const done = (sheet) => sheet.getByRole("button", { name: "Exercise done", exact: true });
 const todaySaved = async (page) => (await readState(page)).sessions[TODAY];
 const start = (page) => main(page).getByRole("button", { name: "Start workout" }).click();
 
@@ -51,7 +51,11 @@ appTest("Logging: a tick takes last time's set, typed sets and a drop are saved,
   await start(page);
   await expect(main(page)).toContainText("Day A in progress");
   await expect(main(page)).toContainText("0 min");
-  await main(page).getByRole("button", { name: "Cancel", exact: true }).click();
+  // A tap on Cancel straight after Start is ignored (a double-tap on Start lands there), so retry.
+  await expect(async () => {
+    await main(page).getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(dialog(page, "Cancel Day A?")).toBeVisible({ timeout: 400 });
+  }).toPass();
   await dialog(page, "Cancel Day A?").getByRole("button", { name: "Cancel workout" }).click();
   assert.equal((await readState(page)).settings.activeWorkout, null);
   await start(page);

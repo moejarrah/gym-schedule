@@ -223,14 +223,22 @@ function sheetMarkup(state) {
     <footer class="actions">
       ${done ? `<button class="button text" type="button" data-action="log-undo-done">Not done</button>`
     : entry.extra ? `<button class="button text" type="button" data-action="log-remove-extra">Remove</button>` : ""}
-      <button class="button primary" type="button" data-action="log-done">${done ? "Close" : "Done"}</button>
+      <button class="button primary" type="button" data-action="log-done">${done ? "Close" : "Exercise done"}</button>
     </footer>
   </div>`;
 }
 
 // Redraws the sheet from the rows.
 function refresh() {
+  const active = document.activeElement?.closest?.("#logContent input");
+  const key = active && ("logNote" in active.dataset ? "[data-log-note]" : `[data-field="${active.dataset.field}"][data-set="${active.dataset.set}"][data-drop="${active.dataset.drop}"]`);
+  const caret = active ? [active.selectionStart, active.selectionEnd] : null;
   redraw("#logContent", sheetMarkup(store.getState()));
+  const field = key && $(`#logContent ${key}`);
+  if (field) {
+    field.focus({ preventScroll: true });
+    try { field.setSelectionRange(...caret); } catch (_) { /* not a text field */ }
+  }
 }
 
 // ---------- actions ----------

@@ -77,7 +77,7 @@ async function openMasterEditor(page, exercise) {
 
 async function openPrograms(page) {
   await goToView(page, "Program");
-  await main(page).getByRole("button", { name: "Manage programs" }).click();
+  await main(page).getByRole("button", { name: /^Choose active program/ }).click();
   return shown(dialog(page, "Programs"));
 }
 
@@ -278,7 +278,7 @@ async function seedState(page, theme, tempDir) {
       await sheet.getByLabel(`Weight for set ${index + 1}, kg`).fill(kg);
       await sheet.getByLabel(`Reps for set ${index + 1}`).fill(reps);
     }
-    await sheet.getByRole("button", { name: "Done", exact: true }).click();
+    await sheet.getByRole("button", { name: "Exercise done", exact: true }).click();
     await expect(main(page).getByRole("button", { name: `Log sets for ${title}, done` })).toBeVisible();
   }
   // Log history: a completed routine with a note, and a note-only day.

@@ -155,6 +155,26 @@ The owner notices every jump, flash and unclear button. Each rule below comes fr
 - Anything that deletes logged work asks first, and says what goes.
 - One word per thing: "Remove" takes something out of a list or a day and keeps it elsewhere; "Delete" destroys it; "Cancel" abandons what's in progress; "Close" leaves a sheet.
 
+### Rules a change can be checked against
+
+These are mechanical: each can be checked by reading the code or measuring the screen.
+
+- Every child of a scrolling column keeps its size (`flex-shrink: 0` on `.stack` and `.sheet-body` children). A squeezed child can shrink to nothing: the logging sheet's choice buttons once did.
+- A sheet that holds a disclosure, or content swapped by a script, is `.sheet.tall`. A sheet's error line keeps its room when empty.
+- A handler that selects something starts by returning when it is already selected.
+- Markup is replaced with `redraw()`, not `innerHTML`, wherever there is a scroll area, an open disclosure or a focused field inside. Scroll areas carry `data-keep-scroll`; disclosures in generated markup carry `data-keep-open`.
+- A redraw from inside a sheet puts the cursor back in the field it was in.
+- Typing in a search field brings its results back to the top.
+- A message for the owner while a sheet is open shows in that sheet (`toast()` puts it in the top dialog; errors go in the sheet's error line).
+- Every button, link, summary and tick row is at least 44 × 44 px at 320 and 393 wide.
+- A control that an action replaces is not replaced by a different action in the same place. Where that can't be avoided, the new one ignores taps for a moment.
+- A mark that comes and goes (a tab's dot, "Best", "Preferred") has its room reserved on every sibling.
+- Text of varying length (a number, its change, a caption) gets a line each, or a box of fixed height.
+- Something being added exists only once its editor is saved, not when the editor opens.
+- A control the app would refuse is shown disabled, with the reason. No message says "saved" when nothing changed.
+- Every dialog closes through `closeDialog()`, so every one eases out.
+- Content swapped in place fades in with `fresh()`; nothing else is used for it.
+
 ### Checking it
 
 Looking isn't enough: these defects were found by measuring. For a change to how something moves, record where the affected elements are before the action, every frame during it, and after, and confirm that only the intended ones changed. Run the browser tests in both engines (`npm run e2e` and `E2E_BROWSER=webkit npm run e2e`).

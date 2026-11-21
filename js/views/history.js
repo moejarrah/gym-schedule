@@ -67,7 +67,8 @@ function headlineMarkup(progress, measure) {
   }
   return `<figcaption>
     <span class="label">${MEASURES[measure].title}</span>
-    <span class="history-headline"><strong>${escapeHtml(value)}</strong>${change ? `${changeMarkup(change)}<span class="row-meta">${change.kind === "same" ? "as" : "since"} the first session</span>` : ""}</span>
+    <span class="history-headline"><strong>${escapeHtml(value)}</strong>${change ? changeMarkup(change) : ""}</span>
+    <span class="row-meta">${change ? `${change.kind === "same" ? "as" : "since"} the first session` : "&nbsp;"}</span>
     ${measure === "strength" && last.best.reps > 12 ? `<span class="hint">Rough above 12 reps.</span>` : ""}
   </figcaption>`;
 }

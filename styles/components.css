@@ -372,6 +372,16 @@ textarea.control {
   display: none;
 }
 
+/* In a sheet the line keeps its room, so the sheet doesn't grow when it speaks. */
+.sheet .form-error:empty {
+  display: block;
+  visibility: hidden;
+}
+
+.sheet .form-error:empty::before {
+  content: "\00a0";
+}
+
 /* ---------- rows ---------- */
 
 /* Row: one line of a list, 56px (.compact 44px, .tall 64px). A screen's rows run edge
@@ -1122,6 +1132,28 @@ textarea.control {
   cursor: grabbing;
   -webkit-user-select: none;
   user-select: none;
+}
+
+/* Nothing in a scrolling column is squeezed when the column is full: it scrolls. */
+:is(.stack, .sheet-body) > * {
+  flex-shrink: 0;
+}
+
+/* A row presses as one piece, whatever it is built from. */
+.row.split:has(> .row-body:active),
+label.row:active,
+.drag-row:has(button:active):not(.is-dragging) {
+  background: var(--press);
+}
+
+.row.split > .row-body:active,
+.drag-row button:active {
+  background: none;
+}
+
+/* A choice the day sheet can't change. */
+.row.is-locked {
+  opacity: 0.55;
 }
 
 /* Pressed, chosen and done states ease in and out; nothing switches colour with a snap. */

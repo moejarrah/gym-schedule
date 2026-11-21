@@ -2,7 +2,7 @@
 // target scope and the filter sheet. Search and filters last for the session only.
 
 import { mainElement, registerActions, registerView, render, store } from "../context.js";
-import { $, $$, chevronIcon, closeDialog, escapeHtml, fresh, openDialog, plural } from "../dom.js";
+import { $, $$, chevronIcon, closeDialog, escapeHtml, fresh, openDialog, plural, redraw } from "../dom.js";
 import { activeLibraryFilterCount, availableBrowseGroups, createLibraryFilters, filteredExercises } from "../search.js";
 import { CHALLENGES, EMPHASES, EQUIPMENT, LATERALITIES, MOVEMENTS, PURPOSES, STYLES, TARGETS, label } from "../vocab.js";
 import { openExerciseEditor } from "./exercise-editor.js";
@@ -108,7 +108,7 @@ function exerciseFilterContentMarkup(filters) {
     ${filterOptionButtons("equipment", EQUIPMENT, filters.equipment)}
     <p class="label">Purpose</p>
     ${filterOptionButtons("purposes", PURPOSES, filters.purposes)}
-    <details class="more">
+    <details class="more" data-keep-open="more-filters" ${["styles", "lateralities", "emphases", "challenges"].some((group) => filters[group].length) ? "open" : ""}>
       <summary><strong>More filters</strong><span>Style · side · emphasis · challenge</span></summary>
       <p class="label">Style</p>
       ${filterOptionButtons("styles", STYLES, filters.styles)}
@@ -140,16 +140,18 @@ function updateFilterCount() {
   $("#applyExerciseFilterButton").textContent = `Show ${plural(count, "exercise")}`;
 }
 
-function renderFilterDraft() {
+// `fromTop`: the sheet was just opened. A redraw while it's open keeps its place.
+function renderFilterDraft(fromTop = false) {
   const content = $("#exerciseFilterContent");
-  content.innerHTML = exerciseFilterContentMarkup(library.draft);
-  content.scrollTop = 0;
+  const { scrollTop } = content;
+  redraw(content, exerciseFilterContentMarkup(library.draft));
+  content.scrollTop = fromTop ? 0 : scrollTop;
   updateFilterCount();
 }
 
 function openFilter() {
   library.draft = structuredClone(library.filters);
-  renderFilterDraft();
+  renderFilterDraft(true);
   openDialog("#exerciseFilterDialog");
 }
 
@@ -191,6 +193,7 @@ registerActions({
     library.query = "";
     library.filters = createLibraryFilters();
     render();
+    fresh("#exerciseList");
   },
 
   // The filter sheet works on a draft until "Show N exercises".
