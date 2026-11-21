@@ -81,12 +81,12 @@ function relationshipsMarkup(state, exercise) {
     .map(({ relation, exerciseId }) => ({ relation, exercise: exerciseById(state, exerciseId) }))
     .sort((a, b) => RELATION_ORDER.indexOf(a.relation) - RELATION_ORDER.indexOf(b.relation) || a.exercise.name.localeCompare(b.exercise.name));
   return `<div class="reference-group">
-    <div class="label label-row">Related exercises <span>alternative + progression</span></div>
+    <div class="label label-row">Alternatives and progressions</div>
     ${related.length ? related.map(({ relation, exercise: other }) => `
       <button class="row compact" type="button" data-action="view-alternative" data-id="${escapeHtml(other.id)}">
         <span class="row-meta">${escapeHtml(label(relation))}</span>
         <strong class="row-title">${escapeHtml(other.name)}</strong>
-      </button>`).join("") : `<p class="hint">No related exercises linked.</p>`}
+      </button>`).join("") : `<p class="hint">None linked yet.</p>`}
   </div>`;
 }
 

@@ -155,3 +155,24 @@ test("an update that throws, or would break the data's shape, saves nothing", (t
   refuse(stored, (draft) => { draft.sessions["2026-11-02"].logs.a2.sets[0].reps = "ten"; }, "That change couldn't be saved.");
   assert.equal(stored.storage.writes, 0);
 });
+
+test("the Library tidy-up reaches a saved Library: old names change, the owner's own renames and the program stay", () => {
+  // A Library as version 14 had it: one old name, one the owner renamed, one new exercise not there yet.
+  const v14 = structuredClone({ ...createDefaultState(), version: 14 });
+  const find = (state, id) => state.exercises.find((exercise) => exercise.id === id);
+  Object.assign(find(v14, "adductor-machine"), { name: "Adductor machine", aliases: [], relatedExercises: [] });
+  for (const exercise of v14.exercises) exercise.relatedExercises = exercise.relatedExercises.filter((related) => related.exerciseId !== "adductor-machine");
+  Object.assign(find(v14, "flat-dumbbell-press"), { name: "My dumbbell press", aliases: [] });
+  v14.exercises = v14.exercises.filter((exercise) => exercise.id !== "plank");
+  for (const exercise of v14.exercises) exercise.relatedExercises = exercise.relatedExercises.filter((related) => related.exerciseId !== "plank");
+  v14.sessions["2026-11-10"] = { routineIds: ["push-a"], checkedEntryIdsByRoutine: {}, note: "Kept", logs: {}, extras: {}, workouts: { "push-a": { name: "Push A", program: "PPL 9", minutes: 50 } } };
+
+  const { store } = freshStore(v14);
+  const state = store.getState();
+  assert.equal(store.getLastError(), "");
+  assert.deepEqual([find(state, "adductor-machine").name, find(state, "adductor-machine").aliases], ["Machine hip adduction", ["Adductor machine"]]);
+  assert.ok(find(state, "adductor-machine").relatedExercises.some((related) => related.exerciseId === "short-lever-copenhagen-plank" && related.relation === "easier"));
+  assert.equal(find(state, "flat-dumbbell-press").name, "My dumbbell press", "a name the owner chose is left alone");
+  assert.equal(find(state, "plank").name, "Plank");
+  assert.deepEqual([state.routines, state.programs, state.sessions], [v14.routines, v14.programs, v14.sessions]);
+});

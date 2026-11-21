@@ -55,7 +55,7 @@ function relationshipEditorMarkup({ linkedExercises, availableExercises, query }
         </select>
       </label>
       <button class="link-button danger" type="button" data-action="remove-related" data-id="${escapeHtml(exercise.id)}" aria-label="Remove relationship to ${escapeHtml(exercise.name)}">Remove</button>
-    </article>`).join("") : `<p class="hint">No related exercises yet.</p>`;
+    </article>`).join("") : `<p class="hint">None linked yet.</p>`;
   const availableMarkup = availableExercises.length ? availableExercises.map((exercise) => `
     <button class="row" type="button" data-action="add-related" data-id="${escapeHtml(exercise.id)}">
       <span class="row-main">
@@ -70,7 +70,7 @@ function relationshipEditorMarkup({ linkedExercises, availableExercises, query }
       ${linkedMarkup}
     </section>
     <section aria-labelledby="availableRelationshipsHeading">
-      <div class="label label-row"><h3 id="availableRelationshipsHeading">Add relationship</h3><span>${availableExercises.length}</span></div>
+      <div class="label label-row"><h3 id="availableRelationshipsHeading">Add a link</h3><span>${availableExercises.length}</span></div>
       ${availableMarkup}
     </section>`;
 }

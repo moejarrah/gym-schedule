@@ -101,7 +101,7 @@
           <div class="label-row"><h3 id="exerciseReferenceHeading">Reference</h3></div>
           <label class="field"><span>YouTube link or video ID</span><input class="control" id="exerciseVideo" name="video" inputmode="url" autocomplete="off" placeholder="Optional"></label>
           <label class="field"><span>Notes and cues</span><textarea class="control" id="exerciseInstructions" name="instructions" rows="5" placeholder="Stable setup, execution, and focus cues"></textarea></label>
-          <button class="row ruled" id="chooseAlternativesButton" data-action="open-related-editor" type="button" aria-haspopup="dialog"><span class="row-main"><strong class="row-title">Related exercises</strong><small class="row-meta" id="alternativesCount">None linked</small></span><span class="chev" aria-hidden="true">›</span></button>
+          <button class="row ruled" id="chooseAlternativesButton" data-action="open-related-editor" type="button" aria-haspopup="dialog"><span class="row-main"><strong class="row-title">Alternatives and progressions</strong><small class="row-meta" id="alternativesCount">None linked</small></span><span class="chev" aria-hidden="true">›</span></button>
         </section>
 
         <p class="card tinted hint"><strong>Routine execution stays in Program.</strong> Sets, reps, tempo, pauses, partial range, role, and exercise choices can change per routine without changing this master.</p>
@@ -150,8 +150,8 @@
   <dialog id="alternativesDialog" class="sheet tall" aria-labelledby="alternativesDialogTitle" aria-describedby="alternativesDialogHint">
     <div class="sheet-panel stack">
       <header class="sheet-head">
-        <div><p class="label">Master exercise</p><h2 id="alternativesDialogTitle">Related exercises</h2></div>
-        <button class="icon-button" data-close-dialog="alternativesDialog" aria-label="Close related exercises" type="button">×</button>
+        <div><p class="label">Master exercise</p><h2 id="alternativesDialogTitle">Alternatives and progressions</h2></div>
+        <button class="icon-button" data-close-dialog="alternativesDialog" aria-label="Close alternatives and progressions" type="button">×</button>
       </header>
       <p class="hint" id="alternativesDialogHint">Changes stay in this draft until you save the master exercise.</p>
       <label class="field"><span>Search exercises</span><input class="control" id="alternativesSearch" type="search" autocomplete="off" placeholder="Name, target, or movement"></label>

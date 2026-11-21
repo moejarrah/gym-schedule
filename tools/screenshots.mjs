@@ -128,12 +128,12 @@ const SHOTS = [
   ["dialog-exercise-reference", async (page) => {
     // A Pull A row, so the reference shows its "For this routine" note.
     await routineTab(page, "Pull A").click();
-    await main(page).getByRole("button", { name: "View Pronated-grip lat pulldown details" }).click();
-    await shown(dialog(page, "Pronated-grip lat pulldown"));
+    await main(page).getByRole("button", { name: "View Lat pulldown (overhand grip) details" }).click();
+    await shown(dialog(page, "Lat pulldown (overhand grip)"));
   }],
   ["dialog-exercise-reference-related", async (page) => {
-    await main(page).getByRole("button", { name: "View Low-incline dumbbell press details" }).click();
-    await dialog(page, "Low-incline dumbbell press").getByRole("button", { name: "Alternative Machine chest press" }).click();
+    await main(page).getByRole("button", { name: "View Dumbbell low-incline press details" }).click();
+    await dialog(page, "Dumbbell low-incline press").getByRole("button", { name: "Alternative Machine chest press" }).click();
     await shown(dialog(page, "Machine chest press"));
   }],
   ["dialog-log", async (page) => {
@@ -159,8 +159,8 @@ const SHOTS = [
     await shown(dialog(page, "Push-up plus"));
   }],
   ["dialog-video-search", async (page) => {
-    await main(page).getByRole("button", { name: "Find a video for preferred choice Low-incline dumbbell press" }).click();
-    await shown(dialog(page, "Low-incline dumbbell press"));
+    await main(page).getByRole("button", { name: "Find a video for preferred choice Dumbbell low-incline press" }).click();
+    await shown(dialog(page, "Dumbbell low-incline press"));
   }],
 
   // ---- Program sheets ----
@@ -225,21 +225,21 @@ const SHOTS = [
     await main(page).getByRole("button", { name: "Filter exercises" }).click();
     await shown(dialog(page, "Filter exercises"));
   }],
-  ["dialog-exercise-editor", async (page) => { await openMasterEditor(page, "Low-incline dumbbell press"); }],
+  ["dialog-exercise-editor", async (page) => { await openMasterEditor(page, "Dumbbell low-incline press"); }],
   ["dialog-exercise-editor-add", async (page) => {
     await goToView(page, "Library");
     await main(page).getByRole("button", { name: "Add exercise" }).click();
     await shown(dialog(page, "Add exercise"));
   }],
   ["dialog-classification-picker", async (page) => {
-    const editor = await openMasterEditor(page, "Low-incline dumbbell press");
+    const editor = await openMasterEditor(page, "Dumbbell low-incline press");
     await editor.getByRole("button", { name: /^Equipment/ }).click();
     await shown(dialog(page, "Equipment"));
   }],
   ["dialog-relationship-editor", async (page) => {
-    const editor = await openMasterEditor(page, "Low-incline dumbbell press");
-    await editor.getByRole("button", { name: /^Related exercises/ }).click();
-    await shown(dialog(page, "Related exercises"));
+    const editor = await openMasterEditor(page, "Dumbbell low-incline press");
+    await editor.getByRole("button", { name: /^Alternatives and progressions/ }).click();
+    await shown(dialog(page, "Alternatives and progressions"));
   }],
   ["dialog-confirm-delete-exercise", async (page) => {
     const editor = await openMasterEditor(page, "Ab-wheel rollout");
@@ -271,7 +271,7 @@ async function seedState(page, theme, tempDir) {
   await waitForApp(page);
   // Push A is started, with two exercises logged and done.
   await main(page).getByRole("button", { name: "Start workout" }).click();
-  for (const [title, sets] of [["Low-incline dumbbell press", [["22.5", "10"], ["22.5", "9"], ["22.5", "8"]]], ["Machine overhead press", [["35", "12"], ["35", "10"]]]]) {
+  for (const [title, sets] of [["Dumbbell low-incline press", [["22.5", "10"], ["22.5", "9"], ["22.5", "8"]]], ["Machine overhead press", [["35", "12"], ["35", "10"]]]]) {
     await main(page).getByRole("button", { name: `Log sets for ${title}` }).click();
     const sheet = await shown(page.locator("#logDialog"));
     for (const [index, [kg, reps]] of sets.entries()) {
