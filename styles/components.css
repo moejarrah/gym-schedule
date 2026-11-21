@@ -1102,13 +1102,20 @@ textarea.control {
 }
 
 .drag-placeholder {
+  position: relative;
+}
+
+.drag-placeholder::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   border: 1.5px dashed var(--accent);
   border-radius: var(--radius-button);
   background: var(--accent-soft);
 }
 
-.page .drag-placeholder {
-  margin: 2px var(--space-3);
+.page .drag-placeholder::before {
+  inset: 2px var(--space-3);
 }
 
 .drag-active {

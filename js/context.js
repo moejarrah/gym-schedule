@@ -17,6 +17,7 @@ const views = new Map();
 const actions = new Map();
 const afterRenderHooks = [];
 let current = "workout";
+let enteringTimer;
 
 // registerView("calendar", { markup(state), title? })
 // Views without a title draw their own bar; the stylesheet hides the shared top bar for them.
@@ -51,12 +52,14 @@ export function render({ entering = false } = {}) {
     if (button.dataset.view === current) button.setAttribute("aria-current", "page");
     else button.removeAttribute("aria-current");
   }
-  redraw(mainElement(), view.markup(state));
+  const main = mainElement();
+  main.classList.remove("is-entering");
+  redraw(main, view.markup(state));
   if (entering) {
-    const main = mainElement();
-    main.classList.remove("is-entering");
     void main.offsetWidth; // restarts the animation
     main.classList.add("is-entering");
+    clearTimeout(enteringTimer);
+    enteringTimer = setTimeout(() => main.classList.remove("is-entering"), 260);
   }
   view.afterDraw?.(mainElement());
   document.querySelector("#viewTitle").textContent = view.title || "";
