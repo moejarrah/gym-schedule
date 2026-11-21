@@ -268,7 +268,7 @@ export function confirmAction({ title, message, confirmLabel, cancelLabel = "Kee
 //   onDrop(row, toIndex, list) called with the new 0-based index in its (new) list when the position changed
 // Returns { cancel() }. The click that ends a drag is swallowed so it doesn't open the row.
 
-const HOLD_DELAY = 340;
+const HOLD_DELAY = 240;
 const HOLD_TOLERANCE = 10;
 
 export function enableHoldDrag(container, { rowSelector, listSelector, placeholderClass, activeBodyClass, scroller, canStart = () => true, acrossLists = false, onDrop }) {
@@ -296,7 +296,7 @@ export function enableHoldDrag(container, { rowSelector, listSelector, placehold
     if (!moved.length) return;
     void moved[0].offsetHeight;
     for (const row of moved) {
-      row.style.transition = "transform 160ms ease";
+      row.style.transition = "transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1)";
       row.style.transform = "translateY(0)";
     }
   }
@@ -311,10 +311,17 @@ export function enableHoldDrag(container, { rowSelector, listSelector, placehold
       drag.list = $$(listSelector, container).reduce((nearest, list) => (distance(list) < distance(nearest) ? list : nearest), drag.list);
     }
     const rows = $$(rowSelector, drag.list).filter((row) => row !== drag.row);
+    // Where each row will rest, not where it is while it slides, or the gap
+    // would flicker back and forth around a row in motion.
     const next = rows.find((row) => {
       const rect = row.getBoundingClientRect();
-      return y < rect.top + rect.height / 2;
+      const sliding = new DOMMatrixReadOnly(getComputedStyle(row).transform).m42;
+      return y < rect.top - sliding + rect.height / 2;
     });
+    // Nothing to do while the finger stays over the same gap.
+    if (drag.placedList === drag.list && drag.placedBefore === (next || null)) return;
+    drag.placedList = drag.list;
+    drag.placedBefore = next || null;
     slide(rows, () => {
       if (next) drag.list.insertBefore(drag.placeholder, next);
       else drag.list.append(drag.placeholder);
@@ -332,11 +339,9 @@ export function enableHoldDrag(container, { rowSelector, listSelector, placehold
       let amount = 0;
       if (top < edge) amount = -Math.ceil((edge - Math.max(0, top)) / 5);
       else if (bottom < edge) amount = Math.ceil((edge - Math.max(0, bottom)) / 5);
-      if (amount) {
-        element.scrollTop += amount;
-        placeAt(drag.y);
-      }
+      if (amount) element.scrollTop += amount;
     }
+    placeAt(drag.y);
     drag.frame = requestAnimationFrame(autoScroll);
   }
 
@@ -352,6 +357,8 @@ export function enableHoldDrag(container, { rowSelector, listSelector, placehold
     drag.placeholder.style.height = `${bounds.height}px`;
     drag.originIndex = $$(rowSelector, drag.list).indexOf(row);
     row.before(drag.placeholder);
+    drag.placedList = drag.list;
+    drag.placedBefore = $$(rowSelector, drag.list).filter((item) => item !== row)[drag.originIndex] || null;
     drag.active = true;
     window.getSelection()?.removeAllRanges();
     // A focused field would make the browser scroll it back into view as the finger moves.
@@ -390,7 +397,6 @@ export function enableHoldDrag(container, { rowSelector, listSelector, placehold
     drag.y = p.y;
     drag.row.style.transition = "";
     drag.row.style.transform = `translate3d(0, ${p.y - drag.startY}px, 0) scale(1.015)`;
-    placeAt(p.y);
   }
 
   function finish(save) {
@@ -425,9 +431,9 @@ export function enableHoldDrag(container, { rowSelector, listSelector, placehold
       return;
     }
     const target = current.placeholder.getBoundingClientRect();
-    current.row.style.transition = "left 140ms ease, top 140ms ease, transform 140ms ease";
+    current.row.style.transition = "left 180ms cubic-bezier(0.2, 0.8, 0.2, 1), top 180ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1)";
     Object.assign(current.row.style, { left: `${target.left}px`, top: `${target.top}px`, transform: "translate3d(0, 0, 0) scale(1)" });
-    setTimeout(done, 150);
+    setTimeout(done, 190);
   }
 
   container.addEventListener("touchstart", (event) => {
