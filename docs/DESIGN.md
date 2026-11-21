@@ -107,3 +107,54 @@ The shared classes are in `styles/components.css`, each with a comment saying wh
 - Tap targets are at least 44 × 44px (`--tap`), even when the visible shape is smaller (a 30px tick box sits in a 44px button).
 - Focus rings are for keyboard use only. After a tap, buttons and links show none (iPhone Safari drew one around whatever was just tapped); text fields always show theirs. `js/app.js` tracks which input was used last.
 - Layouts must work at 320px wide. Check both themes at 393 × 852 and 320 × 700 with `npm run screenshots -- <folder>`, and compare against the boards above.
+
+## How it behaves
+
+The owner notices every jump, flash and unclear button. Each rule below comes from a defect that was found and fixed; check a UI change against all of them before publishing it.
+
+### Nothing moves unless the owner moved it
+
+- An action changes the thing that was tapped, and adds or removes only the row that was asked for. Nothing else on screen changes position or size.
+- Anything that shows up later has its space from the start: keep it on screen (disabled or empty) instead of making it appear. The logging sheet's note field and "Drop set" button are always there.
+- A tag, count or icon that comes and goes must not change the height or wrapping of its row. Put it on a line of its own, or give it a fixed place.
+- A sheet keeps one height while it is used. A sheet whose content grows is `.sheet.tall`.
+- The control under the finger never moves because it was tapped. Tabs, chips and segments stay put; only what they control changes.
+
+### Redraw only what changed
+
+- Tapping what is already selected (a tab, a chip, a segment, the current screen) redraws nothing. On a tab it scrolls back to the top.
+- A redraw keeps the owner's place: scroll areas are marked `data-keep-scroll`, typed text lives in the module's state, and anything open stays open.
+- A class that starts an animation is taken off when the animation is over, or the next redraw plays it again.
+- While the owner drags or types, update the few elements that change. Don't rebuild the list under them.
+
+### Motion
+
+- Screens switch at once, as iPhone tab bars do. Content that is swapped in place (another routine's list) fades in, 150–200 ms, without moving.
+- Sheets slide up, slide down when closed, and follow the finger when pulled down. Confirmations pop in.
+- A row that is added or removed may ease; a whole screen never slides or rises.
+- Everything respects Reduce Motion (the rule in `styles/base.css` turns animation off).
+
+### Dragging
+
+- The row lifts at the size it had, follows the finger, and settles exactly where it will stay. The gap it leaves is the row's own size.
+- Rows make way once, when the finger crosses into a new gap, not on every movement.
+- What the drop will change (order, numbers, a title) already shows while dragging.
+- The list's scroll area doesn't scroll under the drag; it only auto-scrolls near its edges.
+
+### Pressing, scrolling, focus
+
+- A row presses as one piece: the whole row tints, not the text inside it.
+- Behind an open sheet nothing scrolls. A list never drags the page with it.
+- Focus rings on fields and full-width rows are drawn inside the element.
+
+### Controls say what they do
+
+- A button has a word, or an icon everyone knows (×, +, ›, a play triangle). An empty box is not a button: the set tick reads "Done" until it is.
+- A button that acts on something says on what: "Drop set after set 2", "Go to Pull A".
+- What can be tapped looks tappable, and what can't doesn't. A heading never promises an action its rows don't have.
+- Anything that deletes logged work asks first, and says what goes.
+- One word per thing: "Remove" takes something out of a list or a day and keeps it elsewhere; "Delete" destroys it; "Cancel" abandons what's in progress; "Close" leaves a sheet.
+
+### Checking it
+
+Looking isn't enough: these defects were found by measuring. For a change to how something moves, record where the affected elements are before the action, every frame during it, and after, and confirm that only the intended ones changed. Run the browser tests in both engines (`npm run e2e` and `E2E_BROWSER=webkit npm run e2e`).

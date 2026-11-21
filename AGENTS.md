@@ -5,7 +5,7 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 ## Before changing anything
 
 - `docs/PRODUCT.md` says what the app does. Every action listed there must keep working unless the owner asks otherwise; update the file when behaviour changes.
-- `docs/DESIGN.md` says how it looks: tokens, type, shapes and components, and the design boards the owner agreed to (`references/redesign/`). New UI follows it.
+- `docs/DESIGN.md` says how it looks (tokens, type, shapes and components, and the design boards the owner agreed to in `references/redesign/`) and, under "How it behaves", how it must move and respond: nothing jumps, nothing redraws needlessly, every control says what it does. New UI follows both, and a UI change is checked against that list before it is published.
 - `docs/TODO.md` holds planned work. The owner's newest request decides scope.
 - Each module starts with a comment saying what it owns. Read it before editing.
 
