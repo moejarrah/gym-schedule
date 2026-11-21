@@ -256,10 +256,8 @@
         <div><h2 id="routineBlockDialogTitle">Edit block</h2><p id="routineBlockDialogSubtitle">Routine block</p></div>
         <button class="icon-button" data-close-dialog="routineBlockDialog" aria-label="Close block editor" type="button">×</button>
       </header>
-      <label class="field"><span>Name</span><input class="control" id="routineBlockName" autocomplete="off" placeholder="Untitled block"></label>
+      <label class="field"><span>Name</span><input class="control" id="routineBlockName" autocomplete="off" placeholder="Main"></label>
       <div class="ruled">
-        <button class="row compact" id="moveBlockEarlierButton" data-action="move-routine-block" data-by="-1" type="button">Move block earlier <span class="chev" aria-hidden="true">↑</span></button>
-        <button class="row compact" id="moveBlockLaterButton" data-action="move-routine-block" data-by="1" type="button">Move block later <span class="chev" aria-hidden="true">↓</span></button>
         <button class="row compact danger" id="deleteBlockButton" data-action="delete-routine-block" type="button">Delete empty block <span class="chev" aria-hidden="true">×</span></button>
       </div>
       <p class="form-error" id="routineBlockFormError" role="alert" data-dialog-error></p>
@@ -310,8 +308,6 @@
         <p class="hint" id="entryFormNote">This changes only this routine entry. The master exercise and its default prescription stay unchanged.</p>
         <p class="form-error" id="entryFormError" role="alert" data-dialog-error></p>
         <div class="ruled">
-          <button class="row compact" id="moveEntryEarlierButton" data-action="move-entry" data-by="-1" type="button">Move earlier <span class="chev" aria-hidden="true">↑</span></button>
-          <button class="row compact" id="moveEntryLaterButton" data-action="move-entry" data-by="1" type="button">Move later <span class="chev" aria-hidden="true">↓</span></button>
           <button class="row compact danger" id="removeEntryButton" data-action="remove-entry" type="button">Remove from routine <span class="chev" aria-hidden="true">›</span></button>
         </div>
       </div>
@@ -327,6 +323,7 @@
       </header>
       <label class="field"><span>Prescription for this choice</span><input class="control" id="entryChoicePrescription" required maxlength="60" autocomplete="off"></label>
       <div class="ruled">
+        <button class="row compact" data-action="replace-open-choice" type="button">Replace exercise <span class="chev" aria-hidden="true">›</span></button>
         <button class="row compact" id="preferEntryChoiceButton" data-action="prefer-open-choice" type="button">Make preferred <span class="chev" aria-hidden="true">↑</span></button>
         <button class="row compact" id="moveEntryChoiceEarlierButton" data-action="move-open-choice" data-by="-1" type="button">Move choice earlier <span class="chev" aria-hidden="true">↑</span></button>
         <button class="row compact" id="moveEntryChoiceLaterButton" data-action="move-open-choice" data-by="1" type="button">Move choice later <span class="chev" aria-hidden="true">↓</span></button>

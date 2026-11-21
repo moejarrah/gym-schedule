@@ -17,7 +17,7 @@ import {
   finishWorkout,
   isEntryChecked,
   isTimedPrescription,
-  moveEntryInBlock,
+  moveEntry,
   orderedEntries,
   plannedSetCount,
   removeDayLog,
@@ -34,6 +34,7 @@ import {
   setEntryChecked,
   startWorkout,
   updateEntry,
+  updateRoutine,
   usualExtras,
 } from "../js/model.js";
 import { PAST_DAY } from "./sample.mjs";
@@ -246,12 +247,22 @@ test("duplicating a program copies its routines under new IDs and leaves the ori
 test("slots reorder inside their block, and changing block moves a slot to the end of the new one", () => {
   const { store } = freshStore();
   const order = () => orderedEntries(routineById(store.getState(), "day-a")).map((entry) => entry.id);
-  save(store, (draft) => moveEntryInBlock(draft, "day-a", "a4", 0));
+  save(store, (draft) => moveEntry(draft, "day-a", "a4", "a-main", 0));
   assert.deepEqual(order(), ["a1", "a4", "a2", "a3"]);
   save(store, (draft) => updateEntry(draft, "day-a", "a4", { blockId: "a-warm", role: "optional" }));
   assert.deepEqual(order(), ["a1", "a4", "a2", "a3"]);
   save(store, (draft) => updateEntry(draft, "day-a", "a2", { blockId: "a-warm" }));
   assert.deepEqual(order(), ["a1", "a4", "a2", "a3"]);
-  save(store, (draft) => moveEntryInBlock(draft, "day-a", "a2", 0));
+  save(store, (draft) => moveEntry(draft, "day-a", "a2", "a-warm", 0));
   assert.deepEqual(order(), ["a2", "a1", "a4", "a3"]);
+  // Dragged into another block, a slot lands where it was dropped and takes that block's role.
+  save(store, (draft) => moveEntry(draft, "day-a", "a3", "a-warm", 1));
+  assert.deepEqual(order(), ["a2", "a3", "a1", "a4"]);
+  save(store, (draft) => updateEntry(draft, "day-a", "a2", { role: "optional" }));
+  save(store, (draft) => updateEntry(draft, "day-a", "a3", { role: "optional" }));
+  save(store, (draft) => updateEntry(draft, "day-b", "b1", { blockId: "b-main" }));
+  const role = (id) => routineById(store.getState(), "day-a").entries.find((entry) => entry.id === id).role;
+  save(store, (draft) => updateRoutine(draft, "day-a", { blocks: [{ id: "a-warm", name: "Warm-up" }, { id: "a-main", name: "Main work" }, { id: "a-new", name: "Optional extras" }] }));
+  save(store, (draft) => moveEntry(draft, "day-a", "a2", "a-new", 0));
+  assert.deepEqual([order(), role("a2")], [["a3", "a1", "a4", "a2"], "optional"]);
 });

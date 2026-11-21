@@ -26,7 +26,7 @@ import {
   createProgram,
   duplicateProgram,
   makeId,
-  moveEntryInBlock,
+  moveEntry,
   moveRoutine,
   programRoutines,
   removeProgram,
@@ -95,7 +95,7 @@ function programsListMarkup(state) {
 function routineBlocksEditorMarkup(blocks, entries) {
   return blocks.map((block, index) => {
     const count = entries.filter((entry) => entry.blockId === block.id).length;
-    const name = block.name.trim() || "Untitled block";
+    const name = block.name.trim() || "Main";
     return `<div class="row split drag-row" data-block-id="${escapeHtml(block.id)}">
       <span class="grip" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h8"/></svg></span>
       <button class="row-main" type="button" data-action="edit-routine-block" data-id="${escapeHtml(block.id)}" aria-label="Edit ${escapeHtml(name)}. Hold and drag to reorder.">
@@ -387,9 +387,6 @@ function editedBlock() {
 
 function updateBlockButtons() {
   const { blocks, blockId } = routineEditor;
-  const index = blocks.findIndex((block) => block.id === blockId);
-  $("#moveBlockEarlierButton").disabled = index <= 0;
-  $("#moveBlockLaterButton").disabled = index === blocks.length - 1;
   $("#deleteBlockButton").disabled = blocks.length <= 1 || savedBlockEntryCount(blockId) > 0;
 }
 
@@ -404,13 +401,6 @@ function openBlockEditor(blockId) {
 
 function syncBlockName() {
   editedBlock().name = $("#routineBlockName").value;
-}
-
-function moveBlockBy(direction) {
-  syncBlockName();
-  const index = routineEditor.blocks.findIndex((block) => block.id === routineEditor.blockId);
-  moveBlockDraft(routineEditor.blockId, index + direction);
-  updateBlockButtons();
 }
 
 function saveBlock() {
@@ -455,7 +445,6 @@ registerActions({
   "add-routine-block": addBlock,
   "edit-routine-block": (button) => openBlockEditor(button.dataset.id),
   "save-routine-block": saveBlock,
-  "move-routine-block": (button) => moveBlockBy(Number(button.dataset.by)),
   "delete-routine-block": deleteBlock,
 
   "edit-entry": (button) => openEntryEditor(button.dataset.id),
@@ -469,9 +458,10 @@ enableHoldDrag(mainElement(), {
   placeholderClass: "drag-placeholder",
   activeBodyClass: "drag-active",
   scroller: mainElement,
-  onDrop(row, toIndex) {
+  acrossLists: true,
+  onDrop(row, toIndex, list) {
     const routineId = store.getState().settings.activeRoutineId;
-    const result = store.update((draft) => moveEntryInBlock(draft, routineId, row.dataset.id, toIndex));
+    const result = store.update((draft) => moveEntry(draft, routineId, row.dataset.id, list.dataset.blockId, toIndex));
     report(result, "Exercise moved.");
     render();
   },

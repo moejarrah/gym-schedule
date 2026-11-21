@@ -576,13 +576,22 @@ export function updateEntry(state, routineId, entryId, { choices, role, blockId,
   }
 }
 
-// Moves an entry to a position (0-based) among the entries of its own block.
-export function moveEntryInBlock(state, routineId, entryId, toIndex) {
+// Moves a slot to a position (0-based) among the slots of a block: its own, or
+// another one. In another block it takes that block's role: Optional among
+// Optional slots (or in an empty block named optional), Main among Main ones.
+export function moveEntry(state, routineId, entryId, blockId, toIndex) {
   const { routine, entry } = findEntry(state, routineId, entryId);
-  const blockEntries = routine.entries.filter((item) => item.blockId === entry.blockId);
-  if (!moveInArray(blockEntries, blockEntries.indexOf(entry), toIndex)) return;
-  let next = 0;
-  routine.entries = routine.entries.map((item) => (item.blockId === entry.blockId ? blockEntries[next++] : item));
+  const block = routine.blocks.find((item) => item.id === blockId) || fail("That block no longer exists.");
+  const rest = routine.entries.filter((item) => item !== entry);
+  const inBlock = rest.filter((item) => item.blockId === blockId);
+  if (entry.blockId !== blockId) {
+    if (inBlock.length ? inBlock.every((item) => item.role === "optional") : /\boptional\b/i.test(block.name)) entry.role = "optional";
+    else if (inBlock.length && inBlock.every((item) => item.role === "main")) entry.role = "main";
+    entry.blockId = blockId;
+  }
+  const before = inBlock[toIndex];
+  rest.splice(before ? rest.indexOf(before) : inBlock.length ? rest.indexOf(inBlock.at(-1)) + 1 : rest.length, 0, entry);
+  routine.entries = rest;
 }
 
 export function removeEntry(state, routineId, entryId) {

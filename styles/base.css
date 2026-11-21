@@ -272,6 +272,12 @@ a:focus-visible,
   outline-offset: 2px;
 }
 
+/* Fields and full-width rows draw their ring inside, so it can't run past the
+   edge of the screen or get clipped by a sheet. */
+:is(input, select, textarea, .row):focus-visible {
+  outline-offset: -3px;
+}
+
 /* After a tap, buttons, links and checkboxes don't show focus rings (see js/app.js). */
 :root[data-input="touch"] :is(button, a, summary, [tabindex], input[type="checkbox"], input[type="radio"]):focus-visible,
 :root[data-input="touch"] .row:has(> input:focus-visible) {

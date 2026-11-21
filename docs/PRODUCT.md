@@ -69,10 +69,11 @@ Program
 - See and switch the active program. Create an empty program or a duplicate (new routine/block/entry IDs, same Library exercises). Edit its name and note; delete it after confirmation (its routines go; Library exercises stay).
 - Read the program note in a compact disclosure.
 - Add a routine; edit its name, location, status, note and blocks; move it earlier or later; delete it after confirmation.
-- Add, rename, reorder (hold-drag or Earlier/Later) and delete blocks. Only empty blocks can be deleted.
+- Add, rename, reorder (hold and drag) and delete blocks. Only empty blocks can be deleted. A block without a name is shown as "Main" wherever blocks are listed.
 - Search the Library and add an exercise to a chosen block (it starts as a Main entry with the exercise's default prescription).
 - Edit an entry: add or remove choices, edit each choice's prescription, reorder choices, make one preferred, change role, block (the entry moves to the end of the new block) and note.
-- Reorder entries within their block by hold-drag or Earlier/Later. Main and Optional entries can be mixed in any order.
+- Reorder entries by hold and drag, inside their block or into another block. Dropped into another block, an entry lands where it was dropped and takes that block's role: Optional among Optional entries (or in an empty block named optional), Main among Main ones. Main and Optional entries can still be mixed with the Role switch in the entry editor.
+- Replace an entry's exercise: tap the choice in the entry editor, then "Replace exercise" and pick another from the Library. The prescription and the slot's place stay.
 - Remove an entry without deleting its master exercise.
 
 ### Library

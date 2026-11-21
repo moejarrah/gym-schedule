@@ -264,13 +264,14 @@ export function confirmAction({ title, message, confirmLabel, cancelLabel = "Kee
 //   placeholderClass, activeBodyClass
 //   scroller()      element to auto-scroll near its edges
 //   canStart(row)   optional guard
-//   onDrop(row, toIndex) called with the new 0-based index when the position changed
+//   acrossLists     rows may also be dropped into another list of the container
+//   onDrop(row, toIndex, list) called with the new 0-based index in its (new) list when the position changed
 // Returns { cancel() }. The click that ends a drag is swallowed so it doesn't open the row.
 
 const HOLD_DELAY = 340;
 const HOLD_TOLERANCE = 10;
 
-export function enableHoldDrag(container, { rowSelector, listSelector, placeholderClass, activeBodyClass, scroller, canStart = () => true, onDrop }) {
+export function enableHoldDrag(container, { rowSelector, listSelector, placeholderClass, activeBodyClass, scroller, canStart = () => true, acrossLists = false, onDrop }) {
   let drag = null;
   let swallowNextClick = false;
   const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -301,6 +302,14 @@ export function enableHoldDrag(container, { rowSelector, listSelector, placehold
   }
 
   function placeAt(y) {
+    if (acrossLists) {
+      // The list the finger is over, or the nearest one above or below it.
+      const distance = (list) => {
+        const rect = list.getBoundingClientRect();
+        return y < rect.top ? rect.top - y : y > rect.bottom ? y - rect.bottom : 0;
+      };
+      drag.list = $$(listSelector, container).reduce((nearest, list) => (distance(list) < distance(nearest) ? list : nearest), drag.list);
+    }
     const rows = $$(rowSelector, drag.list).filter((row) => row !== drag.row);
     const next = rows.find((row) => {
       const rect = row.getBoundingClientRect();
@@ -362,7 +371,7 @@ export function enableHoldDrag(container, { rowSelector, listSelector, placehold
     if (drag || !row || !canStart(row)) return;
     const list = row.closest(listSelector);
     if (!list) return;
-    drag = { row, list, pointerId, startX: x, startY: y, y, active: false, settling: false };
+    drag = { row, list, originList: list, pointerId, startX: x, startY: y, y, active: false, settling: false };
     drag.timer = setTimeout(activate, HOLD_DELAY);
   }
 
@@ -396,6 +405,7 @@ export function enableHoldDrag(container, { rowSelector, listSelector, placehold
     cancelAnimationFrame(current.frame);
     swallowNextClick = true;
     if (!save) {
+      current.list = current.originList;
       const rows = $$(rowSelector, current.list).filter((row) => row !== current.row);
       const reference = rows[current.originIndex] || null;
       if (reference) current.list.insertBefore(current.placeholder, reference);
@@ -408,7 +418,7 @@ export function enableHoldDrag(container, { rowSelector, listSelector, placehold
       current.row.classList.remove("is-dragging");
       current.row.removeAttribute("style");
       document.body.classList.remove(activeBodyClass);
-      if (save && toIndex !== current.originIndex) onDrop(current.row, toIndex);
+      if (save && (toIndex !== current.originIndex || current.list !== current.originList)) onDrop(current.row, toIndex, current.list);
     };
     if (reducedMotion()) {
       done();

@@ -5,7 +5,7 @@
 
 import { registerActions, render, store } from "../context.js";
 import { $, chevronIcon, clearError, closeDialog, confirmAction, escapeHtml, openDialog, plural, report, segmentValue, setSegment, showError } from "../dom.js";
-import { activeRoutine, activeWorkout, addEntry, addExtra, dayExtras, entryNumber, exerciseById, moveEntryInBlock, removeEntry, routineById, updateEntry } from "../model.js";
+import { activeRoutine, activeWorkout, addEntry, addExtra, dayExtras, entryNumber, exerciseById, removeEntry, routineById, updateEntry } from "../model.js";
 import { searchExercises } from "../search.js";
 import { label } from "../vocab.js";
 import { entryPresentation } from "./shared.js";
@@ -14,7 +14,8 @@ import { entryPresentation } from "./shared.js";
 // choice open in the choice editor.
 const entryEditor = { routineId: "", entryId: "", choices: [], choiceIndex: -1 };
 // What the picker adds: a new Main entry to blockId ("entry"), a choice to the entry
-// draft ("choice"), or an exercise to the workout in progress, for that day only ("extra").
+// draft ("choice"), an exercise to the workout in progress, for that day only
+// ("extra"), or swaps the exercise of the choice open in the choice editor ("replace").
 const picker = { mode: "entry", blockId: "" };
 
 // ---------- markup ----------
@@ -29,7 +30,7 @@ function pickerListMarkup(exercises, existingExerciseIds, mode) {
     const details = [prescription, label(exercise.primaryTargets[0]), label(exercise.movementPattern)].filter(Boolean).join(" · ");
     const exists = existingExerciseIds.has(exercise.id);
     const unavailable = mode !== "entry" && exists;
-    return `<button class="row tall" type="button" data-action="pick-exercise" data-id="${escapeHtml(exercise.id)}" aria-label="${unavailable ? `${escapeHtml(exercise.name)} is already added` : `${exists ? "Add another" : "Add"} ${escapeHtml(exercise.name)}${mode === "extra" ? " for today" : " to this routine"}`}" ${unavailable ? "disabled" : ""}>
+    return `<button class="row tall" type="button" data-action="pick-exercise" data-id="${escapeHtml(exercise.id)}" aria-label="${unavailable ? `${escapeHtml(exercise.name)} is already added` : `${exists ? "Add another" : "Add"} ${escapeHtml(exercise.name)}${mode === "extra" ? " for today" : mode === "replace" ? " instead" : " to this routine"}`}" ${unavailable ? "disabled" : ""}>
       <span class="row-main"><strong class="row-title truncate">${escapeHtml(exercise.name)}</strong><small class="row-meta truncate">${escapeHtml(details)}</small></span>
       <span class="row-action">${unavailable ? "Added" : exists ? "Add again" : "Add"}</span>
     </button>`;
@@ -61,21 +62,6 @@ function renderChoiceDraft() {
   $("#entryExerciseName").textContent = entryPresentation({ choices: entryEditor.choices }, state).title;
 }
 
-// The entry's position among the entries of blockId. Saving an entry into
-// another block puts it last there (see model.updateEntry).
-function positionInBlock(routine, entryId, blockId) {
-  const blockEntries = routine.entries.filter((item) => item.blockId === blockId);
-  const index = blockEntries.findIndex((item) => item.id === entryId);
-  return index < 0 ? { index: blockEntries.length, count: blockEntries.length + 1 } : { index, count: blockEntries.length };
-}
-
-function updateEntryMoveButtons() {
-  const routine = routineById(store.getState(), entryEditor.routineId);
-  const { index, count } = positionInBlock(routine, entryEditor.entryId, $("#entryBlock").value);
-  $("#moveEntryEarlierButton").disabled = index <= 0;
-  $("#moveEntryLaterButton").disabled = index >= count - 1;
-}
-
 export function openEntryEditor(entryId) {
   const state = store.getState();
   const routine = activeRoutine(state);
@@ -84,13 +70,12 @@ export function openEntryEditor(entryId) {
 
   $("#entryRoutineContext").textContent = `${routine.name} entry · slot ${entryNumber(routine, entryId)}`;
   const blockSelect = $("#entryBlock");
-  blockSelect.innerHTML = routine.blocks.map((block) => `<option value="${escapeHtml(block.id)}">${escapeHtml(block.name.trim() || "Untitled block")}</option>`).join("");
+  blockSelect.innerHTML = routine.blocks.map((block) => `<option value="${escapeHtml(block.id)}">${escapeHtml(block.name.trim() || "Main")}</option>`).join("");
   blockSelect.value = entry.blockId;
   $("#entryNote").value = entry.note;
   $("#entryFormNote").textContent = `Choices, role, block, and note change only the ${routine.name} entry. The master exercises stay unchanged.`;
   $("#removeEntryButton").firstChild.textContent = `Remove from ${routine.name} `;
   setSegment("#entryRoleOptions", entry.role);
-  updateEntryMoveButtons();
   renderChoiceDraft();
   $("#entryFormError").textContent = "";
   openDialog("#entryDialog");
@@ -105,21 +90,6 @@ function saveEntry() {
   const changes = entryChanges();
   const result = store.update((draft) => updateEntry(draft, routineId, entryId, changes));
   if (report(result, "Routine entry updated.")) {
-    closeDialog("#entryDialog");
-    render();
-  }
-}
-
-// Earlier/Later saves the draft and moves the entry inside its (possibly new) block.
-function moveEntry(direction) {
-  const { routineId, entryId } = entryEditor;
-  const changes = entryChanges();
-  const result = store.update((draft) => {
-    updateEntry(draft, routineId, entryId, changes);
-    const { index } = positionInBlock(routineById(draft, routineId), entryId, changes.blockId);
-    moveEntryInBlock(draft, routineId, entryId, index + direction);
-  });
-  if (report(result, "Exercise moved.")) {
     closeDialog("#entryDialog");
     render();
   }
@@ -211,7 +181,7 @@ function saveChoice() {
 function renderPickerList() {
   const state = store.getState();
   const workout = activeWorkout(state);
-  const used = picker.mode === "choice"
+  const used = picker.mode === "choice" || picker.mode === "replace"
     ? entryEditor.choices
     : picker.mode === "extra"
       ? dayExtras(state, workout.dateKey, workout.routineId)
@@ -227,9 +197,11 @@ export function openPicker({ blockId = "", mode }) {
   const block = routine.blocks.find((item) => item.id === blockId);
   $("#pickerRoutineContext").textContent = mode === "choice"
     ? `${routine.name} entry · add choice from Library`
-    : mode === "extra"
+    : mode === "replace"
+      ? `Replace ${exerciseById(store.getState(), entryEditor.choices[entryEditor.choiceIndex].exerciseId).name}`
+      : mode === "extra"
       ? `${routine.name} · today only · Library`
-      : `${routine.name} · ${block.name.trim() || "Untitled block"} · Library`;
+      : `${routine.name} · ${block.name.trim() || "Main"} · Library`;
   $("#pickerSearch").value = "";
   $("#pickerFormError").textContent = "";
   renderPickerList();
@@ -241,6 +213,14 @@ function pickExercise(exerciseId) {
   const exercise = exerciseById(state, exerciseId);
   if (picker.mode === "choice") {
     entryEditor.choices.push({ exerciseId, prescription: exercise.defaultPrescription });
+    renderChoiceDraft();
+    closeDialog("#pickerDialog");
+    return;
+  }
+  if (picker.mode === "replace") {
+    // The prescription stays: it was written for this slot.
+    entryEditor.choices[entryEditor.choiceIndex].exerciseId = exerciseId;
+    $("#entryChoiceDialogTitle").textContent = exercise.name;
     renderChoiceDraft();
     closeDialog("#pickerDialog");
     return;
@@ -269,7 +249,6 @@ function pickExercise(exerciseId) {
 
 registerActions({
   "save-entry": saveEntry,
-  "move-entry": (button) => moveEntry(Number(button.dataset.by)),
   "remove-entry": removeEntryFromRoutine,
   // Buttons in the entry editor's list of choices carry the choice's index.
   "add-entry-choice": () => openPicker({ mode: "choice" }),
@@ -281,8 +260,8 @@ registerActions({
   "prefer-open-choice": () => moveChoice(0),
   "move-open-choice": (button) => moveChoice(entryEditor.choiceIndex + Number(button.dataset.by)),
   "remove-open-choice": () => removeChoice(entryEditor.choiceIndex),
+  "replace-open-choice": () => openPicker({ mode: "replace" }),
   "pick-exercise": (button) => pickExercise(button.dataset.id),
 });
 
-$("#entryBlock").addEventListener("change", updateEntryMoveButtons);
 $("#pickerSearch").addEventListener("input", renderPickerList);
