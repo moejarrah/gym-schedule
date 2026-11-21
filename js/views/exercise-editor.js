@@ -91,7 +91,9 @@ const selectionSummary = (values, emptyLabel) => (values.length ? values.map(lab
 // For a new exercise the weight wording follows its equipment until the owner picks one.
 function suggestWeightMode() {
   if (editor.mode === "edit" || editor.weightChosen) return;
-  $("#exerciseWeightMode").value = { "plate-loaded": "per-side", dumbbells: "per-dumbbell" }[mainEquipment({ equipment: editor.selections.equipment })] || "";
+  const suggested = { "plate-loaded": "per-side", dumbbells: "per-dumbbell" }[mainEquipment({ equipment: editor.selections.equipment })] || "";
+  // An assisted exercise stays assisted when it is duplicated.
+  if ($("#exerciseWeightMode").value !== "assistance") $("#exerciseWeightMode").value = suggested;
 }
 
 function updateExerciseEditorSummaries() {
@@ -141,7 +143,7 @@ function fillForm(source) {
   $("#deleteExerciseButton").hidden = !editing;
   $("#duplicateExerciseButton").hidden = !editing;
   $("#exerciseDetail").value = source?.detail || "";
-  editor.weightChosen = editor.mode === "duplicate";
+  editor.weightChosen = false;
   setExerciseSelectOptions("#exerciseAttachment", ATTACHMENTS, "Not set", source?.attachment);
   setExerciseSelectOptions("#exerciseGrip", GRIPS, "Not set", source?.grip);
   setExerciseSelectOptions("#exerciseWidth", WIDTHS, "Not set", source?.width);

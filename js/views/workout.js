@@ -214,7 +214,7 @@ function entryChoicesMarkup(state, routine, entry) {
     return `<div class="row split">
       <button class="row-body" type="button" data-action="open-choice-reference" data-index="${index}" aria-label="Open reference for ${escapeHtml(item.name)}">
         <span class="row-main"><span class="row-title">${item.markup}</span><span class="row-meta">${escapeHtml(item.prescription)}</span></span>
-        ${index === 0 ? `<span class="label accent">Preferred</span>` : ""}
+        <span class="label accent" style="visibility: ${index === 0 ? "visible" : "hidden"}">Preferred</span>
         ${chevronIcon("right")}
       </button>
       ${video}

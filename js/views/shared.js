@@ -15,7 +15,7 @@ export const videoUrl = (videoId) => `https://www.youtube.com/watch?v=${encodeUR
 // coloured letter in front of the name. The rest of the setup is always grey text.
 
 const TAGS = {
-  "smith-machine": ["Smith", "S"], "plate-loaded": ["Plate-loaded", "P"], machine: ["Machine", "M"], "ez-bar": ["EZ bar", "E"], barbell: ["Barbell", "B"],
+  "smith-machine": ["Smith machine", "S"], "plate-loaded": ["Plate-loaded", "P"], machine: ["Machine", "M"], "ez-bar": ["EZ bar", "E"], barbell: ["Barbell", "B"],
   dumbbells: ["Dumbbell", "D"], kettlebell: ["Kettlebell", "K"], cable: ["Cable", "C"], band: ["Band", ""],
 };
 const capitalised = (text) => text.charAt(0).toUpperCase() + text.slice(1);
@@ -30,7 +30,8 @@ function letterMarkup(exercise) {
 // The grey words after the name: the equipment (unless its letter is shown), then the rest.
 function setupText(exercise) {
   const tag = TAGS[mainEquipment(exercise)];
-  const equipment = tag && !(lettersOn() && tag[1]) ? [tag[0]] : [];
+  const said = tag && exercise.name.toLowerCase().includes(tag[0].toLowerCase());
+  const equipment = tag && !said && !(lettersOn() && tag[1]) ? [tag[0]] : [];
   return [...equipment, ...setupWords(exercise).map(capitalised)].join(" · ");
 }
 
@@ -41,7 +42,8 @@ function lettered(exercise, name, letters = letterMarkup(exercise)) {
   return `<span class="nowrap">${letters}${escapeHtml(first)}</span>${rest.length ? ` ${escapeHtml(rest.join(" "))}` : ""}`;
 }
 
-const setupMarkup = (text) => (text ? ` <span class="version">${escapeHtml(text)}</span>` : "");
+const piece = (word) => (word.length <= 22 ? `<span class="nowrap">${escapeHtml(word)}</span>` : escapeHtml(word));
+const setupMarkup = (text) => (text ? ` <span class="version">${text.split(" · ").map(piece).join(" · ")}</span>` : "");
 
 // One exercise: [letter] Name setup. A deleted exercise shows the name its sets were saved under.
 export function exerciseMarkup(exercise, savedName = "Missing exercise") {
@@ -51,7 +53,9 @@ export function exerciseMarkup(exercise, savedName = "Missing exercise") {
 
 // One version under its movement's name in the Library: the setup alone, equipment spelled out.
 export function versionMarkup(exercise) {
-  const words = [TAGS[mainEquipment(exercise)]?.[0], ...setupWords(exercise).map(capitalised)].filter(Boolean);
+  const rest = setupWords(exercise).map(capitalised);
+  const tag = TAGS[mainEquipment(exercise)];
+  const words = [lettersOn() && tag?.[1] && rest.length ? "" : tag?.[0], ...rest].filter(Boolean);
   return lettered(exercise, words.join(" · ") || "No equipment");
 }
 
@@ -81,7 +85,7 @@ export function entryPresentation(entry, state) {
     title: choices.map((item) => item.name).join(" or ") || "No exercise choices",
     titleMarkup: together
       ? `${lettered(null, choices[0].exercise.name, letters.join(""))}${setupMarkup(setups.filter(Boolean).join(" or "))}`
-      : choices.map((item) => item.markup).join(` <span class="version">or</span> `) || "No exercise choices",
+      : choices.map((item) => item.markup).join(` <span class="version">or</span>&nbsp;`) || "No exercise choices",
     prescription: shared ? prescriptions[0] : prescriptions.join(" or "),
   };
 }

@@ -78,6 +78,15 @@ appTest("Logging: a tick takes last time's set, typed sets and a drop are saved,
   await tick(sheet, "Set 2").click();
   await expect(sheet.getByLabel("Weight for set 2, kg", { exact: true })).toHaveValue("62.5");
 
+  // Correcting a ticked set and tapping its tick keeps it ticked, with the new value saved.
+  await weight1.fill("61");
+  await tick(sheet, "Set 1").click();
+  await expect(tick(sheet, "Set 1")).toHaveAttribute("aria-pressed", "true");
+  assert.equal((await todaySaved(page)).logs.a2.sets[0].kg, 61);
+  await weight1.fill("60");
+  await tick(sheet, "Set 1").click();
+  await expect(tick(sheet, "Set 1")).toHaveAttribute("aria-pressed", "true");
+
   await sheet.getByRole("button", { name: "Drop set" }).click();
   await sheet.getByLabel("Weight for drop 1 after set 2, kg", { exact: true }).fill("50");
   await sheet.getByLabel("Reps for drop 1 after set 2", { exact: true }).fill("6");

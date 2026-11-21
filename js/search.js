@@ -46,7 +46,7 @@ function matchesSearch(exercise, query) {
   if (!needle) return true;
   // The name with its setup counts as one term ("Lat pulldown (machine, overhand)", plus
   // "grip" so "overhand grip" still works); otherwise every word must be found somewhere.
-  const terms = [`${fullName(exercise)}${exercise.grip ? " grip" : ""}`, ...exerciseSearchTerms(exercise)].map(normalizedName);
+  const terms = [`${fullName(exercise)}${exercise.grip || exercise.width ? " grip" : ""}`, ...exerciseSearchTerms(exercise)].map(normalizedName);
   if (terms.some((term) => term.includes(needle))) return true;
   const words = query.split(/[\s(),·]+/).map(normalizedName).filter(Boolean);
   return words.length > 1 && words.every((word) => terms.some((term) => term.includes(word)));

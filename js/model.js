@@ -631,7 +631,8 @@ export function fullName(exercise) {
 
 // Sorted by movement, then by setup, so versions of one movement sit together.
 // The plainest setup comes first ("cable" before "cable, high to low").
-export const byFullName = (a, b) => a.name.localeCompare(b.name) || (fullName(a) < fullName(b) ? -1 : fullName(a) > fullName(b) ? 1 : 0);
+const plain = (exercise) => fullName(exercise).toLowerCase();
+export const byFullName = (a, b) => a.name.localeCompare(b.name) || (plain(a) < plain(b) ? -1 : plain(a) > plain(b) ? 1 : 0);
 
 // Adds or replaces a master exercise and sets its related exercises, keeping
 // the reverse links on the other exercises in sync.
@@ -688,7 +689,7 @@ export function removeExercise(state, exerciseId) {
 // ---------- settings ----------
 
 // How an exercise's version (equipment, attachment, grip) shows next to its name:
-// "line" puts it on the line below, "letter" puts a coloured letter in front.
+// "line" writes the equipment as a word after the name, "letter" puts a coloured letter in front.
 export const exerciseLabels = (state) => (state.settings.exerciseLabels === "letter" ? "letter" : "line");
 
 export function setExerciseLabels(state, mode) {

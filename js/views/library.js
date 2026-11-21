@@ -124,7 +124,7 @@ function exerciseFilterContentMarkup(filters) {
       <summary><strong>More filters</strong><span>Style · side · emphasis · challenge</span></summary>
       <p class="label">Style</p>
       ${filterOptionButtons("styles", STYLES, filters.styles)}
-      <p class="label">Laterality</p>
+      <p class="label">Sides</p>
       ${filterOptionButtons("lateralities", LATERALITIES, filters.lateralities)}
       <p class="label">Emphasis</p>
       ${filterOptionButtons("emphases", EMPHASES, filters.emphases)}

@@ -80,7 +80,7 @@ function factsMarkup(exercise) {
     ["Purpose", label(exercise.purpose || "")],
     ["Style", label(exercise.style || "")],
     ["Support", label(exercise.support || "")],
-    ["Challenge", label(exercise.typicalChallenge || "")],
+    ["Typical challenge", label(exercise.typicalChallenge || "")],
   ];
   const group = (title, facts) => `<div class="reference-group"><p class="label">${title}</p>${facts.filter(([, value]) => value).map(([name, value]) => `
     <div class="row compact"><span class="label">${name}</span><strong class="row-title">${escapeHtml(value)}</strong></div>`).join("")}

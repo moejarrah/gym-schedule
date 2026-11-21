@@ -30,7 +30,7 @@ function pickerListMarkup(exercises, existingExerciseIds, mode) {
     const details = [prescription, label(exercise.primaryTargets[0]), label(exercise.movementPattern)].filter(Boolean).join(" · ");
     const exists = existingExerciseIds.has(exercise.id);
     const unavailable = mode !== "entry" && exists;
-    return `<button class="row tall" type="button" data-action="pick-exercise" data-id="${escapeHtml(exercise.id)}" aria-label="${unavailable ? `${escapeHtml(fullName(exercise))} is already added` : `${exists ? "Add another" : "Add"} ${escapeHtml(fullName(exercise))}${mode === "extra" ? " for today" : mode === "replace" ? " instead" : " to this routine"}`}" ${unavailable ? "disabled" : ""}>
+    return `<button class="row tall" type="button" data-action="pick-exercise" data-id="${escapeHtml(exercise.id)}" aria-label="${unavailable ? `${escapeHtml(fullName(exercise))} is already added` : `${exists ? "Add another" : "Add"} ${escapeHtml(fullName(exercise))}${mode === "extra" ? " for today" : mode === "replace" ? " instead" : mode === "choice" ? " as a choice" : " to this routine"}`}" ${unavailable ? "disabled" : ""}>
       <span class="row-main"><strong class="row-title">${exerciseMarkup(exercise)}</strong><small class="row-meta truncate">${escapeHtml(details)}</small></span>
       <span class="row-action">${unavailable ? "Added" : exists ? "Add again" : "Add"}</span>
     </button>`;

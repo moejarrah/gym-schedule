@@ -16,7 +16,7 @@ const rulesEditor = { draft: null };
 const about = { version: "Checking offline copy…" };
 
 const themeLabel = (theme) => (theme === "dark" ? "Dark" : "Light");
-const labelsLabel = (state) => (exerciseLabels(state) === "letter" ? "Coloured letter before the name" : "On the line below the name");
+const labelsLabel = (state) => (exerciseLabels(state) === "letter" ? "Equipment as a coloured letter" : "Equipment as a word");
 
 // ---------- markup ----------
 

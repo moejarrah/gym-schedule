@@ -66,7 +66,12 @@
   line-height: 1;
 }
 
-/* On a filled (chosen) pill the letter takes the pill's own text colour. */
+/* On a filled (chosen) pill the letter and the setup take the pill's own text colour. */
+.pill[aria-pressed="true"] .version {
+  color: inherit;
+  opacity: 0.8;
+}
+
 .pill[aria-pressed="true"] .kind {
   background: color-mix(in srgb, var(--kind) 45%, transparent);
   color: inherit;

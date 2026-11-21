@@ -201,7 +201,7 @@ function tableMarkup(last, timed) {
 function choicesMarkup(entry, state) {
   if (entry.choices.length < 2) return "";
   const { choices } = entryPresentation(entry, state);
-  return `<div class="chips scroll-x" role="group" aria-label="Exercise you're doing">
+  return `<div class="chips scroll-x" role="group" aria-label="Exercise you're doing" data-keep-scroll="log-choices">
     ${choices.map((item, index) => `<button class="pill" type="button" data-action="log-choose" data-index="${index}" aria-pressed="${index === sheet.choiceIndex}" aria-label="${escapeHtml(item.name)}"><span>${item.markup}</span></button>`).join("")}
   </div>`;
 }
@@ -252,7 +252,8 @@ function tick(setIndex, dropIndex) {
     showError("Tick the set before its drops.");
     return;
   }
-  if (row.done && row.edited) {
+  if (row.done && (row.edited || performance.now() - (row.correctedAt || 0) < 600)) {
+    row.correctedAt = 0;
     if (saveRows()) refresh();
     return;
   }
@@ -452,7 +453,11 @@ registerActions({
     // The note is saved with the sets, so it needs at least one ticked set.
     if ("logNote" in event.target.dataset && sheet.rows.some((row) => row.done)) saveRows();
     const { field, set, drop } = event.target.dataset;
-    if (field && rowAt(Number(set), Number(drop))?.done && !saveRows()) event.target.focus();
+    const row = field ? rowAt(Number(set), Number(drop)) : null;
+    if (!row?.done) return;
+    // The tap that ended this edit may be on the row's own tick: see tick().
+    if (row.edited) row.correctedAt = performance.now();
+    if (!saveRows()) event.target.focus();
   });
   // Enter in a field ticks its row.
   content.addEventListener("keydown", (event) => {
