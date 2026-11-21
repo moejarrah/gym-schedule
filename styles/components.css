@@ -840,6 +840,19 @@ textarea.control {
   box-shadow: inset 0 -2px var(--accent);
 }
 
+/* The routine being swiped away: a copy of its list, sliding off while the next one
+   slides in (enableRoutineSwipe in js/views/shared.js). */
+.swipe-ghost {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 /* ---------- logged sets ---------- */
 
 /* Set chips: "50 kg × 10" boxes; a drop is outlined and tagged. */

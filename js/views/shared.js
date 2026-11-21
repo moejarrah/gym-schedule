@@ -108,26 +108,103 @@ export function routineTabsMarkup(routines, selectedId, marks = null) {
 }
 
 // Keeps the selected routine tab visible after the tab strip is re-rendered.
-// A quick sideways swipe on a screen with routine tabs goes to the next or previous
-// routine, as tapping its tab would. Not from inside something that scrolls sideways
-// itself (the tabs, a chip row), not while a row is being dragged, not on a pinch.
+// Swiping sideways on a screen with routine tabs goes to the next or previous
+// routine, as iPhone pages do: what is under the tabs follows the finger, and on
+// release either slides away while the next routine slides in beside it, or
+// settles back. Not from inside something that scrolls sideways itself (the tabs,
+// a chip row), not while a row is being dragged, not on a pinch.
 export function enableRoutineSwipe(main) {
-  let start = null;
-  main.addEventListener("touchstart", (event) => {
-    const inside = event.target.closest?.(".scroll-x");
-    start = event.touches.length === 1 && !inside ? { x: event.touches[0].clientX, y: event.touches[0].clientY, at: performance.now() } : null;
-  }, { passive: true });
-  main.addEventListener("touchend", (event) => {
-    const from = start;
-    start = null;
-    if (!from || event.touches.length || main.querySelector(".is-dragging")) return;
-    const dx = event.changedTouches[0].clientX - from.x;
-    const dy = event.changedTouches[0].clientY - from.y;
-    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 2 || performance.now() - from.at > 600) return;
+  const SLIDE = { duration: 260, easing: "cubic-bezier(0.22, 0.8, 0.26, 1)" };
+  const still = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // What moves: everything under the tabs.
+  const panes = () => {
+    const tabs = main.querySelector(".routine-tabs");
+    return tabs ? [...tabs.parentElement.children].slice([...tabs.parentElement.children].indexOf(tabs) + 1) : [];
+  };
+  const neighbour = (step) => {
     const tabs = [...main.querySelectorAll(".routine-tab")];
-    tabs[tabs.findIndex((tab) => tab.getAttribute("aria-pressed") === "true") + (dx < 0 ? 1 : -1)]?.click();
+    return tabs[tabs.findIndex((tab) => tab.getAttribute("aria-pressed") === "true") + step] || null;
+  };
+  const shift = (items, x) => { for (const item of items) item.style.transform = x ? `translateX(${x}px)` : ""; };
+  let touch = null;
+
+  main.addEventListener("touchstart", (event) => {
+    const blocked = event.touches.length !== 1 || event.target.closest?.(".scroll-x") || !main.querySelector(".routine-tabs");
+    touch = blocked ? null : { x: event.touches[0].clientX, y: event.touches[0].clientY, at: performance.now(), dx: 0, sideways: false, items: [] };
   }, { passive: true });
-  main.addEventListener("touchcancel", () => { start = null; }, { passive: true });
+
+  main.addEventListener("touchmove", (event) => {
+    if (!touch) return;
+    if (event.touches.length !== 1 || main.querySelector(".is-dragging")) {
+      shift(touch.items, 0);
+      touch = null;
+      return;
+    }
+    const dx = event.touches[0].clientX - touch.x;
+    const dy = event.touches[0].clientY - touch.y;
+    if (!touch.sideways) {
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      // The first clear movement decides: up and down is the list's own scrolling.
+      if (Math.abs(dx) <= Math.abs(dy) * 1.2) {
+        touch = null;
+        return;
+      }
+      touch.sideways = true;
+      touch.items = panes();
+    }
+    event.preventDefault(); // the list doesn't also scroll up or down
+    // Pulling past the first or last routine resists.
+    touch.dx = neighbour(dx < 0 ? 1 : -1) ? dx : dx * 0.25;
+    shift(touch.items, touch.dx);
+  }, { passive: false });
+
+  const settle = (items, from) => {
+    shift(items, 0);
+    if (!still()) for (const item of items) item.animate([{ transform: `translateX(${from}px)` }, { transform: "none" }], SLIDE);
+  };
+
+  main.addEventListener("touchend", () => {
+    const ended = touch;
+    touch = null;
+    if (!ended?.sideways) return;
+    const step = ended.dx < 0 ? 1 : -1;
+    const target = neighbour(step);
+    const flick = Math.abs(ended.dx) > 30 && performance.now() - ended.at < 250;
+    if (!target || (Math.abs(ended.dx) < main.clientWidth * 0.28 && !flick)) {
+      settle(ended.items, ended.dx);
+      return;
+    }
+    // The routine being left stays on screen as a copy that slides away.
+    const width = main.clientWidth;
+    const boxes = ended.items.map((item) => item.getBoundingClientRect());
+    const scrolls = [];
+    const ghost = document.createElement("div");
+    ghost.className = "swipe-ghost";
+    ghost.setAttribute("aria-hidden", "true");
+    Object.assign(ghost.style, { top: `${boxes[0]?.top || 0}px`, height: `${(boxes.at(-1)?.bottom || 0) - (boxes[0]?.top || 0)}px` });
+    ended.items.forEach((item, index) => {
+      const copy = item.cloneNode(true);
+      copy.style.transform = "";
+      copy.style.height = `${boxes[index].height}px`;
+      copy.style.flex = "none";
+      ghost.append(copy);
+      // Where each list was scrolled to; set once the copy is on the page.
+      for (const [from, to] of [[item, copy], [item.querySelector(".scroll"), copy.querySelector(".scroll")]]) if (from?.scrollTop) scrolls.push([to, from.scrollTop]);
+    });
+    target.click();
+    // After the redraw, which replaces everything inside the screen.
+    if (still()) return;
+    main.append(ghost);
+    for (const [copy, top] of scrolls) copy.scrollTop = top;
+    main.classList.remove("is-switching"); // it slides in; it doesn't also fade
+    for (const item of panes()) item.animate([{ transform: `translateX(${ended.dx + step * width}px)` }, { transform: "none" }], SLIDE);
+    ghost.animate([{ transform: `translateX(${ended.dx}px)` }, { transform: `translateX(${-step * width}px)` }], SLIDE).onfinish = () => ghost.remove();
+  }, { passive: true });
+
+  main.addEventListener("touchcancel", () => {
+    if (touch) shift(touch.items, 0);
+    touch = null;
+  }, { passive: true });
 }
 
 export function revealSelectedTab(root) {
