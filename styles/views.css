@@ -12,40 +12,14 @@
   font-weight: 700;
 }
 
-/* Above the list: when the routine was last done with Start workout, or, while
-   it runs, its name, the stopwatch and Cancel. */
-.workout-top {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--gutter) var(--space-1);
+/* Workout's top bar: the program on the left; on the right Start, or while a
+   workout runs its stopwatch and Cancel. Compact pills, not full-size buttons. */
+.workout-bar {
+  gap: var(--space-2);
+  padding-right: var(--space-4);
 }
 
-.workout-top p {
-  min-width: 0;
-  margin: 0;
-  flex: 1;
-  color: var(--text-muted);
-  font-size: var(--fs-meta);
-}
-
-.workout-top.is-running p {
-  display: grid;
-  gap: 2px;
-}
-
-.workout-top.is-running strong {
-  color: var(--accent);
-}
-
-.workout-top [data-elapsed] {
-  color: var(--text);
-  font-size: 1.3rem;
-  font-weight: 700;
-}
-
-/* Start, and Cancel: compact pills, not full-size buttons. */
-.workout-top .button {
+.workout-bar .button {
   min-height: 36px;
   padding: 0 var(--space-4);
   border-radius: var(--radius-pill);
@@ -53,9 +27,35 @@
   font-size: var(--fs-small);
 }
 
-.workout-top:not(.is-running) {
-  min-height: var(--tap);
-  padding-block: var(--space-1) 0;
+.workout-bar .button.text {
+  padding-inline: var(--space-2);
+}
+
+.workout-clock {
+  flex: none;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* On a routine tab: a dot while its workout runs, a tick once finished today. */
+.tab-mark {
+  width: 7px;
+  height: 7px;
+  margin-left: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.tab-mark.is-done {
+  width: 9px;
+  height: 5px;
+  border-radius: 0;
+  border-left: 2px solid var(--up);
+  border-bottom: 2px solid var(--up);
+  background: none;
+  transform: translateY(-2px) rotate(-45deg);
 }
 
 /* An Optional block, and "You sometimes add": a dashed outline drawn around the

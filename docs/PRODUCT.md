@@ -49,7 +49,7 @@ Program
 
 ### Workout
 
-- See and switch the active program; open Program through "Manage program".
+- See and switch the active program. The same bar holds the workout's control: "Start workout" (or "Reopen" when it was finished today, or "Go to …" when another routine's workout is running), and while a workout runs its stopwatch and Cancel. A routine's tab shows a dot while its workout runs and a tick once it was finished today.
 - Select any routine (the selected tab stays visible in the tab strip).
 - See the routine note, its blocks and numbered slots with prescriptions and note previews.
 - Open a one-choice slot's reference directly. A multi-choice slot opens a sheet listing each choice with its own reference and video buttons.

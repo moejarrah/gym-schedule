@@ -29,13 +29,14 @@ export function saysOptional(blockName) {
   return /\boptional\b/i.test(blockName);
 }
 
-export function routineTabsMarkup(routines, selectedId) {
+// `marks`: { routineId: "running" | "done" } puts a dot or a tick on a tab (Workout).
+export function routineTabsMarkup(routines, selectedId, marks = {}) {
   if (!routines.length) return "";
   return `<div class="routine-tabs scroll-x" aria-label="Choose a routine" data-keep-scroll="routine-tabs">
     ${routines.map((routine) => `
       <button class="routine-tab" type="button"
-        aria-label="${escapeHtml(routine.name)}, ${locationLabel(routine.group)}" aria-pressed="${routine.id === selectedId}" data-action="select-routine" data-id="${escapeHtml(routine.id)}">
-        ${escapeHtml(routine.name)}
+        aria-label="${escapeHtml(routine.name)}, ${locationLabel(routine.group)}${marks[routine.id] === "running" ? ", in progress" : marks[routine.id] === "done" ? ", finished today" : ""}" aria-pressed="${routine.id === selectedId}" data-action="select-routine" data-id="${escapeHtml(routine.id)}">
+        ${escapeHtml(routine.name)}${marks[routine.id] ? `<i class="tab-mark is-${marks[routine.id]}" aria-hidden="true"></i>` : ""}
       </button>`).join("")}
   </div>`;
 }

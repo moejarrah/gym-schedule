@@ -21,7 +21,6 @@ import {
   findSlot,
   finishWorkout,
   isEntryChecked,
-  lastFinished,
   localDateKey,
   orderedEntries,
   programRoutines,
@@ -43,22 +42,46 @@ const plusIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M
 
 // ---------- markup ----------
 
-function programBarMarkup(program) {
+function programBarMarkup(state, program, routine) {
   if (!program) {
     return `<div class="bar">
       <div class="bar-pick"><span class="label tag active">Active</span><strong>No program</strong></div>
     </div>`;
   }
-  return `<div class="bar">
+  return `<div class="bar workout-bar">
     <button class="bar-pick tap" type="button" data-action="open-programs" aria-label="Choose active program, currently ${escapeHtml(program.name)}">
       <span class="label tag active">Active</span>
       <strong class="truncate">${escapeHtml(program.name)}</strong>
       ${chevronIcon("down")}
     </button>
-    <button class="icon-button" type="button" data-view="routines" aria-label="Manage ${escapeHtml(program.name)}">
-      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-    </button>
+    ${routine ? workoutControlMarkup(state, routine) : ""}
   </div>`;
+}
+
+function workoutControlMarkup(state, routine) {
+  const { dateKey, other } = workoutView(state, routine);
+  const todayKey = localDateKey();
+  if (dateKey) {
+    const workout = activeWorkout(state);
+    const clock = workout.reopened ? "" : workout.backdated || dateKey !== todayKey
+      ? `<span class="workout-clock">for ${escapeHtml(shortDate(dateKey))}</span>`
+      : `<span class="workout-clock" data-elapsed>${elapsedText(workout.startedAt)}</span>`;
+    return `<span class="visually-hidden">${escapeHtml(routine.name)} in progress</span>${clock}
+      <button class="button text" type="button" data-action="cancel-workout">${workout.reopened ? "Close again" : "Cancel"}</button>`;
+  }
+  if (other) return `<button class="button" type="button" data-action="select-routine" data-id="${escapeHtml(other.id)}" aria-label="Go to ${escapeHtml(other.name)}, in progress">Go to ${escapeHtml(other.name)}</button>`;
+  const finishedToday = Boolean(state.sessions[todayKey]?.routineIds.includes(routine.id));
+  return `${finishedToday ? `<span class="visually-hidden">Finished today</span>` : ""}
+    <button class="button primary" type="button" data-action="start-workout" data-id="${escapeHtml(routine.id)}"${finishedToday ? ` aria-label="Reopen today's workout"` : ""}>${finishedToday ? "Reopen" : "Start workout"}</button>`;
+}
+
+// A dot on the tab of the routine in progress, a tick on the ones finished today.
+function tabMarks(state, routines) {
+  const todayKey = localDateKey();
+  const marks = {};
+  for (const routine of routines) if (state.sessions[todayKey]?.routineIds.includes(routine.id)) marks[routine.id] = "done";
+  if (activeWorkout(state)) marks[activeWorkout(state).routineId] = "running";
+  return marks;
 }
 
 function routineNoteMarkup(note) {
@@ -97,8 +120,8 @@ function pageMarkup(state) {
   const program = activeProgram(state);
   const routine = activeRoutine(state);
   return `<section class="page fills">
-    ${programBarMarkup(program)}
-    ${routineTabsMarkup(programRoutines(state, program), routine?.id)}
+    ${programBarMarkup(state, program, routine)}
+    ${routineTabsMarkup(programRoutines(state, program), routine?.id, tabMarks(state, programRoutines(state, program)))}
     ${routine ? routineNoteMarkup(routine.note) : ""}
     ${emptyStateMarkup(program, routine)}
     ${!routine && activeWorkout(state) ? `<div class="workout-actions"><button class="button" type="button" data-action="select-routine" data-id="${escapeHtml(activeWorkout(state).routineId)}">Go to ${escapeHtml(routineById(state, activeWorkout(state).routineId).name)}, in progress</button></div>` : ""}
@@ -107,24 +130,10 @@ function pageMarkup(state) {
 }
 
 function listMarkup(state, routine) {
-  const { dateKey, other } = workoutView(state, routine);
+  const { dateKey } = workoutView(state, routine);
   const todayKey = localDateKey();
   const extras = dateKey ? dayExtras(state, dateKey, routine.id) : [];
   const usual = usualExtras(state, routine.id, dateKey || todayKey);
-  const finishedToday = Boolean(state.sessions[todayKey]?.routineIds.includes(routine.id));
-  const last = lastFinished(state, routine.id, todayKey);
-  // At the top: Start, or while it runs the stopwatch and Cancel.
-  const top = dateKey
-    ? `<div class="workout-top is-running">
-        <p><strong>${escapeHtml(routine.name)} in progress${dateKey === todayKey ? "" : ` · for ${escapeHtml(shortDate(dateKey))}`}</strong>${activeWorkout(state).backdated || activeWorkout(state).reopened ? "" : `<span data-elapsed>${elapsedText(activeWorkout(state).startedAt)}</span>`}</p>
-        <button class="button text" type="button" data-action="cancel-workout">${activeWorkout(state).reopened ? "Close again" : "Cancel"}</button>
-      </div>`
-    : `<div class="workout-top">
-        <p>${finishedToday ? "Finished today" : last ? `Last done ${escapeHtml(shortDate(last))}` : plural(routine.entries.length, "exercise")}</p>
-        ${other
-    ? `<button class="button" type="button" data-action="select-routine" data-id="${escapeHtml(other.id)}">Go to ${escapeHtml(other.name)}, in progress</button>`
-    : `<button class="button primary" type="button" data-action="start-workout" data-id="${escapeHtml(routine.id)}">${finishedToday ? "Reopen today's workout" : "Start workout"}</button>`}
-      </div>`;
   const action = dateKey
     ? `<div class="workout-actions">
         <button class="button text" type="button" data-action="pick-extra">${plusIcon}Add exercise for today</button>
@@ -132,7 +141,7 @@ function listMarkup(state, routine) {
       </div>`
     : "";
   const firstExtraNumber = orderedEntries(routine).length + 1;
-  return `${top}
+  return `
     ${routine.blocks.map((block) => blockMarkup(state, routine, block, dateKey)).join("")}
     ${extras.length ? `<section>
       <div class="label section-label"><span>Added today</span></div>
