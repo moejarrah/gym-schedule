@@ -693,6 +693,14 @@ export function applyCoachEdits(state) {
   }
 }
 
+// Saved data version 20: in Pull A the T-bar row becomes the preferred choice of its
+// slot (the coach's note describes its handles). Only if the slot still holds exactly
+// the dumbbell row, then the T-bar row.
+export function preferTBarRow(state) {
+  const slot = state.routines.find((routine) => routine.id === "pull-a")?.entries.find((entry) => entry.id === "pull-a-02");
+  if (slot?.choices.map((choice) => choice.exerciseId).join() === "chest-supported-row,chest-supported-t-bar-row") slot.choices.reverse();
+}
+
 export function applyLibraryUpdate(state, update = LIBRARY_UPDATE) {
   const byId = (id) => state.exercises.find((exercise) => exercise.id === id);
   const taken = (except) => new Set(state.exercises.filter((exercise) => exercise !== except).flatMap((exercise) => [exercise.name, ...exercise.aliases]).map(normalizedName));

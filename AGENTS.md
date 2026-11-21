@@ -42,7 +42,7 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 
 ## Saved data at a glance
 
-One JSON object in `localStorage` under `gymAppStateV1`. The schema version, currently 19, is set in `js/store.js`. Before every save, `stateProblem` checks that the data has the shape the screens rely on and that references point at something; it doesn't police content. Saved data the app can't read is never overwritten: the starting program opens and nothing saves until the owner imports a backup or restores the starting data.
+One JSON object in `localStorage` under `gymAppStateV1`. The schema version, currently 20, is set in `js/store.js`. Before every save, `stateProblem` checks that the data has the shape the screens rely on and that references point at something; it doesn't police content. Saved data the app can't read is never overwritten: the starting program opens and nothing saves until the owner imports a backup or restores the starting data.
 
 - `exercises`: the Library's master exercises. `name` is the movement; the setup is `equipment` (several allowed; `mainEquipment` picks the one that loads it), `attachment`, `grip`, `width`, `detail`, `laterality` (shown as "Sides") and `weightMode`. Names repeat; `fullName(exercise)` in `js/model.js` is what tells two exercises apart, and it must stay unique.
 - `programs` and `routines`: a program lists its routine IDs. A routine holds its blocks and entries, and each entry its choices (master exercise plus prescription).

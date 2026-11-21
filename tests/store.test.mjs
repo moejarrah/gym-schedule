@@ -265,3 +265,16 @@ test("the coach's edits reach a saved program; a slot the owner changed himself 
   assert.deepEqual(slot(state, "legs-b", "legs-b-08").choices, [{ exerciseId: "leg-extension", prescription: "5 × 5" }], "left as the owner had it");
   assert.deepEqual(routine(state, "legs-a"), routine(v18, "legs-a"), "already edited: nothing is done twice");
 });
+
+test("on upgrade Pull A's row slot prefers the T-bar row, unless the owner had changed its choices", () => {
+  const slot = (state) => state.routines.find((routine) => routine.id === "pull-a").entries.find((entry) => entry.id === "pull-a-02");
+  const ids = (state) => slot(state).choices.map((choice) => choice.exerciseId);
+  const v19 = structuredClone({ ...createDefaultState(), version: 19 });
+  slot(v19).choices.reverse();
+  assert.deepEqual(ids(v19), ["chest-supported-row", "chest-supported-t-bar-row"]);
+  assert.deepEqual(ids(freshStore(v19).store.getState()), ["chest-supported-t-bar-row", "chest-supported-row"]);
+
+  const changed = structuredClone(v19);
+  slot(changed).choices = [slot(changed).choices[0]];
+  assert.deepEqual(ids(freshStore(changed).store.getState()), ["chest-supported-row"]);
+});

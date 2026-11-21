@@ -4,7 +4,7 @@
 // training rules are the owner's own words.
 
 export const SEED = {
-  version: 19,
+  version: 20,
   exercises: [
     {"id":"45-degree-glute-biased-back-extension","name":"45° back extension","aliases":["45° glute-biased back extension"],"primaryTargets":["glute-max","hamstrings"],"secondaryTargets":["spinal-erectors"],"movementPattern":"hip-hinge","equipment":["other"],"purpose":"strength","style":"compound","laterality":"bilateral","support":"supported","emphases":["glute-bias"],"typicalChallenge":"lengthened-bottom","relatedExercises":[{"exerciseId":"romanian-deadlift","relation":"similar"},{"exerciseId":"dumbbell-romanian-deadlift","relation":"similar"}],"defaultPrescription":"","instructions":"","videoId":"","attachment":"","grip":"","width":"","detail":"glute bias","weightMode":""},
     {"id":"relaxed-90-90-external-rotation-stretch","name":"90/90 external-rotation stretch","aliases":["Relaxed 90/90 external-rotation stretch"],"primaryTargets":["glute-med-min"],"secondaryTargets":[],"movementPattern":"hip-rotation","equipment":["none"],"purpose":"mobility","style":"mobility-control","laterality":"unilateral","support":"supported","emphases":[],"typicalChallenge":"lengthened-bottom","relatedExercises":[],"defaultPrescription":"1–2 × 20–40 sec/side","instructions":"","videoId":"","attachment":"","grip":"","width":"","detail":"","weightMode":""},
@@ -259,7 +259,7 @@ export const SEED = {
       ],
       entries: [
         {"id":"pull-a-01","choices":[{"exerciseId":"pronated-grip-lat-pulldown","prescription":"3 × 6–10"}],"blockId":"pull-a-main","note":"Pronated grip, shoulder-width, elbows 10–30°","role":"main"},
-        {"id":"pull-a-02","choices":[{"exerciseId":"chest-supported-row","prescription":"3 × 6–10"},{"exerciseId":"chest-supported-t-bar-row","prescription":"3 × 6–10"}],"blockId":"pull-a-main","note":"Flat handles, palms down, elbows about 60°, pull to lower chest","role":"main"},
+        {"id":"pull-a-02","choices":[{"exerciseId":"chest-supported-t-bar-row","prescription":"3 × 6–10"},{"exerciseId":"chest-supported-row","prescription":"3 × 6–10"}],"blockId":"pull-a-main","note":"Flat handles, palms down, elbows about 60°, pull to lower chest","role":"main"},
         {"id":"pull-a-03","choices":[{"exerciseId":"chest-supported-high-row-machine","prescription":"2 × 8–12"}],"blockId":"pull-a-main","note":"Neutral, elbows 20–40°","role":"main"},
         {"id":"pull-a-04","choices":[{"exerciseId":"reverse-pec-deck","prescription":"2 × 12–20"},{"exerciseId":"chest-supported-rear-delt-raise","prescription":"2 × 12–20"}],"blockId":"pull-a-main","note":"Elbows 70–100°","role":"main"},
         {"id":"pull-a-05","choices":[{"exerciseId":"preacher-curl","prescription":"2 × 8–12"}],"blockId":"pull-a-main","note":"","role":"main"},
