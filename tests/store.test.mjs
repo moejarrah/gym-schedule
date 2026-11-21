@@ -5,6 +5,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { SCHEMA_VERSION, STORAGE_KEY, createBackup, createDefaultState, createStore, parseBackup, stateProblem } from "../js/store.js";
 import { SEED } from "../js/seed.js";
+import { fullName } from "../js/model.js";
 import { sampleState } from "./sample.mjs";
 import { fakeStorage, freshStore, refuse, save } from "./support.mjs";
 
@@ -170,7 +171,7 @@ test("the Library tidy-up reaches a saved Library: old names change, the owner's
   const { store } = freshStore(v14);
   const state = store.getState();
   assert.equal(store.getLastError(), "");
-  assert.deepEqual([find(state, "adductor-machine").name, find(state, "adductor-machine").aliases], ["Hip adduction (machine)", ["Adductor machine"]]);
+  assert.deepEqual([find(state, "adductor-machine").name, find(state, "adductor-machine").aliases], ["Hip adduction", ["Adductor machine"]]);
   assert.ok(find(state, "adductor-machine").relatedExercises.some((related) => related.exerciseId === "short-lever-copenhagen-plank" && related.relation === "easier"));
   assert.equal(find(state, "flat-dumbbell-press").name, "My dumbbell press", "a name the owner chose is left alone");
   assert.equal(find(state, "plank").name, "Plank");
@@ -191,4 +192,44 @@ test("plate-loaded and Smith machines get their own equipment on upgrade; an exe
   assert.deepEqual(find(state, "smith-hip-thrust").equipment, ["smith-machine", "bench"]);
   assert.deepEqual(find(state, "leg-press").equipment, ["cable"]);
   assert.deepEqual([state.routines, state.sessions], [v16.routines, v16.sessions]);
+});
+
+test("the version leaves an exercise's name for its own boxes on upgrade; a name the owner changed is kept", () => {
+  const v17 = structuredClone({ ...createDefaultState(), version: 17 });
+  const find = (state, id) => state.exercises.find((exercise) => exercise.id === id);
+  const old = (id, name, equipment) => {
+    const exercise = find(v17, id);
+    for (const field of ["attachment", "grip", "width", "detail", "weightMode"]) delete exercise[field];
+    Object.assign(exercise, { name, ...(equipment ? { equipment } : {}) });
+  };
+  old("pronated-grip-lat-pulldown", "Lat pulldown (overhand grip)");
+  old("bar-triceps-pushdown", "Triceps pushdown (straight bar)");
+  old("behind-the-head-ez-bar-skull-crusher", "Skull crusher (EZ bar, behind head)", ["barbell", "bench"]);
+  old("flat-dumbbell-press", "My dumbbell press");
+  v17.sessions["2026-11-10"] = { routineIds: [], checkedEntryIdsByRoutine: {}, note: "", extras: {}, workouts: {}, logs: { x: { routineId: "push-a", exerciseId: "bar-triceps-pushdown", exerciseName: "Triceps pushdown (straight bar)", unit: "reps", sets: [{ kg: 30, reps: 12, drops: [] }] } } };
+
+  const { store } = freshStore(v17);
+  const state = store.getState();
+  assert.equal(store.getLastError(), "");
+  const setup = ({ name, equipment, attachment, grip, width, detail, weightMode }) => ({ name, equipment, attachment, grip, width, detail, weightMode });
+  assert.deepEqual(setup(find(state, "pronated-grip-lat-pulldown")), { name: "Lat pulldown", equipment: ["machine"], attachment: "", grip: "overhand", width: "", detail: "", weightMode: "" });
+  assert.deepEqual(setup(find(state, "bar-triceps-pushdown")), { name: "Triceps pushdown", equipment: ["cable"], attachment: "straight-bar", grip: "", width: "", detail: "", weightMode: "" });
+  assert.deepEqual(setup(find(state, "behind-the-head-ez-bar-skull-crusher")), { name: "Skull crusher", equipment: ["ez-bar", "bench"], attachment: "", grip: "", width: "", detail: "behind head", weightMode: "" });
+  assert.deepEqual(setup(find(state, "flat-dumbbell-press")), { name: "My dumbbell press", equipment: ["dumbbells", "bench"], attachment: "", grip: "", width: "", detail: "", weightMode: "per-dumbbell" });
+  const names = state.exercises.map(fullName);
+  assert.equal(new Set(names).size, names.length, "every exercise can still be told apart");
+  assert.deepEqual([state.routines, state.sessions], [v17.routines, v17.sessions]);
+});
+
+test("after the upgrade a plate-loaded exercise is logged per side, a dumbbell one per dumbbell, and no alias equals another exercise's full name", () => {
+  const v17 = structuredClone({ ...createDefaultState(), version: 17 });
+  const find = (state, id) => state.exercises.find((exercise) => exercise.id === id);
+  for (const exercise of v17.exercises) for (const field of ["attachment", "grip", "width", "detail", "weightMode"]) delete exercise[field];
+  find(v17, "smith-squat").name = "Squat (Smith machine)";
+  find(v17, "leg-press").aliases.push("Squat (Smith machine)");
+
+  const state = freshStore(v17).store.getState();
+  assert.deepEqual(["leg-press", "chest-supported-t-bar-row", "flat-dumbbell-press", "barbell-bench-press"].map((id) => find(state, id).weightMode), ["per-side", "", "per-dumbbell", ""]);
+  assert.equal(fullName(find(state, "smith-squat")), "Squat (Smith machine)");
+  assert.ok(!find(state, "leg-press").aliases.includes("Squat (Smith machine)"));
 });

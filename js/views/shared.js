@@ -2,73 +2,86 @@
 
 import { escapeHtml, formatDate } from "../dom.js";
 import { store } from "../context.js";
-import { dateFromKey, exerciseById, exerciseLabels } from "../model.js";
+import { dateFromKey, exerciseById, exerciseLabels, fullName, mainEquipment, setupWords } from "../model.js";
 
 export const locationLabel = (group) => (group === "home" ? "Home" : "Gym");
 
 export const videoUrl = (videoId) => `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
 
-// ---------- an exercise's name and version ----------
-// A name like "Romanian deadlift (barbell)" is shown as the movement, with the
-// version beside it the way Settings says: on the line below, or as a coloured
-// letter for the equipment (and the rest of the version on the line below).
+// ---------- drawing an exercise ----------
+// Everywhere an exercise is named it is drawn the same way: the movement, with
+// its setup beside it. Settings → Exercise version picks how the equipment shows:
+// as a word in the grey setup ("Lat pulldown  Machine · Overhand") or as a
+// coloured letter in front of the name. The rest of the setup is always grey text.
 
-const KINDS = [["smith-machine", "S"], ["plate-loaded", "P"], ["machine", "M"], ["barbell", "B"], ["dumbbells", "D"], ["cable", "C"], ["kettlebell", "K"]];
-const KIND_WORDS = new Set(["barbell", "dumbbell", "cable", "machine", "smith machine", "kettlebell"]);
+const TAGS = {
+  "smith-machine": ["Smith", "S"], "plate-loaded": ["Plate-loaded", "P"], machine: ["Machine", "M"], "ez-bar": ["EZ bar", "E"], barbell: ["Barbell", "B"],
+  dumbbells: ["Dumbbell", "D"], kettlebell: ["Kettlebell", "K"], cable: ["Cable", "C"], band: ["Band", ""],
+};
 const capitalised = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+const lettersOn = () => exerciseLabels(store.getState()) === "letter";
 
-// { title, version, kind: [equipment id, letter] or null } for an exercise (or a saved name).
-export function exerciseLabel(exercise, name = exercise?.name || "Missing exercise") {
-  const match = /^(.*\S) \(([^()]+)\)$/.exec(name);
-  const letters = exerciseLabels(store.getState()) === "letter";
-  const kind = (letters && KINDS.find(([id]) => exercise?.equipment.includes(id))) || null;
-  const parts = match ? match[2].split(", ").filter((part) => !kind || !KIND_WORDS.has(part.toLowerCase())) : [];
-  return { title: match ? match[1] : name, version: capitalised(parts.join(", ")), kind };
+function letterMarkup(exercise) {
+  const equipment = mainEquipment(exercise);
+  const letter = lettersOn() ? TAGS[equipment]?.[1] : "";
+  return letter ? `<span class="kind kind-${equipment}" aria-hidden="true">${letter}</span>` : "";
 }
 
-// The name as markup: the letter (if that's the setting) and the movement.
-function kindMarkup(exercise, name) {
-  const { kind } = exerciseLabel(exercise, name);
-  return kind ? `<span class="kind kind-${kind[0]}" aria-hidden="true">${kind[1]}</span>` : "";
+// The grey words after the name: the equipment (unless its letter is shown), then the rest.
+function setupText(exercise) {
+  const tag = TAGS[mainEquipment(exercise)];
+  const equipment = tag && !(lettersOn() && tag[1]) ? [tag[0]] : [];
+  return [...equipment, ...setupWords(exercise).map(capitalised)].join(" · ");
 }
 
-export function nameMarkup(exercise, name) {
-  return `${kindMarkup(exercise, name)}${escapeHtml(exerciseLabel(exercise, name).title)}`;
+// The letter never ends a line on its own: it stays with the first word of the name.
+function lettered(exercise, name, letters = letterMarkup(exercise)) {
+  if (!letters) return escapeHtml(name);
+  const [first, ...rest] = name.split(" ");
+  return `<span class="nowrap">${letters}${escapeHtml(first)}</span>${rest.length ? ` ${escapeHtml(rest.join(" "))}` : ""}`;
 }
 
-// For a place with no line below: the version follows the name, muted.
-export function inlineNameMarkup(exercise, name) {
-  const { version } = exerciseLabel(exercise, name);
-  return `${nameMarkup(exercise, name)}${version ? ` <span class="version">${escapeHtml(version)}</span>` : ""}`;
+const setupMarkup = (text) => (text ? ` <span class="version">${escapeHtml(text)}</span>` : "");
+
+// One exercise: [letter] Name setup. A deleted exercise shows the name its sets were saved under.
+export function exerciseMarkup(exercise, savedName = "Missing exercise") {
+  if (!exercise) return escapeHtml(savedName);
+  return `${lettered(exercise, exercise.name)}${setupMarkup(setupText(exercise))}`;
+}
+
+// One version under its movement's name in the Library: the setup alone, equipment spelled out.
+export function versionMarkup(exercise) {
+  const words = [TAGS[mainEquipment(exercise)]?.[0], ...setupWords(exercise).map(capitalised)].filter(Boolean);
+  return lettered(exercise, words.join(" · ") || "No equipment");
 }
 
 // What the number in the weight box means, when it isn't the whole load.
-export function weightNote(exercise) {
-  if (exercise?.equipment.includes("plate-loaded")) return "kg per side";
-  if (exercise?.equipment.includes("dumbbells")) return "kg per dumbbell";
-  return "";
+export function weightWords(exercise) {
+  return { "per-side": "kg per side", "per-dumbbell": "kg per dumbbell", assistance: "enter assistance as minus kg" }[exercise?.weightMode] || "";
 }
 
-// Display data for a routine entry: its choices with names, the derived title,
-// and one prescription line ("3 × 8" or "3 × 8 or 2 × 12").
+// Display data for a routine entry: its choices, a plain title (for labels read
+// aloud), the title as markup, and one prescription line ("3 × 8" or "3 × 8 or 2 × 12").
 export function entryPresentation(entry, state) {
   const choices = entry.choices.map((choice) => {
     const exercise = exerciseById(state, choice.exerciseId);
-    const name = exercise?.name || "Missing exercise";
-    return { choice, exercise, name, titleMarkup: nameMarkup(exercise, name), inlineMarkup: inlineNameMarkup(exercise, name), version: exerciseLabel(exercise, name).version, prescription: choice.prescription || "No prescription" };
+    return { choice, exercise, name: fullName(exercise), markup: exerciseMarkup(exercise), prescription: choice.prescription || "No prescription" };
   });
   const prescriptions = choices.map((item) => item.prescription);
-  // Two versions of one movement ("Hip thrust", barbell or Smith machine) show its name once.
-  const labels = choices.map((item) => exerciseLabel(item.exercise, item.name));
-  const sameMovement = choices.length > 1 && labels.every((label) => label.title === labels[0].title);
   const shared = prescriptions.length > 0 && prescriptions.every((prescription) => prescription === prescriptions[0]);
+  // Two versions of one movement ("Hip thrust", barbell or Smith) show its name once.
+  const sameMovement = choices.length > 1 && choices.every((item) => item.exercise && item.exercise.name === choices[0].exercise.name);
+  // …unless one of them would be left with nothing to tell it apart.
+  const setups = sameMovement ? choices.map((item) => setupText(item.exercise)) : [];
+  const letters = sameMovement ? choices.map((item) => letterMarkup(item.exercise)) : [];
+  const together = sameMovement && (setups.every(Boolean) || (!setups.some(Boolean) && letters.every(Boolean) && new Set(letters).size === letters.length));
   return {
     choices,
     preferred: choices[0] || null,
     title: choices.map((item) => item.name).join(" or ") || "No exercise choices",
-    titleMarkup: sameMovement ? `${choices.map((item) => kindMarkup(item.exercise, item.name)).join("")}${escapeHtml(labels[0].title)}` : choices.map((item) => item.titleMarkup).join(" or ") || "No exercise choices",
-    inlineMarkup: choices.map((item) => item.inlineMarkup).join(" or ") || "No exercise choices",
-    version: [...new Set(choices.map((item) => item.version).filter(Boolean))].join(" or "),
+    titleMarkup: together
+      ? `${lettered(null, choices[0].exercise.name, letters.join(""))}${setupMarkup(setups.filter(Boolean).join(" or "))}`
+      : choices.map((item) => item.markup).join(` <span class="version">or</span> `) || "No exercise choices",
     prescription: shared ? prescriptions[0] : prescriptions.join(" or "),
   };
 }

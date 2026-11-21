@@ -66,12 +66,24 @@
   line-height: 1;
 }
 
+/* On a filled (chosen) pill the letter takes the pill's own text colour. */
+.pill[aria-pressed="true"] .kind {
+  background: color-mix(in srgb, var(--kind) 45%, transparent);
+  color: inherit;
+}
+
 .kind-barbell { --kind: #e24b4a; }
+.kind-ez-bar { --kind: #1aa3b8; }
+.kind-kettlebell { --kind: #8a8f98; }
 .kind-dumbbells { --kind: #d98a1c; }
 .kind-cable { --kind: #378add; }
 .kind-machine { --kind: #1d9e75; }
 .kind-plate-loaded { --kind: #7f77dd; }
 .kind-smith-machine { --kind: #d4537e; }
+
+.nowrap {
+  white-space: nowrap;
+}
 
 .version {
   color: var(--text-muted);

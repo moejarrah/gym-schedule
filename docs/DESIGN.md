@@ -116,6 +116,7 @@ The owner notices every jump, flash and unclear button. Each rule below comes fr
 
 - An action changes the thing that was tapped, and adds or removes only the row that was asked for. Nothing else on screen changes position or size.
 - Anything that shows up later has its space from the start: keep it on screen (disabled or empty) instead of making it appear. The logging sheet's note field and "Drop set" button are always there.
+- A row that names an exercise always has the same three lines: the exercise (or the slot's choices, each with its own setup in grey), the prescription, the note. Nothing else goes on line 1, and the setup never moves to another line.
 - A long form is built one way: sections (`.form-section`) each headed by a small `.label`, and every line in a section is a `.field`, a muted label over one box, whether the box is typed in, picks from a list or opens a sheet (`.control.picker`). No bold row titles, numbered rows or one-off headings in between. The exercise editor is the model.
 - A tag, count or icon that comes and goes must not change the height or wrapping of its row. Put it on a line of its own, or give it a fixed place.
 - A sheet keeps one height while it is used. A sheet whose content grows is `.sheet.tall`.

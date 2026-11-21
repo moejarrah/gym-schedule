@@ -7,7 +7,8 @@ import { activeLibraryFilterCount, availableBrowseGroups, createLibraryFilters, 
 import { CHALLENGES, EMPHASES, EQUIPMENT, LATERALITIES, MOVEMENTS, PURPOSES, STYLES, TARGETS, label } from "../vocab.js";
 import { openExerciseEditor } from "./exercise-editor.js";
 import { openExerciseReference } from "./reference.js";
-import { exerciseLabel, nameMarkup } from "./shared.js";
+import { exerciseMarkup, versionMarkup } from "./shared.js";
+import { fullName } from "../model.js";
 
 const library = {
   query: "",
@@ -40,17 +41,27 @@ function libraryRowsMarkup(exercises, { libraryEmpty = false } = {}) {
   </section>`).join("");
 }
 
+// A movement with one version is one row. A movement with several is named once,
+// with a row per version under it (the list is already sorted by movement).
 function rowsMarkup(exercises) {
-  return `<div>${exercises.map((exercise) => {
+  const row = (exercise, title, version) => {
     const decisionContext = exercise.purpose === "strength"
       ? `<span>${escapeHtml(label(exercise.movementPattern))}</span>`
       : `<span class="label tag rehab">${escapeHtml(label(exercise.purpose))}</span>`;
     return `
-    <button class="row tall" type="button" data-action="view-exercise" data-id="${escapeHtml(exercise.id)}" aria-label="View ${escapeHtml(exercise.name)} details">
-      <span class="row-main"><span class="row-title">${nameMarkup(exercise)}</span><span class="row-meta">${exerciseLabel(exercise).version ? `<span>${escapeHtml(exerciseLabel(exercise).version)}</span>` : ""}<span class="rx">${escapeHtml(exercise.defaultPrescription || "No prescription")}</span><span>${escapeHtml(rowTargetSummary(exercise))}</span>${decisionContext}</span></span>
+    <button class="row tall" type="button" data-action="view-exercise" data-id="${escapeHtml(exercise.id)}" aria-label="View ${escapeHtml(fullName(exercise))} details">
+      <span class="row-main"><span class="row-title">${title}</span><span class="row-meta"><span class="rx">${escapeHtml(exercise.defaultPrescription || "No prescription")}</span><span>${escapeHtml(rowTargetSummary(exercise))}</span>${decisionContext}</span></span>
       <span class="chev" aria-hidden="true">${chevronIcon("right")}</span>
     </button>`;
-  }).join("")}</div>`;
+  };
+  const movements = [];
+  for (const exercise of exercises) {
+    if (movements.at(-1)?.[0].name === exercise.name) movements.at(-1).push(exercise);
+    else movements.push([exercise]);
+  }
+  return `<div>${movements.map((versions) => (versions.length === 1
+    ? row(versions[0], exerciseMarkup(versions[0]), false)
+    : `<div class="label-row version-head"><strong class="row-title">${escapeHtml(versions[0].name)}</strong><span class="row-meta">${versions.length} versions</span></div><div class="versions">${versions.map((exercise) => row(exercise, versionMarkup(exercise), true)).join("")}</div>`)).join("")}</div>`;
 }
 
 function quickGroupMarkup(groups, selectedId) {

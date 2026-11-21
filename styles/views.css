@@ -994,3 +994,17 @@ details.form-section > summary + * {
 .form-section select.control {
   padding-left: 10px;
 }
+
+/* Library: a movement with several versions is named once (.version-head) and each
+   version sits under it, set in from the edge. */
+.version-head {
+  min-height: 40px;
+  padding: var(--space-2) var(--gutter) 0;
+  border: 0;
+  align-items: baseline;
+}
+
+.versions {
+  margin-left: var(--gutter);
+  border-left: 2px solid var(--line);
+}

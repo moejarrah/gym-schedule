@@ -4,6 +4,8 @@
 // result's shape before saving (stateProblem), so mutators only check what the UI
 // could get wrong.
 
+import { label } from "./vocab.js";
+
 // ---------- small helpers ----------
 
 export function makeId(prefix = "item") {
@@ -140,7 +142,7 @@ export function usualExtras(state, routineId, dateKey) {
   return [...counts]
     .map(([exerciseId, count]) => ({ exercise: exerciseById(state, exerciseId), count }))
     .filter((item) => item.exercise && !today.has(item.exercise.id))
-    .sort((a, b) => b.count - a.count || a.exercise.name.localeCompare(b.exercise.name));
+    .sort((a, b) => b.count - a.count || byFullName(a.exercise, b.exercise));
 }
 
 // The last day before dateKey on which the routine was finished, or "".
@@ -395,7 +397,7 @@ export function saveEntrySets(state, { routineId, entryId, exerciseId, sets, not
     delete session.logs[entryId];
   }
   if (clean.length) {
-    const exerciseName = exerciseById(state, exerciseId).name;
+    const exerciseName = fullName(exerciseById(state, exerciseId));
     const kept = (note ?? session.logs[entryId]?.note ?? "").trim();
     session.logs[entryId] = { routineId, exerciseId, exerciseName, unit: isTimedPrescription(choice.prescription) ? "sec" : "reps", sets: clean, ...(kept ? { note: kept } : {}) };
   } else {
@@ -602,15 +604,44 @@ export function removeEntry(state, routineId, entryId) {
 
 // ---------- library ----------
 
+// An exercise is a movement (its name) plus a setup: the equipment that loads it,
+// then attachment, grip, width and a free detail. Two exercises may share a name
+// as long as their setups differ.
+
+const LOADS = ["smith-machine", "plate-loaded", "machine", "ez-bar", "barbell", "dumbbells", "kettlebell", "cable", "band"];
+
+// The one piece of equipment that loads the exercise ("" when nothing does).
+export const mainEquipment = (exercise) => LOADS.find((id) => exercise?.equipment?.includes(id)) || "";
+
+// The setup after the equipment, as words in a fixed order.
+export function setupWords(exercise) {
+  return [exercise?.attachment, exercise?.grip, exercise?.width].filter(Boolean).map(label).concat(exercise?.detail ? [exercise.detail] : []);
+}
+
+const EQUIPMENT_WORD = { "smith-machine": "Smith machine", "plate-loaded": "plate-loaded", machine: "machine", "ez-bar": "EZ bar", barbell: "barbell", dumbbells: "dumbbell", kettlebell: "kettlebell", cable: "cable", band: "band" };
+const lowerWord = (word) => (/^(EZ|V-|Smith)/.test(word) ? word : word.charAt(0).toLowerCase() + word.slice(1));
+
+// The name that tells one exercise from every other: "Lat pulldown (machine, overhand)".
+// Used where there is one line and no room for tags: saved logs, messages, labels read aloud.
+export function fullName(exercise) {
+  if (!exercise) return "Missing exercise";
+  const words = [EQUIPMENT_WORD[mainEquipment(exercise)], ...setupWords(exercise).map(lowerWord)].filter(Boolean);
+  return words.length ? `${exercise.name} (${words.join(", ")})` : exercise.name;
+}
+
+// Sorted by movement, then by setup, so versions of one movement sit together.
+// The plainest setup comes first ("cable" before "cable, high to low").
+export const byFullName = (a, b) => a.name.localeCompare(b.name) || (fullName(a) < fullName(b) ? -1 : fullName(a) > fullName(b) ? 1 : 0);
+
 // Adds or replaces a master exercise and sets its related exercises, keeping
 // the reverse links on the other exercises in sync.
 export function saveExercise(state, exercise, relatedExercises) {
   const others = state.exercises.filter((item) => item.id !== exercise.id);
-  const taken = new Set(others.flatMap((item) => [item.name, ...item.aliases]).map(normalizedName));
-  const identities = [exercise.name, ...exercise.aliases].map(normalizedName);
+  const taken = new Set(others.flatMap((item) => [fullName(item), ...item.aliases]).map(normalizedName));
+  const identities = [fullName(exercise), ...exercise.aliases].map(normalizedName);
   if (identities.some((identity) => !identity)) fail("Names and aliases need at least one letter or number.");
   if (new Set(identities).size !== identities.length) fail("The name and aliases must each be unique.");
-  if (taken.has(identities[0])) fail("An exercise with this name already exists.");
+  if (taken.has(identities[0])) fail("An exercise with this name and setup already exists.");
   if (identities.some((identity) => taken.has(identity))) fail("An alias is already used by another exercise.");
 
   const index = state.exercises.findIndex((item) => item.id === exercise.id);

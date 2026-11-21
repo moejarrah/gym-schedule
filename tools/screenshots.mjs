@@ -128,8 +128,8 @@ const SHOTS = [
   ["dialog-exercise-reference", async (page) => {
     // A Pull A row, so the reference shows its "For this routine" note.
     await routineTab(page, "Pull A").click();
-    await main(page).getByRole("button", { name: "View Lat pulldown (overhand grip) details" }).click();
-    await shown(dialog(page, "Lat pulldown (overhand grip)"));
+    await main(page).getByRole("button", { name: "View Lat pulldown (machine, overhand) details" }).click();
+    await shown(dialog(page, "Lat pulldown (machine, overhand)"));
   }],
   ["dialog-exercise-reference-related", async (page) => {
     await main(page).getByRole("button", { name: "View Low-incline press (dumbbell) details" }).click();

@@ -89,6 +89,7 @@ export const EQUIPMENT = [
   { id: "bodyweight", label: "Bodyweight" },
   { id: "dumbbells", label: "Dumbbells" },
   { id: "barbell", label: "Barbell" },
+  { id: "ez-bar", label: "EZ bar" },
   { id: "kettlebell", label: "Kettlebell" },
   { id: "cable", label: "Cable" },
   { id: "machine", label: "Pin machine" },
@@ -101,6 +102,33 @@ export const EQUIPMENT = [
   { id: "suspension-trainer", label: "Suspension trainer" },
   { id: "foam-roller", label: "Foam roller" },
   { id: "other", label: "Other" },
+];
+
+// The rest of an exercise's setup; each is optional.
+export const ATTACHMENTS = [
+  { id: "rope", label: "Rope" },
+  { id: "straight-bar", label: "Straight bar" },
+  { id: "v-bar", label: "V-bar" },
+  { id: "handle", label: "Handle" },
+];
+
+export const GRIPS = [
+  { id: "overhand", label: "Overhand" },
+  { id: "underhand", label: "Underhand" },
+  { id: "neutral", label: "Neutral" },
+];
+
+export const WIDTHS = [
+  { id: "narrow", label: "Narrow" },
+  { id: "shoulder-width", label: "Shoulder-width" },
+  { id: "wide", label: "Wide" },
+];
+
+// What the logged weight is, when it isn't the whole load ("" in saved data).
+export const WEIGHT_MODES = [
+  { id: "per-side", label: "Per side" },
+  { id: "per-dumbbell", label: "Per dumbbell" },
+  { id: "assistance", label: "Assistance" },
 ];
 
 // Why the exercise exists.
@@ -121,9 +149,9 @@ export const STYLES = [
 
 // Optional.
 export const LATERALITIES = [
-  { id: "bilateral", label: "Bilateral" },
-  { id: "unilateral", label: "Unilateral" },
-  { id: "alternating", label: "Alternating" },
+  { id: "bilateral", label: "Both sides together" },
+  { id: "unilateral", label: "One side at a time" },
+  { id: "alternating", label: "Alternating sides" },
 ];
 
 // Optional.
@@ -172,7 +200,7 @@ export const BROWSE_GROUPS = [
   { id: "full-body", label: "Full body", targetIds: [], movementIds: ["carry"] },
 ];
 
-const labels = new Map([TARGETS, MOVEMENTS, EQUIPMENT, PURPOSES, STYLES, LATERALITIES, SUPPORTS, EMPHASES, CHALLENGES, RELATIONS].flat().map((option) => [option.id, option.label]));
+const labels = new Map([TARGETS, MOVEMENTS, EQUIPMENT, ATTACHMENTS, GRIPS, WIDTHS, WEIGHT_MODES, PURPOSES, STYLES, LATERALITIES, SUPPORTS, EMPHASES, CHALLENGES, RELATIONS].flat().map((option) => [option.id, option.label]));
 
 export function label(id) {
   return labels.get(id) || id;

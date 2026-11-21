@@ -6,7 +6,7 @@
 // one of two ways ("mode"): "weight" by estimated 1-rep max when it has ever been
 // loaded, otherwise "reps" (bodyweight, assisted or timed) by load first, then reps.
 
-import { activeProgram, dateFromKey, exerciseById, localDateKey, programRoutines, workoutName } from "./model.js";
+import { activeProgram, byFullName, dateFromKey, exerciseById, localDateKey, programRoutines, workoutName } from "./model.js";
 
 const RECENT_DAYS = 42; // how far back "getting stronger" and "stalled" look
 const STALL_SESSIONS = 4;
@@ -220,8 +220,8 @@ export function overview(state, todayKey = localDateKey()) {
     thisWeek,
     perWeek: round(before / 4, 1),
     bestsThisMonth,
-    improving: improving.sort((a, b) => b.percent - a.percent || a.exercise.name.localeCompare(b.exercise.name)).slice(0, 5),
-    stalled: stalled.sort((a, b) => a.since.localeCompare(b.since) || a.exercise.name.localeCompare(b.exercise.name)),
+    improving: improving.sort((a, b) => b.percent - a.percent || byFullName(a.exercise, b.exercise)).slice(0, 5),
+    stalled: stalled.sort((a, b) => a.since.localeCompare(b.since) || byFullName(a.exercise, b.exercise)),
     muscles: [...setsByTarget].map(([target, sets]) => ({ target, sets: round(sets, 1) })).filter((item) => item.sets).sort((a, b) => b.sets - a.sets),
   };
 }

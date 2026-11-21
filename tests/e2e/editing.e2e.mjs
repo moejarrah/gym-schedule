@@ -20,15 +20,15 @@ appTest("Program: add a routine, add an exercise from the Library, edit its slot
   await main(page).getByRole("button", { name: "+ Add exercise" }).click();
   const picker = dialog(page, "Add exercise");
   await picker.getByRole("searchbox", { name: "Search exercises" }).fill("squat");
-  await picker.getByRole("button", { name: "Add Squat to this routine" }).click();
-  const slot = main(page).getByRole("button", { name: /^Squat\. Tap to edit\./ });
+  await picker.getByRole("button", { name: "Add Squat (barbell) to this routine" }).click();
+  const slot = main(page).getByRole("button", { name: /^Squat \(barbell\)\. Tap to edit\./ });
   await expect(slot).toContainText("3 × 5"); // the Library's default prescription
 
   // The slot editor and its choice editor are both titled "Squat".
   const slotEditor = page.getByRole("dialog").filter({ has: page.getByRole("region", { name: "Choices — first is preferred" }) });
   const choiceEditor = page.getByRole("dialog").filter({ has: page.getByRole("textbox", { name: "Prescription for this choice" }) });
   await slot.click();
-  await slotEditor.getByRole("button", { name: "Edit Squat choice" }).click();
+  await slotEditor.getByRole("button", { name: "Edit Squat (barbell) choice" }).click();
   await choiceEditor.getByRole("textbox", { name: "Prescription for this choice" }).fill("5 × 5");
   await choiceEditor.getByRole("button", { name: "Save choice" }).click();
   await slotEditor.getByRole("group", { name: "Routine entry role" }).getByRole("button", { name: "Optional" }).click();
@@ -40,7 +40,7 @@ appTest("Program: add a routine, add an exercise from the Library, edit its slot
 
   await slot.click();
   await slotEditor.getByRole("button", { name: "Remove from Day C" }).click();
-  await dialog(page, "Remove Squat?").getByRole("button", { name: "Remove entry" }).click();
+  await dialog(page, "Remove Squat (barbell)?").getByRole("button", { name: "Remove entry" }).click();
   await expect(slot).toHaveCount(0);
   let saved = await readState(page);
   assert.deepEqual(dayC(saved).entries, []);
@@ -111,10 +111,10 @@ appTest("Library: search and browse, add an exercise, edit it, and delete one th
   await expect(rows).toHaveCount(1);
   await search.fill("");
   await main(page).getByRole("button", { name: "Legs", exact: true }).click();
-  await expect(rowOf("Squat")).toBeVisible();
-  await expect(rowOf("Bench press")).toHaveCount(0);
+  await expect(rowOf("Squat (barbell)")).toBeVisible();
+  await expect(rowOf("Bench press (barbell)")).toHaveCount(0);
   await main(page).getByRole("button", { name: "All", exact: true }).click();
-  await expect(rowOf("Bench press")).toBeVisible();
+  await expect(rowOf("Bench press (barbell)")).toBeVisible();
 
   await main(page).getByRole("button", { name: "Add exercise" }).click();
   const adding = dialog(page, "Add exercise");
@@ -127,7 +127,7 @@ appTest("Library: search and browse, add an exercise, edit it, and delete one th
   await dialog(page, "Equipment").getByRole("button", { name: "Done", exact: true }).click();
   await adding.getByLabel(/^Purpose/).selectOption({ label: "Strength" });
   await adding.getByRole("button", { name: "Save exercise" }).click();
-  await expect(rowOf("Face pull")).toBeVisible();
+  await expect(rowOf("Face pull (cable)")).toBeVisible();
   const added = (await readState(page)).exercises.find((exercise) => exercise.name === "Face pull");
   assert.deepEqual(
     [added.primaryTargets, added.movementPattern, added.equipment, added.purpose, added.defaultPrescription],
@@ -135,11 +135,11 @@ appTest("Library: search and browse, add an exercise, edit it, and delete one th
   );
 
   const editing = dialog(page, "Edit exercise");
-  await rowOf("Face pull").click();
-  await dialog(page, "Face pull").getByRole("button", { name: "Edit exercise" }).click();
+  await rowOf("Face pull (cable)").click();
+  await dialog(page, "Face pull (cable)").getByRole("button", { name: "Edit exercise" }).click();
   await editing.getByRole("textbox", { name: /^Name/ }).fill("Cable face pull");
   await editing.getByRole("button", { name: "Save exercise" }).click();
-  await expect(rowOf("Cable face pull")).toBeVisible();
+  await expect(rowOf("Cable face pull (cable)")).toBeVisible();
   assert.deepEqual((await readState(page)).exercises.find((exercise) => exercise.id === added.id), { ...added, name: "Cable face pull" });
 
   // Push-up fills a slot of Day A, is linked from Bench press, and has sets in the history.

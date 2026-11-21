@@ -5,9 +5,9 @@
 
 import { registerActions, store } from "../context.js";
 import { $, escapeHtml, fresh, openDialog, plural, segmentValue } from "../dom.js";
-import { exerciseById } from "../model.js";
+import { exerciseById, fullName } from "../model.js";
 import { compareSets, exerciseProgress } from "../progress.js";
-import { formatKg, liftText, setChipsMarkup, shortDate } from "./shared.js";
+import { exerciseMarkup, formatKg, liftText, setChipsMarkup, shortDate } from "./shared.js";
 
 const CHART_SESSIONS = 20;
 const MEASURES = {
@@ -147,7 +147,7 @@ function historyMarkup(state, exerciseId, measure) {
   const newestFirst = sessions.map((item, index) => sessionMarkup(progress, item, sessions[index - 1])).reverse();
   return `<div class="sheet-panel">
     <header class="sheet-head">
-      <div><h2 id="historyTitle">${escapeHtml(exercise?.name || "Exercise")}</h2><p>${sessions.length ? `${plural(sessions.length, "session")} since ${escapeHtml(shortDate(sessions[0].dateKey))}` : "History"}</p></div>
+      <div><h2 id="historyTitle" aria-label="${escapeHtml(exercise ? fullName(exercise) : "Exercise")}">${exerciseMarkup(exercise, "Exercise")}</h2><p>${sessions.length ? `${plural(sessions.length, "session")} since ${escapeHtml(shortDate(sessions[0].dateKey))}` : "History"}</p></div>
       <button class="icon-button" type="button" data-close-dialog="historyDialog" aria-label="Close history">×</button>
     </header>
     <div class="sheet-body stack tight">

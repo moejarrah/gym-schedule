@@ -10,12 +10,12 @@
 
 import { mainElement, navigate, registerActions, registerView, render, store } from "../context.js";
 import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, formatDate, fresh, openDialog, redraw, report, segmentValue } from "../dom.js";
-import { activeProgram, dateFromKey, entryLog, exerciseById, localDateKey, programRoutines, removeDayLog, routineById, routineProgram, sessionFor, setDay, startWorkout, workoutName } from "../model.js";
+import { activeProgram, dateFromKey, entryLog, exerciseById, fullName, localDateKey, programRoutines, removeDayLog, routineById, routineProgram, sessionFor, setDay, startWorkout, workoutName } from "../model.js";
 import { overview } from "../progress.js";
 import { label } from "../vocab.js";
 import { openExerciseHistory } from "./history.js";
 import { openLogger } from "./logger.js";
-import { inlineNameMarkup, locationLabel, setChipsMarkup, shortDate } from "./shared.js";
+import { exerciseMarkup, locationLabel, setChipsMarkup, shortDate } from "./shared.js";
 
 const LONG_DATE = { weekday: "long", month: "long", day: "numeric", year: "numeric" };
 const RECENT_LIMIT = 8;
@@ -145,7 +145,7 @@ function progressMarkup(state) {
   const { thisWeek, perWeek, bestsThisMonth, improving, stalled, muscles } = overview(state, localDateKey());
   const tile = (name, value, unit) => `<div class="card log-tile"><span class="label">${name}</span><strong>${value}</strong><small class="row-meta">${unit}</small></div>`;
   const exerciseRow = ({ exercise }, meta, end) => `<button class="row ${meta ? "" : "compact"}" type="button" data-action="open-progress" data-id="${escapeHtml(exercise.id)}">
-      <span class="row-main"><strong class="row-title">${inlineNameMarkup(exercise)}</strong>${meta ? `<small class="row-meta">${escapeHtml(meta)}</small>` : ""}</span>
+      <span class="row-main"><strong class="row-title">${exerciseMarkup(exercise)}</strong>${meta ? `<small class="row-meta">${escapeHtml(meta)}</small>` : ""}</span>
       ${end}<span class="chev" aria-hidden="true">${chevronIcon("right")}</span>
     </button>`;
   const section = (title, body) => `<section><div class="label section-label">${title}</div>${body}</section>`;
@@ -204,7 +204,9 @@ function loggedSetsMarkup(state, session, dateKey) {
   const logs = Object.entries(session.logs);
   if (!logs.length) return "";
   const rows = logs.map(([slotId, log]) => {
-    const content = `<strong class="row-title">${inlineNameMarkup(exerciseById(state, log.exerciseId), exerciseById(state, log.exerciseId)?.name || log.exerciseName)}</strong>
+    const exercise = exerciseById(state, log.exerciseId);
+    const name = exercise ? fullName(exercise) : log.exerciseName;
+    const content = `<strong class="row-title">${exerciseMarkup(exercise, log.exerciseName)}</strong>
       <span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec" })}</span>`;
     const body = entryLog(state, dateKey, slotId)
       ? `<button class="row-body" type="button" data-action="edit-day-log" data-routine-id="${escapeHtml(log.routineId)}" data-id="${escapeHtml(slotId)}" data-date="${dateKey}" aria-label="Edit sets for ${escapeHtml(name)}"><span class="row-main">${content}</span></button>`

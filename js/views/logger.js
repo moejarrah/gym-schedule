@@ -8,6 +8,7 @@ import { registerActions, render, store } from "../context.js";
 import { $, closeDialog, confirmAction, escapeHtml, fresh, openDialog, redraw, report, showError } from "../dom.js";
 import {
   entryLog,
+  exerciseById,
   exerciseHistory,
   findSlot,
   isEntryChecked,
@@ -22,7 +23,7 @@ import {
 } from "../model.js";
 import { exerciseMode, isNewBest, targetHint } from "../progress.js";
 import { openExerciseHistory } from "./history.js";
-import { entryPresentation, formatKg, liftText, setChipsMarkup, shortDate, weightNote } from "./shared.js";
+import { entryPresentation, formatKg, liftText, setChipsMarkup, shortDate, weightWords } from "./shared.js";
 
 // The slot being logged and the rows on screen. Row values are the text in the
 // fields; `edited` marks rows typed in since they were last saved or unticked. A
@@ -147,6 +148,8 @@ function rowMarkup({ setIndex, dropIndex, row, last, timed }) {
   const hint = suggestion(last, setIndex, dropIndex);
   const data = `data-set="${setIndex}" data-drop="${dropIndex}"`;
   const lastTimed = last?.unit === "sec";
+  // Assistance is typed with a minus sign, which the number pad doesn't have.
+  const assisted = exerciseById(store.getState(), current(store.getState()).choice.exerciseId)?.weightMode === "assistance";
   const shown = lastLift ? liftText(lastLift, lastTimed).replace(" kg", "") : "";
   const lastValue = lastLift
     ? `<button class="log-last" type="button" data-action="log-use-last" ${data} aria-label="${escapeHtml(shown)}, copy last time to ${name}">${escapeHtml(shown)}</button>`
@@ -163,7 +166,7 @@ function rowMarkup({ setIndex, dropIndex, row, last, timed }) {
   return `<div class="log-row ${saved ? "is-done" : ""} ${isDrop ? "is-drop" : ""}">
     ${firstCell}
     ${lastCell}
-    <label class="log-field"><input type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" data-field="kg" ${data} value="${escapeHtml(row.kg)}" placeholder="${escapeHtml(hint.kg)}" aria-label="Weight for ${name}, kg"><span aria-hidden="true">kg</span></label>
+    <label class="log-field"><input type="text" inputmode="${assisted ? "text" : "decimal"}" enterkeyhint="done" autocomplete="off" data-field="kg" ${data} value="${escapeHtml(row.kg)}" placeholder="${escapeHtml(hint.kg)}" aria-label="Weight for ${name}, kg"><span aria-hidden="true">kg</span></label>
     <label class="log-field"><input type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" data-field="reps" ${data} value="${escapeHtml(row.reps)}" placeholder="${escapeHtml(hint.reps)}" aria-label="${timed ? "Seconds" : "Reps"} for ${name}"></label>
     <button class="log-done" type="button" data-action="log-tick" ${data} aria-pressed="${saved}" aria-label="${label}"><span>${saved ? doneIcon : "Done"}</span></button>
   </div>`;
@@ -199,18 +202,18 @@ function choicesMarkup(entry, state) {
   if (entry.choices.length < 2) return "";
   const { choices } = entryPresentation(entry, state);
   return `<div class="chips scroll-x" role="group" aria-label="Exercise you're doing">
-    ${choices.map((item, index) => `<button class="pill" type="button" data-action="log-choose" data-index="${index}" aria-pressed="${index === sheet.choiceIndex}">${item.inlineMarkup}</button>`).join("")}
+    ${choices.map((item, index) => `<button class="pill" type="button" data-action="log-choose" data-index="${index}" aria-pressed="${index === sheet.choiceIndex}" aria-label="${escapeHtml(item.name)}"><span>${item.markup}</span></button>`).join("")}
   </div>`;
 }
 
 function sheetMarkup(state) {
   const { routine, entry, choice, timed } = current(state);
-  const { title: name, titleMarkup, version, preferred } = entryPresentation({ ...entry, choices: [choice] }, state);
+  const { title: name, titleMarkup, preferred } = entryPresentation({ ...entry, choices: [choice] }, state);
   const history = exerciseHistory(state, choice.exerciseId, { beforeDateKey: sheet.dateKey, limit: 3 });
   const done = isEntryChecked(state, sheet.dateKey, routine.id, entry.id);
   return `<div class="sheet-panel">
     <header class="sheet-head">
-      <div><h2 id="logTitle" aria-label="${escapeHtml(name)}">${titleMarkup}</h2><p>${escapeHtml([version, choice.prescription, weightNote(preferred.exercise), entry.extra ? "Added for this day" : "", sheet.dateKey === localDateKey() ? "" : shortDate(sheet.dateKey)].filter(Boolean).join(" · "))}</p></div>
+      <div><h2 id="logTitle" aria-label="${escapeHtml(name)}">${titleMarkup}</h2><p>${escapeHtml([choice.prescription, weightWords(preferred.exercise), entry.extra ? "Added for this day" : "", sheet.dateKey === localDateKey() ? "" : shortDate(sheet.dateKey)].filter(Boolean).join(" · "))}</p></div>
       <button class="icon-button" type="button" data-close-dialog="logDialog" aria-label="Close">×</button>
     </header>
     <div class="sheet-body stack tight" data-keep-scroll="log-${escapeHtml(entry.id)}">

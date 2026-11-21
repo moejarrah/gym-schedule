@@ -21,7 +21,7 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 | `js/search.js` | Exercise search and Library filters |
 | `js/vocab.js` | Fixed lists: targets, movements, equipment, … |
 | `js/seed.js` | Starting data (first launch and "Restore starting data"), one exercise or slot per line |
-| `js/library-update.js` | The Library tidy-up (renames, links, added exercises) that the version 14 → 15 and 15 → 16 upgrades apply to a saved Library |
+| `js/library-update.js` | What the upgrades from version 14 to 18 apply to a saved Library: renames, links, added exercises, machine kinds, and moving the version out of the name into the setup fields |
 | `js/dom.js` | DOM helpers: escaping, toasts, `redraw`, dialogs, confirmations, hold-to-drag |
 | `js/views/*.js` | One file per screen or sheet, each with its markup and actions |
 | `styles/` | `base.css` (tokens, element defaults, page shell), `components.css` (the shared classes every screen is built from), `views.css` (what only one screen needs) |
@@ -37,13 +37,14 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 - A handler changes data with `store.update((draft) => mutator(draft, …))` using functions from `js/model.js`, shows the result with `report()`, then calls `render()`.
 - Redrawing replaces the markup. A scroll area keeps its place if it is marked `data-keep-scroll="name"`. Text being typed that must survive a redraw lives in the module's own state (see the logging sheet's rows).
 - The browser handles dialog focus. Call `.focus()` only to put the cursor in a field the owner is about to type in.
+- An exercise is drawn only through `exerciseMarkup` / `entryPresentation` (`js/views/shared.js`) and named in plain text only through `fullName` (`js/model.js`). Don't print `exercise.name` on its own anywhere but the editor's Name field: the same name can belong to several exercises.
 - Classes are for styling and `data-*` attributes and ids are for behaviour. New markup is built from the shared classes in `styles/components.css` (each has a one-line comment) before adding a screen-specific rule. Scripts find things by class in only three places: hold-drag's `.drag-row` and `.drag-list`, a sheet's `.sheet-body`, and the routine tabs.
 
 ## Saved data at a glance
 
-One JSON object in `localStorage` under `gymAppStateV1`. The schema version, currently 17, is set in `js/store.js`. Before every save, `stateProblem` checks that the data has the shape the screens rely on and that references point at something; it doesn't police content. Saved data the app can't read is never overwritten: the starting program opens and nothing saves until the owner imports a backup or restores the starting data.
+One JSON object in `localStorage` under `gymAppStateV1`. The schema version, currently 18, is set in `js/store.js`. Before every save, `stateProblem` checks that the data has the shape the screens rely on and that references point at something; it doesn't police content. Saved data the app can't read is never overwritten: the starting program opens and nothing saves until the owner imports a backup or restores the starting data.
 
-- `exercises`: the Library's master exercises.
+- `exercises`: the Library's master exercises. `name` is the movement; the setup is `equipment` (several allowed; `mainEquipment` picks the one that loads it), `attachment`, `grip`, `width`, `detail`, `laterality` (shown as "Sides") and `weightMode`. Names repeat; `fullName(exercise)` in `js/model.js` is what tells two exercises apart, and it must stay unique.
 - `programs` and `routines`: a program lists its routine IDs. A routine holds its blocks and entries, and each entry its choices (master exercise plus prescription).
 - `sessions`: one per date (`YYYY-MM-DD`) with `routineIds` (routines whose workout was finished), `checkedEntryIdsByRoutine` (slots marked done), `note`, `logs` (sets logged per slot, keyed by slot ID; see `saveEntrySets` in `js/model.js`) and `extras` (exercises added to a routine for that day only; `findSlot` treats them like slots).
 - `settings`: the active program and routine, the theme, `exerciseLabels` ("line" or "letter": how an exercise's version shows), the training rules, and `activeWorkout` (the workout in progress: routine, the day it was started, and when; or null).

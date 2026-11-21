@@ -7,12 +7,12 @@
 
 import { afterRender, registerActions, registerView, render, scrollToTop, store } from "../context.js";
 import { $, chevronIcon, closeDialog, confirmAction, escapeHtml, openDialog, playIcon, plural, redraw, report, toast } from "../dom.js";
-import { activeProgram, activeRoutine, activeWorkout, addExtra, backupAge, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseById, exerciseHistory, findSlot, finishWorkout, isEntryChecked, localDateKey, orderedEntries, programRoutines, routineById, setActiveRoutine, startWorkout, usualExtras } from "../model.js";
+import { activeProgram, activeRoutine, activeWorkout, addExtra, backupAge, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseById, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, localDateKey, orderedEntries, programRoutines, routineById, setActiveRoutine, startWorkout, usualExtras } from "../model.js";
 import { compareSets, exerciseMode, exerciseProgress } from "../progress.js";
 import { openPicker } from "./entry-editor.js";
 import { openLogger } from "./logger.js";
 import { openExerciseReference, openExerciseVideo } from "./reference.js";
-import { entryPresentation, inlineNameMarkup, revealSelectedTab, routineTabsMarkup, saysOptional, setChipsMarkup, shortDate, videoUrl } from "./shared.js";
+import { entryPresentation, exerciseMarkup, revealSelectedTab, routineTabsMarkup, saysOptional, setChipsMarkup, shortDate, videoUrl } from "./shared.js";
 
 // When Start was last tapped (page time), to ignore a double-tap landing on Cancel.
 let startedTapAt = -Infinity;
@@ -132,8 +132,8 @@ function listMarkup(state, routine) {
     ${usual.length ? `<section class="workout-group">
       <div class="label section-label"><span>You sometimes add</span></div>
       ${usual.map(({ exercise, count }) => `<div class="row split">
-        <span class="row-body"><span class="row-main"><span class="row-line"><span class="row-title">${inlineNameMarkup(exercise)}</span><span class="row-meta">${count === 1 ? "once" : `${count} times`} in 4 weeks</span></span></span></span>
-        <button class="icon-button" type="button" data-action="add-extra" data-id="${escapeHtml(exercise.id)}" aria-label="Add ${escapeHtml(exercise.name)} for today">${plusIcon}</button>
+        <span class="row-body"><span class="row-main"><span class="row-title">${exerciseMarkup(exercise)}</span><span class="row-meta">${count === 1 ? "once" : `${count} times`} in 4 weeks</span></span></span>
+        <button class="icon-button" type="button" data-action="add-extra" data-id="${escapeHtml(exercise.id)}" aria-label="Add ${escapeHtml(fullName(exercise))} for today">${plusIcon}</button>
       </div>`).join("")}
     </section>` : ""}
     ${action}`;
@@ -161,7 +161,7 @@ function loggedSetsMarkup(log) {
 // One row: a slot of the routine, or an exercise added for the day. Outside a
 // workout (no dateKey) it shows no progress.
 function slotMarkup(state, routine, slot, number, dateKey, showOptionalRole = false) {
-  const { preferred, title: name, titleMarkup, version, prescription } = entryPresentation(slot, state);
+  const { preferred, title: name, titleMarkup, prescription } = entryPresentation(slot, state);
   const exerciseId = preferred.exercise.id;
   const note = slot.note.trim();
   const multiChoice = slot.choices.length > 1;
@@ -181,7 +181,8 @@ function slotMarkup(state, routine, slot, number, dateKey, showOptionalRole = fa
     </button>
     <button class="row-body" type="button" data-action="${multiChoice ? "open-entry-choices" : "open-workout-exercise"}" data-id="${escapeHtml(exerciseId)}" data-entry-id="${escapeHtml(slot.id)}" data-routine-id="${escapeHtml(routine.id)}" data-prescription="${escapeHtml(prescription)}" aria-label="${multiChoice ? `Open exercise choices for ${escapeHtml(name)}` : `View ${escapeHtml(name)} details`}">
       <span class="row-main">
-        <span class="row-line"><span class="row-title">${titleMarkup}</span><span class="row-meta">${escapeHtml([version, slot.choices[0].prescription ? prescription : ""].filter(Boolean).join(" · "))}${showOptionalRole ? `<span class="label tag">Optional</span>` : ""}</span></span>
+        <span class="row-title">${titleMarkup}</span>
+        <span class="row-meta">${escapeHtml(slot.choices[0].prescription ? prescription : "")}${showOptionalRole ? `<span class="label tag">Optional</span>` : ""}</span>
         ${loggedSetsMarkup(log)}
         ${note ? `<span class="row-meta clamp-2 faint">${escapeHtml(note)}</span>` : ""}
       </span>
@@ -212,7 +213,7 @@ function entryChoicesMarkup(state, routine, entry) {
       : `<button class="icon-button" type="button" data-action="open-choice-video" data-index="${index}" aria-label="Find a video for ${escapeHtml(item.name)}"><span class="play">${playIcon()}</span></button>`;
     return `<div class="row split">
       <button class="row-body" type="button" data-action="open-choice-reference" data-index="${index}" aria-label="Open reference for ${escapeHtml(item.name)}">
-        <span class="row-main"><span class="row-title">${item.titleMarkup}</span><span class="row-meta">${escapeHtml([item.version, item.prescription].filter(Boolean).join(" · "))}</span></span>
+        <span class="row-main"><span class="row-title">${item.markup}</span><span class="row-meta">${escapeHtml(item.prescription)}</span></span>
         ${index === 0 ? `<span class="label accent">Preferred</span>` : ""}
         ${chevronIcon("right")}
       </button>
@@ -243,12 +244,12 @@ function finishMarkup(state) {
   for (const slot of slots) {
     const log = entryLog(state, dateKey, slot.id);
     const name = isEntryChecked(state, dateKey, routineId, slot.id) ? "Done" : log ? "Started, not marked done" : "Not touched";
-    groups[name].push({ title: entryPresentation(slot, state).inlineMarkup, log });
+    groups[name].push({ title: entryPresentation(slot, state).titleMarkup, log });
   }
   const groupMarkup = ([name, items]) => `<details class="finish-group" data-keep-open="${name}">
     <summary><span>${name}</span><strong>${items.length}</strong>${chevronIcon("down")}</summary>
     ${items.map(({ title, log }) => `<div class="row-main">
-      <span class="row-title">${log ? inlineNameMarkup(exerciseById(state, log.exerciseId), log.exerciseName) : title}</span>
+      <span class="row-title">${log ? exerciseMarkup(exerciseById(state, log.exerciseId), log.exerciseName) : title}</span>
       ${log ? `<span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec" })}</span>` : `<span class="row-meta">${name === "Done" ? "No sets logged" : ""}</span>`}
     </div>`).join("") || `<p class="hint">None.</p>`}
   </details>`;
@@ -278,7 +279,7 @@ function resultMarkup(state, routineId, dateKey) {
     if (progress.sessions.find((item) => item.dateKey === dateKey)?.isBest) bests += 1;
     const before = exerciseHistory(state, log.exerciseId, { beforeDateKey: dateKey, limit: 1 })[0];
     const change = before ? compareSets(log.sets, before.sets, exerciseMode(progress.sessions), log.unit) : { kind: "same", text: "First time" };
-    return `<div class="row"><span class="row-title">${inlineNameMarkup(exerciseById(state, log.exerciseId), log.exerciseName)}</span><em class="history-change ${change.kind}">${escapeHtml(change.text)}</em></div>`;
+    return `<div class="row"><span class="row-title">${exerciseMarkup(exerciseById(state, log.exerciseId), log.exerciseName)}</span><em class="history-change ${change.kind}">${escapeHtml(change.text)}</em></div>`;
   }).join("");
   const facts = [record?.minutes ? `${record.minutes} min` : "", plural(logs.length, "exercise"), plural(sets, "set"), bests ? plural(bests, "new best", "new bests") : ""].filter(Boolean).join(" · ");
   const age = backupAge(state);

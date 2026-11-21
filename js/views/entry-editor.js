@@ -5,10 +5,10 @@
 
 import { registerActions, render, store } from "../context.js";
 import { $, chevronIcon, clearError, closeDialog, confirmAction, enableHoldDrag, escapeHtml, openDialog, plural, report, segmentValue, setSegment, showError } from "../dom.js";
-import { activeRoutine, activeWorkout, addEntry, addExtra, dayExtras, entryNumber, exerciseById, removeEntry, routineById, updateEntry } from "../model.js";
+import { activeRoutine, activeWorkout, addEntry, addExtra, dayExtras, entryNumber, exerciseById, fullName, removeEntry, routineById, updateEntry } from "../model.js";
 import { searchExercises } from "../search.js";
 import { label } from "../vocab.js";
-import { entryPresentation, exerciseLabel, inlineNameMarkup, nameMarkup } from "./shared.js";
+import { entryPresentation, exerciseMarkup } from "./shared.js";
 
 // The entry being edited. Its choices are a draft until Save; choiceIndex is the
 // choice open in the choice editor.
@@ -27,11 +27,11 @@ function pickerListMarkup(exercises, existingExerciseIds, mode) {
 
   return exercises.map((exercise) => {
     const prescription = exercise.defaultPrescription || "No default prescription";
-    const details = [exerciseLabel(exercise).version, prescription, label(exercise.primaryTargets[0]), label(exercise.movementPattern)].filter(Boolean).join(" · ");
+    const details = [prescription, label(exercise.primaryTargets[0]), label(exercise.movementPattern)].filter(Boolean).join(" · ");
     const exists = existingExerciseIds.has(exercise.id);
     const unavailable = mode !== "entry" && exists;
-    return `<button class="row tall" type="button" data-action="pick-exercise" data-id="${escapeHtml(exercise.id)}" aria-label="${unavailable ? `${escapeHtml(exercise.name)} is already added` : `${exists ? "Add another" : "Add"} ${escapeHtml(exercise.name)}${mode === "extra" ? " for today" : mode === "replace" ? " instead" : " to this routine"}`}" ${unavailable ? "disabled" : ""}>
-      <span class="row-main"><strong class="row-title truncate">${nameMarkup(exercise)}</strong><small class="row-meta truncate">${escapeHtml(details)}</small></span>
+    return `<button class="row tall" type="button" data-action="pick-exercise" data-id="${escapeHtml(exercise.id)}" aria-label="${unavailable ? `${escapeHtml(fullName(exercise))} is already added` : `${exists ? "Add another" : "Add"} ${escapeHtml(fullName(exercise))}${mode === "extra" ? " for today" : mode === "replace" ? " instead" : " to this routine"}`}" ${unavailable ? "disabled" : ""}>
+      <span class="row-main"><strong class="row-title">${exerciseMarkup(exercise)}</strong><small class="row-meta truncate">${escapeHtml(details)}</small></span>
       <span class="row-action">${unavailable ? "Added" : exists ? "Add again" : "Add"}</span>
     </button>`;
   }).join("");
@@ -42,12 +42,13 @@ function entryChoicesEditorMarkup(choices, state) {
     return `<div class="row row-main"><strong class="row-title">No exercise choices</strong><span class="row-meta">Add at least one choice before saving this entry.</span></div>`;
   }
   return choices.map((choice, index) => {
-    const name = exerciseById(state, choice.exerciseId)?.name || "Missing exercise";
+    const exercise = exerciseById(state, choice.exerciseId);
+    const name = fullName(exercise);
     const prescription = choice.prescription || "No prescription";
     return `<div class="row drag-row" data-choice-index="${index}">
       <span class="row-number">${index + 1}</span>
       <button class="row-body" type="button" data-action="replace-entry-choice" data-index="${index}" aria-label="Replace ${escapeHtml(name)} with another exercise. Hold and drag to reorder.">
-        <span class="row-main"><strong class="row-title">${escapeHtml(name)}</strong><small class="row-meta">${escapeHtml(prescription)}<span class="label accent" data-preferred style="visibility: ${index === 0 ? "visible" : "hidden"}">Preferred</span></small></span>
+        <span class="row-main"><strong class="row-title">${exerciseMarkup(exercise)}</strong><small class="row-meta">${escapeHtml(prescription)}<span class="label accent" data-preferred style="visibility: ${index === 0 ? "visible" : "hidden"}">Preferred</span></small></span>
       </button>
       <button class="icon-button sm" type="button" data-action="edit-entry-choice" data-index="${index}" aria-label="Edit ${escapeHtml(name)} choice">${chevronIcon("right")}</button>
       <button class="icon-button sm" type="button" data-action="remove-entry-choice" data-index="${index}" aria-label="Remove ${escapeHtml(name)} choice">×</button>
@@ -60,7 +61,7 @@ function entryChoicesEditorMarkup(choices, state) {
 function renderChoiceDraft() {
   const state = store.getState();
   $("#entryChoicesList").innerHTML = entryChoicesEditorMarkup(entryEditor.choices, state);
-  $("#entryExerciseName").innerHTML = entryPresentation({ choices: entryEditor.choices }, state).inlineMarkup;
+  $("#entryExerciseName").innerHTML = entryPresentation({ choices: entryEditor.choices }, state).titleMarkup;
 }
 
 export function openEntryEditor(entryId) {
@@ -133,7 +134,7 @@ function updateChoiceEditor() {
 function openChoiceEditor(index) {
   const choice = entryEditor.choices[index];
   entryEditor.choiceIndex = index;
-  $("#entryChoiceDialogTitle").textContent = exerciseById(store.getState(), choice.exerciseId).name;
+  $("#entryChoiceDialogTitle").innerHTML = exerciseMarkup(exerciseById(store.getState(), choice.exerciseId));
   $("#entryChoicePrescription").value = choice.prescription;
   $("#entryChoiceFormError").textContent = "";
   updateChoiceEditor();
@@ -191,7 +192,7 @@ export function openPicker({ blockId = "", mode }) {
   $("#pickerRoutineContext").textContent = mode === "choice"
     ? `${routine.name} entry · add choice from Library`
     : mode === "replace"
-      ? `Replace ${exerciseById(store.getState(), entryEditor.choices[entryEditor.choiceIndex].exerciseId).name}`
+      ? `Replace ${fullName(exerciseById(store.getState(), entryEditor.choices[entryEditor.choiceIndex].exerciseId))}`
       : mode === "extra"
       ? `${routine.name} · today only · Library`
       : `${routine.name} · ${block.name.trim() || "Main"} · Library`;
@@ -213,7 +214,7 @@ function pickExercise(exerciseId) {
   if (picker.mode === "replace") {
     // The prescription stays: it was written for this slot.
     entryEditor.choices[entryEditor.choiceIndex].exerciseId = exerciseId;
-    $("#entryChoiceDialogTitle").innerHTML = inlineNameMarkup(exercise);
+    $("#entryChoiceDialogTitle").innerHTML = exerciseMarkup(exercise);
     renderChoiceDraft();
     closeDialog("#pickerDialog");
     return;
@@ -269,7 +270,7 @@ $("#pickerSearch").addEventListener("input", () => {
 function previewChoiceOrder(row, toIndex) {
   const order = [...entryEditor.choices];
   order.splice(toIndex, 0, ...order.splice(Number(row.dataset.choiceIndex), 1));
-  $("#entryExerciseName").innerHTML = entryPresentation({ choices: order }, store.getState()).inlineMarkup;
+  $("#entryExerciseName").innerHTML = entryPresentation({ choices: order }, store.getState()).titleMarkup;
   const rows = [...$("#entryChoicesList").querySelectorAll(".drag-row")];
   rows.splice(toIndex, 0, row);
   rows.forEach((item, index) => {

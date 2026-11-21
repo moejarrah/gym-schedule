@@ -7,7 +7,7 @@
 // - an exercise is added only if its name is free.
 // LIBRARY_UPDATE_2 below replaced this pass's naming pattern.
 
-import { normalizedName } from "./model.js";
+import { fullName, mainEquipment, normalizedName } from "./model.js";
 
 const INVERSE = { easier: "harder", similar: "similar", harder: "easier" };
 
@@ -481,6 +481,146 @@ export function applyMachineKinds(state) {
     for (const exercise of state.exercises) {
       if (ids.includes(exercise.id) && exercise.equipment.includes("machine")) exercise.equipment = exercise.equipment.map((id) => (id === "machine" ? kind : id));
     }
+  }
+}
+
+// Saved data version 18: the version leaves the name ("Lat pulldown (overhand grip)"
+// becomes "Lat pulldown") and goes into its own fields. One row per exercise:
+// [id, the name it had, its movement name, fields]. An exercise the owner renamed
+// keeps its name; every exercise gets the new fields.
+export const SETUP_UPDATE = [
+  ["chest-supported-t-bar-row","Chest-supported T-bar row","Chest-supported T-bar row",{"weightMode":""}],
+  ["45-degree-glute-biased-back-extension","45° back extension (glute bias)","45° back extension",{"detail":"glute bias"}],
+  ["ankle-eversion","Ankle eversion (band)","Ankle eversion",{}],
+  ["cable-ankle-eversion","Ankle eversion (cable)","Ankle eversion",{}],
+  ["ankle-inversion","Ankle inversion (band)","Ankle inversion",{}],
+  ["cable-ankle-inversion","Ankle inversion (cable)","Ankle inversion",{}],
+  ["assisted-dip","Assisted dip","Assisted dip",{"weightMode":"assistance"}],
+  ["assisted-neutral-grip-pull-up","Assisted pull-up (neutral grip)","Assisted pull-up",{"grip":"neutral","weightMode":"assistance"}],
+  ["back-extension-machine","Back extension (machine)","Back extension",{}],
+  ["barbell-back-squat","Back squat (barbell)","Back squat",{}],
+  ["barbell-bench-press","Bench press (barbell)","Bench press",{}],
+  ["flat-dumbbell-press","Bench press (dumbbell)","Bench press",{}],
+  ["barbell-bent-over-row","Bent-over row (barbell)","Bent-over row",{}],
+  ["barbell-curl","Biceps curl (barbell)","Biceps curl",{}],
+  ["cable-curl","Biceps curl (cable)","Biceps curl",{}],
+  ["dumbbell-curl","Biceps curl (dumbbell)","Biceps curl",{}],
+  ["ez-bar-curl","Biceps curl (EZ bar)","Biceps curl",{"ezBar":true}],
+  ["leg-press-calf-raise","Calf raise (leg press)","Calf raise",{"detail":"leg press"}],
+  ["high-to-low-cable-fly","Chest fly (cable, high to low)","Chest fly",{"detail":"high to low"}],
+  ["cable-fly","Chest fly (cable)","Chest fly",{}],
+  ["dumbbell-fly","Chest fly (dumbbell)","Chest fly",{}],
+  ["machine-chest-press","Chest press (machine)","Chest press",{}],
+  ["chest-supported-row","Chest-supported row (dumbbell)","Chest-supported row",{}],
+  ["chest-supported-row-mid-back-bias","Chest-supported row (mid-back bias)","Chest-supported row",{"detail":"mid-back bias"}],
+  ["barbell-deadlift","Deadlift (barbell)","Deadlift",{}],
+  ["decline-chest-press-machine","Decline chest press (machine)","Decline chest press",{}],
+  ["rope-face-pull","Face pull (rope)","Face pull",{"attachment":"rope"}],
+  ["foam-roller-chest-stretch-with-weights","Foam-roller chest stretch (weighted)","Foam-roller chest stretch",{"detail":"weighted"}],
+  ["cable-pronation","Forearm pronation (cable)","Forearm pronation",{}],
+  ["lever-forearm-pronation","Forearm pronation (lever)","Forearm pronation",{"detail":"lever"}],
+  ["cable-supination","Forearm supination (cable)","Forearm supination",{}],
+  ["lever-forearm-supination","Forearm supination (lever)","Forearm supination",{"detail":"lever"}],
+  ["cable-kickback","Glute kickback (cable)","Glute kickback",{}],
+  ["hammer-curl","Hammer curl (dumbbell)","Hammer curl",{}],
+  ["chest-supported-high-row-machine","High row (machine)","High row",{"weightMode":"per-side"}],
+  ["band-hip-abduction","Hip abduction (band)","Hip abduction",{}],
+  ["standing-cable-hip-abduction","Hip abduction (cable)","Hip abduction",{}],
+  ["lean-forward-hip-abduction-machine","Hip abduction (machine, leaning forward)","Hip abduction",{"detail":"leaning forward"}],
+  ["upright-hip-abduction-machine","Hip abduction (machine, upright)","Hip abduction",{"detail":"upright"}],
+  ["adductor-machine","Hip adduction (machine)","Hip adduction",{}],
+  ["hip-external-rotation","Hip external rotation (band)","Hip external rotation",{}],
+  ["cable-hip-external-rotation","Hip external rotation (cable)","Hip external rotation",{}],
+  ["standing-cable-hip-flexion","Hip flexion (cable)","Hip flexion",{}],
+  ["hip-internal-rotation","Hip internal rotation (band)","Hip internal rotation",{}],
+  ["cable-hip-internal-rotation","Hip internal rotation (cable)","Hip internal rotation",{}],
+  ["hip-thrust","Hip thrust (barbell)","Hip thrust",{}],
+  ["machine-hip-thrust","Hip thrust (machine)","Hip thrust",{}],
+  ["smith-hip-thrust","Hip thrust (Smith machine)","Hip thrust",{}],
+  ["incline-barbell-bench-press","Incline bench press (barbell)","Incline bench press",{}],
+  ["incline-chest-press-machine","Incline chest press (machine)","Incline chest press",{}],
+  ["incline-dumbbell-curl","Incline curl (dumbbell)","Incline curl",{}],
+  ["incline-y-raise","Incline Y-raise (dumbbell)","Incline Y-raise",{}],
+  ["standing-band-knee-drive","Knee drive (band)","Knee drive",{}],
+  ["neutral-grip-lat-pulldown","Lat pulldown (neutral grip)","Lat pulldown",{"grip":"neutral"}],
+  ["pronated-grip-lat-pulldown","Lat pulldown (overhand grip)","Lat pulldown",{"grip":"overhand"}],
+  ["lat-pulldown-wide-grip","Lat pulldown (wide grip)","Lat pulldown",{"width":"wide"}],
+  ["cable-lateral-raise","Lateral raise (cable)","Lateral raise",{}],
+  ["dumbbell-lateral-raise","Lateral raise (dumbbell)","Lateral raise",{}],
+  ["machine-lateral-raise","Lateral raise (machine)","Lateral raise",{}],
+  ["low-incline-dumbbell-press","Low-incline press (dumbbell)","Low-incline press",{}],
+  ["cable-neck-rotation","Neck rotation (cable)","Neck rotation",{}],
+  ["one-arm-cable-row-lat-bias","One-arm row (cable, lat bias)","One-arm row",{"detail":"lat bias"}],
+  ["one-arm-cable-row","One-arm row (cable)","One-arm row",{}],
+  ["dumbbell-one-arm-row","One-arm row (dumbbell)","One-arm row",{}],
+  ["barbell-overhead-press","Overhead press (barbell)","Overhead press",{}],
+  ["dumbbell-overhead-press","Overhead press (dumbbell)","Overhead press",{}],
+  ["machine-overhead-press","Overhead press (machine)","Overhead press",{}],
+  ["overhead-cable-triceps-extension","Overhead triceps extension (cable)","Overhead triceps extension",{}],
+  ["band-pallof-press","Pallof press (band)","Pallof press",{}],
+  ["pallof-press","Pallof press (cable)","Pallof press",{}],
+  ["preacher-curl","Preacher curl (machine)","Preacher curl",{}],
+  ["neutral-grip-pull-up","Pull-up (neutral grip)","Pull-up",{"grip":"neutral"}],
+  ["pull-up","Pull-up (overhand grip)","Pull-up",{"grip":"overhand"}],
+  ["radial-deviation","Radial deviation (dumbbell)","Radial deviation",{}],
+  ["cable-rear-delt-fly","Rear-delt fly (cable)","Rear-delt fly",{}],
+  ["chest-supported-rear-delt-raise","Rear-delt raise (dumbbell, chest-supported)","Rear-delt raise",{"detail":"chest-supported"}],
+  ["cable-reverse-curl","Reverse curl (cable)","Reverse curl",{}],
+  ["reverse-curl","Reverse curl (EZ bar)","Reverse curl",{"ezBar":true}],
+  ["glute-biased-reverse-lunge","Reverse lunge (glute bias)","Reverse lunge",{"detail":"glute bias"}],
+  ["reverse-wrist-curl","Reverse wrist curl (dumbbell)","Reverse wrist curl",{}],
+  ["romanian-deadlift","Romanian deadlift (barbell)","Romanian deadlift",{}],
+  ["dumbbell-romanian-deadlift","Romanian deadlift (dumbbell)","Romanian deadlift",{}],
+  ["smith-romanian-deadlift","Romanian deadlift (Smith machine)","Romanian deadlift",{}],
+  ["scaption-raise","Scaption raise (dumbbell)","Scaption raise",{}],
+  ["medium-wide-pronated-seated-cable-row","Seated row (cable, medium-wide overhand grip)","Seated row",{"grip":"overhand","detail":"medium-wide"}],
+  ["machine-seated-row","Seated row (machine)","Seated row",{}],
+  ["cable-serratus-punch","Serratus punch (cable)","Serratus punch",{}],
+  ["serratus-wall-slide-with-band","Serratus wall slide (band)","Serratus wall slide",{}],
+  ["band-external-rotation-at-45-90-abduction","Shoulder external rotation (band, 45–90° abduction)","Shoulder external rotation",{"detail":"45–90° abduction"}],
+  ["cable-external-rotation","Shoulder external rotation (cable)","Shoulder external rotation",{}],
+  ["side-lying-external-rotation","Shoulder external rotation (dumbbell, side-lying)","Shoulder external rotation",{"detail":"side-lying"}],
+  ["cable-shoulder-internal-rotation","Shoulder internal rotation (cable)","Shoulder internal rotation",{}],
+  ["dumbbell-shrug","Shrug (dumbbell)","Shrug",{}],
+  ["machine-shrug","Shrug (machine)","Shrug",{}],
+  ["band-side-bend","Side bend (band)","Side bend",{}],
+  ["cable-side-bend","Side bend (cable)","Side bend",{}],
+  ["lying-cable-skull-crusher-to-behind-head","Skull crusher (cable, behind head)","Skull crusher",{"detail":"behind head"}],
+  ["behind-the-head-ez-bar-skull-crusher","Skull crusher (EZ bar, behind head)","Skull crusher",{"ezBar":true,"detail":"behind head"}],
+  ["smith-squat","Squat (Smith machine)","Squat",{}],
+  ["glute-biased-step-up","Step-up (glute bias)","Step-up",{"detail":"glute bias"}],
+  ["cable-triceps-kickback","Triceps kickback (cable)","Triceps kickback",{}],
+  ["rope-pushdown","Triceps pushdown (rope)","Triceps pushdown",{"attachment":"rope"}],
+  ["bar-triceps-pushdown","Triceps pushdown (straight bar)","Triceps pushdown",{"attachment":"straight-bar"}],
+  ["v-bar-triceps-pushdown","Triceps pushdown (V-bar)","Triceps pushdown",{"attachment":"v-bar"}],
+  ["ulnar-deviation","Ulnar deviation (dumbbell)","Ulnar deviation",{}],
+  ["band-wood-chop","Wood chop (band)","Wood chop",{}],
+  ["cable-wood-chop","Wood chop (cable)","Wood chop",{}],
+  ["wrist-curl","Wrist curl (dumbbell)","Wrist curl",{}],
+  ["cable-y-raise","Y-raise (cable)","Y-raise",{}],
+];
+
+export function applySetupFields(state, table = SETUP_UPDATE) {
+  for (const exercise of state.exercises) {
+    for (const field of ["attachment", "grip", "width", "detail", "weightMode"]) exercise[field] ??= "";
+    if (!exercise.weightMode) exercise.weightMode = { "plate-loaded": "per-side", dumbbells: "per-dumbbell" }[mainEquipment(exercise)] || "";
+  }
+  for (const [id, from, name, { ezBar, ...fields }] of table) {
+    const exercise = state.exercises.find((item) => item.id === id);
+    if (!exercise || exercise.name !== from) continue;
+    Object.assign(exercise, fields, { name });
+    if (ezBar) exercise.equipment = exercise.equipment.map((item) => (item === "barbell" ? "ez-bar" : item));
+    exercise.aliases = exercise.aliases.filter((alias) => normalizedName(alias) !== normalizedName(name));
+  }
+  // Two exercises must never end up indistinguishable: the later one takes its old name back.
+  const seen = new Set();
+  for (const exercise of state.exercises) {
+    if (seen.has(normalizedName(fullName(exercise)))) exercise.name = table.find(([id]) => id === exercise.id)?.[1] || `${exercise.name} (${exercise.id})`;
+    seen.add(normalizedName(fullName(exercise)));
+  }
+  for (const exercise of state.exercises) {
+    const own = normalizedName(fullName(exercise));
+    exercise.aliases = exercise.aliases.filter((alias) => normalizedName(alias) === own || !seen.has(normalizedName(alias)));
   }
 }
 

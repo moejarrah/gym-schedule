@@ -71,6 +71,17 @@
           <label class="field"><span>Default prescription</span><input class="control" id="exercisePrescription" name="prescription" autocomplete="off" placeholder="3 × 8–12" maxlength="60"></label>
         </section>
 
+        <section class="form-section" aria-labelledby="exerciseSetupHeading">
+          <h3 class="label" id="exerciseSetupHeading">Setup</h3>
+          <div class="field"><span id="chooseEquipmentButtonLabel">Equipment <small>Required</small></span><button class="control picker" id="chooseEquipmentButton" data-action="open-classification-picker" data-classification-picker="equipment" type="button" aria-haspopup="dialog" aria-labelledby="chooseEquipmentButtonLabel exerciseEquipmentSummary"><span id="exerciseEquipmentSummary">Choose at least one</span><span class="chev" aria-hidden="true">›</span></button></div>
+          <label class="field"><span>Attachment</span><select class="control" id="exerciseAttachment"><option value="">Not set</option></select></label>
+          <label class="field"><span>Grip</span><select class="control" id="exerciseGrip"><option value="">Not set</option></select></label>
+          <label class="field"><span>Grip width</span><select class="control" id="exerciseWidth"><option value="">Not set</option></select></label>
+          <label class="field"><span>Detail <small>Anything else that sets this version apart</small></span><input class="control" id="exerciseDetail" autocomplete="off" maxlength="40" placeholder="High to low, upright, behind head"></label>
+          <label class="field"><span>Sides</span><select class="control" id="exerciseLaterality"><option value="">Not set</option></select></label>
+          <label class="field"><span>Logged weight is</span><select class="control" id="exerciseWeightMode"><option value="">The whole load</option></select></label>
+        </section>
+
         <section class="form-section" aria-labelledby="exerciseMusclesHeading">
           <h3 class="label" id="exerciseMusclesHeading">Muscles</h3>
           <label class="field"><span>Primary target <small>Required</small></span><select class="control" id="exercisePrimaryTarget1" required><option value="" disabled>Choose primary target</option></select></label>
@@ -81,14 +92,12 @@
         <section class="form-section" aria-labelledby="exerciseTypeHeading">
           <h3 class="label" id="exerciseTypeHeading">Type</h3>
           <label class="field"><span>Movement <small>Required</small></span><select class="control" id="exerciseMovement" required><option value="" disabled>Choose movement</option></select></label>
-          <div class="field"><span id="chooseEquipmentButtonLabel">Equipment <small>Required</small></span><button class="control picker" id="chooseEquipmentButton" data-action="open-classification-picker" data-classification-picker="equipment" type="button" aria-haspopup="dialog" aria-labelledby="chooseEquipmentButtonLabel exerciseEquipmentSummary"><span id="exerciseEquipmentSummary">Choose at least one</span><span class="chev" aria-hidden="true">›</span></button></div>
           <label class="field"><span>Purpose <small>Required</small></span><select class="control" id="exercisePurpose" required><option value="" disabled>Choose purpose</option></select></label>
         </section>
 
         <details class="form-section" id="exerciseOptionalClassification">
           <summary><h3 class="label">More detail</h3><span id="optionalClassificationSummary">Optional</span></summary>
           <label class="field"><span>Style</span><select class="control" id="exerciseStyle"><option value="">Not set</option></select></label>
-          <label class="field"><span>Laterality</span><select class="control" id="exerciseLaterality"><option value="">Not set</option></select></label>
           <label class="field"><span>Support</span><select class="control" id="exerciseSupport"><option value="">Not set</option></select></label>
           <div class="field"><span id="chooseEmphasesButtonLabel">Emphasis</span><button class="control picker" id="chooseEmphasesButton" data-action="open-classification-picker" data-classification-picker="emphases" type="button" aria-haspopup="dialog" aria-labelledby="chooseEmphasesButtonLabel exerciseEmphasesSummary"><span id="exerciseEmphasesSummary">Not set</span><span class="chev" aria-hidden="true">›</span></button></div>
           <label class="field"><span>Typical challenge</span><select class="control" id="exerciseChallenge"><option value="">Not set</option></select></label>

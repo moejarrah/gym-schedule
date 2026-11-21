@@ -5,6 +5,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  fullName,
   activeWorkout,
   addExtra,
   cancelWorkout,
@@ -134,7 +135,7 @@ test("ticked sets are saved with weight, reps and drops; an empty list removes t
   assert.deepEqual(entryLog(store.getState(), DAY, "a2"), {
     routineId: "day-a",
     exerciseId: "bench-press",
-    exerciseName: "Bench press",
+    exerciseName: "Bench press (barbell)",
     unit: "reps",
     sets: [{ kg: 62.5, reps: 8, drops: [{ kg: 50, reps: 6 }] }, { kg: null, reps: 12, drops: [] }],
   });
@@ -215,7 +216,7 @@ test("deleting an exercise removes it from choices, promotes the next choice, an
   assert.deepEqual(routineById(store.getState(), "day-a").entries.find((entry) => entry.id === "a3").choices, [{ exerciseId: "cable-fly", prescription: "2 × 12–15" }]);
 });
 
-test("saving an exercise keeps related links in step on both sides and refuses a name that's taken", () => {
+test("saving an exercise keeps related links in step on both sides and refuses a name and setup that's taken", () => {
   const stored = freshStore();
   const { store } = stored;
   const cableFly = structuredClone(exerciseById(store.getState(), "cable-fly"));
@@ -223,7 +224,10 @@ test("saving an exercise keeps related links in step on both sides and refuses a
   assert.deepEqual(exerciseById(store.getState(), "bench-press").relatedExercises, [{ exerciseId: "push-up", relation: "easier" }, { exerciseId: "cable-fly", relation: "harder" }]);
   save(store, (draft) => saveExercise(draft, cableFly, []));
   assert.deepEqual(exerciseById(store.getState(), "bench-press").relatedExercises, [{ exerciseId: "push-up", relation: "easier" }]);
-  refuse(stored, (draft) => saveExercise(draft, { ...cableFly, name: "flat-bench" }, []), "An exercise with this name already exists.");
+  // Two exercises may share a movement name, but not a name and a setup.
+  refuse(stored, (draft) => saveExercise(draft, { ...cableFly, id: "copy" }, []), "An exercise with this name and setup already exists.");
+  save(store, (draft) => saveExercise(draft, { ...cableFly, id: "copy", equipment: ["dumbbells"] }, []));
+  assert.deepEqual(store.getState().exercises.filter((item) => item.name === "Cable fly").map(fullName), ["Cable fly (cable)", "Cable fly (dumbbell)"]);
   refuse(stored, (draft) => saveExercise(draft, { ...cableFly, aliases: ["Push up"] }, []), "An alias is already used by another exercise.");
 });
 

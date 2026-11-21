@@ -5,11 +5,11 @@
 
 import { registerActions, store } from "../context.js";
 import { $, closeDialog, escapeHtml, fresh, openDialog, playIcon } from "../dom.js";
-import { exerciseById } from "../model.js";
+import { byFullName, exerciseById, fullName } from "../model.js";
 import { RELATIONS, label } from "../vocab.js";
 import { openExerciseEditor } from "./exercise-editor.js";
 import { openExerciseHistory } from "./history.js";
-import { exerciseLabel, inlineNameMarkup, nameMarkup, videoUrl } from "./shared.js";
+import { exerciseMarkup, videoUrl } from "./shared.js";
 
 const RELATION_ORDER = RELATIONS.map((relation) => relation.id);
 
@@ -27,7 +27,7 @@ function exerciseSearchUrls(exerciseName) {
 }
 
 function searchActionsMarkup(exercise) {
-  const urls = exerciseSearchUrls(exercise.name);
+  const urls = exerciseSearchUrls(fullName(exercise));
   return `<div class="actions">
     <a class="button" href="${urls.youtube}" target="_blank" rel="noopener noreferrer">Search YouTube${externalIcon()}</a>
     <a class="button" href="${urls.alternatives}" target="_blank" rel="noopener noreferrer">Search alternatives${externalIcon()}</a>
@@ -65,27 +65,39 @@ function targetGroupsMarkup(exercise) {
 }
 
 function factsMarkup(exercise) {
-  const facts = [
-    ["Purpose", exercise.purpose],
-    ["Laterality", exercise.laterality],
-    ["Support", exercise.support],
-    ["Challenge", exercise.typicalChallenge],
-  ].filter(([, value]) => value);
-  return `<div class="reference-group">${facts.map(([name, value]) => `
-    <div class="row compact"><span class="label">${name}</span><strong class="row-title">${escapeHtml(label(value))}</strong></div>`).join("")}
+  // The setup first, in the order it is always given; then what kind of exercise it is.
+  const setup = [
+    ["Equipment", exercise.equipment.map(label).join(" · ")],
+    ["Attachment", label(exercise.attachment || "")],
+    ["Grip", label(exercise.grip || "")],
+    ["Grip width", label(exercise.width || "")],
+    ["Detail", exercise.detail],
+    ["Sides", label(exercise.laterality || "")],
+    ["Weight", label(exercise.weightMode || "")],
+  ];
+  const type = [
+    ["Movement", label(exercise.movementPattern || "")],
+    ["Purpose", label(exercise.purpose || "")],
+    ["Style", label(exercise.style || "")],
+    ["Support", label(exercise.support || "")],
+    ["Challenge", label(exercise.typicalChallenge || "")],
+  ];
+  const group = (title, facts) => `<div class="reference-group"><p class="label">${title}</p>${facts.filter(([, value]) => value).map(([name, value]) => `
+    <div class="row compact"><span class="label">${name}</span><strong class="row-title">${escapeHtml(value)}</strong></div>`).join("")}
   </div>`;
+  return group("Setup", setup) + group("Type", type);
 }
 
 function relationshipsMarkup(state, exercise) {
   const related = exercise.relatedExercises
     .map(({ relation, exerciseId }) => ({ relation, exercise: exerciseById(state, exerciseId) }))
-    .sort((a, b) => RELATION_ORDER.indexOf(a.relation) - RELATION_ORDER.indexOf(b.relation) || a.exercise.name.localeCompare(b.exercise.name));
+    .sort((a, b) => RELATION_ORDER.indexOf(a.relation) - RELATION_ORDER.indexOf(b.relation) || byFullName(a.exercise, b.exercise));
   return `<div class="reference-group">
     <div class="label label-row">Alternatives and progressions</div>
     ${related.length ? related.map(({ relation, exercise: other }) => `
       <button class="row compact" type="button" data-action="view-alternative" data-id="${escapeHtml(other.id)}">
         <span class="row-meta">${escapeHtml(label(relation))}</span>
-        <strong class="row-title">${inlineNameMarkup(other)}</strong>
+        <strong class="row-title">${exerciseMarkup(other)}</strong>
       </button>`).join("") : `<p class="hint">None linked yet.</p>`}
   </div>`;
 }
@@ -93,23 +105,21 @@ function relationshipsMarkup(state, exercise) {
 function referenceMarkup(state, exercise, { prescription, routineName, routineNote }) {
   const contextLabel = prescription ? "Routine prescription" : "Default prescription";
   const shownPrescription = prescription || exercise.defaultPrescription || "No prescription";
-  const meta = [exercise.movementPattern, ...exercise.equipment, exercise.style].filter(Boolean).map(label).join(" · ");
   const notes = exercise.instructions || "No notes added yet.";
 
   return `<article class="sheet-panel">
     <header class="sheet-head">
-      <div><h2 id="detailExerciseName" aria-label="${escapeHtml(exercise.name)}">${nameMarkup(exercise)}</h2><small>${exerciseLabel(exercise).version ? `${escapeHtml(exerciseLabel(exercise).version)} · ` : ""}${contextLabel}</small></div>
+      <div><h2 id="detailExerciseName" aria-label="${escapeHtml(fullName(exercise))}">${exerciseMarkup(exercise)}</h2><small>${contextLabel}</small></div>
       <button class="icon-button" data-close-dialog="exerciseDetailDialog" aria-label="Close exercise reference" type="button">×</button>
     </header>
     <div class="sheet-body">
       <p class="reference-prescription">${escapeHtml(shownPrescription)}</p>
-      <p class="hint">${escapeHtml(meta)}</p>
       ${routineNote.trim() ? `<section class="reference-group">
         <p class="label">For this routine${routineName ? ` — ${escapeHtml(routineName)}` : ""}</p>
         <p class="reference-note">${escapeHtml(routineNote)}</p>
       </section>` : ""}
-      ${targetGroupsMarkup(exercise)}
       ${factsMarkup(exercise)}
+      ${targetGroupsMarkup(exercise)}
       ${linkedVideoMarkup(exercise)}
       ${searchActionsMarkup(exercise)}
       ${relationshipsMarkup(state, exercise)}
@@ -128,7 +138,7 @@ function referenceMarkup(state, exercise, { prescription, routineName, routineNo
 function videoSearchMarkup(exercise) {
   return `<article class="sheet-panel">
     <header class="sheet-head">
-      <div><h2 id="videoExerciseName">${escapeHtml(exercise.name)}</h2><small>Exercise video</small></div>
+      <div><h2 id="videoExerciseName" aria-label="${escapeHtml(fullName(exercise))}">${exerciseMarkup(exercise)}</h2><small>Exercise video</small></div>
       <button class="icon-button" data-close-dialog="exerciseVideoDialog" aria-label="Close video search" type="button">×</button>
     </header>
     <div class="sheet-body">

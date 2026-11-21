@@ -7,7 +7,7 @@ import { TODAY, dialog, escapeRegExp, expect, goToView, main, programPicker, rea
 
 const { appTest } = suite({ saved: sampleState() });
 
-const TWO_CHOICES = "Incline dumbbell press or Cable fly";
+const TWO_CHOICES = "Incline dumbbell press (dumbbell) or Cable fly (cable)";
 
 // A slot's number box (it opens the logging sheet) and the rest of its row.
 const numberOf = (page, title) => main(page).getByRole("button", { name: new RegExp(`^Log sets for ${escapeRegExp(title)}(, |$)`) });
@@ -23,29 +23,29 @@ appTest("Workout shows the selected routine's numbered slots, and the routine yo
   await expect(programPicker(page, "Sample program")).toBeVisible();
   await expect(routineTab(page, "Day A")).toHaveAttribute("aria-pressed", "true");
   await expect(main(page)).toContainText("Start light.");
-  for (const [title, number] of [["Plank", "1"], ["Bench press", "2"], [TWO_CHOICES, "3"], ["Push-up", "4"]]) {
+  for (const [title, number] of [["Plank", "1"], ["Bench press (barbell)", "2"], [TWO_CHOICES, "3"], ["Push-up", "4"]]) {
     await expect(numberOf(page, title)).toHaveText(number);
   }
   await expect(rowOf(page, "Plank")).toContainText("2 × 30 sec");
-  await expect(rowOf(page, "Bench press")).toContainText("3 × 8–12");
+  await expect(rowOf(page, "Bench press (barbell)")).toContainText("3 × 8–12");
   await expect(choicesRow(page)).toContainText("3 × 10 or 2 × 12–15");
   await expect(choicesRow(page)).toContainText("Pick by how the shoulder feels.");
 
   await routineTab(page, "Day B").click();
   await expect(routineTab(page, "Day B")).toHaveAttribute("aria-pressed", "true");
-  await expect(numberOf(page, "Squat")).toHaveText("1");
+  await expect(numberOf(page, "Squat (barbell)")).toHaveText("1");
   await expect(numberOf(page, "Pull-up")).toHaveText("2");
-  await expect(numberOf(page, "Bench press")).toHaveCount(0);
+  await expect(numberOf(page, "Bench press (barbell)")).toHaveCount(0);
 
   await page.reload();
   await expect(routineTab(page, "Day B")).toHaveAttribute("aria-pressed", "true");
-  await expect(rowOf(page, "Squat")).toContainText("3 × 5");
+  await expect(rowOf(page, "Squat (barbell)")).toContainText("3 × 5");
   assert.equal((await readState(page)).settings.activeRoutineId, "day-b");
 });
 
 appTest("Logging: a tick takes last time's set, typed sets and a drop are saved, and Done shows them on Workout", async ({ page }) => {
   // Nothing is logged before the workout is started.
-  await numberOf(page, "Bench press").click();
+  await numberOf(page, "Bench press (barbell)").click();
   await expect(page.getByText("Start the workout first.")).toBeVisible();
   // Start, then Cancel (after a confirmation) leaves nothing behind.
   await start(page);
@@ -59,9 +59,9 @@ appTest("Logging: a tick takes last time's set, typed sets and a drop are saved,
   await dialog(page, "Cancel Day A?").getByRole("button", { name: "Cancel workout" }).click();
   assert.equal((await readState(page)).settings.activeWorkout, null);
   await start(page);
-  await numberOf(page, "Bench press").click();
+  await numberOf(page, "Bench press (barbell)").click();
   const sheet = logSheet(page);
-  await expect(sheet.getByRole("heading", { name: "Bench press" })).toBeVisible();
+  await expect(sheet.getByRole("heading", { name: "Bench press (barbell)" })).toBeVisible();
   await expect(sheet.getByRole("region", { name: "Last 3 times" })).toContainText("Day A");
 
   // Set 1 is empty: its tick takes the grey values from last time (60 kg × 10).
@@ -86,14 +86,14 @@ appTest("Logging: a tick takes last time's set, typed sets and a drop are saved,
 
   await done(sheet).click();
   await expect(sheet).toBeHidden();
-  await expect(numberOf(page, "Bench press")).toHaveAccessibleName("Log sets for Bench press, done");
-  await expect(rowOf(page, "Bench press")).toContainText(/60\s*kg\s*×\s*10/);
-  await expect(rowOf(page, "Bench press")).toContainText(/62\.5\s*kg\s*×\s*8/);
-  await expect(rowOf(page, "Bench press")).toContainText("+ 1 drop");
+  await expect(numberOf(page, "Bench press (barbell)")).toHaveAccessibleName("Log sets for Bench press (barbell), done");
+  await expect(rowOf(page, "Bench press (barbell)")).toContainText(/60\s*kg\s*×\s*10/);
+  await expect(rowOf(page, "Bench press (barbell)")).toContainText(/62\.5\s*kg\s*×\s*8/);
+  await expect(rowOf(page, "Bench press (barbell)")).toContainText("+ 1 drop");
 
   await page.reload();
-  await expect(numberOf(page, "Bench press")).toHaveAccessibleName("Log sets for Bench press, done");
-  await expect(rowOf(page, "Bench press")).toContainText(/62\.5\s*kg\s*×\s*8/);
+  await expect(numberOf(page, "Bench press (barbell)")).toHaveAccessibleName("Log sets for Bench press (barbell), done");
+  await expect(rowOf(page, "Bench press (barbell)")).toContainText(/62\.5\s*kg\s*×\s*8/);
   assert.deepEqual(await todaySaved(page), {
     routineIds: [],
     checkedEntryIdsByRoutine: { "day-a": ["a2"] },
@@ -102,7 +102,7 @@ appTest("Logging: a tick takes last time's set, typed sets and a drop are saved,
       a2: {
         routineId: "day-a",
         exerciseId: "bench-press",
-        exerciseName: "Bench press",
+        exerciseName: "Bench press (barbell)",
         unit: "reps",
         sets: [{ kg: 60, reps: 10, drops: [] }, { kg: 62.5, reps: 8, drops: [{ kg: 50, reps: 6 }] }],
       },
@@ -115,12 +115,12 @@ appTest("Logging: a tick takes last time's set, typed sets and a drop are saved,
 appTest("A workout: Done and Not done on slots, an exercise added for today, and Finish files it in the Log", async ({ page }) => {
   await start(page);
   // Done with no sets asks first.
-  await numberOf(page, "Bench press").click();
+  await numberOf(page, "Bench press (barbell)").click();
   await done(logSheet(page)).click();
   const confirm = dialog(page, "No sets logged");
-  await expect(confirm).toContainText("Mark Bench press done anyway?");
+  await expect(confirm).toContainText("Mark Bench press (barbell) done anyway?");
   await confirm.getByRole("button", { name: "Mark done anyway" }).click();
-  await expect(numberOf(page, "Bench press")).toHaveAccessibleName("Log sets for Bench press, done");
+  await expect(numberOf(page, "Bench press (barbell)")).toHaveAccessibleName("Log sets for Bench press (barbell), done");
 
   await numberOf(page, "Push-up").click();
   await tick(logSheet(page), "Set 1").click();
@@ -135,8 +135,8 @@ appTest("A workout: Done and Not done on slots, an exercise added for today, and
   await expect(numberOf(page, "Ab-wheel rollout")).toHaveText("5");
   await expect(main(page).getByRole("button", { name: "Add Ab-wheel rollout for today" })).toHaveCount(0);
   await main(page).getByRole("button", { name: "Add exercise for today" }).click();
-  await dialog(page, "Add exercise").getByRole("button", { name: "Add Squat for today" }).click();
-  await expect(numberOf(page, "Squat")).toHaveText("6");
+  await dialog(page, "Add exercise").getByRole("button", { name: "Add Squat (barbell) for today" }).click();
+  await expect(numberOf(page, "Squat (barbell)")).toHaveText("6");
   assert.equal((await readState(page)).routines[0].entries.length, 4, "the program isn't changed");
 
   // Finish shows what's in each group, then files the workout.
@@ -163,15 +163,15 @@ appTest("A slot's row opens the exercise reference, and History there shows the 
   const reference = page.getByRole("dialog").filter({ has: page.getByRole("button", { name: "Close exercise reference" }) });
   const history = page.getByRole("dialog").filter({ has: page.getByRole("button", { name: "Close history" }) });
 
-  await rowOf(page, "Bench press").click();
-  await expect(reference.getByRole("heading", { name: "Bench press" })).toBeVisible();
+  await rowOf(page, "Bench press (barbell)").click();
+  await expect(reference.getByRole("heading", { name: "Bench press (barbell)" })).toBeVisible();
   await expect(reference).toContainText("Routine prescription");
   await expect(reference).toContainText("3 × 8–12");
   await expect(reference).toContainText("Feet planted.");
   await expect(reference.getByRole("button", { name: "Easier Push-up" })).toBeVisible();
 
   await reference.getByRole("button", { name: "History" }).click();
-  await expect(history.getByRole("heading", { name: "Bench press" })).toBeVisible();
+  await expect(history.getByRole("heading", { name: "Bench press (barbell)" })).toBeVisible();
   await expect(history).toContainText("1 session");
   await expect(history).toContainText("60 kg × 10"); // the best set
   const sessions = history.getByRole("region", { name: "Sessions" });
@@ -188,8 +188,8 @@ appTest("A slot's row opens the exercise reference, and History there shows the 
 appTest("A two-choice slot lists both choices, logs the one you did, and the Log day shows its sets", async ({ page }) => {
   await choicesRow(page).click();
   const choices = dialog(page, "Exercise choices");
-  await expect(choices.getByRole("button", { name: "Open reference for Incline dumbbell press" })).toContainText("3 × 10");
-  await expect(choices.getByRole("button", { name: "Open reference for Cable fly" })).toContainText("2 × 12–15");
+  await expect(choices.getByRole("button", { name: "Open reference for Incline dumbbell press (dumbbell)" })).toContainText("3 × 10");
+  await expect(choices.getByRole("button", { name: "Open reference for Cable fly (cable)" })).toContainText("2 × 12–15");
   await expect(choices).toContainText("Pick by how the shoulder feels.");
   await choices.getByRole("button", { name: "Close exercise choices" }).click();
   await expect(choices).toBeHidden();
@@ -197,9 +197,9 @@ appTest("A two-choice slot lists both choices, logs the one you did, and the Log
   await start(page);
   await numberOf(page, TWO_CHOICES).click();
   const sheet = logSheet(page);
-  await expect(sheet.getByRole("heading", { name: "Incline dumbbell press" })).toBeVisible();
-  await sheet.getByRole("group", { name: "Exercise you're doing" }).getByRole("button", { name: "Cable fly" }).click();
-  await expect(sheet.getByRole("heading", { name: "Cable fly" })).toBeVisible();
+  await expect(sheet.getByRole("heading", { name: "Incline dumbbell press (dumbbell)" })).toBeVisible();
+  await sheet.getByRole("group", { name: "Exercise you're doing" }).getByRole("button", { name: "Cable fly (cable)" }).click();
+  await expect(sheet.getByRole("heading", { name: "Cable fly (cable)" })).toBeVisible();
   await sheet.getByLabel("Weight for set 1, kg", { exact: true }).fill("20");
   await sheet.getByLabel("Reps for set 1", { exact: true }).fill("12");
   await tick(sheet, "Set 1").click();
@@ -209,7 +209,7 @@ appTest("A two-choice slot lists both choices, logs the one you did, and the Log
 
   const saved = await readState(page);
   assert.deepEqual(saved.sessions[TODAY].logs, {
-    a3: { routineId: "day-a", exerciseId: "cable-fly", exerciseName: "Cable fly", unit: "reps", sets: [{ kg: 20, reps: 12, drops: [] }] },
+    a3: { routineId: "day-a", exerciseId: "cable-fly", exerciseName: "Cable fly (cable)", unit: "reps", sets: [{ kg: 20, reps: 12, drops: [] }] },
   });
   assert.deepEqual(saved.sessions[PAST_DAY], sampleState().sessions[PAST_DAY], "the earlier day is untouched");
 

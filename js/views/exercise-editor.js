@@ -5,9 +5,10 @@
 
 import { registerActions, render, store } from "../context.js";
 import { $, closeDialog, confirmAction, escapeHtml, openDialog, plural, report, showError } from "../dom.js";
-import { exerciseById, exerciseDeletionImpact, makeId, normalizedName, removeExercise, saveExercise as saveExerciseInState } from "../model.js";
+import { exerciseById, exerciseDeletionImpact, makeId, normalizedName, removeExercise, saveExercise as saveExerciseInState, fullName, mainEquipment } from "../model.js";
 import { searchExercises } from "../search.js";
-import { CHALLENGES, EMPHASES, EQUIPMENT, LATERALITIES, MOVEMENTS, PURPOSES, RELATIONS, STYLES, SUPPORTS, TARGETS, label } from "../vocab.js";
+import { ATTACHMENTS, CHALLENGES, EMPHASES, EQUIPMENT, GRIPS, LATERALITIES, MOVEMENTS, PURPOSES, RELATIONS, STYLES, SUPPORTS, TARGETS, WEIGHT_MODES, WIDTHS, label } from "../vocab.js";
+import { exerciseMarkup } from "./shared.js";
 
 const editor = {
   mode: "add", // "add" | "edit" | "duplicate"
@@ -45,21 +46,21 @@ function relationshipEditorMarkup({ linkedExercises, availableExercises, query }
   const linkedMarkup = linkedExercises.length ? linkedExercises.map(({ exercise, relation }) => `
     <article class="row related" data-related-id="${escapeHtml(exercise.id)}">
       <div class="row-main">
-        <strong class="row-title">${escapeHtml(exercise.name)}</strong>
+        <strong class="row-title">${exerciseMarkup(exercise)}</strong>
         <small class="row-meta">${escapeHtml(classificationSummary(exercise))}</small>
       </div>
       <label>
-        <span class="visually-hidden">Relationship to ${escapeHtml(exercise.name)}</span>
-        <select class="control" data-related-relation="${escapeHtml(exercise.id)}" aria-label="Relationship to ${escapeHtml(exercise.name)}">
+        <span class="visually-hidden">Relationship to ${escapeHtml(fullName(exercise))}</span>
+        <select class="control" data-related-relation="${escapeHtml(exercise.id)}" aria-label="Relationship to ${escapeHtml(fullName(exercise))}">
           ${RELATIONS.map((option) => `<option value="${escapeHtml(option.id)}" ${option.id === relation ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("")}
         </select>
       </label>
-      <button class="link-button danger" type="button" data-action="remove-related" data-id="${escapeHtml(exercise.id)}" aria-label="Remove relationship to ${escapeHtml(exercise.name)}">Remove</button>
+      <button class="link-button danger" type="button" data-action="remove-related" data-id="${escapeHtml(exercise.id)}" aria-label="Remove relationship to ${escapeHtml(fullName(exercise))}">Remove</button>
     </article>`).join("") : `<p class="hint">None linked yet.</p>`;
   const availableMarkup = availableExercises.length ? availableExercises.map((exercise) => `
     <button class="row" type="button" data-action="add-related" data-id="${escapeHtml(exercise.id)}">
       <span class="row-main">
-        <strong class="row-title">${escapeHtml(exercise.name)}</strong>
+        <strong class="row-title">${exerciseMarkup(exercise)}</strong>
         <small class="row-meta">${escapeHtml(classificationSummary(exercise))}</small>
       </span>
       <span class="row-action" aria-hidden="true">Add</span>
@@ -87,13 +88,19 @@ function setExerciseSelectOptions(selector, options, emptyLabel, value = "", req
 
 const selectionSummary = (values, emptyLabel) => (values.length ? values.map(label).join(" · ") : emptyLabel);
 
+// For a new exercise the weight wording follows its equipment until the owner picks one.
+function suggestWeightMode() {
+  if (editor.mode === "edit" || editor.weightChosen) return;
+  $("#exerciseWeightMode").value = { "plate-loaded": "per-side", dumbbells: "per-dumbbell" }[mainEquipment({ equipment: editor.selections.equipment })] || "";
+}
+
 function updateExerciseEditorSummaries() {
+  suggestWeightMode();
   $("#secondaryTargetsSummary").textContent = selectionSummary(editor.selections.secondaryTargets, "None selected");
   $("#exerciseEquipmentSummary").textContent = selectionSummary(editor.selections.equipment, "Choose at least one");
   $("#exerciseEmphasesSummary").textContent = selectionSummary(editor.selections.emphases, "Not set");
   const optionalCount = [
     $("#exerciseStyle").value,
-    $("#exerciseLaterality").value,
     $("#exerciseSupport").value,
     $("#exerciseChallenge").value,
     ...editor.selections.emphases,
@@ -122,7 +129,8 @@ function syncExerciseTargetOptions() {
 function fillForm(source) {
   const editing = editor.mode === "edit";
   $("#exerciseDialogTitle").textContent = { add: "Add exercise", edit: "Edit exercise", duplicate: "Duplicate exercise" }[editor.mode];
-  $("#exerciseName").value = source ? `${source.name}${editor.mode === "duplicate" ? " copy" : ""}` : "";
+  // A duplicate keeps the name: it is usually another version of the same movement.
+  $("#exerciseName").value = source?.name || "";
   $("#exerciseAliases").value = editing ? source.aliases.join("\n") : "";
   $("#exercisePrescription").value = source?.defaultPrescription || "";
   $("#exerciseVideo").value = source?.videoId || "";
@@ -132,7 +140,13 @@ function fillForm(source) {
   $("#exerciseSecondaryActions").hidden = !editing;
   $("#deleteExerciseButton").hidden = !editing;
   $("#duplicateExerciseButton").hidden = !editing;
-  setExerciseSelectOptions("#exercisePrimaryTarget1", TARGETS, "Choose dominant target", source?.primaryTargets[0], true);
+  $("#exerciseDetail").value = source?.detail || "";
+  editor.weightChosen = editor.mode === "duplicate";
+  setExerciseSelectOptions("#exerciseAttachment", ATTACHMENTS, "Not set", source?.attachment);
+  setExerciseSelectOptions("#exerciseGrip", GRIPS, "Not set", source?.grip);
+  setExerciseSelectOptions("#exerciseWidth", WIDTHS, "Not set", source?.width);
+  setExerciseSelectOptions("#exerciseWeightMode", WEIGHT_MODES, "The whole load", source?.weightMode);
+  setExerciseSelectOptions("#exercisePrimaryTarget1", TARGETS, "Choose primary target", source?.primaryTargets[0], true);
   setExerciseSelectOptions("#exercisePrimaryTarget2", TARGETS, "None", source?.primaryTargets[1]);
   setExerciseSelectOptions("#exerciseMovement", MOVEMENTS, "Choose movement", source?.movementPattern, true);
   setExerciseSelectOptions("#exercisePurpose", PURPOSES, "Choose purpose", source?.purpose, true);
@@ -179,22 +193,23 @@ function showExerciseEditorError(message, field) {
 // Returns [message, field] for the first problem with the form, or null.
 // The model checks names and aliases too; checking them here first keeps the
 // old order of messages and puts focus on the field at fault.
-function formProblem(state, { name, aliases, primaryTargets, movementPattern, equipment, purpose, videoId }) {
+function formProblem(state, exercise) {
+  const { name, aliases, primaryTargets, movementPattern, equipment, purpose, videoId } = exercise;
   const nameField = $("#exerciseName");
   const aliasesField = $("#exerciseAliases");
   if (!name) return ["Enter an exercise name.", nameField];
-  const identities = [name, ...aliases].map(normalizedName);
-  if (identities.some((identity) => !identity) || new Set(identities).size !== identities.length) {
+  const identities = [fullName(exercise), ...aliases].map(normalizedName);
+  if (!normalizedName(name) || identities.some((identity) => !identity) || new Set(identities).size !== identities.length) {
     return ["The name and aliases must each be unique.", aliases.length ? aliasesField : nameField];
   }
   const taken = new Set(state.exercises
-    .filter((exercise) => exercise.id !== editor.exerciseId)
-    .flatMap((exercise) => [exercise.name, ...exercise.aliases])
+    .filter((other) => other.id !== editor.exerciseId)
+    .flatMap((other) => [fullName(other), ...other.aliases])
     .map(normalizedName));
   const conflict = identities.findIndex((identity) => taken.has(identity));
-  if (conflict === 0) return ["An exercise with this name already exists.", nameField];
+  if (conflict === 0) return ["An exercise with this name and setup already exists. Change the name, equipment, attachment, grip, width or detail.", nameField];
   if (conflict > 0) return ["An alias is already used by another exercise.", aliasesField];
-  if (!primaryTargets.length) return ["Choose a dominant target.", $("#exercisePrimaryTarget1")];
+  if (!primaryTargets.length) return ["Choose a primary target.", $("#exercisePrimaryTarget1")];
   if (!movementPattern) return ["Choose a movement.", $("#exerciseMovement")];
   if (!equipment.length) return ["Choose at least one equipment option.", $("#chooseEquipmentButton")];
   if (!purpose) return ["Choose a purpose.", $("#exercisePurpose")];
@@ -210,6 +225,11 @@ function saveExercise() {
     primaryTargets: primaryTargetValues(),
     movementPattern: $("#exerciseMovement").value,
     equipment: [...editor.selections.equipment],
+    attachment: $("#exerciseAttachment").value,
+    grip: $("#exerciseGrip").value,
+    width: $("#exerciseWidth").value,
+    detail: $("#exerciseDetail").value.trim(),
+    weightMode: $("#exerciseWeightMode").value,
     purpose: $("#exercisePurpose").value,
     videoId: youtubeId($("#exerciseVideo").value),
   };
@@ -244,7 +264,7 @@ function exerciseDeletionMessage(exercise, impact) {
     ? `Routine cleanup: ${plural(impact.alternativeChoicesRemoved, "alternative choice")} removed; ${plural(impact.preferredChoicesPromoted, "next choice")} promoted; ${plural(impact.slotsDeleted, "slot")} deleted with any saved checks.`
     : "No routine choices, slots, or saved checks will change.";
   return [
-    `Delete “${exercise.name}”?`,
+    `Delete “${fullName(exercise)}”?`,
     `Programmed use: ${plural(impact.programmedUses, "slot")}.`,
     routineCleanup,
     `Related links removed: ${impact.relatedLinksRemoved}. Its logged sets stay in Log. This cannot be undone.`,
@@ -373,7 +393,8 @@ registerActions({
 });
 
 for (const id of ["#exercisePrimaryTarget1", "#exercisePrimaryTarget2"]) $(id).addEventListener("change", syncExerciseTargetOptions);
-for (const id of ["#exerciseStyle", "#exerciseLaterality", "#exerciseSupport", "#exerciseChallenge"]) $(id).addEventListener("change", updateExerciseEditorSummaries);
+for (const id of ["#exerciseStyle", "#exerciseSupport", "#exerciseChallenge"]) $(id).addEventListener("change", updateExerciseEditorSummaries);
+$("#exerciseWeightMode").addEventListener("change", () => { editor.weightChosen = true; });
 $("#alternativesSearch").addEventListener("input", (event) => {
   relatedEditor.query = event.target.value;
   renderRelatedEditor();
