@@ -4,7 +4,7 @@
 // to the entry being edited.
 
 import { registerActions, render, store } from "../context.js";
-import { $, chevronIcon, clearError, closeDialog, confirmAction, escapeHtml, openDialog, plural, report, segmentValue, setSegment, showError } from "../dom.js";
+import { $, chevronIcon, clearError, closeDialog, confirmAction, enableHoldDrag, escapeHtml, openDialog, plural, report, segmentValue, setSegment, showError } from "../dom.js";
 import { activeRoutine, activeWorkout, addEntry, addExtra, dayExtras, entryNumber, exerciseById, removeEntry, routineById, updateEntry } from "../model.js";
 import { searchExercises } from "../search.js";
 import { label } from "../vocab.js";
@@ -44,10 +44,12 @@ function entryChoicesEditorMarkup(choices, state) {
   return choices.map((choice, index) => {
     const name = exerciseById(state, choice.exerciseId)?.name || "Missing exercise";
     const prescription = choice.prescription || "No prescription";
-    return `<div class="row" data-choice-index="${index}">
+    return `<div class="row drag-row" data-choice-index="${index}">
       <span class="row-number">${index + 1}</span>
-      <span class="row-main"><strong class="row-title">${escapeHtml(name)}</strong><small class="row-meta">${escapeHtml(prescription)}</small></span>
-      ${index === 0 ? `<span class="label accent">Preferred</span>` : `<button class="icon-button sm" type="button" data-action="prefer-entry-choice" data-index="${index}" aria-label="Make ${escapeHtml(name)} preferred">↑</button>`}
+      <button class="row-body" type="button" data-action="replace-entry-choice" data-index="${index}" aria-label="Replace ${escapeHtml(name)} with another exercise. Hold and drag to reorder.">
+        <span class="row-main"><strong class="row-title">${escapeHtml(name)}</strong><small class="row-meta">${escapeHtml(prescription)}</small></span>
+      </button>
+      ${index === 0 ? `<span class="label accent">Preferred</span>` : ""}
       <button class="icon-button sm" type="button" data-action="edit-entry-choice" data-index="${index}" aria-label="Edit ${escapeHtml(name)} choice">${chevronIcon("right")}</button>
       <button class="icon-button sm" type="button" data-action="remove-entry-choice" data-index="${index}" aria-label="Remove ${escapeHtml(name)} choice">×</button>
     </div>`;
@@ -116,12 +118,6 @@ async function removeEntryFromRoutine() {
 
 // ---------- choices (draft) ----------
 
-function preferChoice(index) {
-  const [choice] = entryEditor.choices.splice(index, 1);
-  entryEditor.choices.unshift(choice);
-  renderChoiceDraft();
-}
-
 function removeChoice(index) {
   entryEditor.choices.splice(index, 1);
   renderChoiceDraft();
@@ -133,8 +129,6 @@ function updateChoiceEditor() {
   const count = entryEditor.choices.length;
   $("#entryChoiceDialogSubtitle").textContent = `${index + 1} of ${count}${index === 0 ? " · Preferred" : ""}`;
   $("#preferEntryChoiceButton").disabled = index <= 0;
-  $("#moveEntryChoiceEarlierButton").disabled = index <= 0;
-  $("#moveEntryChoiceLaterButton").disabled = index >= count - 1;
 }
 
 function openChoiceEditor(index) {
@@ -253,15 +247,31 @@ registerActions({
   // Buttons in the entry editor's list of choices carry the choice's index.
   "add-entry-choice": () => openPicker({ mode: "choice" }),
   "edit-entry-choice": (button) => openChoiceEditor(Number(button.dataset.index)),
-  "prefer-entry-choice": (button) => preferChoice(Number(button.dataset.index)),
+  "replace-entry-choice": (button) => {
+    entryEditor.choiceIndex = Number(button.dataset.index);
+    openPicker({ mode: "replace" });
+  },
   "remove-entry-choice": (button) => removeChoice(Number(button.dataset.index)),
   // The choice editor's buttons act on the choice it has open.
   "save-open-choice": saveChoice,
   "prefer-open-choice": () => moveChoice(0),
-  "move-open-choice": (button) => moveChoice(entryEditor.choiceIndex + Number(button.dataset.by)),
   "remove-open-choice": () => removeChoice(entryEditor.choiceIndex),
   "replace-open-choice": () => openPicker({ mode: "replace" }),
   "pick-exercise": (button) => pickExercise(button.dataset.id),
 });
 
 $("#pickerSearch").addEventListener("input", renderPickerList);
+
+// Hold and drag a choice to reorder; the first is the preferred one.
+enableHoldDrag($("#entryChoicesList"), {
+  rowSelector: ".drag-row",
+  listSelector: ".drag-list",
+  placeholderClass: "drag-placeholder",
+  activeBodyClass: "drag-active",
+  scroller: () => $("#entryDialog .sheet-body"),
+  onDrop(row, toIndex) {
+    const [choice] = entryEditor.choices.splice(Number(row.dataset.choiceIndex), 1);
+    entryEditor.choices.splice(toIndex, 0, choice);
+    renderChoiceDraft();
+  },
+});

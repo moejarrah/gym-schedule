@@ -73,7 +73,7 @@ Program
 - Search the Library and add an exercise to a chosen block (it starts as a Main entry with the exercise's default prescription).
 - Edit an entry: add or remove choices, edit each choice's prescription, reorder choices, make one preferred, change role, block (the entry moves to the end of the new block) and note.
 - Reorder entries by hold and drag, inside their block or into another block. Dropped into another block, an entry lands where it was dropped and takes that block's role: Optional among Optional entries (or in an empty block named optional), Main among Main ones. Main and Optional entries can still be mixed with the Role switch in the entry editor.
-- Replace an entry's exercise: tap the choice in the entry editor, then "Replace exercise" and pick another from the Library. The prescription and the slot's place stay.
+- Replace an entry's exercise: tap the exercise's name in the entry editor and pick another from the Library. The prescription and the slot's place stay. Hold and drag the choices to reorder them; the first is the preferred one. The › on a choice edits its prescription.
 - Remove an entry without deleting its master exercise.
 
 ### Library

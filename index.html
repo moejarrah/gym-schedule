@@ -294,7 +294,7 @@
             <span id="entryChoicesEditorLabel">Choices — first is preferred</span>
             <button class="link-button" id="addEntryChoiceButton" data-action="add-entry-choice" type="button">+ Add choice</button>
           </div>
-          <div id="entryChoicesList"></div>
+          <div id="entryChoicesList" class="drag-list"></div>
         </section>
         <div class="field">
           <span>Role</span>
@@ -325,8 +325,6 @@
       <div class="ruled">
         <button class="row compact" data-action="replace-open-choice" type="button">Replace exercise <span class="chev" aria-hidden="true">›</span></button>
         <button class="row compact" id="preferEntryChoiceButton" data-action="prefer-open-choice" type="button">Make preferred <span class="chev" aria-hidden="true">↑</span></button>
-        <button class="row compact" id="moveEntryChoiceEarlierButton" data-action="move-open-choice" data-by="-1" type="button">Move choice earlier <span class="chev" aria-hidden="true">↑</span></button>
-        <button class="row compact" id="moveEntryChoiceLaterButton" data-action="move-open-choice" data-by="1" type="button">Move choice later <span class="chev" aria-hidden="true">↓</span></button>
         <button class="row compact danger" id="removeEntryChoiceButton" data-action="remove-open-choice" type="button">Remove choice <span class="chev" aria-hidden="true">×</span></button>
       </div>
       <p class="form-error" id="entryChoiceFormError" role="alert" data-dialog-error></p>
