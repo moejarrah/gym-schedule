@@ -11,9 +11,11 @@ import "./views/settings.js";
 import { afterRender, applyTheme, navigate, render, runAction, store } from "./context.js";
 import { closeDialog, initDialogs, setSegment, toast } from "./dom.js";
 import { finishStaleWorkout, localDateKey } from "./model.js";
+import { enableRoutineSwipe } from "./views/shared.js";
 import { STORAGE_KEY } from "./store.js";
 
 initDialogs();
+enableRoutineSwipe(document.querySelector("#appMain"));
 
 // Every tap goes through here.
 document.addEventListener("click", (event) => {

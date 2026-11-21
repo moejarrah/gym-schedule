@@ -48,6 +48,7 @@ Program
 ## Actions that must keep working
 
 ### Workout
+- Pick a routine by tapping its tab, or swipe left or right anywhere on the list to go to the next or previous one (also on Program). A swipe that starts on something that scrolls sideways itself, such as the tabs, only scrolls it.
 
 - See and switch the active program. The same bar holds the workout's control: "Start workout" (or "Reopen" when it was finished today, or "Go to …" when another routine's workout is running), and while a workout runs its stopwatch and Cancel. A routine's tab shows a dot while its workout runs and a tick once it was finished today.
 - Select any routine (the selected tab stays visible in the tab strip).

@@ -108,6 +108,28 @@ export function routineTabsMarkup(routines, selectedId, marks = null) {
 }
 
 // Keeps the selected routine tab visible after the tab strip is re-rendered.
+// A quick sideways swipe on a screen with routine tabs goes to the next or previous
+// routine, as tapping its tab would. Not from inside something that scrolls sideways
+// itself (the tabs, a chip row), not while a row is being dragged, not on a pinch.
+export function enableRoutineSwipe(main) {
+  let start = null;
+  main.addEventListener("touchstart", (event) => {
+    const inside = event.target.closest?.(".scroll-x");
+    start = event.touches.length === 1 && !inside ? { x: event.touches[0].clientX, y: event.touches[0].clientY, at: performance.now() } : null;
+  }, { passive: true });
+  main.addEventListener("touchend", (event) => {
+    const from = start;
+    start = null;
+    if (!from || event.touches.length || main.querySelector(".is-dragging")) return;
+    const dx = event.changedTouches[0].clientX - from.x;
+    const dy = event.changedTouches[0].clientY - from.y;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 2 || performance.now() - from.at > 600) return;
+    const tabs = [...main.querySelectorAll(".routine-tab")];
+    tabs[tabs.findIndex((tab) => tab.getAttribute("aria-pressed") === "true") + (dx < 0 ? 1 : -1)]?.click();
+  }, { passive: true });
+  main.addEventListener("touchcancel", () => { start = null; }, { passive: true });
+}
+
 export function revealSelectedTab(root) {
   const tab = root.querySelector(".routine-tab[aria-pressed='true']");
   const strip = tab?.closest(".routine-tabs");
