@@ -655,6 +655,18 @@ a > svg {
   min-height: 0;
 }
 
+/* Under the sets: add a set, add a drop set. */
+.log-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.log-tools .link-button:disabled {
+  color: var(--faint);
+}
+
 /* What beats last time, under "Last 3 times". */
 .log-target {
   margin: var(--space-2) 0 0;

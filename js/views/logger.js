@@ -169,20 +169,29 @@ function rowMarkup({ setIndex, dropIndex, row, last, timed }) {
   </div>`;
 }
 
+// The set a new drop goes under: the one ticked last (or the last ticked one),
+// once it and its drops so far are ticked. -1 when there is none.
+function dropTarget() {
+  const index = sheet.rows[sheet.lastTicked]?.done ? sheet.lastTicked : sheet.rows.findLastIndex((row) => row.done);
+  return index >= 0 && (sheet.rows[index].drops.at(-1) || sheet.rows[index]).done ? index : -1;
+}
+
+// Nothing here appears or disappears when a set is ticked, so ticking never
+// moves the rest of the sheet: "Set" and "Drop set" are always under the table.
 function tableMarkup(last, timed) {
   const groups = sheet.rows.map((row, setIndex) => {
     const drops = row.drops.map((drop, dropIndex) => rowMarkup({ setIndex, dropIndex, row: drop, last, timed })).join("");
-    const lastRow = row.drops.at(-1) || row;
-    const dropLink = setIndex === sheet.lastTicked && row.done && lastRow.done
-      ? `<button class="link-button" type="button" data-action="log-add-drop" data-set="${setIndex}">${plusIcon}${row.drops.length ? "Another drop" : "Drop set"}</button>`
-      : "";
-    return `<div class="log-set ${row.drops.length ? "has-drops" : ""}">${rowMarkup({ setIndex, dropIndex: -1, row, last, timed })}${drops}${dropLink}</div>`;
+    return `<div class="log-set ${row.drops.length ? "has-drops" : ""}">${rowMarkup({ setIndex, dropIndex: -1, row, last, timed })}${drops}</div>`;
   }).join("");
+  const target = dropTarget();
   return `<div class="log-table">
-    <div class="log-row label" aria-hidden="true"><span>Set</span><span>Last time</span><span>Weight</span><span>${timed ? "Sec" : "Reps"}</span><span></span></div>
+    <div class="log-row label" aria-hidden="true"><span>Set</span><span>Last time</span><span>Weight</span><span>${timed ? "Sec" : "Reps"}</span><span>Done</span></div>
     ${groups}
-    <button class="link-button" type="button" data-action="log-add-set">${plusIcon}Set</button>
-    <p class="hint">Tap a set's number to mark it as a warm-up.</p>
+    <div class="log-tools">
+      <button class="link-button" type="button" data-action="log-add-set">${plusIcon}Set</button>
+      <button class="link-button" type="button" data-action="log-add-drop" ${target < 0 ? "disabled" : `data-set="${target}"`}>${plusIcon}Drop set${target < 0 ? "" : ` after set ${target + 1}`}</button>
+    </div>
+    <p class="hint">Tick a set when it's done. A drop set goes under the set you ticked last. Tap a set's number to mark it as a warm-up.</p>
   </div>`;
 }
 
@@ -208,7 +217,7 @@ function sheetMarkup(state) {
       ${choicesMarkup(entry, state)}
       ${historyMarkup(state, history, history[0] ? targetHint(history[0].sets, choice.prescription, exerciseMode(history), timed ? "sec" : "reps") : "")}
       ${tableMarkup(history[0], timed)}
-      ${sheet.rows.some((row) => row.done) ? `<label class="field"><span>Note for this exercise today</span><input class="control" type="text" data-log-note value="${escapeHtml(sheet.note)}" maxlength="140" autocomplete="off" enterkeyhint="done" placeholder="Shown next time, e.g. seat at 4"></label>` : ""}
+      <label class="field"><span>Note for this exercise today</span><input class="control" type="text" data-log-note value="${escapeHtml(sheet.note)}" maxlength="140" autocomplete="off" enterkeyhint="done" placeholder="Saved with your sets, shown next time"></label>
       <p class="form-error" role="alert" aria-live="polite" data-dialog-error></p>
     </div>
     <footer class="actions">
