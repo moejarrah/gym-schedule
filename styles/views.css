@@ -304,32 +304,65 @@ p.round-line {
 
 /* ---------- Program ---------- */
 
-.appbar .button {
+/* The header: the program's name is the screen's title and opens the programs sheet;
+   Edit (an outlined pill, filled as Done while editing) sits in a full tap target. */
+.program-head {
+  padding-right: var(--gutter);
+}
+
+.program-head .title {
+  display: flex;
+}
+
+.program-head .bar-pick {
+  min-width: 0;
+}
+
+/* The name keeps the title's size inside the button, with room for its descenders. */
+.program-head .bar-pick > strong {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 1.25;
+}
+
+.program-mode {
   min-height: var(--tap);
-  padding-inline: 14px;
-  border-radius: var(--radius-control);
+  flex: none;
+  display: grid;
+  place-items: center;
 }
 
-/* The program's note: a title over the note's first line; its chevron points right. */
-.program-note {
-  margin-block: var(--space-1) var(--space-3);
+/* Edit and Done are one shape, so the pill doesn't change under the finger. */
+.program-mode > span {
+  min-width: 62px;
+  min-height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  display: grid;
+  place-items: center;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease;
 }
 
-.program-note summary {
-  min-height: 56px;
-  gap: 10px;
+.program-mode:active > span {
+  background: var(--press);
 }
 
-.program-note[open] summary > svg {
-  transform: rotate(90deg);
+.program-mode.is-editing > span {
+  border-color: var(--accent-fill);
+  background: var(--accent-fill);
+  color: var(--on-accent);
 }
 
-/* "No exercises in this block." */
-.drag-list + .hint {
-  padding: var(--space-3) var(--gutter);
+.program-mode.is-editing:active > span {
+  border-color: var(--accent-press);
+  background: var(--accent-press);
 }
 
-/* The dot before the active program in the programs sheet. */
+/* The dot before the program being followed: in the header and in the programs sheet,
+   where every row keeps its room. */
 .dot {
   width: 8px;
   height: 8px;
@@ -337,8 +370,92 @@ p.round-line {
   flex: none;
 }
 
-[aria-pressed="true"] > .dot {
+.dot.is-on {
   background: var(--accent);
+}
+
+/* One quiet line with something at each end: which program is followed and the link
+   to follow this one; under the tabs, two facts about the routine, or while editing
+   the two links to what isn't on the list. Always a tap target tall, so nothing under
+   it moves when Edit swaps facts for links. Two long names on a narrow screen take a
+   line each instead of being cut short. */
+.program-line {
+  min-height: var(--tap);
+  padding: 0 var(--gutter);
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}
+
+/* The rule is outside the tap target's height, so facts and links make the same line. */
+.program-line.is-ruled {
+  min-height: calc(var(--tap) + 1px);
+  border-bottom: 1px solid var(--line);
+}
+
+.program-line > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.program-line > span {
+  padding-block: 6px;
+}
+
+.program-line > :last-child {
+  margin-left: auto;
+}
+
+.program-line > .link-button {
+  padding-inline: 0;
+}
+
+/* "+ Workout" at the end of the routine tabs while editing. */
+.tab-add {
+  min-height: 48px;
+  flex: none;
+  white-space: nowrap;
+}
+
+.program-list {
+  padding-bottom: var(--space-5);
+}
+
+.program-list > .hint {
+  padding: var(--space-4) var(--gutter);
+}
+
+/* "Last time" in the open slot: the sets, and under them their date. */
+.slot-last {
+  display: grid;
+  gap: 1px;
+}
+
+.slot-last > :last-child {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* The link to a slot's alternatives is a full tap target without making its line taller. */
+.program-list .slot-line .link-button {
+  margin-block: -12px;
+  padding-block: 12px;
+}
+
+/* A slot in the editor: its number box, then its three lines (the choices, the
+   prescription, the note), then the grip. */
+.slot.drag-row > .row-main {
+  padding: 7px var(--space-2) 7px var(--space-1);
+}
+
+/* "No exercises in this block." */
+.drag-list + .hint {
+  padding: var(--space-3) var(--gutter);
 }
 
 /* ---------- Library ---------- */

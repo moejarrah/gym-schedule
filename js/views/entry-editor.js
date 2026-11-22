@@ -1,11 +1,12 @@
 // Routine entry editing (opened from Program): the entry editor with its draft of
 // exercise choices, role, block, note, Earlier/Later and remove; the choice
 // editor; and the Library picker, which adds a new entry to a block or a choice
-// to the entry being edited.
+// to the entry being edited. The caller says which routine: Program edits the
+// routine it is showing, which need not be the one selected on Workout.
 
 import { registerActions, render, store } from "../context.js";
 import { $, chevronIcon, clearError, closeDialog, confirmAction, enableHoldDrag, escapeHtml, openDialog, plural, report, segmentValue, setSegment, showError } from "../dom.js";
-import { activeRoutine, activeWorkout, addEntry, addExtra, dayExtras, entryNumber, exerciseById, fullName, removeEntry, routineById, updateEntry } from "../model.js";
+import { activeWorkout, addEntry, addExtra, dayExtras, entryNumber, exerciseById, fullName, removeEntry, routineById, updateEntry } from "../model.js";
 import { searchExercises } from "../search.js";
 import { label } from "../vocab.js";
 import { entryPresentation, exerciseMarkup } from "./shared.js";
@@ -13,10 +14,10 @@ import { entryPresentation, exerciseMarkup } from "./shared.js";
 // The entry being edited. Its choices are a draft until Save; choiceIndex is the
 // choice open in the choice editor.
 const entryEditor = { routineId: "", entryId: "", choices: [], choiceIndex: -1 };
-// What the picker adds: a new Main entry to blockId ("entry"), a choice to the entry
-// draft ("choice"), an exercise to the workout in progress, for that day only
-// ("extra"), or swaps the exercise of the choice open in the choice editor ("replace").
-const picker = { mode: "entry", blockId: "" };
+// What the picker adds: a new Main entry to blockId of routineId ("entry"), a choice
+// to the entry draft ("choice"), an exercise to the workout in progress, for that day
+// only ("extra"), or swaps the exercise of the choice open in the choice editor ("replace").
+const picker = { mode: "entry", routineId: "", blockId: "" };
 
 // ---------- markup ----------
 
@@ -64,10 +65,11 @@ function renderChoiceDraft() {
   $("#entryExerciseName").innerHTML = entryPresentation({ choices: entryEditor.choices }, state).titleMarkup;
 }
 
-export function openEntryEditor(entryId) {
+export function openEntryEditor(routineId, entryId) {
   const state = store.getState();
-  const routine = activeRoutine(state);
-  const entry = routine.entries.find((item) => item.id === entryId);
+  const routine = routineById(state, routineId);
+  const entry = routine?.entries.find((item) => item.id === entryId);
+  if (!entry) return;
   Object.assign(entryEditor, { routineId: routine.id, entryId, choices: structuredClone(entry.choices), choiceIndex: -1 });
 
   $("#entryRoutineContext").textContent = `${routine.name} entry · slot ${entryNumber(routine, entryId)}`;
@@ -179,20 +181,24 @@ function renderPickerList() {
     ? entryEditor.choices
     : picker.mode === "extra"
       ? dayExtras(state, workout.dateKey, workout.routineId)
-      : activeRoutine(state).entries.flatMap((entry) => entry.choices);
+      : routineById(state, picker.routineId).entries.flatMap((entry) => entry.choices);
   const exercises = searchExercises(state.exercises, $("#pickerSearch").value);
   $("#pickerResultCount").textContent = plural(exercises.length, "exercise");
   $("#pickerList").innerHTML = pickerListMarkup(exercises, new Set(used.map((choice) => choice.exerciseId)), picker.mode);
 }
 
-export function openPicker({ blockId = "", mode }) {
-  const routine = activeRoutine(store.getState());
-  Object.assign(picker, { mode, blockId });
+// `routineId` and `blockId` say where a new entry goes ("entry"). The other modes know
+// their routine: the entry being edited, or the workout in progress ("extra").
+export function openPicker({ routineId = "", blockId = "", mode }) {
+  const state = store.getState();
+  const routine = routineById(state, mode === "entry" ? routineId : mode === "extra" ? activeWorkout(state)?.routineId : entryEditor.routineId);
+  if (!routine) return;
+  Object.assign(picker, { mode, routineId: routine.id, blockId });
   const block = routine.blocks.find((item) => item.id === blockId);
   $("#pickerRoutineContext").textContent = mode === "choice"
     ? `${routine.name} entry · add choice from Library`
     : mode === "replace"
-      ? `Replace ${fullName(exerciseById(store.getState(), entryEditor.choices[entryEditor.choiceIndex].exerciseId))}`
+      ? `Replace ${fullName(exerciseById(state, entryEditor.choices[entryEditor.choiceIndex].exerciseId))}`
       : mode === "extra"
       ? `${routine.name} · today only · Library`
       : `${routine.name} · ${block.name.trim() || "Main"} · Library`;
@@ -230,8 +236,7 @@ function pickExercise(exerciseId) {
     showError("Add a default prescription to this Library exercise before creating a new routine slot.");
     return;
   }
-  const routineId = activeRoutine(state).id;
-  const { blockId } = picker;
+  const { routineId, blockId } = picker;
   const result = store.update((draft) => addEntry(draft, routineId, { exerciseId, blockId, prescription: exercise.defaultPrescription }));
   if (report(result, "Exercise added to routine.")) {
     closeDialog("#pickerDialog");

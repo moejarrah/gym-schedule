@@ -1,15 +1,18 @@
-// Program screen ("routines"): the active program's page with routine tabs and
-// entry rows (hold-drag to reorder inside a block), the programs sheet (also
-// opened from Workout), and the program, routine and block editors. Entry
+// Program screen ("routines"). It is for looking things up first and changing
+// second, and looking is separate from following: the screen keeps its own note of
+// which program and routine it shows (`shown`, not saved) and never changes the
+// program being followed or the routine selected on Workout.
+// - View mode: the routine as the quiet list Workout draws, one slot open in place.
+// - Edit mode ("Edit" … "Done"): the same list as an editor, with hold-drag to reorder.
+// Also here: the programs sheet and the program, routine and block editors. Entry
 // editing and the Library picker live in entry-editor.js.
 
-import { mainElement, registerActions, registerView, render, store } from "../context.js";
+import { mainElement, registerActions, registerView, render, scrollToTop, store } from "../context.js";
 import {
   $,
   chevronIcon,
   closeDialog,
   confirmAction,
-  editIcon,
   enableHoldDrag,
   escapeHtml,
   openDialog,
@@ -20,26 +23,34 @@ import {
   showError,
 } from "../dom.js";
 import {
-  activeProgram,
-  activeRoutine,
   addRoutine,
   createProgram,
   duplicateProgram,
+  entryNumber,
+  exerciseHistory,
+  lastFinished,
+  mainEquipment,
   makeId,
   moveEntry,
   moveRoutine,
   programRoutines,
   removeProgram,
   removeRoutine,
+  roundProgram,
   routineById,
   routineProgram,
-  setActiveProgram,
+  setupWords,
   updateProgram,
   updateRoutine,
 } from "../model.js";
+import { label } from "../vocab.js";
 import { openEntryEditor, openPicker } from "./entry-editor.js";
-import { entryPresentation, locationLabel, revealSelectedTab, routineTabsMarkup, saysOptional } from "./shared.js";
+import { entryPresentation, exerciseFactLines, movementMarkup, revealSelectedTab, routineTabsMarkup, saysOptional, setsSummary, shortDate, videoUrl } from "./shared.js";
 
+// What the screen shows. `programId` is "" while it simply shows the program being
+// followed; `routineId` falls back to the program's first routine; `slotId` is the
+// slot open in view mode ("" = none).
+const shown = { programId: "", routineId: "", slotId: "", editing: false };
 // The program open in the program editor ("" while adding one).
 const programEditor = { id: "" };
 // The routine open in the routine editor ("" while adding one). Its blocks are
@@ -47,40 +58,217 @@ const programEditor = { id: "" };
 // in the block editor.
 const routineEditor = { id: "", blocks: [], blockId: "" };
 
-// ---------- markup ----------
-
-function programAppBarMarkup(program, routines) {
-  return `<header class="appbar">
-    <h1 class="title">Program</h1>
-    ${program && routines.length ? `<button class="button" type="button" data-action="new-routine">+ Add routine</button>` : ""}
-  </header>`;
+// The program and routine on screen, and the program being followed. What `shown`
+// points at may be gone (deleted, or replaced by an imported backup): it is repaired
+// here. The followed program is kept as "", so the screen follows a later change of it.
+function looking(state) {
+  const followed = roundProgram(state);
+  const program = state.programs.find((item) => item.id === shown.programId) || followed || state.programs[0] || null;
+  shown.programId = program && program.id !== followed?.id ? program.id : "";
+  const routines = programRoutines(state, program);
+  const routine = routines.find((item) => item.id === shown.routineId) || routines[0] || null;
+  if (routine?.id !== shown.routineId) Object.assign(shown, { routineId: routine?.id || "", slotId: "" });
+  return { program, routines, routine, followed };
 }
 
-function programBarMarkup(program) {
-  const name = program?.name || "No program";
-  return `<div class="bar">
-    <button class="bar-pick tap" type="button" data-action="open-programs" aria-label="${program ? `Choose active program, currently ${escapeHtml(name)}` : "Open programs"}">
-      <span class="label tag active">Active</span>
-      <strong class="truncate">${escapeHtml(name)}</strong>
-      ${chevronIcon("down")}
-    </button>
+// Shows another program, from its first routine.
+function show(programId) {
+  Object.assign(shown, { programId, routineId: "", slotId: "" });
+}
+
+// The model's create and add functions also select what they made, from when this
+// screen edited the active program. Looking isn't following: the selection is put back.
+function keepingSelection(draft, change) {
+  const { activeProgramId, activeRoutineId } = draft.settings;
+  change();
+  const program = draft.programs.find((item) => item.id === activeProgramId);
+  if (!program) return;
+  draft.settings.activeProgramId = program.id;
+  draft.settings.activeRoutineId = program.routineIds.includes(activeRoutineId) ? activeRoutineId : program.routineIds[0] || "";
+}
+
+// ---------- markup ----------
+
+const gripIcon = `<span class="grip" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h8"/></svg></span>`;
+
+// The header: the program's name (a dot before it when it is the one being followed)
+// opens the programs sheet; Edit turns the screen into the editor and Done turns it
+// back. A program with no routines has nothing to switch: its screen offers the first one.
+function headMarkup(program, followed, hasRoutines) {
+  if (!program) return `<header class="appbar program-head"><h1 class="title">No program</h1></header>`;
+  const name = escapeHtml(program.name);
+  const isFollowed = program.id === followed?.id;
+  return `<header class="appbar program-head">
+    <h1 class="title">
+      <button class="bar-pick tap" type="button" data-action="open-programs" aria-label="Look at another program, showing ${name}${isFollowed ? ", the one you're following" : ""}">
+        ${isFollowed ? `<i class="dot is-on" aria-hidden="true"></i>` : ""}
+        <strong class="truncate">${name}</strong>
+        ${chevronIcon("down")}
+      </button>
+    </h1>
+    ${hasRoutines ? `<button class="program-mode ${shown.editing ? "is-editing" : ""}" type="button" data-action="toggle-program-edit" aria-label="${shown.editing ? "Done editing" : `Edit ${name}`}"><span>${shown.editing ? "Done" : "Edit"}</span></button>` : ""}
+  </header>
+  ${isFollowed || !followed ? "" : `<div class="program-line">
+    <span class="truncate">You're following ${escapeHtml(followed.name)}</span>
+    <button class="link-button" type="button" data-action="follow-program" data-id="${escapeHtml(program.id)}"><span class="truncate">Follow ${name}</span></button>
+  </div>`}`;
+}
+
+// The routine tabs; in edit mode "+ Workout" ends the strip.
+function tabsMarkup(routines, routine) {
+  const tabs = routineTabsMarkup(routines, routine?.id, null, "view-routine");
+  if (!tabs || !shown.editing) return tabs;
+  return `${tabs.slice(0, tabs.lastIndexOf("</div>"))}<button class="link-button tab-add" type="button" data-action="new-routine" aria-label="Add a workout">+ Workout</button></div>`;
+}
+
+// One line under the tabs. Viewing: a fact at each end. Editing: the two things that
+// aren't on the list itself.
+function routineLineMarkup(state, program, routine) {
+  if (shown.editing) {
+    return `<div class="program-line is-ruled">
+      <button class="link-button" type="button" data-action="edit-routine" data-id="${escapeHtml(routine.id)}" aria-label="Edit ${escapeHtml(routine.name)}: rename, notes, blocks">Rename, notes, blocks</button>
+      <button class="link-button" type="button" data-action="edit-program" data-id="${escapeHtml(program.id)}">Program rules</button>
+    </div>`;
+  }
+  const last = lastFinished(state, routine.id, "9999-12-31");
+  return `<div class="program-line is-ruled">
+    <span>${plural(routine.entries.length, "exercise")}</span>
+    <span>${last ? `last done ${escapeHtml(shortDate(last))}` : "not done yet"}</span>
   </div>`;
 }
 
+function routineNoteMarkup(note) {
+  if (!note.trim()) return "";
+  return `<details class="note" data-keep-open="routine-note">
+    <summary><span class="hint clamp-2">${escapeHtml(note.trim())}</span>${chevronIcon("down")}</summary>
+    <p class="hint">${escapeHtml(note)}</p>
+  </details>`;
+}
+
+// How an alternative is named in the open slot: its movement, or, when it is another
+// version of the same movement, what sets it apart ("Chest press · Machine").
+function otherName(item, shownExercise) {
+  if (!item.exercise) return item.name;
+  const setup = [label(mainEquipment(item.exercise)), ...setupWords(item.exercise)].filter(Boolean).join(" · ");
+  return item.exercise.name === shownExercise?.name && setup ? `${item.exercise.name} · ${setup}` : item.exercise.name;
+}
+
+// View mode. One slot, drawn as Workout draws it: its number, its movement ("+1" when
+// it has alternatives) and its prescription at the end. The open one unfolds its
+// labelled lines and the buttons that look things up. Nothing here changes anything.
+function slotMarkup(state, routine, entry, showOptionalRole) {
+  const { choices, preferred, title, prescription } = entryPresentation(entry, state);
+  const others = choices.slice(1);
+  const open = shown.slotId === entry.id;
+  const toggle = `data-action="toggle-program-slot" data-id="${escapeHtml(entry.id)}"`;
+  const row = `<article class="row split tap slot ${open ? "is-open" : ""}">
+    <span class="icon-button" ${toggle} aria-hidden="true"><span class="tickbox"><span>${entryNumber(routine, entry.id)}</span></span></span>
+    <button class="row-body" type="button" ${toggle} aria-expanded="${open}" aria-label="${open ? "Hide" : "Show"} ${escapeHtml(title)} details">
+      <span class="row-main"><span class="row-title">${movementMarkup(preferred?.exercise)}${others.length ? ` <span class="version">+${others.length}</span>` : ""}${showOptionalRole ? ` <span class="label tag">Optional</span>` : ""}</span></span>
+      ${open ? chevronIcon("up") : `<span class="slot-end">${escapeHtml(entry.choices[0]?.prescription ? prescription : "")}</span>`}
+    </button>
+  </article>`;
+  if (!open) return row;
+
+  const exercise = preferred?.exercise;
+  const exerciseId = escapeHtml(exercise?.id || "");
+  const last = exercise ? exerciseHistory(state, exercise.id, { limit: 1 })[0] : null;
+  const data = `data-routine-id="${escapeHtml(routine.id)}" data-entry-id="${escapeHtml(entry.id)}"`;
+  // One labelled line per fact, always in this order; a line with nothing to say is left out.
+  const line = (name, value) => (value ? `<div class="slot-line"><span>${name}</span><span>${value}</span></div>` : "");
+  const video = exercise?.videoId
+    ? `<a class="button" href="${videoUrl(exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for ${escapeHtml(preferred.name)}">Video</a>`
+    : `<button class="button" type="button" data-action="open-workout-video" data-id="${exerciseId}" aria-label="Find a video for ${escapeHtml(preferred?.name)}">Video</button>`;
+  return `<div class="slot-open" data-open-slot>
+    ${row}
+    <div class="slot-detail" data-slot="${escapeHtml(entry.id)}">
+      ${exerciseFactLines(exercise, preferred?.prescription).map(([name, value]) => line(name, value)).join("")}
+      ${line("Last time", last ? `<span class="slot-last"><span>${escapeHtml(setsSummary(last))}</span><span>${escapeHtml(shortDate(last.dateKey))}</span></span>` : "")}
+      ${line("Note", escapeHtml(entry.note.trim()))}
+      ${line(others.length > 1 ? "Alternatives" : "Alternative", others.length ? `<button class="link-button" type="button" data-action="open-entry-choices" ${data} aria-label="Open exercise choices for ${escapeHtml(title)}">${others.map((item) => escapeHtml(otherName(item, exercise))).join(", ")}${chevronIcon("right")}</button>` : "")}
+      <div class="actions">
+        <button class="button" type="button" data-action="view-history" data-id="${exerciseId}" aria-label="History of ${escapeHtml(preferred?.name)}">History</button>
+        <button class="button" type="button" data-action="open-workout-exercise" data-id="${exerciseId}" ${data} data-prescription="${escapeHtml(preferred?.prescription)}" aria-label="Open exercise page for ${escapeHtml(preferred?.name)}">Details</button>
+        ${video}
+      </div>
+    </div>
+  </div>`;
+}
+
+// Edit mode. One slot as the editor draws it: every choice named, the prescription
+// under it, then the note, and a grip. Tapping opens its editor; holding drags it.
+function editRowMarkup(state, entry, number, blockName, showOptionalRole) {
+  const { title, titleMarkup, prescription } = entryPresentation(entry, state);
+  const note = entry.note.trim();
+  return `<button class="row split slot drag-row" type="button" data-action="edit-entry" data-id="${escapeHtml(entry.id)}" aria-label="${escapeHtml(title)}. Tap to edit. Hold and drag to reorder within ${escapeHtml(blockName || "this block")}.">
+    <span class="icon-button"><span class="tickbox"><span data-number>${number}</span></span></span>
+    <span class="row-main">
+      <span class="row-title">${titleMarkup}</span>
+      <span class="row-meta">${escapeHtml(prescription)}${showOptionalRole ? `<span class="label tag">Optional</span>` : ""}</span>
+      ${note ? `<span class="row-meta clamp-2 faint">${escapeHtml(note)}</span>` : ""}
+    </span>
+    ${gripIcon}
+  </button>`;
+}
+
+// The routine's blocks in both modes. A block whose entries are all Optional is
+// outlined and says so once in its label (unless its name already does); in a mixed
+// block each Optional entry carries its own tag.
+function listMarkup(state, routine) {
+  return routine.blocks.map((block) => {
+    const name = block.name.trim();
+    const entries = routine.entries.filter((entry) => entry.blockId === block.id);
+    // An empty block with no name has nothing to show until it can be added to.
+    if (!entries.length && !name && !shown.editing) return "";
+    const optionalOnly = entries.length > 0 && entries.every((entry) => entry.role === "optional");
+    const tagged = (entry) => !optionalOnly && entry.role === "optional";
+    const blockId = escapeHtml(block.id);
+    return `<section class="${optionalOnly ? "workout-group" : ""}" data-block-id="${blockId}">
+      ${name || optionalOnly ? `<div class="label section-label"><span>${escapeHtml(name)}</span>${optionalOnly && !saysOptional(name) ? `<span>Optional</span>` : ""}</div>` : ""}
+      ${shown.editing ? `<div class="drag-list" data-block-id="${blockId}">${entries.map((entry) => editRowMarkup(state, entry, entryNumber(routine, entry.id), name, tagged(entry))).join("")}</div>
+        ${entries.length ? "" : `<p class="hint">No exercises in ${escapeHtml(name || "this block")}.</p>`}
+        <button class="row compact link-button" type="button" data-action="open-picker" data-block-id="${blockId}" aria-label="Add exercise to ${escapeHtml(name || "this block")}">+ Add exercise</button>`
+      : entries.map((entry) => slotMarkup(state, routine, entry, tagged(entry))).join("")}
+    </section>`;
+  }).join("");
+}
+
+function programMarkup(state) {
+  const { program, routines, routine, followed } = looking(state);
+  const body = !program
+    ? `<div class="empty"><h2>No programs yet</h2><p>Create a program, then add its workout days.</p><button class="button primary" type="button" data-action="new-program">Add program</button></div>`
+    : !routine
+      ? `<div class="empty"><h2>No workouts yet</h2><p>Add the first workout day to ${escapeHtml(program.name)}. Its exercises come from your Library.</p><button class="button primary" type="button" data-action="new-routine">Add workout</button></div>`
+      : `${routineLineMarkup(state, program, routine)}
+        <div class="scroll program-list" data-program-list data-keep-scroll="program-${escapeHtml(routine.id)}">
+          ${routineNoteMarkup(routine.note)}
+          ${listMarkup(state, routine)}
+          ${routine.entries.length || shown.editing ? "" : `<p class="hint">No exercises yet. Tap Edit to add some.</p>`}
+        </div>`;
+  return `<section class="page fills">
+    ${headMarkup(program, followed, routines.length > 0)}
+    ${tabsMarkup(routines, routine)}
+    ${body}
+  </section>`;
+}
+
+// The programs sheet: a dot and "Following" mark the program being followed; the ›
+// opens a program's editor.
 function programsListMarkup(state) {
   if (!state.programs.length) {
     return `<div class="empty"><h3>No programs yet</h3><p>Add one to organize your workout days.</p></div>`;
   }
-
+  const { program: showing, followed } = looking(state);
   return state.programs.map((program) => {
-    const active = program.id === state.settings.activeProgramId;
+    const isFollowed = program.id === followed?.id;
     return `<div class="row split tall">
-      <button class="row-body" type="button" data-action="select-program" data-id="${escapeHtml(program.id)}" aria-pressed="${active}">
-        <span class="dot" aria-hidden="true"></span>
+      <button class="row-body" type="button" data-action="select-program" data-id="${escapeHtml(program.id)}" aria-pressed="${program.id === showing?.id}">
+        <span class="dot ${isFollowed ? "is-on" : ""}" aria-hidden="true"></span>
         <span class="row-main">
           <strong class="row-title truncate">${escapeHtml(program.name)}</strong>
-          <small class="row-meta truncate">${plural(program.routineIds.length, "routine")}${active ? " · active" : ""}</small>
+          <small class="row-meta truncate">${plural(program.routineIds.length, "workout")}</small>
         </span>
+        <span class="label accent" style="visibility: ${isFollowed ? "visible" : "hidden"}">Following</span>
       </button>
       <button class="icon-button sm" type="button" data-action="edit-program" data-id="${escapeHtml(program.id)}" aria-label="Edit ${escapeHtml(program.name)}">
         ${chevronIcon("right")}
@@ -94,7 +282,7 @@ function routineBlocksEditorMarkup(blocks, entries) {
     const count = entries.filter((entry) => entry.blockId === block.id).length;
     const name = block.name.trim() || "Main";
     return `<div class="row split drag-row" data-block-id="${escapeHtml(block.id)}">
-      <span class="grip" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h8"/></svg></span>
+      ${gripIcon}
       <button class="row-main" type="button" data-action="edit-routine-block" data-id="${escapeHtml(block.id)}" aria-label="Edit ${escapeHtml(name)}. Hold and drag to reorder.">
         <strong class="row-title truncate">${escapeHtml(name)}</strong>
         <small class="row-meta truncate">${plural(count, "entry", "entries")} · ${index + 1} of ${blocks.length}</small>
@@ -104,78 +292,55 @@ function routineBlocksEditorMarkup(blocks, entries) {
   }).join("");
 }
 
-function programNoteMarkup(note) {
-  if (!note.trim()) return "";
-  const preview = note.split(/\r?\n/).find((line) => line.trim()) || note;
-  return `<details class="note program-note" data-keep-open="program-note">
-    <summary>
-      <span class="row-main"><strong class="row-title truncate">Weekly layout &amp; rules</strong><small class="row-meta truncate">${escapeHtml(preview)}</small></span>
-      ${chevronIcon("right")}
-    </summary>
-    <p class="hint">${escapeHtml(note)}</p>
-  </details>`;
+// ---------- the open slot ----------
+
+// The open slot's lines unfold and fold as they do on Workout; nothing snaps. Called
+// after a draw: if a different slot is open than at the last draw of this routine, it unfolds.
+const UNFOLD = { duration: 220, easing: "cubic-bezier(0.22, 0.8, 0.26, 1)" };
+const calm = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const openDetail = () => mainElement().querySelector("[data-open-slot] > [data-slot]");
+let lastDrawn = { routineId: "", slotId: "" };
+
+function unfoldOpenSlot() {
+  const detail = openDetail();
+  const drawn = { routineId: shown.routineId, slotId: detail?.dataset.slot || "" };
+  const changed = drawn.routineId === lastDrawn.routineId && drawn.slotId && drawn.slotId !== lastDrawn.slotId;
+  lastDrawn = drawn;
+  if (!changed || calm()) return;
+  const height = detail.offsetHeight;
+  detail.style.overflow = "hidden";
+  detail.animate([{ height: "0px", paddingBottom: "0px", opacity: 0 }, { height: `${height}px`, opacity: 1 }], UNFOLD).onfinish = () => { detail.style.overflow = ""; };
 }
 
-function routineNoteMarkup(note) {
-  if (!note.trim()) return "";
-  return `<details class="note" data-keep-open="routine-note">
-    <summary><span class="hint clamp-2">${escapeHtml(note.trim())}</span>${chevronIcon("down")}</summary>
-    <p class="hint">${escapeHtml(note)}</p>
-  </details>`;
+// Folds the open slot away, then runs what comes next (the redraw).
+function foldOpenSlot(then) {
+  const detail = openDetail();
+  if (!detail || calm()) return then();
+  detail.style.overflow = "hidden";
+  detail.animate([{ height: `${detail.offsetHeight}px`, opacity: 1 }, { height: "0px", paddingBottom: "0px", opacity: 0 }], { ...UNFOLD, duration: 170, fill: "forwards" }).onfinish = then;
 }
 
-function routineEntriesMarkup(state, routine) {
-  let number = 0;
-  return `<div>${routine.blocks.map((block) => {
-    const entries = routine.entries.filter((entry) => entry.blockId === block.id);
-    const name = block.name.trim();
-    const optionalOnly = entries.length > 0 && entries.every((entry) => entry.role === "optional");
-    const mixedRoles = entries.some((entry) => entry.role === "optional") && !optionalOnly;
-    // An unnamed block has no label; "+ Add exercise" already ends the block above it.
-    const showLabel = name || optionalOnly;
-    const rows = entries.map((entry) => {
-      const presentation = entryPresentation(entry, state);
-      number += 1;
-      const note = entry.note.trim();
-      const content = `<span class="row-number">${number}</span>
-        <span class="row-main">
-          <span class="row-title">${presentation.titleMarkup}</span>
-          <span class="row-meta">${escapeHtml(presentation.prescription)}${mixedRoles && entry.role === "optional" ? `<span class="label tag">Optional</span>` : ""}</span>
-          ${note ? `<span class="row-meta clamp-2 faint">${escapeHtml(note)}</span>` : ""}
-        </span>
-        <span class="grip" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h8"/></svg></span>`;
-      return `<button class="row drag-row" type="button" data-action="edit-entry" data-id="${escapeHtml(entry.id)}" data-block-id="${escapeHtml(block.id)}" aria-label="${escapeHtml(presentation.title)}. Tap to edit. Hold and drag to reorder within ${escapeHtml(name || "this block")}.">${content}</button>`;
-    }).join("");
-    return `<section data-block-id="${escapeHtml(block.id)}">
-      ${showLabel ? `<div class="label section-label"><span>${escapeHtml(name)}</span>${optionalOnly && !saysOptional(name) ? `<span>Optional</span>` : ""}</div>` : ""}
-      <div class="drag-list" data-block-id="${escapeHtml(block.id)}">${rows}</div>
-      ${!entries.length ? `<p class="hint">No exercises in ${escapeHtml(name || "this block")}.</p>` : ""}
-      <button class="row compact link-button" type="button" data-action="open-picker" data-block-id="${escapeHtml(block.id)}">+ Add exercise</button>
-    </section>`;
-  }).join("")}</div>`;
+// ---------- looking around ----------
+
+function viewRoutine(id) {
+  // The routine already showing isn't redrawn: its tab goes back to the top.
+  if (id === shown.routineId) {
+    scrollToTop();
+    return;
+  }
+  Object.assign(shown, { routineId: id, slotId: "" });
+  render({ entering: "routine" });
 }
 
-function programMarkup(state) {
-  const program = activeProgram(state);
-  const routines = programRoutines(state, program);
-  const routine = activeRoutine(state);
-  return `<section class="page">
-    ${programAppBarMarkup(program, routines)}
-    ${programBarMarkup(program)}
-    ${program ? programNoteMarkup(program.note) : ""}
-    ${routineTabsMarkup(routines, routine?.id)}
-    ${routine ? routineNoteMarkup(routine.note) : ""}
-    ${!program ? `<div class="empty"><h2>No programs yet</h2><p>Create a program, then add its workout days.</p><button class="button primary" type="button" data-action="new-program">Add program</button></div>` : routine ? `
-      <div class="bar">
-        <div class="row-main">
-          <strong class="bar-title truncate">${escapeHtml(routine.name)}</strong>
-          <span class="row-meta truncate">${locationLabel(routine.group)} · ${routine.status === "optional" ? "Optional" : "Required"} · ${plural(routine.entries.length, "slot")} · ${plural(routine.blocks.length, "block")}</span>
-        </div>
-        <button class="icon-button" type="button" data-action="edit-routine" data-id="${escapeHtml(routine.id)}" aria-label="Edit ${escapeHtml(routine.name)}">${editIcon()}</button>
-      </div>
-      ${routineEntriesMarkup(state, routine)}
-    ` : `<div class="empty"><h2>No routines yet</h2><p>Add the first workout day to this program. Exercises will still come from your shared Library.</p><button class="button primary" type="button" data-action="new-routine">Add routine</button></div>`}
-  </section>`;
+function toggleEditing() {
+  Object.assign(shown, { editing: !shown.editing, slotId: "" });
+  render({ entering: "routine" });
+}
+
+// Another program's tabs start at their first routine.
+function renderProgram() {
+  render();
+  if (document.body.dataset.currentView === "routines") mainElement().querySelector('[data-keep-scroll="routine-tabs"]')?.scrollTo({ left: 0 });
 }
 
 // ---------- programs sheet and program editor ----------
@@ -186,17 +351,13 @@ function openPrograms() {
   openDialog("#programsDialog");
 }
 
+// Choosing a program only changes what this screen shows.
 function selectProgram(id) {
-  if (id === store.getState().settings.activeProgramId) {
-    closeDialog("#programsDialog");
-    return;
-  }
-  const result = store.update((draft) => setActiveProgram(draft, id));
-  if (report(result, "Program selected.")) {
-    closeDialog("#programsDialog");
-    render();
-    mainElement().scrollTop = 0;
-  }
+  closeDialog("#programsDialog");
+  if (id === looking(store.getState()).program?.id) return;
+  show(id);
+  shown.editing = false;
+  renderProgram();
 }
 
 function setProgramStartMode(mode) {
@@ -218,7 +379,7 @@ function openProgramEditor(id = "", duplicateSourceId = "") {
 
   const sourceSelect = $("#programDuplicateSource");
   sourceSelect.innerHTML = state.programs.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("");
-  if (state.programs.length) sourceSelect.value = source?.id || state.settings.activeProgramId || state.programs[0].id;
+  if (state.programs.length) sourceSelect.value = source?.id || looking(state).program.id;
   $('#programStartModeOptions [data-value="duplicate"]').disabled = !state.programs.length;
   setProgramStartMode(source ? "duplicate" : "empty");
 
@@ -249,16 +410,21 @@ function saveProgram() {
     return;
   }
   const sourceId = segmentValue("#programStartModeOptions") === "duplicate" ? $("#programDuplicateSource").value : "";
+  let createdId = "";
   const result = store.update((draft) => {
     if (id) updateProgram(draft, id, { name, note });
-    else if (sourceId) duplicateProgram(draft, sourceId, { name, note });
-    else createProgram(draft, { name, note });
+    else keepingSelection(draft, () => { createdId = sourceId ? duplicateProgram(draft, sourceId, { name, note }) : createProgram(draft, { name, note }); });
   });
-  if (report(result, id ? "Program updated." : "Program created.")) {
-    closeDialog("#programDialog");
+  if (!report(result, id ? "Program updated." : "Program created.")) return;
+  closeDialog("#programDialog");
+  if (!createdId) {
     render();
-    mainElement().scrollTop = 0;
+    return;
   }
+  // The new program is the one to look at; it isn't followed until the owner says so.
+  show(createdId);
+  shown.editing = false;
+  renderProgram();
 }
 
 async function deleteProgram() {
@@ -276,8 +442,7 @@ async function deleteProgram() {
   const result = store.update((draft) => removeProgram(draft, id));
   if (!report(result, "Program deleted.")) return;
   closeDialog("#programDialog");
-  render();
-  mainElement().scrollTop = 0;
+  renderProgram();
 }
 
 // ---------- routine editor ----------
@@ -323,7 +488,8 @@ function saveRoutine() {
     showError("Enter a routine name.");
     return;
   }
-  const owner = id ? routineProgram(state, id) : activeProgram(state);
+  // A new routine joins the program on screen.
+  const owner = id ? routineProgram(state, id) : looking(state).program;
   if (programRoutines(state, owner).some((routine) => routine.id !== id && routine.name.toLowerCase() === name.toLowerCase())) {
     showError("A routine with this name already exists.");
     return;
@@ -335,14 +501,16 @@ function saveRoutine() {
     note: $("#routineNote").value,
     blocks: routineEditor.blocks,
   };
+  let addedId = "";
   const result = store.update((draft) => {
     if (id) updateRoutine(draft, id, fields);
-    else addRoutine(draft, owner.id, fields);
+    else keepingSelection(draft, () => { addedId = addRoutine(draft, owner.id, fields); });
   });
-  if (report(result, id ? "Routine updated." : "Routine added.")) {
-    closeDialog("#routineDialog");
-    render();
-  }
+  if (!report(result, id ? "Routine updated." : "Routine added.")) return;
+  closeDialog("#routineDialog");
+  // A new routine opens ready for its exercises.
+  if (addedId) Object.assign(shown, { routineId: addedId, slotId: "", editing: true });
+  render();
 }
 
 async function deleteRoutine() {
@@ -435,7 +603,7 @@ function addBlock() {
 
 // ---------- registration ----------
 
-registerView("routines", { markup: programMarkup, afterDraw: revealSelectedTab });
+registerView("routines", { markup: programMarkup, afterDraw(root) { revealSelectedTab(root); unfoldOpenSlot(); } });
 
 registerActions({
   "open-programs": openPrograms,
@@ -446,6 +614,14 @@ registerActions({
   "save-program": saveProgram,
   "duplicate-program": () => openProgramEditor("", programEditor.id),
   "delete-program": deleteProgram,
+
+  "view-routine": (button) => viewRoutine(button.dataset.id),
+  "toggle-program-edit": toggleEditing,
+  // Opens a slot in place, or closes the one that's open.
+  "toggle-program-slot": (element) => {
+    shown.slotId = shown.slotId === element.dataset.id ? "" : element.dataset.id;
+    foldOpenSlot(() => render());
+  },
 
   "new-routine": () => openRoutineEditor(),
   "edit-routine": (button) => openRoutineEditor(button.dataset.id),
@@ -458,30 +634,34 @@ registerActions({
   "save-routine-block": saveBlock,
   "delete-routine-block": deleteBlock,
 
-  "edit-entry": (button) => openEntryEditor(button.dataset.id),
-  "open-picker": (button) => openPicker({ blockId: button.dataset.blockId, mode: "entry" }),
+  "edit-entry": (button) => openEntryEditor(shown.routineId, button.dataset.id),
+  "open-picker": (button) => openPicker({ routineId: shown.routineId, blockId: button.dataset.blockId, mode: "entry" }),
 });
 
-// Hold and drag: entries inside their block on the page, blocks in the routine editor.
+// Hold and drag: entries on the page, inside their block or into another (only the
+// editor's rows can be dragged, so only in edit mode), and blocks in the routine editor.
+const DRAG = { rowSelector: ".drag-row", listSelector: ".drag-list", placeholderClass: "drag-placeholder", activeBodyClass: "drag-active" };
 enableHoldDrag(mainElement(), {
-  rowSelector: ".drag-row",
-  listSelector: ".drag-list",
-  placeholderClass: "drag-placeholder",
-  activeBodyClass: "drag-active",
-  scroller: mainElement,
+  ...DRAG,
+  scroller: () => mainElement().querySelector("[data-program-list]"),
   acrossLists: true,
+  // While a row is dragged the numbers already show the order dropping here would give.
+  onPlace(row) {
+    let number = 0;
+    for (const item of mainElement().querySelectorAll(`${DRAG.rowSelector}, .${DRAG.placeholderClass}`)) {
+      number += 1;
+      (item.matches(DRAG.rowSelector) ? item : row).querySelector("[data-number]").textContent = number;
+    }
+  },
   onDrop(row, toIndex, list) {
-    const routineId = store.getState().settings.activeRoutineId;
+    const routineId = shown.routineId;
     const result = store.update((draft) => moveEntry(draft, routineId, row.dataset.id, list.dataset.blockId, toIndex));
     report(result, "Exercise moved.");
     render();
   },
 });
 const blocksDrag = enableHoldDrag($("#routineBlocksList"), {
-  rowSelector: ".drag-row",
-  listSelector: ".drag-list",
-  placeholderClass: "drag-placeholder",
-  activeBodyClass: "drag-active",
+  ...DRAG,
   scroller: () => $("#routineDialog .sheet-body"),
   onDrop: (row, toIndex) => moveBlockDraft(row.dataset.blockId, toIndex),
 });
