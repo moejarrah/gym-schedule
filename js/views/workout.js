@@ -1,20 +1,19 @@
-// Workout screen: the active-program bar, the routine tabs (whose "select-routine"
-// action also serves the Program screen's identical strip) and the selected
-// routine's list. A workout runs from "Start workout" to "Finish workout": while
-// it runs, a slot's number opens its logging sheet, its sets show under its name,
-// and exercises can be added for that day only. Also here: the finish summary
-// and the exercise-choices sheet of multi-choice slots.
+// Workout screen: one workout. Until it is started, the selected routine as a
+// read-only preview with Start; from Start to "Finish workout" the running one,
+// whatever else is selected: a slot's number opens its logging sheet, its sets show
+// at the end of its row, and exercises can be added for that day only. Also here:
+// the finish summary and the exercise-choices sheet of multi-choice slots. The round,
+// which workout is next and the choice of program are the Round tab's.
 
-import { afterRender, registerActions, registerView, render, scrollToTop, store } from "../context.js";
+import { afterRender, navigate, registerActions, registerView, render, store } from "../context.js";
 import { $, chevronIcon, closeDialog, confirmAction, escapeHtml, openDialog, playIcon, plural, redraw, report, toast } from "../dom.js";
-import { activeProgram, activeRoutine, activeWorkout, addExtra, backupAge, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseById, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, localDateKey, mainEquipment, orderedEntries, roundProgram, roundSummary, setupWords, programRoutines, routineById, setActiveRoutine, startWorkout, usualExtras } from "../model.js";
+import { activeProgram, activeRoutine, activeWorkout, addExtra, backupAge, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseById, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, lastFinished, localDateKey, longBreak, mainEquipment, openRound, orderedEntries, roundSummary, routineById, routineProgram, setRoundNumber, setupWords, startWorkout, usualExtras } from "../model.js";
 import { compareSets, exerciseMode, exerciseProgress } from "../progress.js";
 import { label } from "../vocab.js";
 import { openPicker } from "./entry-editor.js";
 import { openLogger } from "./logger.js";
 import { openExerciseReference, openExerciseVideo } from "./reference.js";
-import { openStartPanel, roundLineMarkup } from "./rounds.js";
-import { entryPresentation, exerciseMarkup, movementMarkup, revealSelectedTab, routineTabsMarkup, saysOptional, setChipsMarkup, setsSummary, shortDate, videoUrl, exerciseFactLines } from "./shared.js";
+import { entryPresentation, exerciseMarkup, movementMarkup, roundName, saysOptional, setChipsMarkup, setsSummary, shortDate, videoUrl, exerciseFactLines } from "./shared.js";
 
 // When Start was last tapped (page time), to ignore a double-tap landing on Cancel.
 let startedTapAt = -Infinity;
@@ -24,48 +23,53 @@ const choicesSheet = { routineId: "", entryId: "" };
 
 const plusIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>`;
 
+// The routine on screen: the one whose workout is running, otherwise the selected one.
+const shownRoutine = (state) => (activeWorkout(state) ? routineById(state, activeWorkout(state).routineId) : activeRoutine(state));
+
+// The day of the workout in progress; "" while the screen is a preview.
+const workoutDay = (state) => activeWorkout(state)?.dateKey || "";
+
 // ---------- markup ----------
 
-function programBarMarkup(state, program, routine) {
-  if (!program) {
-    return `<div class="bar">
-      <div class="bar-pick"><span class="label tag active">Active</span><strong>No program</strong></div>
-    </div>`;
-  }
-  return `<div class="bar workout-bar">
-    <button class="bar-pick tap" type="button" data-action="open-programs" aria-label="Choose active program, currently ${escapeHtml(program.name)}">
-      <span class="label tag active">Active</span>
-      <strong class="truncate">${escapeHtml(program.name)}</strong>
-      ${chevronIcon("down")}
-    </button>
-    ${routine ? workoutControlMarkup(state, routine) : ""}
-  </div>`;
-}
-
-function workoutControlMarkup(state, routine) {
-  const { dateKey, other } = workoutView(state, routine);
+// The header: what this workout is to the round, over its name; at the right its one
+// control (Start or Reopen; while it runs, Cancel and the stopwatch). Under it one
+// line with a fact at each end.
+function headMarkup(state, routine) {
+  const workout = activeWorkout(state);
   const todayKey = localDateKey();
-  if (dateKey) {
-    const workout = activeWorkout(state);
-    const clock = workout.reopened ? "" : workout.backdated || dateKey !== todayKey
-      ? `<span class="workout-clock">for ${escapeHtml(shortDate(dateKey))}</span>`
-      : `<span class="workout-clock" data-elapsed>${elapsedText(workout.startedAt)}</span>`;
-    return `<span class="visually-hidden">${escapeHtml(routine.name)} in progress</span>
-      <button class="button text" type="button" data-action="cancel-workout">${workout.reopened ? "Close again" : "Cancel"}</button>${clock}`;
-  }
-  if (other) return `<button class="button" type="button" data-action="select-routine" data-id="${escapeHtml(other.id)}" aria-label="Go to ${escapeHtml(other.name)}, in progress">Go to ${escapeHtml(other.name)}</button>`;
-  const finishedToday = Boolean(state.sessions[todayKey]?.routineIds.includes(routine.id));
-  return `${finishedToday ? `<span class="visually-hidden">Finished today</span>` : ""}
-    <button class="button primary" type="button" data-action="start-workout" data-id="${escapeHtml(routine.id)}"${finishedToday ? ` aria-label="Reopen today's workout"` : ""}>${finishedToday ? "Reopen" : "Start workout"}</button>`;
+  const summary = roundSummary(state);
+  const open = summary.counting ? summary : null;
+  // What today's Log keeps of this routine when it was already finished today.
+  const record = !workout && state.sessions[todayKey]?.routineIds.includes(routine.id) ? state.sessions[todayKey].workouts[routine.id] || {} : null;
+  // A round is named only when it is known: a reopened workout stays in the round it was
+  // filed in, and one logged for a past day joins the round that was open on that day.
+  const filed = (tag) => (tag?.round ? { number: tag.round, block: tag.block || 1 } : null);
+  const [round, what] = workout
+    ? [workout.reopened ? filed(workout.reopened) : workout.backdated ? null : open, workout.home ? `extra workout · ${routineProgram(state, routine.id).name}` : "in progress"]
+    : record
+      ? [filed(record), "done today"]
+      : [open, summary.remaining[0]?.id === routine.id ? "next workout" : "workout"];
+  const eyebrow = round ? `${roundName(round)} · ${what}` : what.charAt(0).toUpperCase() + what.slice(1);
+  const last = record ? todayKey : lastFinished(state, routine.id, workout?.dateKey || todayKey);
+  return `<header class="workout-head ${workout?.home ? "is-guest" : ""}">
+      <p class="label truncate">${escapeHtml(eyebrow)}</p>
+      <h2 class="bar-title truncate">${escapeHtml(routine.name)}</h2>
+      <div class="workout-control">${controlMarkup(workout, routine, Boolean(record))}</div>
+    </header>
+    <div class="label-row workout-facts">
+      <span>${plural(daySlots(state, routine, workoutDay(state)).length, "exercise")}</span>
+      <span>${last ? `last done ${escapeHtml(shortDate(last))}` : "not done yet"}</span>
+    </div>`;
 }
 
-// A dot on the tab of the routine in progress, a tick on the ones done in this round.
-function tabMarks(state, routines) {
-  const marks = {};
-  const done = roundSummary(state)?.done || new Set();
-  for (const routine of routines) if (done.has(routine.id)) marks[routine.id] = "done";
-  if (activeWorkout(state)) marks[activeWorkout(state).routineId] = "running";
-  return marks;
+function controlMarkup(workout, routine, doneToday) {
+  if (workout) {
+    const clock = workout.reopened ? "" : workout.backdated || workout.dateKey !== localDateKey()
+      ? `<span class="workout-clock">for ${escapeHtml(shortDate(workout.dateKey))}</span>`
+      : `<span class="workout-clock" data-elapsed>${elapsedText(workout.startedAt)}</span>`;
+    return `<button class="button text" type="button" data-action="cancel-workout">${workout.reopened ? "Close again" : "Cancel"}</button>${clock}`;
+  }
+  return `<button class="button primary" type="button" data-action="start-workout" data-id="${escapeHtml(routine.id)}" aria-label="${doneToday ? "Reopen today's workout" : `Start ${escapeHtml(routine.name)}`}">${doneToday ? "Reopen" : "Start"}</button>`;
 }
 
 function routineNoteMarkup(note) {
@@ -76,46 +80,32 @@ function routineNoteMarkup(note) {
   </details>`;
 }
 
-function emptyStateMarkup(program, routine) {
-  if (!program) {
-    return `<div class="empty"><h3>No programs yet</h3><p>Add a program to organize your workout days.</p><button class="button primary" type="button" data-action="new-program">Add program</button></div>`;
-  }
-  if (!routine) {
-    return `<div class="empty"><h3>No routines yet</h3><p>Add the first workout day to ${escapeHtml(program.name)} in Program.</p><button class="button primary" type="button" data-view="routines">Manage program</button></div>`;
-  }
-  if (!routine.entries.length) {
-    return `<div class="empty"><h3>No exercises yet</h3><p>Open Program to add exercises.</p><button class="button" type="button" data-view="routines">Manage program</button></div>`;
-  }
-  return "";
-}
-
-// What the screen is showing for a routine: `dateKey` is the day of its workout in
-// progress ("" when it isn't running), `other` the routine of a workout in
-// progress elsewhere.
-function workoutView(state, routine) {
-  const workout = activeWorkout(state);
-  const running = workout?.routineId === routine.id;
-  return { dateKey: running ? workout.dateKey : "", other: !running && workout ? routineById(state, workout.routineId) : null };
+// Nothing to show or do here yet: the way on is the Program tab.
+function emptyMarkup(title, text, look = "primary") {
+  return `<div class="empty"><h3>${title}</h3><p>${text}</p><button class="button ${look}" type="button" data-view="routines">Go to Program</button></div>`;
 }
 
 // The list keeps its scroll position while the same routine is shown, so ticking
 // a slot doesn't jump; another routine starts at its first exercise.
 function pageMarkup(state) {
   const program = activeProgram(state);
-  const routine = activeRoutine(state);
+  const routine = shownRoutine(state);
+  if (!routine) {
+    return `<section class="page fills">${program
+      ? emptyMarkup("No workout selected", `${escapeHtml(program.name)} has no workouts yet. Add the first one in Program.`)
+      : emptyMarkup("No program yet", "Add a program and its workouts in Program.")}</section>`;
+  }
   return `<section class="page fills">
-    ${programBarMarkup(state, program, routine)}
-    ${roundLineMarkup(state, roundProgram(state))}
-    ${routineTabsMarkup(programRoutines(state, program), routine?.id, tabMarks(state, programRoutines(state, program)))}
-    ${routine ? routineNoteMarkup(routine.note) : ""}
-    ${emptyStateMarkup(program, routine)}
-    ${!routine && activeWorkout(state) ? `<div class="workout-actions"><button class="button" type="button" data-action="select-routine" data-id="${escapeHtml(activeWorkout(state).routineId)}">Go to ${escapeHtml(routineById(state, activeWorkout(state).routineId).name)}, in progress</button></div>` : ""}
-    ${routine?.entries.length || activeWorkout(state)?.routineId === routine?.id && routine ? `<div class="scroll" data-keep-scroll="workout-${escapeHtml(routine.id)}">${listMarkup(state, routine)}</div>` : ""}
+    ${headMarkup(state, routine)}
+    ${routineNoteMarkup(routine.note)}
+    ${routine.entries.length || activeWorkout(state)
+      ? `<div class="scroll" data-keep-scroll="workout-${escapeHtml(routine.id)}">${listMarkup(state, routine)}</div>`
+      : emptyMarkup("No exercises yet", "Add this workout's exercises in Program.", "")}
   </section>`;
 }
 
 function listMarkup(state, routine) {
-  const { dateKey } = workoutView(state, routine);
+  const dateKey = workoutDay(state);
   const todayKey = localDateKey();
   const extras = dateKey ? dayExtras(state, dateKey, routine.id) : [];
   const usual = usualExtras(state, routine.id, dateKey || todayKey);
@@ -154,14 +144,14 @@ setInterval(() => {
   if (workout && label) label.textContent = elapsedText(workout.startedAt);
 }, 10000);
 
-// Today's sets as small boxes; drops are counted rather than shown.
 // ---------- a slot ----------
 // The list is quiet: a slot is its number, its movement and its sets. One slot at a
 // time is open, showing the rest (setup, last time, note, alternatives) in place.
 // While a workout runs the app opens the first slot not done yet; tapping a row
 // opens that one instead, and tapping the open one closes it.
 
-// The owner's own choice: { routineId, slotId ("" = none open), wasDone }.
+// The owner's own choice: { routineId, slotId ("" = none open), wasDone, doneIds }.
+// It ends with the workout.
 let chosen = null;
 
 const daySlots = (state, routine, dateKey) => [
@@ -217,6 +207,8 @@ function slotMarkup(state, routine, slot, number, dateKey, showOptionalRole = fa
   const note = slot.note.trim();
   // One labelled line per fact, always in this order; a line with nothing to say is left out.
   const line = (name, value) => (value ? `<div class="slot-line"><span>${name}</span><span>${value}</span></div>` : "");
+  // A line that opens something is one button: its value in the accent colour, then an arrow.
+  const linkLine = (name, value, attributes) => (value ? `<button class="slot-line" type="button" ${attributes}><span>${name}</span><span class="slot-link">${value}</span>${chevronIcon("right")}</button>` : "");
   const video = exercise?.videoId
     ? `<a class="button" href="${videoUrl(exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for preferred choice ${escapeHtml(shown.name)}">Video</a>`
     : `<button class="button" type="button" data-action="open-workout-video" data-id="${escapeHtml(exercise?.id || "")}" aria-label="Find a video for preferred choice ${escapeHtml(shown.name)}">Video</button>`;
@@ -225,9 +217,9 @@ function slotMarkup(state, routine, slot, number, dateKey, showOptionalRole = fa
     <div class="slot-detail" data-slot="${escapeHtml(slot.id)}">
       ${exerciseFactLines(exercise, shown.prescription).map(([name, value]) => line(name, value)).join("")}
       ${line("Today", log ? `<span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec" })}</span>` : "")}
-      ${line("Last time", last ? `${escapeHtml(setsSummary(last))} <span class="row-meta">· ${escapeHtml(shortDate(last.dateKey))}</span>` : "")}
+      ${linkLine("Last time", last ? `${escapeHtml(setsSummary(last))}<small>${escapeHtml(shortDate(last.dateKey))}</small>` : "", `data-action="view-history" data-id="${escapeHtml(exercise?.id || "")}" aria-label="Last time ${last ? escapeHtml(`${setsSummary(last)}, ${shortDate(last.dateKey)}`) : ""}. Open history of ${escapeHtml(shown.name)}"`)}
       ${line("Note", escapeHtml(note))}
-      ${line(others.length > 1 ? "Alternatives" : "Alternative", others.length ? `<button class="link-button" type="button" data-action="open-entry-choices" ${data} aria-label="Open exercise choices for ${escapeHtml(name)}">${others.map((item) => escapeHtml(otherName(item, exercise))).join(", ")}${chevronIcon("right")}</button>` : "")}
+      ${linkLine(others.length > 1 ? "Alternatives" : "Alternative", others.map((item) => escapeHtml(otherName(item, exercise))).join(", "), `data-action="open-entry-choices" ${data} aria-label="Open exercise choices for ${escapeHtml(name)}"`)}
       <div class="actions">
         ${dateKey ? `<button class="button primary" type="button" data-action="open-logger" data-routine-id="${escapeHtml(routine.id)}" data-id="${escapeHtml(slot.id)}">Log sets</button>` : ""}
         <button class="button" type="button" data-action="open-workout-exercise" data-id="${escapeHtml(exercise?.id || "")}" ${data} data-prescription="${escapeHtml(shown.prescription)}" aria-label="Open exercise page for ${escapeHtml(shown.name)}">Details</button>
@@ -245,7 +237,7 @@ let lastDrawn = { routineId: "", slotId: "" };
 
 function unfoldOpenSlot(root) {
   const detail = root.querySelector("[data-open-slot] > .slot-detail");
-  const drawn = { routineId: store.getState().settings.activeRoutineId, slotId: detail?.dataset.slot || "" };
+  const drawn = { routineId: shownRoutine(store.getState())?.id || "", slotId: detail?.dataset.slot || "" };
   const changed = drawn.routineId === lastDrawn.routineId && drawn.slotId && drawn.slotId !== lastDrawn.slotId;
   lastDrawn = drawn;
   if (!changed || calm()) return;
@@ -369,7 +361,7 @@ function resultMarkup(state, routineId, dateKey) {
 
 // ---------- screen ----------
 
-registerView("workout", { markup: pageMarkup, afterDraw(root) { revealSelectedTab(root); unfoldOpenSlot(root); } });
+registerView("workout", { markup: pageMarkup, afterDraw: unfoldOpenSlot });
 
 // A one-choice row opens its exercise's reference in the context of this slot.
 function openRowReference(button) {
@@ -379,34 +371,39 @@ function openRowReference(button) {
   openExerciseReference(id, { prescription, routineName: routine.name, routineNote: entry?.note || "" });
 }
 
-// Logging and adding exercises need a workout in progress on the routine shown.
+// Logging and adding exercises need a workout in progress.
 function runningWorkout() {
-  const state = store.getState();
-  const workout = activeWorkout(state);
-  if (workout?.routineId === activeRoutine(state)?.id) return workout;
-  toast(workout ? `${routineById(state, workout.routineId).name} is in progress. Finish it first.` : "Start the workout first.");
-  return null;
+  const workout = activeWorkout(store.getState());
+  if (!workout) toast("Start the workout first.");
+  return workout;
+}
+
+// A workout that was cancelled or closed again hands back to the Round tab.
+function backToRound() {
+  chosen = null;
+  render();
+  navigate("round");
 }
 
 registerActions({
-  "select-routine": (button) => {
-    // The routine already showing isn't redrawn: its tab goes back to the top.
-    if (button.dataset.id === store.getState().settings.activeRoutineId) {
-      scrollToTop();
-      return;
-    }
-    const result = store.update((draft) => setActiveRoutine(draft, button.dataset.id));
-    if (report(result)) render({ entering: "routine" });
-  },
-  // Start opens the panel that says where things stand (js/views/rounds.js); reopening
-  // today's finished workout needs no panel.
+  // Start begins the workout at once. Reopening today's finished workout is no new start:
+  // it changes nothing about the round.
   "start-workout": (button) => {
-    if (!store.getState().sessions[localDateKey()]?.routineIds.includes(button.dataset.id)) {
-      openStartPanel(button.dataset.id);
+    const { id } = button.dataset;
+    const state = store.getState();
+    const reopening = Boolean(state.sessions[localDateKey()]?.routineIds.includes(id));
+    // After three weeks away the Round tab asks how to carry on, before anything starts.
+    if (!reopening && longBreak(state)) {
+      navigate("round");
       return;
     }
-    const result = store.update((draft) => startWorkout(draft, button.dataset.id));
+    const result = store.update((draft) => {
+      if (!reopening && !openRound(draft)) setRoundNumber(draft, 1);
+      startWorkout(draft, id);
+    });
     startedTapAt = performance.now();
+    // A slot closed while this was a preview doesn't keep the first exercise shut.
+    if (chosen?.slotId === "") chosen = null;
     if (report(result)) render();
   },
   "cancel-workout": async () => {
@@ -415,7 +412,7 @@ registerActions({
     if (performance.now() - startedTapAt < 500) return;
     // A reopened workout just closes again; nothing is deleted.
     if (reopened) {
-      if (report(store.update(cancelWorkout))) render();
+      if (report(store.update(cancelWorkout))) backToRound();
       return;
     }
     const confirmed = await confirmAction({
@@ -424,17 +421,20 @@ registerActions({
       confirmLabel: "Cancel workout",
       cancelLabel: "Keep going",
     });
-    if (confirmed && report(store.update(cancelWorkout), "Workout cancelled.")) render();
+    if (confirmed && report(store.update(cancelWorkout), "Workout cancelled.")) backToRound();
   },
   "review-workout": () => {
     redraw("#finishContent", finishMarkup(store.getState()));
     openDialog("#finishDialog");
   },
-  // Finishing swaps the summary for the result: how it went against last time.
+  // Finishing swaps the summary for the result: how it went against last time. Closing
+  // the result, however it is closed, returns to the Round tab.
   "finish-workout": () => {
     const { routineId, dateKey } = activeWorkout(store.getState());
     if (!report(store.update((draft) => finishWorkout(draft)))) return;
     redraw("#finishContent", resultMarkup(store.getState(), routineId, dateKey));
+    openDialog("#finishDialog", { onClose: () => navigate("round") });
+    chosen = null;
     render();
   },
   "pick-extra": () => {
@@ -452,8 +452,8 @@ registerActions({
   // Opens a slot in place, or closes the one that's open.
   "toggle-slot": (button) => {
     const state = store.getState();
-    const routine = activeRoutine(state);
-    const { dateKey } = workoutView(state, routine);
+    const routine = shownRoutine(state);
+    const dateKey = workoutDay(state);
     const done = (slotId) => Boolean(dateKey) && isEntryChecked(state, dateKey, routine.id, slotId);
     const slotId = button.getAttribute("aria-expanded") === "true" ? "" : button.dataset.entryId;
     chosen = { routineId: routine.id, slotId, wasDone: slotId ? done(slotId) : false, doneIds: daySlots(state, routine, dateKey).filter((slot) => done(slot.id)).map((slot) => slot.id) };
