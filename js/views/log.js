@@ -10,13 +10,12 @@
 
 import { mainElement, navigate, registerActions, registerView, render, store } from "../context.js";
 import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, formatDate, fresh, openDialog, redraw, report, segmentValue } from "../dom.js";
-import { activeProgram, dateFromKey, entryLog, exerciseById, fullName, localDateKey, programRoutines, removeDayLog, routineById, routineProgram, sessionFor, setDay, startWorkout, workoutName, calendarWeek, roundCounter, roundWorkouts } from "../model.js";
+import { activeProgram, dateFromKey, entryLog, exerciseById, fullName, localDateKey, programRoutines, removeDayLog, routineById, routineProgram, sessionFor, setDay, startWorkout, workoutName, calendarWeek, openRound, roundWorkouts } from "../model.js";
 import { overview } from "../progress.js";
 import { label } from "../vocab.js";
 import { openExerciseHistory } from "./history.js";
 import { openLogger } from "./logger.js";
-import { exerciseMarkup, locationLabel, setChipsMarkup, shortDate } from "./shared.js";
-import { roundName, weeksText } from "./rounds.js";
+import { exerciseMarkup, locationLabel, setChipsMarkup, shortDate, roundName, weeksText } from "./shared.js";
 
 const LONG_DATE = { weekday: "long", month: "long", day: "numeric", year: "numeric" };
 const RECENT_LIMIT = 8;
@@ -125,17 +124,16 @@ function dayRound(state, dateKey) {
   const record = Object.values(state.sessions[dateKey].workouts || {}).filter((item) => item.round).sort((a, b) => (b.block || 1) - (a.block || 1) || b.round - a.round)[0];
   if (!record) return null;
   const tag = { number: record.round, block: record.block || 1 };
-  const workouts = roundWorkouts(state, record.roundOf, tag);
+  const workouts = roundWorkouts(state, tag);
   const from = workouts[0]?.dateKey || dateKey;
   const to = workouts.at(-1)?.dateKey || dateKey;
-  const program = state.programs.find((item) => item.id === record.roundOf);
-  const counter = roundCounter(state, record.roundOf);
+  const counter = openRound(state);
   const open = counter?.number === tag.number && counter.block === tag.block;
   return {
-    key: `${record.roundOf}:${tag.block}:${tag.number}`,
+    key: `${tag.block}:${tag.number}`,
     block: tag.block,
     from,
-    title: `${roundName(tag)}${program && program.id !== state.settings.activeProgramId ? ` · ${program.name}` : ""}`,
+    title: roundName(tag),
     span: `${open ? `from ${monthDay(from)}` : from === to ? monthDay(from) : `${monthDay(from)} – ${monthDay(to)}`} · ${weeksText(from, open ? localDateKey() : to).replace(/^\d+ · /, "")}`,
   };
 }

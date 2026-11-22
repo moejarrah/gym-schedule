@@ -9,7 +9,7 @@ import { applyCoachEdits, applyLibraryUpdate, applyMachineKinds, applySetupField
 import { isDateKey } from "./model.js";
 import { SEED } from "./seed.js";
 
-export const SCHEMA_VERSION = 20;
+export const SCHEMA_VERSION = 21;
 export const STORAGE_KEY = "gymAppStateV1";
 // Earlier versions copied unreadable data here before starting fresh. It's still offered for download.
 const OLD_RECOVERY_KEY = `${STORAGE_KEY}:unreadable`;
@@ -79,6 +79,23 @@ const MIGRATIONS = {
   // Pull A: the T-bar row is the preferred choice of its slot.
   19(state) {
     preferTBarRow(state);
+  },
+  // One round count for the owner's training instead of one per program: the followed
+  // program's count carries on; workouts filed in another program's rounds lose their round.
+  20(state) {
+    const counter = state.settings.rounds?.[state.settings.activeProgramId];
+    for (const session of Object.values(state.sessions)) {
+      for (const record of Object.values(session.workouts || {})) {
+        if (!counter || record.roundOf !== state.settings.activeProgramId) {
+          delete record.round;
+          delete record.block;
+          delete record.guest;
+        }
+        delete record.roundOf;
+      }
+    }
+    if (counter) state.settings.round = { number: counter.number, block: counter.block, programId: state.settings.activeProgramId, since: counter.since || "" };
+    delete state.settings.rounds;
   },
 };
 
@@ -173,7 +190,9 @@ export function stateProblem(state) {
   if (workout !== null && !(isRecord(workout) && routineIds.has(workout.routineId) && isDateKey(workout.dateKey) && Number.isFinite(workout.startedAt))) return "workout in progress";
   if (!Number.isFinite(settings.lastBackupAt)) return "last backup time";
   if (![undefined, "line", "letter"].includes(settings.exerciseLabels)) return "exercise labels";
-  if (settings.rounds !== undefined && !(isRecord(settings.rounds) && Object.values(settings.rounds).every((counter) => isRecord(counter) && Number.isInteger(counter.number) && counter.number >= 1 && Number.isInteger(counter.block) && counter.block >= 1))) return "rounds";
+  const counted = (round) => isRecord(round) && Number.isInteger(round.number) && round.number >= 1 && Number.isInteger(round.block) && round.block >= 1;
+  if (settings.round !== undefined && !(counted(settings.round) && programs.some((program) => program.id === settings.round.programId))) return "round";
+  if (settings.roundLog !== undefined && !(Array.isArray(settings.roundLog) && settings.roundLog.every((round) => counted(round) && isText(round.program) && Number.isInteger(round.required)))) return "round history";
 
   // History outlives what it points at: the routine, slot and exercise IDs in a
   // day may belong to things deleted since.

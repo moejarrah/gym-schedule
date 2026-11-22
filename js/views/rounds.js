@@ -16,7 +16,7 @@ import {
   localDateKey,
   longBreak,
   programRoutines,
-  roundCounter,
+  openRound,
   roundProgram,
   roundSummary,
   routineById,
@@ -25,7 +25,7 @@ import {
   startGuestWorkout,
   startWorkout,
 } from "../model.js";
-import { shortDate } from "./shared.js";
+import { roundName, shortDate, weeksText } from "./shared.js";
 
 // What the sheet is showing: "start" (for routineId), "break", "pick" or "round".
 // `number` is the round number being chosen with the − and + buttons.
@@ -35,16 +35,7 @@ const tickIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12.5 4
 const longDate = (dateKey) => dateFromKey(dateKey).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 const dayText = (dateKey) => `${dateFromKey(dateKey).toLocaleDateString("en-US", { weekday: "short" })} ${dateFromKey(dateKey).getDate()}`;
 
-export const roundName = ({ number, block }) => `Round ${number}${block > 1 ? ` · block ${block}` : ""}`;
 const doneText = (summary) => `${summary.required.length - summary.remaining.length} of ${summary.required.length} done`;
-
-// "2026 · week 47", or "2026 · weeks 47–48" for a stretch of days.
-export function weeksText(fromKey, toKey = fromKey) {
-  const from = calendarWeek(fromKey);
-  const to = calendarWeek(toKey);
-  if (from.year === to.year && from.week === to.week) return `${from.year} · week ${from.week}`;
-  return from.year === to.year ? `${from.year} · weeks ${from.week}–${to.week}` : `${from.year} week ${from.week} – ${to.year} week ${to.week}`;
-}
 
 function agoText(dateKey, todayKey) {
   if (!dateKey) return "Never";
@@ -54,11 +45,11 @@ function agoText(dateKey, todayKey) {
 
 // The quiet line under the program bar: where the round stands, and the calendar week.
 export function roundLineMarkup(state, program) {
-  const summary = roundSummary(state, program);
-  if (!summary) return "";
-  const counts = summary.counted && summary.counting;
+  if (!program) return "";
+  const summary = roundSummary(state);
+  const counts = summary.required.length > 0 && summary.counting;
   const text = [counts ? roundName(summary) : "", counts ? doneText(summary) : "", `Week ${calendarWeek(localDateKey()).week}`].filter(Boolean).join(" · ");
-  if (!summary.counted) return `<p class="round-line">${escapeHtml(text)}</p>`;
+  if (!summary.required.length) return `<p class="round-line">${escapeHtml(text)}</p>`;
   return `<button class="round-line tap" type="button" data-action="open-round" aria-label="${escapeHtml(text)}. Open the round.">
     <span>${escapeHtml(text)}</span>${chevronIcon("right")}
   </button>`;
@@ -82,16 +73,16 @@ const stepperMarkup = () => `<span class="round-stepper">
 function startMarkup(state) {
   const routine = routineById(state, sheet.routineId);
   const program = activeProgram(state);
-  const summary = roundSummary(state, program);
+  const summary = roundSummary(state);
   const todayKey = localDateKey();
   return `<div class="sheet-panel">
     ${head(longDate(todayKey), routine.name, program.name)}
     <div class="sheet-body">
       ${line("Calendar", escapeHtml(weeksText(todayKey)))}
-      ${summary.counted ? line("Round", summary.counting ? escapeHtml(roundName(summary).replace("Round ", "")) : stepperMarkup()) : ""}
-      ${summary.counting || !summary.counted ? "" : `<p class="hint">Which round of ${escapeHtml(program.name)} are you on? One round is every routine once, however many days that takes. Leave it at 1 if you're just starting.</p>`}
-      ${summary.counted ? line("This round", escapeHtml(doneText(summary))) : ""}
-      ${summary.counted ? line("Still to do", escapeHtml(summary.remaining.map((item) => item.name).join(", ") || "Nothing")) : ""}
+      ${summary.required.length ? line("Round", summary.counting ? escapeHtml(roundName(summary).replace("Round ", "")) : stepperMarkup()) : ""}
+      ${summary.counting || !summary.required.length ? "" : `<p class="hint">Which round of ${escapeHtml(program.name)} are you on? One round is every routine once, however many days that takes. Leave it at 1 if you're just starting.</p>`}
+      ${summary.required.length ? line("This round", escapeHtml(doneText(summary))) : ""}
+      ${summary.required.length ? line("Still to do", escapeHtml(summary.remaining.map((item) => item.name).join(", ") || "Nothing")) : ""}
       ${line(`Last ${escapeHtml(routine.name)}`, escapeHtml(agoText(lastFinished(state, routine.id, todayKey), todayKey)))}
     </div>
     <footer class="actions stacked">
@@ -103,13 +94,13 @@ function startMarkup(state) {
 
 function breakMarkup(state) {
   const program = activeProgram(state);
-  const found = longBreak(state, program.id);
-  const next = found.open ? found.lastRound + 1 : roundCounter(state, program.id).number;
+  const found = longBreak(state);
+  const next = found.open ? found.lastRound + 1 : openRound(state).number;
   return `<div class="sheet-panel">
     ${head(program.name, "Welcome back")}
     <div class="sheet-body">
       <p class="hint">Your last workout was ${found.weeks} weeks ago, on ${escapeHtml(shortDate(found.lastDay))}. ${found.lastRound >= 1 ? `You were on round ${found.lastRound}.` : ""}</p>
-      <p class="hint">Starting again makes this block ${roundCounter(state, program.id).block + 1} of your training. Your history stays either way.</p>
+      <p class="hint">Starting again makes this block ${openRound(state).block + 1} of your training. Your history stays either way.</p>
     </div>
     <footer class="actions stacked">
       <button class="button primary" type="button" data-action="answer-break" data-restart="">Carry on with round ${next}</button>
@@ -120,7 +111,7 @@ function breakMarkup(state) {
 
 function pickMarkup(state) {
   const home = activeProgram(state);
-  const summary = roundSummary(state, home);
+  const summary = roundSummary(state);
   const doneOn = new Map(summary.workouts.filter((item) => !item.guest).map((item) => [item.routineId, item.dateKey]));
   const row = (routine, done) => `<button class="row" type="button" data-action="start-picked" data-id="${escapeHtml(routine.id)}" aria-label="Start ${escapeHtml(routine.name)}${done ? ", done this round" : ""}">
       <span class="row-main"><strong class="row-title">${escapeHtml(routine.name)}</strong></span>
@@ -142,7 +133,7 @@ function pickMarkup(state) {
 
 function roundMarkup(state) {
   const program = roundProgram(state);
-  const summary = roundSummary(state, program);
+  const summary = roundSummary(state);
   const todayKey = localDateKey();
   const workouts = summary.workouts.map((item) => `<div class="row compact">
       <span class="tickbox is-ticked" aria-hidden="true">${tickIcon}</span>
@@ -182,7 +173,7 @@ function show(mode, changes = {}) {
 export function openStartPanel(routineId) {
   const state = store.getState();
   const program = activeProgram(state);
-  show(longBreak(state, program.id) ? "break" : "start", { routineId, number: roundCounter(state, program.id)?.number || 1 });
+  show(longBreak(state) ? "break" : "start", { routineId, number: openRound(state)?.number || 1 });
 }
 
 function begin(start) {
@@ -194,7 +185,7 @@ function begin(start) {
 }
 
 registerActions({
-  "open-round": () => show("round", { number: roundSummary(store.getState(), roundProgram(store.getState())).number }),
+  "open-round": () => show("round", { number: roundSummary(store.getState()).number }),
   "round-step": (button) => {
     sheet.number = Math.min(999, Math.max(1, sheet.number + Number(button.dataset.step)));
     draw();
@@ -202,12 +193,11 @@ registerActions({
     (again?.disabled ? $("#roundContent [data-step='1']") : again)?.focus();
   },
   "confirm-start": () => begin((draft) => {
-    const programId = activeProgram(draft).id;
-    if (!roundCounter(draft, programId) && roundSummary(draft).counted) setRoundNumber(draft, programId, sheet.number);
+    if (!openRound(draft)) setRoundNumber(draft, sheet.number);
     startWorkout(draft, sheet.routineId);
   }),
   "answer-break": (button) => {
-    const result = store.update((draft) => answerBreak(draft, activeProgram(draft).id, Boolean(button.dataset.restart)));
+    const result = store.update((draft) => answerBreak(draft, Boolean(button.dataset.restart)));
     if (!report(result)) return;
     render();
     show("start", { number: roundSummary(store.getState()).number });
@@ -216,25 +206,24 @@ registerActions({
   // A routine of the active program just becomes today's routine; one from another
   // program is a guest for today.
   "start-picked": (button) => begin((draft) => {
-    const homeId = activeProgram(draft).id;
-    if (!roundCounter(draft, homeId) && roundSummary(draft).counted) setRoundNumber(draft, homeId, sheet.number);
+    if (!openRound(draft)) setRoundNumber(draft, sheet.number);
     if (activeProgram(draft).routineIds.includes(button.dataset.id)) {
       setActiveRoutine(draft, button.dataset.id);
       startWorkout(draft, button.dataset.id);
     } else startGuestWorkout(draft, button.dataset.id);
   }),
   "end-round": () => {
-    const result = store.update((draft) => endRound(draft, roundProgram(draft).id));
+    const result = store.update((draft) => endRound(draft));
     if (!report(result, "Round ended.")) return;
     render();
-    show("round", { number: roundSummary(store.getState(), roundProgram(store.getState())).number });
+    show("round", { number: roundSummary(store.getState()).number });
   },
   "edit-round-number": () => {
     sheet.editing = true;
     draw();
   },
   "save-round-number": () => {
-    const result = store.update((draft) => setRoundNumber(draft, roundProgram(draft).id, sheet.number));
+    const result = store.update((draft) => setRoundNumber(draft, sheet.number));
     if (!report(result)) return;
     render();
     show("round");

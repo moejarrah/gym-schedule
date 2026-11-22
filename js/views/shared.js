@@ -2,7 +2,8 @@
 
 import { escapeHtml, formatDate } from "../dom.js";
 import { store } from "../context.js";
-import { dateFromKey, exerciseById, exerciseLabels, fullName, mainEquipment, setupWords } from "../model.js";
+import { calendarWeek, dateFromKey, exerciseById, exerciseLabels, fullName, mainEquipment, setupWords } from "../model.js";
+import { label } from "../vocab.js";
 
 export const locationLabel = (group) => (group === "home" ? "Home" : "Gym");
 
@@ -104,6 +105,37 @@ export function entryPresentation(entry, state) {
       : choices.map((item) => item.markup).join(` <span class="version">or</span>&nbsp;`) || "No exercise choices",
     prescription: shared ? prescriptions[0] : prescriptions.join(" or "),
   };
+}
+
+// ---------- rounds ----------
+
+// "Round 6", or "Round 1 · block 2" once there is more than one block.
+export const roundName = ({ number, block }) => `Round ${number}${block > 1 ? ` · block ${block}` : ""}`;
+
+// "2026 · week 47", or "2026 · weeks 47–48" for a stretch of days.
+export function weeksText(fromKey, toKey = fromKey) {
+  const from = calendarWeek(fromKey);
+  const to = calendarWeek(toKey);
+  if (from.year === to.year && from.week === to.week) return `${from.year} · week ${from.week}`;
+  return from.year === to.year ? `${from.year} · weeks ${from.week}–${to.week}` : `${from.year} week ${from.week} – ${to.year} week ${to.week}`;
+}
+
+// ---------- an exercise's facts ----------
+
+// The labelled lines every open exercise starts with, in their fixed order:
+// [label, escaped value] pairs; a fact with nothing to say is left out.
+export function exerciseFactLines(exercise, prescription) {
+  const word = (id) => (id ? escapeHtml(label(id)) : "");
+  const detail = exercise?.detail ? escapeHtml(exercise.detail.charAt(0).toUpperCase() + exercise.detail.slice(1)) : "";
+  return [
+    ["Sets × reps", escapeHtml(prescription || "")],
+    ["Equipment", word(mainEquipment(exercise)) || word(exercise?.equipment?.[0])],
+    ["Attachment", word(exercise?.attachment)],
+    ["Grip", word(exercise?.grip)],
+    ["Grip width", word(exercise?.width)],
+    ["Detail", detail],
+    ["Weight", word(exercise?.weightMode)],
+  ].filter(([, value]) => value);
 }
 
 // A block name like "Optional glute block" already says its entries are optional.

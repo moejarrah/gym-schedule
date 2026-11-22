@@ -279,18 +279,38 @@ test("on upgrade Pull A's row slot prefers the T-bar row, unless the owner had c
   assert.deepEqual(ids(freshStore(changed).store.getState()), ["chest-supported-row"]);
 });
 
-test("rounds are saved, loaded and backed up with the rest; a malformed round counter is refused", () => {
+test("the round, its history and the workouts' round tags are saved, loaded and backed up; a malformed round is refused", () => {
   const state = sampleState();
-  state.settings.rounds = { sample: { number: 6, block: 2, breakAnswered: "2026-10-12" } };
+  state.settings.round = { number: 6, block: 2, programId: "sample", since: "2026-11-01", breakAnswered: "2026-10-12" };
+  state.settings.roundLog = [{ number: 5, block: 2, program: "Sample program", programId: "sample", required: 2, ended: "complete" }];
   state.settings.activeWorkout = { routineId: "day-a", dateKey: "2026-11-04", startedAt: 1, home: { programId: "sample", routineId: "day-b" } };
-  Object.assign(state.sessions[Object.keys(state.sessions)[0]].workouts["day-a"], { round: 5, block: 2, roundOf: "sample", guest: true });
+  Object.assign(state.sessions[Object.keys(state.sessions)[0]].workouts["day-a"], { round: 5, block: 2, guest: true });
   assert.equal(stateProblem(state), "");
   const { store } = freshStore(state);
   assert.equal(store.getLastError(), "");
   assert.deepEqual(store.getState(), state);
   assert.deepEqual(parseBackup(JSON.stringify(createBackup(store.getState()))), state);
 
-  for (const counter of [{ number: 0, block: 1 }, { number: 2 }, { number: "6", block: 1 }, null]) {
-    assert.equal(stateProblem({ ...state, settings: { ...state.settings, rounds: { sample: counter } } }), "rounds");
+  for (const round of [{ number: 0, block: 1, programId: "sample" }, { number: 2, programId: "sample" }, { number: 6, block: 1, programId: "gone" }, null]) {
+    assert.equal(stateProblem({ ...state, settings: { ...state.settings, round } }), "round");
   }
+  assert.equal(stateProblem({ ...state, settings: { ...state.settings, roundLog: [{ number: 1, block: 1 }] } }), "round history");
+});
+
+test("upgrading from one round count per program: the followed program's count carries on, other programs' round tags go", () => {
+  const v20 = { ...sampleState(), version: 20 };
+  v20.programs.push({ id: "other", name: "Other", note: "", routineIds: [] });
+  v20.settings.rounds = { sample: { number: 6, block: 2, since: "2026-11-01" }, other: { number: 3, block: 1 } };
+  const day = Object.keys(v20.sessions)[0];
+  Object.assign(v20.sessions[day].workouts["day-a"], { round: 6, block: 2, roundOf: "sample" });
+  v20.sessions["2026-10-20"] = { ...structuredClone(v20.sessions[day]), logs: {}, extras: {}, note: "", workouts: { "day-a": { name: "Day A", program: "Other", minutes: 40, round: 3, block: 1, roundOf: "other", guest: true } } };
+
+  const { store } = freshStore(v20);
+  const state = store.getState();
+  assert.equal(store.getLastError(), "");
+  assert.deepEqual(state.settings.round, { number: 6, block: 2, programId: "sample", since: "2026-11-01" });
+  assert.equal(state.settings.rounds, undefined);
+  assert.deepEqual(state.sessions[day].workouts["day-a"], { ...sampleState().sessions[day].workouts["day-a"], round: 6, block: 2 });
+  assert.deepEqual(state.sessions["2026-10-20"].workouts["day-a"], { name: "Day A", program: "Other", minutes: 40 });
+  assert.deepEqual(state.sessions[day].logs, sampleState().sessions[day].logs, "logged sets are untouched");
 });

@@ -14,7 +14,7 @@ import { openPicker } from "./entry-editor.js";
 import { openLogger } from "./logger.js";
 import { openExerciseReference, openExerciseVideo } from "./reference.js";
 import { openStartPanel, roundLineMarkup } from "./rounds.js";
-import { entryPresentation, exerciseMarkup, movementMarkup, revealSelectedTab, routineTabsMarkup, saysOptional, setChipsMarkup, setsSummary, shortDate, videoUrl } from "./shared.js";
+import { entryPresentation, exerciseMarkup, movementMarkup, revealSelectedTab, routineTabsMarkup, saysOptional, setChipsMarkup, setsSummary, shortDate, videoUrl, exerciseFactLines } from "./shared.js";
 
 // When Start was last tapped (page time), to ignore a double-tap landing on Cancel.
 let startedTapAt = -Infinity;
@@ -217,20 +217,13 @@ function slotMarkup(state, routine, slot, number, dateKey, showOptionalRole = fa
   const note = slot.note.trim();
   // One labelled line per fact, always in this order; a line with nothing to say is left out.
   const line = (name, value) => (value ? `<div class="slot-line"><span>${name}</span><span>${value}</span></div>` : "");
-  const word = (id) => (id ? escapeHtml(label(id)) : "");
   const video = exercise?.videoId
     ? `<a class="button" href="${videoUrl(exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for preferred choice ${escapeHtml(shown.name)}">Video</a>`
     : `<button class="button" type="button" data-action="open-workout-video" data-id="${escapeHtml(exercise?.id || "")}" aria-label="Find a video for preferred choice ${escapeHtml(shown.name)}">Video</button>`;
   return `<div class="slot-open" data-open-slot>
     ${row}
     <div class="slot-detail" data-slot="${escapeHtml(slot.id)}">
-      ${line("Sets × reps", escapeHtml(shown.prescription))}
-      ${line("Equipment", word(mainEquipment(exercise)) || word(exercise?.equipment[0]))}
-      ${line("Attachment", word(exercise?.attachment))}
-      ${line("Grip", word(exercise?.grip))}
-      ${line("Grip width", word(exercise?.width))}
-      ${line("Detail", escapeHtml(exercise?.detail ? exercise.detail.charAt(0).toUpperCase() + exercise.detail.slice(1) : ""))}
-      ${line("Weight", word(exercise?.weightMode))}
+      ${exerciseFactLines(exercise, shown.prescription).map(([name, value]) => line(name, value)).join("")}
       ${line("Today", log ? `<span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec" })}</span>` : "")}
       ${line("Last time", last ? `${escapeHtml(setsSummary(last))} <span class="row-meta">· ${escapeHtml(shortDate(last.dateKey))}</span>` : "")}
       ${line("Note", escapeHtml(note))}

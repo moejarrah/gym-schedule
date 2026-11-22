@@ -33,18 +33,66 @@ Program
 - A **day** in the history holds the routines finished that day, the slots marked done per routine, the sets logged per slot, any exercises added to a routine for that day only, and an optional note. Calendar and recent-history views are derived from days. A day with nothing in it isn't stored; "Rest" is just a day without a finished workout.
 - A **logged set** has a weight in kg (blank when no weight is used) and whole reps, plus any drop sets done straight after it, each with its own weight and reps. A log records which choice of the slot was done, the exercise's name, and whether it was counted in reps or seconds (seconds when the prescription's amount after "×" is in seconds, e.g. "2 × 30 sec", or it has no "×" and gives seconds, e.g. "2 rounds · 30–60 sec"), fixed when it's saved. History is per master exercise, from any routine.
 
-## Rounds and calendar weeks
+## Rounds, blocks and calendar weeks
 
-Two counts run side by side, and neither is derived from the other.
+Words: a **workout** is one routine done on a day. "3 of 6 workouts done" is always written with its unit; a bare "3 of 6" is never shown.
 
-- The **calendar week** is the ISO week of the date, Monday to Sunday, always shown with its own year ("2026 · week 47"; January 1–3 can belong to the year before, and 2026 has 53 weeks). The Log's calendar starts on Monday and shows the week number at the start of each row.
-- A **round** is one pass through a program's routines, in any order and over as many days as it takes. Each program has its own count. A round ends when every Required routine has been done in it (Optional routines never hold it open, and a routine done twice counts once), or when the owner taps "End round N now"; the next round then starts. A program with one routine shows no count.
-- Every finished workout keeps the round it was filed in, so editing a program later never moves old workouts. A reopened workout stays in its round; a workout logged or marked for a past day joins the round that was running then; a cancelled workout was never in one.
-- **Start workout** always opens a panel first (date, routine and program, then the lines Calendar, Round, This round, Still to do, Last <routine>), with "Start <routine>" and "Do a different workout today". Reopening today's finished workout needs no panel. The first time, the Round line is a − / + chooser ("Which round are you on?"); the number can be changed later from the round's sheet, and the open round's workouts move with it.
-- **Do a different workout today** lists the active program's routines (ticked when done this round) and then every other program's. A routine from another program is a guest: that program shows while the workout runs and the active program comes back when it is finished or cancelled; the workout is listed in the round with its program's name and counts toward nothing.
-- The **round line** under the program bar ("Round 6 · 3 of 6 done · Week 47") opens the round's sheet: when it started, the calendar weeks it covers, what was done on which day, what is not done, "End round N now" and "Change round number". A tick on a routine tab means done in this round.
-- After three weeks or more with no workout, Start asks once: carry on with the next round, or start again at round 1. Starting again begins a new **block**; the block number is shown only from block 2 on ("Round 1 · block 2").
-- In the Log the recent days sit under their round's heading ("Round 6 · Nov 16 – Nov 24 · weeks 47–48"); a gap of three weeks or more is one line ("9 weeks off"), which also names a new block. A day with a guest workout has a differently coloured dot.
+### The counts
+
+- The **calendar week** is the ISO week of the date, Monday to Sunday, always with its own year where a year is shown ("2026 · week 47"; January 1–3 can belong to the year before; 2026 has 53 weeks).
+- A **round** is one pass through the Required workouts of the program being followed, in any order and over as many days as it takes. There is **one round count for the owner's training**, not one per program. Each round records the program it followed.
+- A **block** is a fresh start of the count (round 1 again): after a long break, or when the owner chooses it while changing program. The block number is shown only from block 2 on ("Round 1 · block 2").
+- Counting starts when the owner picks a round number on the Round tab's first-time card (default 1), or implicitly at round 1 when a first workout is started before that.
+
+### What counts in a round
+
+- A finished workout of the followed program counts once, however often it is repeated. An Optional workout of that program is listed in the round but is never asked for and never counted.
+- A workout from **another program** done for the day ("A workout from another program") is an **extra**: listed in the round with its program's name, counted toward nothing, and it changes no number. While it runs, the Workout tab shows it; the followed program is unchanged before, during and after.
+- A cancelled workout was never part of a round. A reopened workout stays in the round it was first filed in. A workout logged or marked for a past day joins the round that was open on that date (never a round that opened later).
+
+### How a round ends
+
+- **Complete**: every Required workout of its program has been done in it. The next round opens by itself.
+- **Ended early**: the owner taps "End round N now" (confirmation names what is left undone).
+- **By a change of program**: following a different program ends an open round that already has workouts in it; a round with nothing in it simply follows the new program instead.
+- **By a break**: see below.
+- A closed round is recorded with its number, block, program name, how many workouts it asked for, and how it ended. It never changes afterwards, whatever is done to the program (renamed, edited, deleted).
+
+### Following a program, and blocks
+
+- **Looking at a program and following it are separate.** The Program tab can show any program without changing which one is followed.
+- "Follow <program>" (Program tab, when looking at another program) and "Follow a different program" (Round tab, More) open one sheet that says exactly what will happen, as labelled lines, with these choices: carry the count on (the open round ends here if it has workouts; the next round follows the new program), **start a new block** with the new program (round 1 of the next block), or back out ("Finish round N first" / "Cancel").
+- A new block can also be started from "Change round number".
+- It can't be done while a workout is running.
+
+### Coming back after a break
+
+- After three weeks or more with no workout, the Round tab shows "Welcome back" in place of the next-workout card, once: "Carry on with round N" (a round left unfinished is closed, "ended by the break") or "Start again at round 1" (a new block). Start elsewhere in the app leads here until it is answered.
+
+### The tabs
+
+Bottom navigation: **Round · Workout · Program · Library · Log**. Settings opens from the gear at the top of the Round tab, with a back link; the Round tab stays marked while it shows.
+
+**Round** (the app opens here)
+- Header: "Following <program>" and the gear; "Round N" (with the block from block 2 on) and "Week W"; a bar with one segment per Required workout; "X of Y workouts done" at one end and "started <date>" at the other.
+- One card, by state: *Next workout* (name, when it was last done, "Start <name>"); *In progress* (name, how long ago it started, exercises done, "Go to workout"); *Done today* (what was done, and the next one named, with its Start); *Round N complete* (took how many days, calendar weeks, training time, new bests, extras; then the next round's first workout); *first time* (what a round is, the − / + chooser, "Start counting"); *Welcome back*.
+- "Workouts in this round": every Required workout of the program in order, ticked with its date when done, the next one marked "Next"; then any Optional or extra workouts done in the round, tagged. Tapping an undone row opens that workout on the Workout tab, ready to start; tapping a done one opens that day.
+- "More": All rounds · A workout from another program · Follow a different program · End round N now · Change round number. While a workout runs only "All rounds" is offered.
+- With no program, or a program with no Required workouts, the tab says so and offers the way to fix it instead of a round.
+- **All rounds**: every round, newest first, in three columns under a header: the round number; the program with its dates and calendar weeks; "X of Y" workouts with how it ended (in progress, complete, ended early, ended by the break, ended by a change of program). A break of three weeks or more is one line between rows, and it says where a new block starts.
+- **One round**: the same header as the Round tab, then labelled lines in this order: Program, Workouts, Dates, Took, Calendar weeks, Training time, New bests; then its workouts (extras and optional ones tagged), each opening its day; then what was not done.
+
+**Workout**
+- It is about one workout: there are no routine tabs here. Nothing running: the selected workout as a read-only preview ("Round N · next workout", its name, "Start"; the number of exercises and when it was last done; the quiet list). Running: "Round N · in progress", Cancel and the clock, the list with one exercise open, "Add exercise for today", "Finish workout". After Finish and its result sheet, the app returns to the Round tab.
+- Start begins the workout at once; there is no panel in between.
+- In the open exercise the "Last time" line opens that exercise's history.
+
+**Program**
+- For looking things up first, changing second. The header is the program's name (tap to look at another; a dot marks the one being followed) and "Edit"; when the program shown isn't the followed one, a line says which is and offers "Follow <name>". Then the routine tabs, one line ("N exercises" and "last done <date>"), and the routine as the same quiet list as Workout: tapping an exercise unfolds its labelled lines (including "Last time") and the buttons History, Details, Video. Nothing can be changed in this mode.
+- "Edit" turns the same screen into the editor: rows show their prescription and a drag handle, tapping a row opens its editor, "+ Workout" and "+ Add exercise" appear, with links to rename the routine, its notes and blocks, and the program's rules. "Done" returns to viewing.
+
+**Log**
+- The calendar starts on Monday with the week number at the start of each row. Recent days are a plain list; a day's second line names its round ("Round 6 · 62 min"). Rounds as such are on the Round tab.
 
 ## Completion rules
 

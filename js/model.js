@@ -261,7 +261,7 @@ export function startWorkout(state, routineId, dateKey = localDateKey(), now = D
   const session = sessionFor(state, dateKey);
   const before = session.workouts[routineId];
   // Reopening keeps what the day already knew: its duration and the round it was filed in.
-  const reopened = session.routineIds.includes(routineId) ? { minutes: before?.minutes ?? null, ...(before?.round ? { round: before.round, block: before.block, roundOf: before.roundOf, ...(before.guest ? { guest: true } : {}) } : {}) } : null;
+  const reopened = session.routineIds.includes(routineId) ? { minutes: before?.minutes ?? null, ...roundTag(before) } : null;
   session.routineIds = session.routineIds.filter((id) => id !== routineId);
   state.settings.activeWorkout = { routineId, dateKey, startedAt: now, ...(reopened ? { reopened } : {}), ...(backdated ? { backdated: true } : {}) };
   writeSession(state, dateKey, session);
@@ -281,32 +281,15 @@ export function finishWorkout(state, { now = Date.now(), timed = true } = {}) {
   // A reopened workout keeps its first duration; one left running for hours isn't a duration.
   const elapsed = Math.max(1, Math.round((now - workout.startedAt) / 60000));
   const minutes = workout.reopened ? workout.reopened.minutes : timed && !workout.backdated && elapsed <= 300 ? elapsed : null;
-  const home = workout.home?.programId || routineProgram(state, workout.routineId)?.id || "";
-  const earlier = workout.reopened;
   // A reopened workout stays in the round it was first filed in; one logged for a past
-  // day joins the round that was running then; any other joins the round that is open now.
-  const tag = earlier?.round ? { round: earlier.round, block: earlier.block, roundOf: earlier.roundOf, ...(earlier.guest ? { guest: true } : {}) }
-    : workout.backdated ? roundAt(state, home, workout.dateKey)
-      : roundCounter(state, home) ? { round: roundCounter(state, home).number, block: roundCounter(state, home).block, roundOf: home, ...(workout.home ? { guest: true } : {}) } : null;
+  // day joins the round that was open then; any other joins the round that is open now.
+  const reopenedTag = roundTag(workout.reopened);
+  const tag = reopenedTag.round ? reopenedTag : tagFor(state, workout.routineId, workout.backdated ? roundAt(state, workout.dateKey) : openRound(state));
   session.workouts[workout.routineId] = { ...workoutRecord(state, workout.routineId, minutes), ...tag };
   writeSession(state, workout.dateKey, session);
   state.settings.activeWorkout = null;
   if (workout.home) goHome(state, workout.home);
-  if (tag && !earlier?.round) closeRoundIfComplete(state, home, workout.dateKey);
-}
-
-// The open round is over once every required routine of the program has been done in
-// it; the next one opens. Called wherever that can become true: a workout finished or
-// marked for a day, a routine removed or made optional.
-function closeRoundIfComplete(state, programId, dateKey = localDateKey()) {
-  const summary = roundSummary(state, state.programs.find((program) => program.id === programId));
-  if (summary?.counting && summary.counted && summary.workouts.length && !summary.remaining.length) openNextRound(roundCounter(state, programId), dateKey);
-}
-
-// `since`: the day the open round opened. A workout marked afterwards for an earlier
-// day doesn't belong to it.
-function openNextRound(counter, dateKey = localDateKey()) {
-  Object.assign(counter, { number: counter.number + 1, since: dateKey });
+  if (!reopenedTag.round) closeRoundIfComplete(state, workout.dateKey);
 }
 
 // After a workout from another program: back to the program and routine that were showing.
@@ -350,13 +333,18 @@ export function finishStaleWorkout(state, todayKey = localDateKey(), now = Date.
 // ---------- rounds and calendar weeks ----------
 
 // Two counts run side by side. The calendar week is fixed by the date. A round is one
-// pass through a program's routines, in any order and over however many days it takes;
-// it ends when every required routine has been done in it, or when the owner ends it.
-// Each finished workout keeps the round it was filed in ({ round, block, roundOf: the
-// program's id, guest: true for a routine from another program }), so editing a program
-// later never moves old workouts between rounds. settings.rounds[programId] holds the
-// program's counter { number, block }; it doesn't exist until the owner starts counting.
-// A block is a fresh start of the count after a long break.
+// pass through the Required workouts of the program being followed, in any order and
+// over however many days it takes. There is ONE round count for the owner's training,
+// not one per program:
+// - settings.round = { number, block, programId, since } is the open round: the program
+//   it follows and the day it opened. Absent until the owner starts counting.
+// - settings.roundLog lists the closed rounds, oldest first: { number, block, program
+//   (its name then), programId, required (how many workouts it asked for), ended:
+//   "complete" | "early" | "switch" | "break" }. A closed round never changes again,
+//   whatever happens to its program.
+// - every finished workout keeps { round, block } and, when it doesn't count toward the
+//   round, guest: true (a routine of another program) or optional: true.
+// A block is a fresh start of the count: after a long break, or with a new program.
 
 // The ISO calendar week of a date: Monday first, week 1 is the one with January 4.
 // `year` is the week's own year (January 1–3 can belong to the year before).
@@ -368,116 +356,193 @@ export function calendarWeek(dateKey) {
   return { year: thursday.getFullYear(), week: 1 + Math.round((thursday - firstThursday) / (7 * 86400000)) };
 }
 
+// The program being followed. While a workout from another program runs as a guest,
+// that is still the home program, not the guest's.
 export const roundProgram = (state) => state.programs.find((program) => program.id === state.settings.activeWorkout?.home?.programId) || activeProgram(state);
 
-export const roundCounter = (state, programId) => state.settings.rounds?.[programId] || null;
+export const openRound = (state) => state.settings.round || null;
 
-// The workouts filed in one round of a program, oldest first.
-export function roundWorkouts(state, programId, { number, block }) {
+const requiredRoutines = (state, program) => (program ? programRoutines(state, program).filter((routine) => routine.status !== "optional") : []);
+const sameRound = (record, { number, block }) => record.round === number && (record.block || 1) === block;
+const roundTag = (record) => (record?.round ? { round: record.round, block: record.block || 1, ...(record.guest ? { guest: true } : {}), ...(record.optional ? { optional: true } : {}) } : {});
+
+// The workouts filed in one round, oldest first.
+export function roundWorkouts(state, { number, block }) {
   const found = [];
   for (const dateKey of Object.keys(state.sessions).sort()) {
     for (const [routineId, record] of Object.entries(state.sessions[dateKey].workouts || {})) {
-      if (record.roundOf === programId && record.round === number && (record.block || 1) === block && state.sessions[dateKey].routineIds.includes(routineId)) {
-        found.push({ dateKey, routineId, name: record.name, program: record.program, minutes: record.minutes, guest: Boolean(record.guest) });
+      if (sameRound(record, { number, block }) && state.sessions[dateKey].routineIds.includes(routineId)) {
+        found.push({ dateKey, routineId, name: record.name, program: record.program, minutes: record.minutes, guest: Boolean(record.guest), optional: Boolean(record.optional) });
       }
     }
   }
   return found;
 }
 
-// Where a program's round stands: its number and block (1 and 1 before counting has
-// started), the workouts done in it, and the required routines still to do.
-export function roundSummary(state, program = activeProgram(state)) {
-  if (!program) return null;
-  const counter = roundCounter(state, program.id);
-  const { number, block } = counter || { number: 1, block: 1 };
-  const workouts = counter ? roundWorkouts(state, program.id, { number, block }) : [];
+// Where the open round stands: its number and block (1 and 1 before counting has
+// started), the program followed, the workouts done in it and the required ones left.
+export function roundSummary(state) {
+  const program = roundProgram(state) || null;
+  const round = openRound(state);
+  const { number, block } = round || { number: 1, block: 1 };
+  const workouts = round ? roundWorkouts(state, { number, block }) : [];
   const done = new Set(workouts.filter((item) => !item.guest).map((item) => item.routineId));
-  const required = programRoutines(state, program).filter((routine) => routine.status !== "optional");
-  // `counted`: a program with fewer than two required routines has no rounds to count.
-  return { programId: program.id, counted: required.length > 1, counting: Boolean(counter), number, block, workouts, done, required, remaining: required.filter((routine) => !done.has(routine.id)), started: workouts[0]?.dateKey || "" };
+  const required = requiredRoutines(state, program);
+  return { counting: Boolean(round), number, block, program, workouts, done, required, remaining: required.filter((routine) => !done.has(routine.id)), started: workouts[0]?.dateKey || "", since: round?.since || "" };
 }
 
-// The round that was running in a program on a day: the round of its latest workout
-// on or before that day. Null when there is none (the workout then has no round).
-function roundAt(state, programId, dateKey) {
-  const counter = roundCounter(state, programId);
-  if (!counter) return null;
-  const isOpen = (record) => record.round === counter.number && (record.block || 1) === counter.block;
+// One round as history shows it, open or closed: { number, block, open, program (name),
+// ended, required, done (workouts that counted), workouts, from, to, minutes }.
+export function roundRecord(state, { number, block }) {
+  const round = openRound(state);
+  const open = Boolean(round) && round.number === number && round.block === block;
+  const entry = (state.settings.roundLog || []).find((item) => item.number === number && item.block === block);
+  if (!open && !entry) return null;
+  const workouts = roundWorkouts(state, { number, block });
+  const summary = open ? roundSummary(state) : null;
+  return {
+    number,
+    block,
+    open,
+    program: open ? summary.program?.name || "" : entry.program,
+    ended: open ? "" : entry.ended,
+    required: open ? summary.required.length : entry.required,
+    done: open ? summary.required.length - summary.remaining.length : new Set(workouts.filter((item) => !item.guest && !item.optional).map((item) => item.routineId)).size,
+    workouts,
+    from: workouts[0]?.dateKey || (open ? round.since : ""),
+    to: workouts.at(-1)?.dateKey || "",
+    minutes: workouts.reduce((sum, item) => sum + (item.minutes || 0), 0),
+  };
+}
+
+// Every round, newest first: the open one, then the closed ones.
+export function allRounds(state) {
+  const round = openRound(state);
+  const closed = [...(state.settings.roundLog || [])].reverse();
+  return [...(round ? [round] : []), ...closed].map((item) => roundRecord(state, item)).filter(Boolean);
+}
+
+// The program a round follows or followed (its id), for deciding what counts in it.
+const programOfRound = (state, tag) => (sameRound({ round: tag.round, block: tag.block }, openRound(state) || {}) ? openRound(state).programId : (state.settings.roundLog || []).find((item) => item.number === tag.round && item.block === tag.block)?.programId) || "";
+
+// What a workout's record says about its round: nothing when there is no round for it,
+// otherwise the round and whether it counts (a routine of another program is a guest;
+// an Optional routine is listed but never asked for).
+function tagFor(state, routineId, found) {
+  if (!found) return {};
+  const tag = "round" in found ? { round: found.round, block: found.block } : { round: found.number, block: found.block };
+  const routine = routineById(state, routineId);
+  if (routineProgram(state, routineId)?.id !== programOfRound(state, tag)) return { ...tag, guest: true };
+  return routine?.status === "optional" ? { ...tag, optional: true } : tag;
+}
+
+// The round that was open on a day: the open one if the day is after every closed
+// round's last workout and not before the open round opened; otherwise the round of the
+// latest closed workout on or before that day. Null when there is none.
+function roundAt(state, dateKey) {
+  const round = openRound(state);
+  if (!round) return null;
   let found = null;
   let closedAfter = false;
   for (const key of Object.keys(state.sessions).sort()) {
     for (const record of Object.values(state.sessions[key].workouts || {})) {
-      if (record.roundOf !== programId || !record.round || isOpen(record)) continue;
-      if (key <= dateKey) found = { round: record.round, block: record.block || 1, roundOf: programId };
+      if (!record.round || sameRound(record, round)) continue;
+      if (key <= dateKey) found = { round: record.round, block: record.block || 1 };
       else closedAfter = true;
     }
   }
-  // After every closed round's last workout, and not before the open round opened: the open round.
-  return closedAfter || dateKey < (counter.since || "") ? found : { round: counter.number, block: counter.block, roundOf: programId };
+  return closedAfter || dateKey < (round.since || "") ? found : { round: round.number, block: round.block };
 }
 
-// Sets the number of the round that is open (first use: "I'm on round 6"). Workouts
-// already filed in it move with it.
-export function setRoundNumber(state, programId, number) {
-  if (!state.programs.some((program) => program.id === programId)) fail("That program no longer exists.");
+// Closes the open round as it stands and opens the next one, following the same program.
+function closeRound(state, ended, dateKey = localDateKey()) {
+  const round = openRound(state);
+  const program = state.programs.find((item) => item.id === round.programId);
+  state.settings.roundLog ||= [];
+  state.settings.roundLog.push({ number: round.number, block: round.block, program: program?.name || "", programId: round.programId, required: requiredRoutines(state, program).length, ended });
+  Object.assign(round, { number: round.number + 1, since: dateKey });
+}
+
+// The open round is complete once every required workout of its program has been done
+// in it. Called wherever that can become true: a workout finished or marked for a day,
+// a routine removed or made optional.
+function closeRoundIfComplete(state, dateKey = localDateKey()) {
+  const summary = roundSummary(state);
+  if (summary.counting && !state.settings.activeWorkout?.home && summary.required.length && summary.workouts.length && !summary.remaining.length) closeRound(state, "complete", dateKey);
+}
+
+// Starts the count, or changes the open round's number; workouts already filed in it
+// move with it. A number another round of this block already has is refused: the two
+// would merge.
+export function setRoundNumber(state, number) {
   const next = Math.min(999, Math.max(1, Math.round(Number(number)) || 1));
-  state.settings.rounds ||= {};
-  const counter = state.settings.rounds[programId] ||= { number: next, block: 1, since: localDateKey() };
-  const records = Object.values(state.sessions).flatMap((session) => Object.values(session.workouts || {}));
-  if (next !== counter.number && records.some((record) => record.roundOf === programId && record.round === next && (record.block || 1) === counter.block)) fail(`Round ${next} is already in your history. Pick another number.`);
+  const program = roundProgram(state) || fail("Add a program first.");
+  const round = state.settings.round ||= { number: next, block: 1, programId: program.id, since: localDateKey() };
+  if (next === round.number) return;
+  if ((state.settings.roundLog || []).some((item) => item.number === next && item.block === round.block)) fail(`Round ${next} is already in your history. Pick another number.`);
   for (const session of Object.values(state.sessions)) {
-    for (const record of Object.values(session.workouts || {})) if (record.roundOf === programId && record.round === counter.number && (record.block || 1) === counter.block) record.round = next;
+    for (const record of Object.values(session.workouts || {})) if (sameRound(record, round)) record.round = next;
   }
-  counter.number = next;
+  round.number = next;
 }
 
 // Ends the open round where it stands; what wasn't done in it stays not done.
-export function endRound(state, programId) {
-  const counter = roundCounter(state, programId) || fail("This program has no round yet.");
-  if (!roundWorkouts(state, programId, counter).length) fail("Nothing is done in this round yet.");
-  openNextRound(counter);
+export function endRound(state) {
+  const round = openRound(state) || fail("There is no round yet.");
+  if (state.settings.activeWorkout) fail("Finish or cancel the workout in progress first.");
+  if (!roundWorkouts(state, round).length) fail("Nothing is done in this round yet.");
+  closeRound(state, "early");
 }
 
-// After a long break: the count starts again at round 1, as the next block.
-export function restartRounds(state, programId) {
-  const counter = roundCounter(state, programId) || fail("This program has no round yet.");
-  Object.assign(counter, { number: 1, block: counter.block + 1, since: localDateKey() });
+// A fresh start of the count: round 1 of the next block. The open round, if anything
+// was done in it, ends here.
+export function startNewBlock(state, dateKey = localDateKey(), ended = "early") {
+  const round = openRound(state) || fail("There is no round yet.");
+  if (state.settings.activeWorkout) fail("Finish or cancel the workout in progress first.");
+  if (roundWorkouts(state, round).length) closeRound(state, ended, dateKey);
+  Object.assign(round, { number: 1, block: round.block + 1, since: dateKey });
+}
+
+// Follows a different program from here on (see setActiveProgram), optionally as a new block.
+export function followProgram(state, programId, { newBlock = false } = {}) {
+  setActiveProgram(state, programId);
+  if (newBlock && openRound(state)) startNewBlock(state, localDateKey(), "switch");
 }
 
 // The last day any workout was finished, or "".
 export const lastWorkoutDay = (state) => Object.keys(state.sessions).filter((key) => state.sessions[key].routineIds.length).sort().at(-1) || "";
 
-// A break worth asking about: counting has started, and the last workout was three
-// weeks ago or more. { lastDay, weeks, lastRound } or null. Asked once per break.
-export function longBreak(state, programId, todayKey = localDateKey()) {
-  const counter = roundCounter(state, programId);
+// A break worth asking about: counting has started and the last workout was three weeks
+// ago or more. { lastDay, weeks, lastRound, open } or null. Asked once per break.
+export function longBreak(state, todayKey = localDateKey()) {
+  const round = openRound(state);
   const lastDay = lastWorkoutDay(state);
-  if (!counter || !lastDay || (counter.breakAnswered && lastDay <= counter.breakAnswered)) return null;
+  if (!round || !lastDay || (round.breakAnswered && lastDay <= round.breakAnswered)) return null;
   const days = Math.round((dateFromKey(todayKey) - dateFromKey(lastDay)) / 86400000);
   if (days < 21) return null;
-  const open = roundWorkouts(state, programId, counter).length > 0;
-  return { lastDay, weeks: Math.floor(days / 7), lastRound: open ? counter.number : counter.number - 1, open };
+  const open = roundWorkouts(state, round).length > 0;
+  return { lastDay, weeks: Math.floor(days / 7), lastRound: open ? round.number : round.number - 1, open };
 }
 
-// The owner answered the break question: carry on (the open round, if any, is closed) or start again.
-export function answerBreak(state, programId, restart, todayKey = localDateKey()) {
-  const found = longBreak(state, programId, todayKey);
+// The owner answered the break question: carry on (an unfinished round ends at the
+// break) or start again as a new block.
+export function answerBreak(state, restart, todayKey = localDateKey()) {
+  const found = longBreak(state, todayKey);
   if (!found) return;
-  const counter = roundCounter(state, programId);
-  if (restart) restartRounds(state, programId);
-  else if (found.open) openNextRound(counter, todayKey);
-  counter.breakAnswered = todayKey;
+  if (restart) startNewBlock(state, todayKey, "break");
+  else if (found.open) closeRound(state, "break", todayKey);
+  openRound(state).breakAnswered = todayKey;
 }
 
-// Starts a routine from another program for today without changing programs: the
-// active program comes back when that workout is finished or cancelled, and the workout
-// is filed in the home program's round as a guest.
+// Starts a routine of another program for today without following that program: its
+// program shows while the workout runs and the followed one comes back when it is
+// finished or cancelled. The workout is filed in the open round as a guest.
 export function startGuestWorkout(state, routineId, dateKey = localDateKey(), now = Date.now()) {
   const home = { programId: state.settings.activeProgramId, routineId: state.settings.activeRoutineId };
   const owner = routineProgram(state, routineId) || fail("That routine no longer exists.");
   if (state.settings.activeWorkout) fail("Finish the workout in progress first.");
-  setActiveRoutine(state, routineId);
+  state.settings.activeProgramId = owner.id;
+  state.settings.activeRoutineId = routineId;
   startWorkout(state, routineId, dateKey, now);
   if (owner.id !== home.programId) state.settings.activeWorkout.home = home;
 }
@@ -594,12 +659,12 @@ export function setDay(state, dateKey, routineIds, note) {
     const checked = new Set(session.checkedEntryIdsByRoutine[routineId] || []);
     routine.entries.filter((entry) => entry.role === "main").forEach((entry) => checked.add(entry.id));
     session.checkedEntryIdsByRoutine[routineId] = [...checked];
-    session.workouts[routineId] = { ...workoutRecord(state, routineId), ...roundAt(state, routineProgram(state, routineId)?.id || "", dateKey) };
+    session.workouts[routineId] = { ...workoutRecord(state, routineId), ...tagFor(state, routineId, roundAt(state, dateKey)) };
   }
   session.routineIds = [...selected];
   session.note = note;
   writeSession(state, dateKey, session);
-  for (const program of state.programs) closeRoundIfComplete(state, program.id, dateKey);
+  closeRoundIfComplete(state, dateKey);
 }
 
 // ---------- programs ----------
@@ -645,13 +710,22 @@ export function removeProgram(state, programId) {
   if (removed.has(state.settings.activeWorkout?.routineId)) fail("Finish or cancel the workout in progress first.");
   state.programs = state.programs.filter((item) => item !== program);
   state.routines = state.routines.filter((routine) => !removed.has(routine.id));
-  if (state.settings.rounds) delete state.settings.rounds[programId];
+  const followed = state.settings.round?.programId === programId;
   dropChecks(state, (routineId) => removed.has(routineId));
   repairActiveSelection(state);
+  if (followed) state.settings.round.programId = state.settings.activeProgramId;
 }
 
+// Makes a program the one being followed. The open round follows one program, so if it
+// already has workouts it ends here and the next round follows the new program.
 export function setActiveProgram(state, programId) {
   if (!state.programs.some((program) => program.id === programId)) fail("That program no longer exists.");
+  if (state.settings.activeWorkout && programId !== state.settings.activeProgramId) fail("Finish or cancel the workout in progress first.");
+  const round = openRound(state);
+  if (round && round.programId !== programId) {
+    if (roundWorkouts(state, round).length) closeRound(state, "switch");
+    round.programId = programId;
+  }
   state.settings.activeProgramId = programId;
   repairActiveSelection(state);
 }
@@ -686,7 +760,7 @@ export function updateRoutine(state, routineId, { name, group, status, note, blo
     if (routine.entries.some((entry) => !kept.has(entry.blockId))) fail("Move a block's exercises before deleting it.");
     routine.blocks = structuredClone(blocks);
   }
-  for (const program of state.programs) closeRoundIfComplete(state, program.id);
+  closeRoundIfComplete(state);
 }
 
 export function moveRoutine(state, routineId, toIndex) {
@@ -701,7 +775,7 @@ export function removeRoutine(state, routineId) {
   state.routines = state.routines.filter((routine) => routine.id !== routineId);
   dropChecks(state, (checkedRoutineId) => checkedRoutineId === routineId);
   repairActiveSelection(state);
-  for (const program of state.programs) closeRoundIfComplete(state, program.id);
+  closeRoundIfComplete(state);
 }
 
 // ---------- routine entries ----------

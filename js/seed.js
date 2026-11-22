@@ -4,7 +4,7 @@
 // training rules are the owner's own words.
 
 export const SEED = {
-  version: 20,
+  version: 21,
   exercises: [
     {"id":"45-degree-glute-biased-back-extension","name":"45° back extension","aliases":["45° glute-biased back extension"],"primaryTargets":["glute-max","hamstrings"],"secondaryTargets":["spinal-erectors"],"movementPattern":"hip-hinge","equipment":["other"],"purpose":"strength","style":"compound","laterality":"bilateral","support":"supported","emphases":["glute-bias"],"typicalChallenge":"lengthened-bottom","relatedExercises":[{"exerciseId":"romanian-deadlift","relation":"similar"},{"exerciseId":"dumbbell-romanian-deadlift","relation":"similar"}],"defaultPrescription":"","instructions":"","videoId":"","attachment":"","grip":"","width":"","detail":"glute bias","weightMode":""},
     {"id":"relaxed-90-90-external-rotation-stretch","name":"90/90 external-rotation stretch","aliases":["Relaxed 90/90 external-rotation stretch"],"primaryTargets":["glute-med-min"],"secondaryTargets":[],"movementPattern":"hip-rotation","equipment":["none"],"purpose":"mobility","style":"mobility-control","laterality":"unilateral","support":"supported","emphases":[],"typicalChallenge":"lengthened-bottom","relatedExercises":[],"defaultPrescription":"1–2 × 20–40 sec/side","instructions":"","videoId":"","attachment":"","grip":"","width":"","detail":"","weightMode":""},
