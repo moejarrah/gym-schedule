@@ -144,12 +144,13 @@ export function saysOptional(blockName) {
 }
 
 // `marks`: { routineId: "running" | "done" } puts a dot or a tick on a tab (Workout).
-export function routineTabsMarkup(routines, selectedId, marks = null) {
+// `action`: the action a tab runs (each screen that shows tabs has its own).
+export function routineTabsMarkup(routines, selectedId, marks = null, action = "select-routine") {
   if (!routines.length) return "";
   return `<div class="routine-tabs scroll-x" aria-label="Choose a routine" data-keep-scroll="routine-tabs">
     ${routines.map((routine) => `
       <button class="routine-tab" type="button"
-        aria-label="${escapeHtml(routine.name)}, ${locationLabel(routine.group)}${marks?.[routine.id] === "running" ? ", in progress" : marks?.[routine.id] === "done" ? ", done this round" : ""}" aria-pressed="${routine.id === selectedId}" data-action="select-routine" data-id="${escapeHtml(routine.id)}">
+        aria-label="${escapeHtml(routine.name)}, ${locationLabel(routine.group)}${marks?.[routine.id] === "running" ? ", in progress" : marks?.[routine.id] === "done" ? ", done this round" : ""}" aria-pressed="${routine.id === selectedId}" data-action="${action}" data-id="${escapeHtml(routine.id)}">
         ${escapeHtml(routine.name)}${marks ? `<i class="tab-mark ${marks[routine.id] ? `is-${marks[routine.id]}` : ""}" aria-hidden="true"></i>` : ""}
       </button>`).join("")}
   </div>`;
