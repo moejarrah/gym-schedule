@@ -37,10 +37,8 @@ const filed = (store, dateKey, routineId) => store.getState().sessions[dateKey].
 const number = (store) => openRound(store.getState()).number;
 // A second program with two routines; returns their ids.
 const secondProgram = (store, name = "Full body") => save(store, (draft) => {
-  const home = { ...draft.settings };
   const programId = createProgram(draft, { name });
   const ids = ["A", "B"].map((letter) => addRoutine(draft, programId, { name: `${name} ${letter}`, group: "gym", status: "required", note: "", blocks: [{ id: `${programId}-${letter}`, name: "" }] }));
-  Object.assign(draft.settings, { activeProgramId: home.activeProgramId, activeRoutineId: home.activeRoutineId });
   return { programId, ids };
 });
 

@@ -243,9 +243,9 @@ test("duplicating a program copies its routines under new IDs and leaves the ori
   assert.ok(copies.flatMap((routine) => [routine.id, ...routine.blocks.map((block) => block.id), ...routine.entries.map((entry) => entry.id)]).every((newId) => !originalIds.has(newId)));
   assert.deepEqual(state.routines.slice(0, 2), before.routines);
   assert.deepEqual(state.sessions, before.sessions);
-  assert.deepEqual([state.settings.activeProgramId, state.settings.activeRoutineId], [id, copy.routineIds[0]]);
-  save(store, (draft) => setActiveProgram(draft, "sample"));
-  assert.equal(store.getState().settings.activeRoutineId, "day-a");
+  assert.deepEqual([state.settings.activeProgramId, state.settings.activeRoutineId], ["sample", before.settings.activeRoutineId], "making a copy isn't following it");
+  save(store, (draft) => setActiveProgram(draft, id));
+  assert.deepEqual([store.getState().settings.activeProgramId, store.getState().settings.activeRoutineId], [id, copy.routineIds[0]]);
 });
 
 test("slots reorder inside their block, and changing block moves a slot to the end of the new one", () => {

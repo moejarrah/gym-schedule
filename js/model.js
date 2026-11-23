@@ -672,8 +672,8 @@ export function setDay(state, dateKey, routineIds, note) {
 export function createProgram(state, { name, note = "" }) {
   const id = makeId("program");
   state.programs.push({ id, name: name.trim(), note, routineIds: [] });
-  state.settings.activeProgramId = id;
-  state.settings.activeRoutineId = "";
+  // Making a program isn't following it, unless there was none to follow.
+  if (!activeProgram(state)) Object.assign(state.settings, { activeProgramId: id, activeRoutineId: "" });
   return id;
 }
 
@@ -693,8 +693,7 @@ export function duplicateProgram(state, sourceId, { name, note }) {
   });
   const id = makeId("program");
   state.programs.push({ id, name: name.trim(), note: note ?? source.note, routineIds });
-  state.settings.activeProgramId = id;
-  state.settings.activeRoutineId = routineIds[0] || "";
+  if (!activeProgram(state)) Object.assign(state.settings, { activeProgramId: id, activeRoutineId: routineIds[0] || "" });
   return id;
 }
 
@@ -743,8 +742,8 @@ export function addRoutine(state, programId, { name, group, status, note, blocks
   const routine = { id: makeId("routine"), name: name.trim(), group, status, note, blocks: structuredClone(blocks), entries: [] };
   state.routines.push(routine);
   program.routineIds.push(routine.id);
-  state.settings.activeProgramId = program.id;
-  state.settings.activeRoutineId = routine.id;
+  // The followed program's first routine becomes the selected one; nothing else changes.
+  if (program.id === state.settings.activeProgramId && !state.settings.activeRoutineId) state.settings.activeRoutineId = routine.id;
   return routine.id;
 }
 

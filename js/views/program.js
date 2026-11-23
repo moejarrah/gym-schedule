@@ -73,17 +73,6 @@ function show(programId) {
   Object.assign(shown, { programId, routineId: "", slotId: "" });
 }
 
-// The model's create and add functions also select what they made, from when this
-// screen edited the active program. Looking isn't following: the selection is put back.
-function keepingSelection(draft, change) {
-  const { activeProgramId, activeRoutineId } = draft.settings;
-  change();
-  const program = draft.programs.find((item) => item.id === activeProgramId);
-  if (!program) return;
-  draft.settings.activeProgramId = program.id;
-  draft.settings.activeRoutineId = program.routineIds.includes(activeRoutineId) ? activeRoutineId : program.routineIds[0] || "";
-}
-
 // ---------- markup ----------
 
 const gripIcon = `<span class="grip" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h8"/></svg></span>`;
@@ -378,7 +367,7 @@ function saveProgram() {
   let createdId = "";
   const result = store.update((draft) => {
     if (id) updateProgram(draft, id, { name, note });
-    else keepingSelection(draft, () => { createdId = sourceId ? duplicateProgram(draft, sourceId, { name, note }) : createProgram(draft, { name, note }); });
+    else createdId = sourceId ? duplicateProgram(draft, sourceId, { name, note }) : createProgram(draft, { name, note });
   });
   if (!report(result, id ? "Program updated." : "Program created.")) return;
   closeDialog("#programDialog");
@@ -469,7 +458,7 @@ function saveRoutine() {
   let addedId = "";
   const result = store.update((draft) => {
     if (id) updateRoutine(draft, id, fields);
-    else keepingSelection(draft, () => { addedId = addRoutine(draft, owner.id, fields); });
+    else addedId = addRoutine(draft, owner.id, fields);
   });
   if (!report(result, id ? "Routine updated." : "Routine added.")) return;
   closeDialog("#routineDialog");
