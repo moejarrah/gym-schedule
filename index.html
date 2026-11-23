@@ -110,7 +110,7 @@
           <div class="field"><span id="chooseAlternativesButtonLabel">Alternatives and progressions</span><button class="control picker" id="chooseAlternativesButton" data-action="open-related-editor" type="button" aria-haspopup="dialog" aria-labelledby="chooseAlternativesButtonLabel alternativesCount"><span id="alternativesCount">None linked</span><span class="chev" aria-hidden="true">›</span></button></div>
         </section>
 
-        <p class="card tinted hint"><strong>Routine execution stays in Program.</strong> Sets, reps, tempo, pauses, partial range, role, and exercise choices can change per routine without changing this master.</p>
+        <p class="card tinted hint"><strong>How a workout runs it stays in Program.</strong> Sets, reps, tempo, pauses, partial range, role, and exercise choices can change per workout without changing this master.</p>
 
         <div class="ruled" id="exerciseSecondaryActions" hidden>
           <button class="row compact" id="duplicateExerciseButton" data-action="duplicate-exercise" type="button" hidden>Duplicate exercise <span class="chev" aria-hidden="true">›</span></button>
@@ -198,7 +198,7 @@
           </div>
         </div>
         <label class="field" id="programDuplicateSourceField"><span>Duplicate from</span><select class="control" id="programDuplicateSource"></select></label>
-        <p class="hint">Duplicating copies routines and prescriptions. Exercises remain linked to the same Library.</p>
+        <p class="hint">Duplicating copies workouts and prescriptions. Exercises remain linked to the same Library.</p>
       </div>
       <div class="ruled" id="programEditActions" hidden>
         <button class="row compact" id="duplicateProgramButton" data-action="duplicate-program" type="button">Duplicate program <span class="chev" aria-hidden="true">›</span></button>
@@ -215,26 +215,26 @@
   <dialog id="routineDialog" class="sheet tall" aria-labelledby="routineDialogTitle">
     <form method="dialog" id="routineForm" data-submit="save-routine" class="sheet-panel" novalidate>
       <header class="sheet-head">
-        <h2 class="truncate" id="routineDialogTitle">Add routine</h2>
-        <button class="icon-button" data-close-dialog="routineDialog" aria-label="Close routine editor" type="button">×</button>
+        <h2 class="truncate" id="routineDialogTitle">Add workout</h2>
+        <button class="icon-button" data-close-dialog="routineDialog" aria-label="Close workout editor" type="button">×</button>
       </header>
       <div class="sheet-body stack">
         <label class="field"><span>Name</span><input class="control" id="routineName" required maxlength="50" autocomplete="off"></label>
         <div class="field">
           <span>Location</span>
-          <div class="segment" id="routineGroupOptions" data-segment role="group" aria-label="Routine location">
+          <div class="segment" id="routineGroupOptions" data-segment role="group" aria-label="Workout location">
             <button type="button" data-value="gym" aria-pressed="true">Gym</button>
             <button type="button" data-value="home" aria-pressed="false">Home</button>
           </div>
         </div>
         <div class="field">
           <span>Status</span>
-          <div class="segment" id="routineStatusOptions" data-segment role="group" aria-label="Routine status">
+          <div class="segment" id="routineStatusOptions" data-segment role="group" aria-label="Workout status">
             <button type="button" data-value="required" aria-pressed="true">Required</button>
             <button type="button" data-value="optional" aria-pressed="false">Optional</button>
           </div>
         </div>
-        <label class="field"><span>Routine note</span><textarea class="control" id="routineNote" placeholder="Optional context for this day"></textarea></label>
+        <label class="field"><span>Workout note</span><textarea class="control" id="routineNote" placeholder="Optional context for this day"></textarea></label>
         <section aria-labelledby="routineBlocksLabel">
           <div class="label label-row">
             <span id="routineBlocksLabel">Blocks — order preserved</span>
@@ -244,14 +244,14 @@
           <p class="hint">Hold and drag to reorder. A block can be deleted only when empty.</p>
         </section>
         <div class="ruled" id="routineEditActions" hidden>
-          <button class="row compact" id="moveRoutineEarlierButton" data-action="move-routine" data-by="-1" type="button">Move routine earlier <span class="chev" aria-hidden="true">↑</span></button>
-          <button class="row compact" id="moveRoutineLaterButton" data-action="move-routine" data-by="1" type="button">Move routine later <span class="chev" aria-hidden="true">↓</span></button>
-          <button class="row compact danger" id="deleteRoutineButton" data-action="delete-routine" type="button">Delete routine <span class="chev" aria-hidden="true">›</span></button>
+          <button class="row compact" id="moveRoutineEarlierButton" data-action="move-routine" data-by="-1" type="button">Move workout earlier <span class="chev" aria-hidden="true">↑</span></button>
+          <button class="row compact" id="moveRoutineLaterButton" data-action="move-routine" data-by="1" type="button">Move workout later <span class="chev" aria-hidden="true">↓</span></button>
+          <button class="row compact danger" id="deleteRoutineButton" data-action="delete-routine" type="button">Delete workout <span class="chev" aria-hidden="true">›</span></button>
         </div>
         <p class="form-error" id="routineFormError" role="alert" data-dialog-error></p>
       </div>
       <footer class="actions">
-        <button class="button primary full" id="routineSaveButton" type="submit" value="save">Save routine</button>
+        <button class="button primary full" id="routineSaveButton" type="submit" value="save">Save workout</button>
       </footer>
     </form>
   </dialog>
@@ -259,7 +259,7 @@
   <dialog id="routineBlockDialog" class="sheet" aria-labelledby="routineBlockDialogTitle">
     <form method="dialog" id="routineBlockForm" data-submit="save-routine-block" class="sheet-panel stack" novalidate>
       <header class="sheet-head">
-        <div><h2 id="routineBlockDialogTitle">Edit block</h2><p id="routineBlockDialogSubtitle">Routine block</p></div>
+        <div><h2 id="routineBlockDialogTitle">Edit block</h2><p id="routineBlockDialogSubtitle">Block</p></div>
         <button class="icon-button" data-close-dialog="routineBlockDialog" aria-label="Close block editor" type="button">×</button>
       </header>
       <label class="field"><span>Name</span><input class="control" id="routineBlockName" autocomplete="off" placeholder="Main"></label>
@@ -274,7 +274,7 @@
   <dialog id="pickerDialog" data-dismissable class="sheet tall" aria-labelledby="pickerDialogTitle">
     <div class="sheet-panel">
       <header class="sheet-head">
-        <div><h2 id="pickerDialogTitle">Add exercise</h2><p id="pickerRoutineContext">Routine · Library</p></div>
+        <div><h2 id="pickerDialogTitle">Add exercise</h2><p id="pickerRoutineContext">Workout · Library</p></div>
         <button class="icon-button" data-close-dialog="pickerDialog" aria-label="Close exercise picker" type="button">×</button>
       </header>
       <label class="search">
@@ -291,7 +291,7 @@
   <dialog id="entryDialog" class="sheet tall" aria-labelledby="entryExerciseName">
     <form method="dialog" id="entryForm" data-submit="save-entry" class="sheet-panel" novalidate>
       <header class="sheet-head">
-        <div><h2 id="entryExerciseName">Edit routine entry</h2><p id="entryRoutineContext">Routine entry</p></div>
+        <div><h2 id="entryExerciseName">Edit slot</h2><p id="entryRoutineContext">Slot</p></div>
         <button class="icon-button" data-close-dialog="entryDialog" aria-label="Close entry editor" type="button">×</button>
       </header>
       <div class="sheet-body stack">
@@ -304,17 +304,17 @@
         </section>
         <div class="field">
           <span>Role</span>
-          <div class="segment" id="entryRoleOptions" data-segment role="group" aria-label="Routine entry role">
+          <div class="segment" id="entryRoleOptions" data-segment role="group" aria-label="Slot role">
             <button type="button" data-value="main" aria-pressed="true">Main</button>
             <button type="button" data-value="optional" aria-pressed="false">Optional</button>
           </div>
         </div>
-        <label class="field"><span>Routine block</span><select class="control" id="entryBlock"></select></label>
-        <label class="field"><span>Programming note — for this routine only</span><textarea class="control" id="entryNote" placeholder="Optional setup, rotation, or local instruction"></textarea></label>
-        <p class="hint" id="entryFormNote">This changes only this routine entry. The master exercise and its default prescription stay unchanged.</p>
+        <label class="field"><span>Block</span><select class="control" id="entryBlock"></select></label>
+        <label class="field"><span>Programming note — for this workout only</span><textarea class="control" id="entryNote" placeholder="Optional setup, rotation, or local instruction"></textarea></label>
+        <p class="hint" id="entryFormNote">This changes only this slot. The master exercise and its default prescription stay unchanged.</p>
         <p class="form-error" id="entryFormError" role="alert" data-dialog-error></p>
         <div class="ruled">
-          <button class="row compact danger" id="removeEntryButton" data-action="remove-entry" type="button">Remove from routine <span class="chev" aria-hidden="true">›</span></button>
+          <button class="row compact danger" id="removeEntryButton" data-action="remove-entry" type="button">Remove from workout <span class="chev" aria-hidden="true">›</span></button>
         </div>
       </div>
       <footer class="actions"><button class="button primary full" id="entrySaveButton" type="submit" value="save">Save entry</button></footer>
@@ -324,7 +324,7 @@
   <dialog id="entryChoiceDialog" class="sheet" aria-labelledby="entryChoiceDialogTitle">
     <form method="dialog" id="entryChoiceForm" data-submit="save-open-choice" class="sheet-panel stack" novalidate>
       <header class="sheet-head">
-        <div><h2 id="entryChoiceDialogTitle">Edit choice</h2><p id="entryChoiceDialogSubtitle">Routine choice</p></div>
+        <div><h2 id="entryChoiceDialogTitle">Edit choice</h2><p id="entryChoiceDialogSubtitle">Choice</p></div>
         <button class="icon-button" data-close-dialog="entryChoiceDialog" aria-label="Close choice editor" type="button">×</button>
       </header>
       <label class="field"><span>Prescription for this choice</span><input class="control" id="entryChoicePrescription" required maxlength="60" autocomplete="off"></label>
@@ -342,7 +342,7 @@
     <div id="entryChoicesContent" class="contents"></div>
   </dialog>
 
-  <dialog id="roundSheet" class="sheet tall" aria-labelledby="roundSheetTitle">
+  <dialog id="roundSheet" class="sheet" aria-labelledby="roundSheetTitle">
     <div id="roundSheetContent" class="contents"></div>
   </dialog>
 

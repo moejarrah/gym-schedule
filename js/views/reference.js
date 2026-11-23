@@ -103,7 +103,7 @@ function relationshipsMarkup(state, exercise) {
 }
 
 function referenceMarkup(state, exercise, { prescription, routineName, routineNote }) {
-  const contextLabel = prescription ? "Routine prescription" : "Default prescription";
+  const contextLabel = prescription ? "In this workout" : "Default prescription";
   const shownPrescription = prescription || exercise.defaultPrescription || "No prescription";
   const notes = exercise.instructions || "No notes added yet.";
 
@@ -115,7 +115,7 @@ function referenceMarkup(state, exercise, { prescription, routineName, routineNo
     <div class="sheet-body">
       <p class="reference-prescription">${escapeHtml(shownPrescription)}</p>
       ${routineNote.trim() ? `<section class="reference-group">
-        <p class="label">For this routine${routineName ? ` — ${escapeHtml(routineName)}` : ""}</p>
+        <p class="label">For this workout${routineName ? ` — ${escapeHtml(routineName)}` : ""}</p>
         <p class="reference-note">${escapeHtml(routineNote)}</p>
       </section>` : ""}
       ${factsMarkup(exercise)}

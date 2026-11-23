@@ -1129,6 +1129,12 @@ textarea.control {
   font-size: var(--fs-head);
 }
 
+/* Its two answers take the room their words need, each on one line. */
+.confirm .actions > .button {
+  flex: 1 1 auto;
+  white-space: nowrap;
+}
+
 .confirm p {
   margin-bottom: var(--space-5);
   color: var(--text-muted);

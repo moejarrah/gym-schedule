@@ -15,6 +15,7 @@ import {
   followProgram,
   longBreak,
   openRound,
+  removeProgram,
   roundRecord,
   roundSummary,
   setDay,
@@ -120,12 +121,12 @@ test("a workout from another program is listed in the round as a guest and chang
   train(store, "day-a", "2026-11-16");
 
   save(store, (draft) => startGuestWorkout(draft, other.ids[0], "2026-11-19", 0));
-  assert.equal(store.getState().settings.activeProgramId, other.programId, "while it runs, its own program shows");
-  assert.equal(roundSummary(store.getState()).program.id, "sample", "the round still follows the home program");
+  assert.deepEqual([store.getState().settings.activeProgramId, store.getState().settings.activeWorkout.guest], ["sample", true], "while it runs, the followed program is unchanged");
+  assert.deepEqual(store.update((draft) => removeProgram(draft, "sample")), { ok: false, error: "Finish or cancel the workout in progress first." });
   save(store, (draft) => finishWorkout(draft, { now: 40 * 60000 }));
 
   const state = store.getState();
-  assert.equal(state.settings.activeProgramId, "sample", "the followed program is back");
+  assert.deepEqual([state.settings.activeProgramId, state.settings.activeRoutineId], ["sample", "day-b"], "and afterwards the next workout of the round is selected");
   const round = roundSummary(state);
   assert.deepEqual(names(round), ["11-16 Day A", "11-19 Full body A (guest)"]);
   assert.deepEqual([round.number, round.remaining.map((routine) => routine.id)], [6, ["day-b"]], "still 1 of 2 workouts done");
@@ -191,6 +192,40 @@ test("a round number already in the history can't be taken; a new block starts t
   assert.equal(number(store), 6);
 });
 
+test("a round renumbered to below earlier ones never runs into them", () => {
+  const { store } = freshStore();
+  save(store, (draft) => setRoundNumber(draft, 5));
+  train(store, "day-a", "2026-11-10");
+  train(store, "day-b", "2026-11-11"); // round 5 done, round 6 open
+  save(store, (draft) => setRoundNumber(draft, 4));
+  train(store, "day-a", "2026-11-12");
+  train(store, "day-b", "2026-11-13"); // round 4 done: the next free number is 6
+  assert.deepEqual(allRounds(store.getState()).map((item) => [item.number, item.workouts.length]), [[6, 0], [4, 2], [5, 2]]);
+});
+
+test("a closed round's numbers are fixed: later changes to routines and days don't rewrite them", () => {
+  const { store } = freshStore();
+  save(store, (draft) => setRoundNumber(draft, 1));
+  train(store, "day-a", "2026-11-10");
+  save(store, (draft) => updateRoutine(draft, "day-a", { status: "optional" })); // done while Required, then made Optional
+  train(store, "day-b", "2026-11-11");
+  const closed = () => roundRecord(store.getState(), { number: 1, block: 1 });
+  assert.deepEqual([closed().done, closed().required, closed().ended], [1, 1, "complete"], "never 2 of 1");
+  save(store, (draft) => setDay(draft, "2026-11-11", [], "")); // unmarked afterwards in the Log
+  assert.deepEqual([closed().done, closed().required, closed().workouts.length], [1, 1, 1]);
+});
+
+test("deleting the followed program ends a round with workouts in it; deleting the only program ends the count", () => {
+  const { store } = freshStore();
+  const other = secondProgram(store);
+  save(store, (draft) => setRoundNumber(draft, 3));
+  train(store, "day-a", "2026-11-10");
+  save(store, (draft) => removeProgram(draft, "sample"));
+  assert.deepEqual(allRounds(store.getState()).map((item) => [item.number, item.program, item.ended, `${item.done}/${item.required}`]), [[4, "Full body", "", "0/2"], [3, "Sample program", "switch", "1/2"]]);
+  save(store, (draft) => removeProgram(draft, other.programId));
+  assert.deepEqual([openRound(store.getState()), store.getState().settings.roundLog.length], [null, 1], "no program, no open round; the history stays");
+});
+
 test("after three weeks away the owner chooses once: carry on, or start again as a new block", () => {
   const { store } = freshStore();
   save(store, (draft) => setRoundNumber(draft, 14));
@@ -204,6 +239,8 @@ test("after three weeks away the owner chooses once: carry on, or start again as
   assert.equal(longBreak(carriedOn.getState(), "2027-02-02"), null, "asked once");
   save(carriedOn, (draft) => { draft.sessions["2027-01-05"] = structuredClone(draft.sessions["2026-12-01"]); });
   assert.equal(longBreak(carriedOn.getState(), "2027-02-02"), null, "and not again for a day marked inside the break");
+  train(carriedOn, "day-a", "2027-02-02"); // trained on the day of the answer, then away again
+  assert.equal(longBreak(carriedOn.getState(), "2027-03-02")?.weeks, 4, "the next break asks again");
 
   save(store, (draft) => answerBreak(draft, true, "2027-02-02"));
   assert.deepEqual([number(store), openRound(store.getState()).block], [1, 2], "start again: round 1 of block 2");

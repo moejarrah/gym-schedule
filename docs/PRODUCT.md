@@ -10,11 +10,12 @@ Character: practical, calm, athletic. No social feeds, streak pressure, dense an
 
 ## Screens
 
-- **Workout** — follow the selected routine and log today's sets. Program editing lives elsewhere.
-- **Program** — create and organize programs, routines and their exercise slots.
+- **Round** — the app's home: which round the owner is on, what is done in it, the next workout with its Start, earlier rounds, and the way to follow another program. Settings opens from its gear.
+- **Workout** — the one workout in front of the owner: a preview before it starts, then the list to follow and log today's sets.
+- **Program** — look up any program's routines and exercises; "Edit" turns it into the editor for programs, routines and their exercise slots.
 - **Library** — find and maintain the shared master exercises.
 - **Log** — review and edit dated history and notes, see the sets logged each day, and see progress: the week, new bests, what's getting stronger or stalled.
-- **Settings** — theme, backups, restore, training rules, app version.
+- **Settings** (from the gear on Round) — theme, how an exercise's version shows, backups, restore, training rules, app version.
 
 ## How the data is organized
 
@@ -26,8 +27,8 @@ Program
             └── Choices: one or more master exercises, each with its own prescription
 ```
 
-- A **program** is a training block (e.g. PPL 9, the starting program). Several can be saved; exactly one is active whenever any exist. Switching programs changes Workout and Program, never the Library or past history. If the selected routine isn't in the newly active program, its first routine is selected.
-- A **routine** is one workout day (e.g. Push A). It belongs to one program and has a name, Gym/Home location, Required/Optional status, a note and ordered blocks.
+- A **program** is a training block (e.g. PPL 9, the starting program). Several can be saved; exactly one is followed whenever any exist (the one the rounds count through). The Program tab can show any of them without changing that. Following another program never changes the Library or past history; see "Following a program, and blocks".
+- A **routine** is one workout day (e.g. Push A); the app calls it a "workout" everywhere the owner reads it. It belongs to one program and has a name, Gym/Home location, Required/Optional status, a note and ordered blocks.
 - An **entry** is one tickable slot in a routine. It has ordered choices (the first is preferred), each with a non-blank prescription, plus its block, a programming note and a Main/Optional role. Its title is the choice names joined with "or".
 - A **master exercise** lives once in the Library and can be used by entries in any program. It has a name (the movement), a setup (see Library below), aliases, a default prescription, one or two ordered primary targets, secondary targets, a movement, equipment, a purpose (Strength, Mobility or Rehab), optional style/laterality/support/emphasis/challenge, notes and cues, an optional YouTube video, and related exercises (Easier, Alternative, Harder). Editing the name never changes its identity.
 - A **day** in the history holds the routines finished that day, the slots marked done per routine, the sets logged per slot, any exercises added to a routine for that day only, and an optional note. Calendar and recent-history views are derived from days. A day with nothing in it isn't stored; "Rest" is just a day without a finished workout.
@@ -35,7 +36,7 @@ Program
 
 ## Rounds, blocks and calendar weeks
 
-Words: a **workout** is one routine done on a day. "3 of 6 workouts done" is always written with its unit; a bare "3 of 6" is never shown.
+Words: a **workout** is one routine done on a day. "3 of 6 workouts done" is always written with its unit; a bare "3 of 6" appears only under a column headed "Workouts".
 
 ### The counts
 
@@ -47,7 +48,7 @@ Words: a **workout** is one routine done on a day. "3 of 6 workouts done" is alw
 ### What counts in a round
 
 - A finished workout of the followed program counts once, however often it is repeated. An Optional workout of that program is listed in the round but is never asked for and never counted.
-- A workout from **another program** done for the day ("A workout from another program") is an **extra**: listed in the round with its program's name, counted toward nothing, and it changes no number. While it runs, the Workout tab shows it; the followed program is unchanged before, during and after.
+- A workout from **another program** done for the day ("A workout from another program") is an **extra**: listed in the round with its program's name, counted toward nothing, and it changes no number. While it runs, the Workout tab shows it; the followed program is unchanged before, during and after, everywhere in the app.
 - A cancelled workout was never part of a round. A reopened workout stays in the round it was first filed in. A workout logged or marked for a past day joins the round that was open on that date (never a round that opened later).
 
 ### How a round ends
@@ -56,7 +57,9 @@ Words: a **workout** is one routine done on a day. "3 of 6 workouts done" is alw
 - **Ended early**: the owner taps "End round N now" (confirmation names what is left undone).
 - **By a change of program**: following a different program ends an open round that already has workouts in it; a round with nothing in it simply follows the new program instead.
 - **By a break**: see below.
-- A closed round is recorded with its number, block, program name, how many workouts it asked for, and how it ended. It never changes afterwards, whatever is done to the program (renamed, edited, deleted).
+- A closed round is recorded with its number, block, program name, how many workouts it asked for, how many of them were done, and how it ended. Those never change afterwards, whatever is done to the program (renamed, edited, deleted) or to its days in Log. Only its list of workouts can still change, when a past day inside it is logged or unmarked.
+- Round numbers never repeat inside a block: a number already used can't be picked, and after a round renumbered to below earlier ones, the next round takes the first number not used yet.
+- Deleting the followed program counts as a change of program; deleting the only program ends the count (the history stays), and it can't be done while a workout runs.
 
 ### Following a program, and blocks
 
@@ -67,7 +70,7 @@ Words: a **workout** is one routine done on a day. "3 of 6 workouts done" is alw
 
 ### Coming back after a break
 
-- After three weeks or more with no workout, the Round tab shows "Welcome back" in place of the next-workout card, once: "Carry on with round N" (a round left unfinished is closed, "ended by the break") or "Start again at round 1" (a new block). Start elsewhere in the app leads here until it is answered.
+- After three weeks or more with no workout, the Round tab shows "Welcome back" in place of the next-workout card, once: "Carry on with round N" (a round left unfinished is closed, "ended by the break") or "Start again at round 1" (a new block). Start elsewhere in the app (the Workout tab, or "Log a workout for this day" on today) leads here until it is answered.
 
 ### The tabs
 
@@ -75,11 +78,11 @@ Bottom navigation: **Round · Workout · Program · Library · Log**. Settings o
 
 **Round** (the app opens here)
 - Header: "Following <program>" and the gear; "Round N" (with the block from block 2 on) and "Week W"; a bar with one segment per Required workout; "X of Y workouts done" at one end and "started <date>" at the other.
-- One card, by state: *Next workout* (name, when it was last done, "Start <name>"); *In progress* (name, how long ago it started, exercises done, "Go to workout"); *Done today* (what was done, and the next one named, with its Start); *Round N complete* (took how many days, calendar weeks, training time, new bests, extras; then the next round's first workout); *first time* (what a round is, the − / + chooser, "Start counting"); *Welcome back*.
-- "Workouts in this round": every Required workout of the program in order, ticked with its date when done, the next one marked "Next"; then any Optional or extra workouts done in the round, tagged. Tapping an undone row opens that workout on the Workout tab, ready to start; tapping a done one opens that day.
-- "More": All rounds · A workout from another program · Follow a different program · End round N now · Change round number. While a workout runs only "All rounds" is offered.
+- One card, by state: *Next workout* (name, when it was last done, "Start <name>"); *In progress* (name, how long ago it started, exercises done, "Go to workout"); *Done today* (what was done, and the next one named, with its Start unless that workout was already done today; "Reopen <name>" opens today's finished workout again); *Round N complete* (took how many days, calendar weeks, training time, new bests, extras; then the next round's first workout); *first time* (what a round is, the − / + chooser, "Start counting"); *Welcome back*.
+- "Workouts in this round": every Required workout of the program in order, ticked with its date when done, the next one marked "Next"; then the program's Optional workouts (tagged, never asked for) and any extra workouts done in the round, tagged. Tapping an undone row opens that workout on the Workout tab, ready to start; tapping a done one opens that day. To repeat a workout already done in the round on another day, use Log › today › "Log a workout for this day".
+- "More": All rounds · A workout from another program · Follow a different program · End round N now · Change round number. Only what can be used now is listed: the two about other programs need another program, "End round" needs something done in the round, and while a workout runs only "All rounds" is offered.
 - With no program, or a program with no Required workouts, the tab says so and offers the way to fix it instead of a round.
-- **All rounds**: every round, newest first, in three columns under a header: the round number; the program with its dates and calendar weeks; "X of Y" workouts with how it ended (in progress, complete, ended early, ended by the break, ended by a change of program). A break of three weeks or more is one line between rows, and it says where a new block starts.
+- **All rounds**: every round, newest first, in three columns under a header: the round number (outlined in the accent colour for the open round); the program with its dates and its calendar weeks, a line each; "X of Y" workouts with how it ended (in progress, complete, ended early, ended by break, program changed). A break of three weeks or more is one line between rows, and it says where a new block starts.
 - **One round**: the same header as the Round tab, then labelled lines in this order: Program, Workouts, Dates, Took, Calendar weeks, Training time, New bests; then its workouts (extras and optional ones tagged), each opening its day; then what was not done.
 
 **Workout**
@@ -88,49 +91,48 @@ Bottom navigation: **Round · Workout · Program · Library · Log**. Settings o
 - In the open exercise the "Last time" line opens that exercise's history.
 
 **Program**
-- For looking things up first, changing second. The header is the program's name (tap to look at another; a dot marks the one being followed) and "Edit"; when the program shown isn't the followed one, a line says which is and offers "Follow <name>". Then the routine tabs, one line ("N exercises" and "last done <date>"), and the routine as the same quiet list as Workout: tapping an exercise unfolds its labelled lines (including "Last time") and the buttons History, Details, Video. Nothing can be changed in this mode.
-- "Edit" turns the same screen into the editor: rows show their prescription and a drag handle, tapping a row opens its editor, "+ Workout" and "+ Add exercise" appear, with links to rename the routine, its notes and blocks, and the program's rules. "Done" returns to viewing.
+- For looking things up first, changing second. The header is the program's name (tap to look at another; a dot marks the one being followed) and "Edit"; when the program shown isn't the followed one, a line says which is and offers "Follow <name>". Then the routine tabs, one line ("N exercises" and "last done <date>"), and the routine as the same quiet list as Workout: tapping an exercise unfolds its labelled lines (including "Last time", which opens its history) and the buttons History, Details, Video. Under the list, "Program rules" folds out the program's own note. Nothing can be changed in this mode.
+- "Edit" turns the same screen into the editor: rows show their prescription and a drag handle, tapping a row opens its editor, "+ Add exercise" appears under each block, and one line under the tabs holds "Edit <workout>" (its name, notes and blocks), "+ Workout" and "Program rules". "Done" returns to viewing.
 
 **Log**
 - The calendar starts on Monday with the week number at the start of each row. Recent days are a plain list; a day's second line names its round ("Round 6 · 62 min"). Rounds as such are on the Round tab.
 
 ## Completion rules
 
-- A **workout** runs from "Start workout" to "Finish workout" on Workout, one at a time. Until it's started, the routine's list is read-only and shows no progress; tapping a number says to start first. The workout belongs to the day it was started on, even past midnight. Start is above the list. While the workout runs, the top shows a stopwatch in whole minutes since Start, and Cancel, which after a confirmation deletes everything logged in that workout (sets, done marks, added exercises).
+- A **workout** runs from Start ("Start <routine>" on the Round tab or on the Workout tab's preview) to "Finish workout", one at a time. Until it's started, the routine's list is read-only and shows no progress; tapping a number says to start first. The workout belongs to the day it was started on, even when it runs past midnight. One left open from an earlier day for over 12 hours is finished as it stands the next time the app is opened. Cancel (behind a confirmation) makes it as if it never happened: its sets, done marks and added exercises go.
 - A slot is done only when "Exercise done" is tapped in its logging sheet (logging sets alone doesn't mark it done). Done with no sets logged asks first ("Mark done anyway" or "Log sets"). "Not done" undoes it and closes the sheet.
 - A routine is completed for a day when its workout is finished, with whatever was done: finishing shows a summary (Done, Started but not marked done, Not touched; each opens to list its exercises and sets), then files it in Log. Doing slots never completes a routine by itself, and Main or Optional makes no difference to finishing. Starting the same routine again that day reopens the workout. A workout left open from an earlier day (and started more than 12 hours ago) is filed as it stands the next time the app is opened, with a message.
 - A multi-choice entry is one slot: done applies to the slot, and its logged sets record which choice was done.
 - Rehab exercises aren't automatically Optional; the role is set per entry.
-- On Workout, tapping the number box opens the logging sheet; tapping the rest of the row opens the exercise reference (or the choices sheet).
+- On Workout, tapping the number box opens the logging sheet; tapping the rest of the row unfolds the exercise in place (its labelled lines, "Last time" opening the history, the alternatives opening the choices sheet, and Log sets, Details, Video).
 - In Log, marking a routine complete for a date also ticks its Main entries; unmarking it clears that routine's ticks for the date.
-- Deleting a routine or program keeps its past completions and logged sets in the history (under the name it had when finished, or "Deleted routine" for older days that kept no name) but drops its done marks. Removing an entry drops only its done marks; its logged sets stay in the exercise's history. Deleting a master exercise keeps its logged sets in Log under the name it had. If a slot's exercise is swapped in Program after sets were logged today, those sets stay in that exercise's history and the slot starts empty.
+- Deleting a routine or program keeps its past completions and logged sets in the history (under the name it had when finished, or "Deleted workout" for older days that kept no name) but drops its done marks. Removing an entry drops only its done marks; its logged sets stay in the exercise's history. Deleting a master exercise keeps its logged sets in Log under the name it had. If a slot's exercise is swapped in Program after sets were logged today, those sets stay in that exercise's history and the slot starts empty.
 - A workout's sets belong to the day the workout was started on. Sets fixed from Log belong to the day opened there.
 
 ## Actions that must keep working
 
 ### Workout
-- The Workout list is quiet: each slot is its number, its movement (with "+1" when it has alternatives) and its sets at the end of the row; once sets are logged the end shows them ("60 × 10, 9 · 62.5 × 8 +1 drop") and a done slot is greyed. One slot at a time is open in place (no box: a stronger number and an arrow), its facts unfolding under it as labelled lines, always in this order and only when there is something to say: Sets × reps, Equipment, Attachment, Grip, Grip width, Detail, Weight, Today, Last time, Note, Alternative (which opens the choices sheet); then the buttons Log sets (while a workout runs), Details (the exercise page) and Video. Opening and closing unfolds and folds; nothing snaps. While a workout runs the first slot not done is open by itself and the next opens when it is done; tapping a row opens that one instead, and tapping the open row closes it. The number box still opens the logging sheet directly.
-- Pick a routine by tapping its tab, or swipe left or right anywhere on the list to go to the next or previous one (also on Program): the list follows the finger, and on release slides away as the next routine slides in beside it, or settles back if it was not pulled far. A swipe that starts on something that scrolls sideways itself, such as the tabs, only scrolls it.
-
-- See and switch the active program. The same bar holds the workout's control: "Start workout" (or "Reopen" when it was finished today, or "Go to …" when another routine's workout is running), and while a workout runs its stopwatch and Cancel. A routine's tab shows a dot while its workout runs and a tick once it was finished today.
-- Select any routine (the selected tab stays visible in the tab strip).
+- The Workout list is quiet: each slot is its number, its movement (with "+1" when it has alternatives) and the prescription of the choice it shows at the end of the row; once sets are logged the end shows them ("60 × 10, 9 · 62.5 × 8 +1 drop") and a done slot is greyed. One slot at a time is open in place (no box: a stronger number and an arrow), its facts unfolding under it as labelled lines, always in this order and only when there is something to say: Sets × reps, Equipment, Attachment, Grip, Grip width, Detail, Weight, Today, Last time, Note, Alternative (which opens the choices sheet); then the buttons Log sets (while a workout runs), Details (the exercise page) and Video. Opening and closing unfolds and folds; nothing snaps. While a workout runs the first slot not done is open by itself and the next opens when it is done; tapping a row opens that one instead, and tapping the open row closes it. The number box still opens the logging sheet directly.
+- On Program, pick a routine by tapping its tab, or swipe left or right anywhere on the list to go to the next or previous one: the list follows the finger, and on release slides away as the next routine slides in beside it, or settles back if it was not pulled far. A swipe that starts on something that scrolls sideways itself, such as the tabs, only scrolls it. The Workout tab has no routine tabs: the workout shown there is chosen on the Round tab.
+- The top of the Workout tab names the round and the workout and holds its control: "Start" (or "Reopen" when that workout was finished today), and while it runs its stopwatch and Cancel. Under it: how many exercises, and when it was last done.
 - See the routine note, its blocks and numbered slots with prescriptions and note previews.
-- Open a one-choice slot's reference directly. A multi-choice slot opens a sheet listing each choice with its own reference and video buttons.
+- From an open slot, "Details" opens the exercise's reference; the alternatives line opens a sheet listing each choice with its own reference and video buttons.
 - In the reference, see the routine prescription and entry note separately from the master's targets, classification, notes, related exercises and video; open a related exercise; go to the master editor.
 - Log today's sets from a slot's number: the sheet shows the exercise's last 3 sessions (date, routine, every set and drop), one row per planned set (from the prescription's set count) with last time's set beside it, and grey suggestions that a tick takes when the fields are empty. Tap last time's set to copy it. Ticking saves straight away and a tick takes the grey value shown in an empty field; unticking a set takes it and its drops out of the log, and ticking it again brings the drops back; Enter in a field ticks its row (on a hardware keyboard). Add sets, and chain any number of drop sets under the set ticked last with "Drop set after set N" (always under the table, next to "Set"), and remove any drop with its × (a saved drop is taken out of the log). Switch which choice a multi-choice slot is logging. "Exercise done" marks the slot done, and it or Close also save rows that were typed but not marked done; Not done undoes it and closes the sheet; the × in the sheet's header closes it without saving rows that were typed but not ticked. There is no rest timer.
-- See the workout's logged sets as small boxes under each slot's name, with drops counted. A block whose slots are all Optional has a dashed outline; slot numbers run on through it.
+- See the workout's logged sets at the end of each slot's row, with drops counted, and as small boxes on the open slot's "Today" line. A block whose slots are all Optional has a dashed outline; slot numbers run on through it.
 - Add an exercise for today only: "Add exercise for today" opens the Library, and "You sometimes add" lists what was added to this routine in the last four weeks, most often first, with a + to add it again. Added exercises are numbered after the routine's slots, logged the same way, show in Log and in the exercise's history, and never change the program. One with nothing done can be removed from its logging sheet.
 - In the logging sheet: under "Last 3 times" a line says what beats last time (one more rep, or add weight once every set reached the top of the prescription's rep range), and last time's exercise note shows there. Tapping a set's number marks it as a warm-up ("W"); warm-ups never count towards bests or progress. A ticked set that beats every earlier session is marked "Best". Once a set is ticked, a note for the exercise can be typed; it is saved with the sets. Correcting a ticked set and tapping its tick keeps it ticked. Switching choice with sets ticked asks before moving them; removing an added exercise with sets ticked asks first.
 - After Finish, the summary becomes the result: duration, exercises and sets done, new bests, and each logged exercise against its session before (▲, ▼ or Same), plus a reminder when there is no backup or the last one is over two weeks old. A workout's duration is saved with it (not when it ran over five hours, was left open overnight, or was logged for a past day).
-- A reopened workout shows "Close again" in place of Cancel: it closes as finished and deletes nothing. A routine or program can't be deleted while its workout is in progress, and Log can't tick or untick that routine for that day. A workout in progress can always be reached from Workout, whatever program or routine is showing.
+- A reopened workout shows "Close again" in place of Cancel: it closes as finished and deletes nothing. A routine or program can't be deleted while its workout is in progress, and Log can't tick or untick that routine for that day. A workout in progress is always what the Workout tab shows, and the Round tab's card leads to it.
 - Open an exercise's progress from the logging sheet, its reference or Log's Progress view: how many sessions since when; a chart of the last 20 sessions with a dot on each one that set a new best, and above it the latest number with its change since the first session; a switch for what the chart shows (Strength: the estimated 1-rep max, marked rough above 12 reps; Best set; Volume: kg × reps; only the ones that apply, so bodyweight and timed exercises get the best set alone); the bests (best set, and the most reps at each of the five heaviest weights); and every session newest first with its routine, a "Best" tag when it beat every earlier session, its sets (warm-ups tagged "W"), its change from the session before and that day's exercise note.
 - How sets compare: warm-up sets and drops never count. With weight, the best set is the one with the highest estimated 1-rep max (weight × (1 + reps ÷ 30)). Without weight (bodyweight, assisted, timed), less assistance or more added load wins first, then reps or seconds.
 - See when the routine was last finished, or that it's in progress or finished today.
 
 ### Program
 
-- See and switch the active program. Create an empty program or a duplicate (new routine/block/entry IDs, same Library exercises). Edit its name and note; delete it after confirmation (its routines go; Library exercises stay).
-- Read the program note in a compact disclosure.
+- Look at any program (the header's name opens the Programs sheet) without changing which one is followed; "Follow <name>" does that, through the sheet described under Rounds. Create an empty program or a duplicate (new routine/block/entry IDs, same Library exercises); neither becomes the followed program by being made. Edit its name and note ("Program rules" in edit mode); delete it after confirmation (its routines go; Library exercises stay).
+- View mode is the default and changes nothing: the routine as a quiet list, each exercise unfolding in place with its labelled lines, "Last time", its note, its alternatives, and History, Details, Video. "Edit" switches to the editor below; "Done" switches back.
+- Read the routine's note in a compact disclosure.
 - Add a routine; edit its name, location, status, note and blocks; move it earlier or later; delete it after confirmation.
 - Add, rename, reorder (hold and drag) and delete blocks. Only empty blocks can be deleted. A block without a name is shown as "Main" wherever blocks are listed.
 - Search the Library and add an exercise to a chosen block (it starts as a Main entry with the exercise's default prescription).
@@ -154,13 +156,14 @@ Bottom navigation: **Round · Workout · Program · Library · Log**. Settings o
 
 - Move between months; see which dates have completions, logged sets or notes.
 - Switch between Calendar and Progress at the top (Calendar each time the app is opened).
-- Reopen any of the eight most recent days from the list under the calendar. A finished routine goes by the name it had that day, with the workout's duration when it was timed.
-- Progress: this week's finished workouts (weeks start Monday), the average per week over the four weeks before, and the new bests this month; "Getting stronger", up to five exercises with three or more sessions in the last 42 days whose best set rose from the first of them to the last, with the percentage; "Stalled", up to five exercises of the active program trained in the last 42 days whose last four sessions set no new best, with the date of the last one; "Sets per muscle this week", where a working set counts 1 for each primary target of its exercise and 0.5 for each secondary one. A row opens the exercise's progress. Sections with nothing in them are left out.
-- Open any date: mark routines from the active program as completed and edit the note, and see the sets logged that day; tapping a logged exercise opens its logging sheet to fix the sets (when its slot is still in the program), and its × removes that exercise's sets from the day after a confirmation. Past routines from other programs are shown and labelled; deleted ones go by the name they had when finished, labelled "Deleted routine". A timed workout shows its duration. Clearing the routines and note removes the day unless it has logged sets.
+- Reopen any of the eight most recent days from the list under the calendar. A finished routine goes by the name it had that day; its second line names its round, the workout's duration when it was timed, and its program when that isn't the followed one.
+- Progress: this week's finished workouts (weeks start Monday), the average per week over the four weeks before, and the new bests this month; "Getting stronger", up to five exercises with three or more sessions in the last 42 days whose best set rose from the first of them to the last, with the percentage; "Stalled", up to five exercises of the followed program trained in the last 42 days whose last four sessions set no new best, with the date of the last one; "Sets per muscle this week", where a working set counts 1 for each primary target of its exercise and 0.5 for each secondary one. A row opens the exercise's progress. Sections with nothing in them are left out.
+- Open any date: mark routines from the followed program as completed and edit the note, and see the sets logged that day; tapping a logged exercise opens its logging sheet to fix the sets (when its slot is still in the program), and its × removes that exercise's sets from the day after a confirmation. Past routines from other programs are shown and labelled; deleted ones go by the name they had when finished, labelled "Deleted workout". A timed workout shows its duration. Clearing the routines and note removes the day unless it has logged sets.
 - Forgot to log a workout: in a past (or today's) date, "Log a workout for this day" starts that routine's workout for that date. It runs on Workout like any other, without a stopwatch. What was typed in the day sheet is kept when a logged exercise is removed or opened from it. Future dates can't be marked.
 
 ### Settings
 
+- Open Settings from the gear on the Round tab; "Back to Round" leaves it.
 - Switch light and dark theme.
 - Export all data as a backup file (on iPhone through the share sheet, e.g. Save to Files). Settings shows when the last backup was exported.
 - Import a backup after confirming that it replaces everything. Backups from older app versions are upgraded. Errors are shown and change nothing.

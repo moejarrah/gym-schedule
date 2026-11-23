@@ -10,7 +10,7 @@
 
 import { mainElement, navigate, registerActions, registerView, render, store } from "../context.js";
 import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, formatDate, fresh, openDialog, redraw, report, segmentValue } from "../dom.js";
-import { activeProgram, calendarWeek, dateFromKey, entryLog, exerciseById, fullName, localDateKey, programRoutines, removeDayLog, roundProgram, routineById, routineProgram, sessionFor, setDay, startWorkout, workoutName } from "../model.js";
+import { activeProgram, calendarWeek, dateFromKey, entryLog, exerciseById, fullName, localDateKey, longBreak, openRound, programRoutines, removeDayLog, roundProgram, routineById, routineProgram, sessionFor, setDay, setRoundNumber, startWorkout, workoutName } from "../model.js";
 import { overview } from "../progress.js";
 import { label } from "../vocab.js";
 import { openExerciseHistory } from "./history.js";
@@ -26,7 +26,7 @@ const log = { view: "calendar" }; // or "progress"; forgotten when the app is cl
 
 const WEEKLY_SETS_GUIDE = 20; // a full bar in "Sets per muscle"
 
-const deletedLabel = (count) => (count === 1 ? "Deleted routine" : `${count} deleted routines`);
+const deletedLabel = (count) => (count === 1 ? "Deleted workout" : `${count} deleted workouts`);
 const minutesLabel = (minutes) => (typeof minutes === "number" ? `${minutes} min` : "");
 
 function logMarkup(state) {
@@ -64,7 +64,7 @@ function calendarMarkup(state) {
     const labelParts = [
       formatDate(date, LONG_DATE),
       isToday ? "today" : "",
-      completedCount ? `${completedCount} completed ${completedCount === 1 ? "routine" : "routines"}` : "",
+      completedCount ? `${completedCount} finished ${completedCount === 1 ? "workout" : "workouts"}` : "",
       guest ? "from another program" : "",
       loggedCount ? `sets logged for ${loggedCount} ${loggedCount === 1 ? "exercise" : "exercises"}` : "",
       hasNote ? "note recorded" : "",
@@ -98,7 +98,7 @@ function calendarMarkup(state) {
 function recentSessionsMarkup(state) {
   const recentKeys = Object.keys(state.sessions).sort((a, b) => b.localeCompare(a)).slice(0, RECENT_LIMIT);
   if (!recentKeys.length) {
-    return `<div class="card row-main log-recent"><strong class="row-title">No history yet</strong><span class="row-meta">Completed routines and day notes will appear here.</span></div>`;
+    return `<div class="card row-main log-recent"><strong class="row-title">No history yet</strong><span class="row-meta">Finished workouts and day notes will appear here.</span></div>`;
   }
   return `<div class="stack snug log-recent">${recentKeys.map((dateKey) => recentRowMarkup(state, dateKey)).join("")}</div>`;
 }
@@ -126,7 +126,7 @@ function recentRowMarkup(state, dateKey) {
     loggedCount ? `${loggedCount} ${loggedCount === 1 ? "exercise" : "exercises"} logged` : "",
     session.note ? "Note added" : "",
   ].filter(Boolean);
-  const summary = context.join(" · ") || (deletedCount ? "No longer in any program" : names.length ? "No sets logged" : "No completed routines");
+  const summary = context.join(" · ") || (deletedCount ? "No longer in any program" : names.length ? "No sets logged" : "No finished workouts");
   const date = dateFromKey(dateKey);
   const fullDate = formatDate(date, LONG_DATE);
   const dayAndMonth = formatDate(date, { day: "numeric", month: "short" });
@@ -192,15 +192,15 @@ function routineRowMarkup(state, session, routine, dateKey, inactive = false) {
   const completion = selected && mainIds.length ? `${checkedMain}/${mainIds.length} main` : "";
   const minutes = selected ? minutesLabel(session.workouts[routine.id]?.minutes) : "";
   const running = state.settings.activeWorkout?.routineId === routine.id && state.settings.activeWorkout.dateKey === dateKey;
-  const context = [running ? "In progress: finish it on Workout" : "", routineProgram(state, routine.id).name, locationLabel(routine.group), inactive ? "Inactive" : "", completion, minutes].filter(Boolean).join(" · ");
+  const context = [running ? "In progress: finish it on Workout" : "", routineProgram(state, routine.id).name, locationLabel(routine.group), inactive ? "Not followed" : "", completion, minutes].filter(Boolean).join(" · ");
   return checkRowMarkup({ routineId: routine.id, checked: selected, name: routine.name, context, locked: running || dateKey > localDateKey() });
 }
 
 // A finished routine that has since been deleted, by the name it had that day.
 function deletedRowMarkup(session, routineId) {
   const record = session.workouts[routineId];
-  const context = [record?.name ? "Deleted routine" : "", record?.program, minutesLabel(record?.minutes)].filter(Boolean).join(" · ");
-  return checkRowMarkup({ routineId, checked: true, name: record?.name || "Deleted routine", context: context || "No longer in any program" });
+  const context = [record?.name ? "Deleted workout" : "", record?.program, minutesLabel(record?.minutes)].filter(Boolean).join(" · ");
+  return checkRowMarkup({ routineId, checked: true, name: record?.name || "Deleted workout", context: context || "No longer in any program" });
 }
 
 function routineSectionMarkup(heading, rows) {
@@ -260,14 +260,14 @@ function dayEditorMarkup(state, dateKey) {
     </header>
     <form id="dayForm" class="contents" data-submit="save-day" data-date="${dateKey}">
       <div class="sheet-body stack" data-keep-scroll="day">
-        ${program ? routineSectionMarkup("Completed routines", activeRoutines.length
+        ${program ? routineSectionMarkup("Workouts done", activeRoutines.length
           ? activeRoutines.map((routine) => routineRowMarkup(state, session, routine, dateKey))
-          : [`<p class="hint">This program has no routines yet.</p>`]) : ""}
-        ${otherRoutines.length ? routineSectionMarkup(program ? "Already recorded from another program" : "Recorded routines",
+          : [`<p class="hint">This program has no workouts yet.</p>`]) : ""}
+        ${otherRoutines.length ? routineSectionMarkup(program ? "Already recorded from another program" : "Recorded workouts",
           otherRoutines.map((routine) => routineRowMarkup(state, session, routine, dateKey, Boolean(program)))) : ""}
-        ${deletedIds.length ? routineSectionMarkup("Deleted routines",
+        ${deletedIds.length ? routineSectionMarkup("Deleted workouts",
           deletedIds.map((routineId) => deletedRowMarkup(session, routineId))) : ""}
-        ${!program && !recordedIds.length ? `<p class="hint">Add a program before logging a routine completion.</p>` : ""}
+        ${!program && !recordedIds.length ? `<p class="hint">Add a program before marking a workout done.</p>` : ""}
         ${loggedSetsMarkup(state, session, dateKey)}
         ${backfillMarkup(state, activeRoutines, dateKey)}
         <label class="field"><span>Note</span><textarea class="control" id="dayNote" rows="4" maxlength="500" placeholder="Optional note">${escapeHtml(session.note)}</textarea></label>
@@ -326,7 +326,19 @@ registerActions({
   "backfill-workout": (button) => {
     const { id, date } = button.dataset;
     keepDayForm();
-    if (!report(store.update((draft) => startWorkout(draft, id, date, Date.now(), date !== localDateKey())))) return;
+    // For today it is an ordinary start: the Round tab asks first after a long break, and
+    // counting begins with it.
+    const state = store.getState();
+    const today = date === localDateKey() && !state.sessions[date]?.routineIds.includes(id);
+    if (today && longBreak(state)) {
+      closeDialog("#dayDialog");
+      navigate("round");
+      return;
+    }
+    if (!report(store.update((draft) => {
+      if (today && !openRound(draft)) setRoundNumber(draft, 1);
+      startWorkout(draft, id, date, Date.now(), date !== localDateKey());
+    }))) return;
     closeDialog("#dayDialog");
     store.update((draft) => { draft.settings.activeRoutineId = id; });
     navigate("workout");

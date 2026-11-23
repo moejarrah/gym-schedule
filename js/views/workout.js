@@ -12,7 +12,7 @@ import { compareSets, exerciseMode, exerciseProgress } from "../progress.js";
 import { openPicker } from "./entry-editor.js";
 import { openLogger } from "./logger.js";
 import { openExerciseReference, openExerciseVideo } from "./reference.js";
-import { alternativeNames, entryPresentation, exerciseFactLines, exerciseMarkup, movementMarkup, roundName, saysOptional, setChipsMarkup, setsSummary, shortDate, slotMotion, videoUrl } from "./shared.js";
+import { alternativeNames, entryPresentation, exerciseFactLines, exerciseMarkup, movementMarkup, roundName, saysOptional, setChipsMarkup, setsSummary, shortDate, slotLine, slotLinkLine, slotMotion, videoUrl } from "./shared.js";
 
 // When Start was last tapped (page time), to ignore a double-tap landing on Cancel.
 let startedTapAt = -Infinity;
@@ -44,14 +44,14 @@ function headMarkup(state, routine) {
   // filed in, and one logged for a past day joins the round that was open on that day.
   const filed = (tag) => (tag?.round ? { number: tag.round, block: tag.block || 1 } : null);
   const [round, what] = workout
-    ? [workout.reopened ? filed(workout.reopened) : workout.backdated ? null : open, workout.home ? `extra workout · ${routineProgram(state, routine.id).name}` : "in progress"]
+    ? [workout.reopened ? filed(workout.reopened) : workout.backdated ? null : open, workout.guest ? `extra workout · ${routineProgram(state, routine.id).name}` : "in progress"]
     : record
       ? [filed(record), "done today"]
       : [open, summary.remaining[0]?.id === routine.id ? "next workout" : "workout"];
   const eyebrow = round ? `${roundName(round)} · ${what}` : what.charAt(0).toUpperCase() + what.slice(1);
   const last = record ? todayKey : lastFinished(state, routine.id, workout?.dateKey || todayKey);
-  return `<header class="workout-head ${workout?.home ? "is-guest" : ""}">
-      <p class="label truncate">${escapeHtml(eyebrow)}</p>
+  return `<header class="workout-head ${workout?.guest ? "is-guest" : ""}">
+      <p class="label">${escapeHtml(eyebrow)}</p>
       <h2 class="bar-title truncate">${escapeHtml(routine.name)}</h2>
       <div class="workout-control">${controlMarkup(workout, routine, Boolean(record))}</div>
     </header>
@@ -169,7 +169,7 @@ function openSlotId(state, routine, dateKey) {
 // One slot of the routine, or an exercise added for the day. Outside a workout
 // (no dateKey) it shows no progress and can't be logged.
 function slotMarkup(state, routine, slot, number, dateKey, showOptionalRole = false) {
-  const { choices, preferred, title: name, prescription } = entryPresentation(slot, state);
+  const { choices, preferred, title: name } = entryPresentation(slot, state);
   const checked = Boolean(dateKey) && isEntryChecked(state, dateKey, routine.id, slot.id);
   const log = dateKey ? entryLog(state, dateKey, slot.id) : null;
   // What was logged today is the exercise the slot shows; otherwise its preferred choice.
@@ -178,7 +178,8 @@ function slotMarkup(state, routine, slot, number, dateKey, showOptionalRole = fa
   const status = checked ? ", done" : log ? `, ${plural(log.sets.length, "set")} logged` : "";
   const open = openSlotId(state, routine, dateKey) === slot.id;
   const data = `data-routine-id="${escapeHtml(routine.id)}" data-entry-id="${escapeHtml(slot.id)}"`;
-  const end = log ? setsSummary(log) : checked ? "Done" : slot.choices[0].prescription ? prescription : "";
+  // The row ends with what was logged, or with the shown choice's own prescription.
+  const end = log ? setsSummary(log) : checked ? "Done" : shown.choice?.prescription || "";
   const row = `<article class="row split tap slot ${checked ? "is-done" : ""} ${log ? "has-sets" : ""} ${open ? "is-open" : ""}">
     <button class="icon-button" type="button" data-action="open-logger" data-routine-id="${escapeHtml(routine.id)}" data-id="${escapeHtml(slot.id)}" aria-label="Log sets for ${escapeHtml(name)}${status}">
       <span class="tickbox" aria-hidden="true">
@@ -196,10 +197,8 @@ function slotMarkup(state, routine, slot, number, dateKey, showOptionalRole = fa
   const exercise = shown.exercise;
   const last = exercise ? exerciseHistory(state, exercise.id, { beforeDateKey: dateKey || localDateKey(), limit: 1 })[0] : null;
   const note = slot.note.trim();
-  // One labelled line per fact, always in this order; a line with nothing to say is left out.
-  const line = (name, value) => (value ? `<div class="slot-line"><span>${name}</span><span>${value}</span></div>` : "");
-  // A line that opens something is one button: its value in the accent colour, then an arrow.
-  const linkLine = (name, value, attributes) => (value ? `<button class="slot-line" type="button" ${attributes}><span>${name}</span><span class="slot-link">${value}</span>${chevronIcon("right")}</button>` : "");
+  const line = slotLine;
+  const linkLine = slotLinkLine;
   const video = exercise?.videoId
     ? `<a class="button" href="${videoUrl(exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for preferred choice ${escapeHtml(shown.name)}">Video</a>`
     : `<button class="button" type="button" data-action="open-workout-video" data-id="${escapeHtml(exercise?.id || "")}" aria-label="Find a video for preferred choice ${escapeHtml(shown.name)}">Video</button>`;
@@ -323,7 +322,7 @@ function resultMarkup(state, routineId, dateKey) {
       ${rows ? `<p class="label">Against last time</p>${rows}` : `<p class="hint">No sets were logged.</p>`}
       ${age === null || age > 14 ? `<p class="hint">${age === null ? "No backup yet." : `Last backup was ${age} days ago.`} Export one in Settings.</p>` : ""}
     </div>
-    <footer class="actions"><button class="button" type="button" data-close-dialog="finishDialog">Close</button><span></span></footer>
+    <footer class="actions"><button class="button" type="button" data-close-dialog="finishDialog">Close</button></footer>
   </div>`;
 }
 

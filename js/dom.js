@@ -21,10 +21,6 @@ export function formatDate(date, options) {
 
 // ---------- icons ----------
 
-export function editIcon() {
-  return `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m4 20 4.2-1 10.6-10.6a2 2 0 0 0-2.8-2.8L5.4 16.2 4 20Z"/><path d="m14.5 7.1 2.8 2.8"/></svg>`;
-}
-
 export function playIcon() {
   return `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></svg>`;
 }
@@ -48,7 +44,7 @@ export function toast(message, { long = false } = {}) {
   if (!element || !message) return;
   clearTimeout(toastTimer);
   // Open dialogs sit above the page: the toast goes inside the top one to be seen.
-  const host = $$("dialog[open]").at(-1) || document.body;
+  const host = $$("dialog[open]").filter((open) => !("closing" in open.dataset)).at(-1) || document.body;
   if (element.parentElement !== host) host.append(element);
   element.textContent = message;
   element.classList.add("show");
@@ -143,9 +139,16 @@ export function openDialog(dialog, { onClose } = {}) {
 }
 
 // Closes after the sheet has slid out (see [data-closing] in components.css).
+// A message shown inside a dialog moves out as the dialog closes, so it is still seen.
+function keepToast(dialog) {
+  const message = $("#toast");
+  if (message && dialog.contains(message)) ($$("dialog[open]").filter((open) => open !== dialog && !("closing" in open.dataset)).at(-1) || document.body).append(message);
+}
+
 export function closeDialog(dialog, returnValue) {
   dialog = element(dialog);
   if (!dialog?.open || "closing" in dialog.dataset) return;
+  keepToast(dialog);
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     dialog.close(returnValue);
     return;

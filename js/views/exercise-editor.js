@@ -263,8 +263,8 @@ function saveExercise() {
 
 function exerciseDeletionMessage(exercise, impact) {
   const routineCleanup = impact.programmedUses
-    ? `Routine cleanup: ${plural(impact.alternativeChoicesRemoved, "alternative choice")} removed; ${plural(impact.preferredChoicesPromoted, "next choice")} promoted; ${plural(impact.slotsDeleted, "slot")} deleted with any saved checks.`
-    : "No routine choices, slots, or saved checks will change.";
+    ? `In your workouts: ${plural(impact.alternativeChoicesRemoved, "alternative choice")} removed; ${plural(impact.preferredChoicesPromoted, "next choice")} promoted; ${plural(impact.slotsDeleted, "slot")} deleted with any saved checks.`
+    : "No workout slots, choices or saved checks will change.";
   return [
     `Delete “${fullName(exercise)}”?`,
     `Programmed use: ${plural(impact.programmedUses, "slot")}.`,

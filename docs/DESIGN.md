@@ -20,9 +20,9 @@ The current look was agreed with the owner in November 2026 on a design canvas. 
 | `program.png` | Program |
 
 The boards show a few things that weren't built, and the app differs from them on purpose in these places:
-- The week labels ("Week 6") were left out because how weeks are counted is undecided (see `docs/TODO.md`).
+- The boards have no Round tab. It came later and is the app's home: the round and the calendar week are shown there (`docs/PRODUCT.md`, "Rounds, blocks and calendar weeks"), and the Workout tab lost its program bar and routine tabs to it.
 - The rest-timer note under the logging sheet was left out because the owner doesn't want a timer.
-- Program keeps its routine tabs and inline editing instead of the board's list of routines.
+- Program keeps its routine tabs instead of the board's list of routines. It opens as a read-only view, and "Edit" turns it into the editor.
 - Library rows show the prescription, not "last 15 × 12".
 - Log keeps the month switcher above the calendar.
 

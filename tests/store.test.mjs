@@ -282,8 +282,8 @@ test("on upgrade Pull A's row slot prefers the T-bar row, unless the owner had c
 test("the round, its history and the workouts' round tags are saved, loaded and backed up; a malformed round is refused", () => {
   const state = sampleState();
   state.settings.round = { number: 6, block: 2, programId: "sample", since: "2026-11-01", breakAnswered: "2026-10-12" };
-  state.settings.roundLog = [{ number: 5, block: 2, program: "Sample program", programId: "sample", required: 2, ended: "complete" }];
-  state.settings.activeWorkout = { routineId: "day-a", dateKey: "2026-11-04", startedAt: 1, home: { programId: "sample", routineId: "day-b" } };
+  state.settings.roundLog = [{ number: 5, block: 2, program: "Sample program", programId: "sample", required: 2, done: 2, ended: "complete" }];
+  state.settings.activeWorkout = { routineId: "day-a", dateKey: "2026-11-04", startedAt: 1, guest: true };
   Object.assign(state.sessions[Object.keys(state.sessions)[0]].workouts["day-a"], { round: 5, block: 2, guest: true });
   assert.equal(stateProblem(state), "");
   const { store } = freshStore(state);
@@ -305,10 +305,14 @@ test("upgrading from one round count per program: the followed program's count c
   Object.assign(v20.sessions[day].workouts["day-a"], { round: 6, block: 2, roundOf: "sample" });
   v20.sessions["2026-10-20"] = { ...structuredClone(v20.sessions[day]), logs: {}, extras: {}, note: "", workouts: { "day-a": { name: "Day A", program: "Other", minutes: 40, round: 3, block: 1, roundOf: "other", guest: true } } };
 
+  // An earlier round of the followed program: it was never recorded as a round.
+  v20.sessions["2026-10-28"] = { ...structuredClone(v20.sessions[day]), logs: {}, extras: {}, note: "", workouts: { "day-a": { name: "Day A", program: "Sample program", minutes: 35, round: 5, block: 2, roundOf: "sample" } } };
+
   const { store } = freshStore(v20);
   const state = store.getState();
   assert.equal(store.getLastError(), "");
   assert.deepEqual(state.settings.round, { number: 6, block: 2, programId: "sample", since: "2026-11-01" });
+  assert.deepEqual(state.sessions["2026-10-28"].workouts["day-a"], { name: "Day A", program: "Sample program", minutes: 35 });
   assert.equal(state.settings.rounds, undefined);
   assert.deepEqual(state.sessions[day].workouts["day-a"], { ...sampleState().sessions[day].workouts["day-a"], round: 6, block: 2 });
   assert.deepEqual(state.sessions["2026-10-20"].workouts["day-a"], { name: "Day A", program: "Other", minutes: 40 });

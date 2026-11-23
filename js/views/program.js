@@ -42,7 +42,7 @@ import {
   updateRoutine,
 } from "../model.js";
 import { openEntryEditor, openPicker } from "./entry-editor.js";
-import { alternativeNames, entryPresentation, exerciseFactLines, movementMarkup, revealSelectedTab, routineTabsMarkup, saysOptional, setsSummary, shortDate, slotMotion, videoUrl } from "./shared.js";
+import { alternativeNames, entryPresentation, exerciseFactLines, movementMarkup, revealSelectedTab, routineTabsMarkup, saysOptional, setsSummary, shortDate, slotLine, slotLinkLine, slotMotion, videoUrl } from "./shared.js";
 
 // What the screen shows. `programId` is "" while it simply shows the program being
 // followed; `routineId` falls back to the program's first routine; `slotId` is the
@@ -100,19 +100,15 @@ function headMarkup(program, followed, hasRoutines) {
   </div>`}`;
 }
 
-// The routine tabs; in edit mode "+ Workout" ends the strip.
-function tabsMarkup(routines, routine) {
-  const tabs = routineTabsMarkup(routines, routine?.id, null, "view-routine");
-  if (!tabs || !shown.editing) return tabs;
-  return `${tabs.slice(0, tabs.lastIndexOf("</div>"))}<button class="link-button tab-add" type="button" data-action="new-routine" aria-label="Add a workout">+ Workout</button></div>`;
-}
+const tabsMarkup = (routines, routine) => routineTabsMarkup(routines, routine?.id, "view-routine");
 
-// One line under the tabs. Viewing: a fact at each end. Editing: the two things that
-// aren't on the list itself.
+// One line under the tabs. Viewing: a fact at each end. Editing: what isn't on the list
+// itself (this workout's name, notes and blocks; a new workout; the program's rules).
 function routineLineMarkup(state, program, routine) {
   if (shown.editing) {
     return `<div class="program-line is-ruled">
-      <button class="link-button" type="button" data-action="edit-routine" data-id="${escapeHtml(routine.id)}" aria-label="Edit ${escapeHtml(routine.name)}: rename, notes, blocks">Rename, notes, blocks</button>
+      <button class="link-button" type="button" data-action="edit-routine" data-id="${escapeHtml(routine.id)}" aria-label="Edit ${escapeHtml(routine.name)}: rename, notes, blocks"><span class="truncate">Edit ${escapeHtml(routine.name)}</span></button>
+      <button class="link-button" type="button" data-action="new-routine" aria-label="Add a workout">+ Workout</button>
       <button class="link-button" type="button" data-action="edit-program" data-id="${escapeHtml(program.id)}">Program rules</button>
     </div>`;
   }
@@ -121,6 +117,19 @@ function routineLineMarkup(state, program, routine) {
     <span>${plural(routine.entries.length, "exercise")}</span>
     <span>${last ? `last done ${escapeHtml(shortDate(last))}` : "not done yet"}</span>
   </div>`;
+}
+
+// The program's own note (its weekly layout and rules), to read while looking: under
+// the routine's list, folded.
+function programNoteMarkup(program) {
+  if (shown.editing || !program.note.trim()) return "";
+  return `<section>
+    <div class="label section-label"><span>Program rules</span></div>
+    <details class="note" data-keep-open="program-note">
+      <summary><span class="hint clamp-2">${escapeHtml(program.note.trim())}</span>${chevronIcon("down")}</summary>
+      <p class="hint">${escapeHtml(program.note)}</p>
+    </details>
+  </section>`;
 }
 
 function routineNoteMarkup(note) {
@@ -135,7 +144,7 @@ function routineNoteMarkup(note) {
 // it has alternatives) and its prescription at the end. The open one unfolds its
 // labelled lines and the buttons that look things up. Nothing here changes anything.
 function slotMarkup(state, routine, entry, showOptionalRole) {
-  const { choices, preferred, title, prescription } = entryPresentation(entry, state);
+  const { choices, preferred, title } = entryPresentation(entry, state);
   const others = choices.slice(1);
   const open = shown.slotId === entry.id;
   const toggle = `data-action="toggle-program-slot" data-id="${escapeHtml(entry.id)}"`;
@@ -143,7 +152,7 @@ function slotMarkup(state, routine, entry, showOptionalRole) {
     <span class="icon-button" ${toggle} aria-hidden="true"><span class="tickbox"><span>${entryNumber(routine, entry.id)}</span></span></span>
     <button class="row-body" type="button" ${toggle} aria-expanded="${open}" aria-label="${open ? "Hide" : "Show"} ${escapeHtml(title)} details">
       <span class="row-main"><span class="row-title">${movementMarkup(preferred?.exercise)}${others.length ? ` <span class="version">+${others.length}</span>` : ""}${showOptionalRole ? ` <span class="label tag">Optional</span>` : ""}</span></span>
-      ${open ? chevronIcon("up") : `<span class="slot-end">${escapeHtml(entry.choices[0]?.prescription ? prescription : "")}</span>`}
+      ${open ? chevronIcon("up") : `<span class="slot-end">${escapeHtml(preferred?.choice?.prescription || "")}</span>`}
     </button>
   </article>`;
   if (!open) return row;
@@ -152,8 +161,7 @@ function slotMarkup(state, routine, entry, showOptionalRole) {
   const exerciseId = escapeHtml(exercise?.id || "");
   const last = exercise ? exerciseHistory(state, exercise.id, { limit: 1 })[0] : null;
   const data = `data-routine-id="${escapeHtml(routine.id)}" data-entry-id="${escapeHtml(entry.id)}"`;
-  // One labelled line per fact, always in this order; a line with nothing to say is left out.
-  const line = (name, value) => (value ? `<div class="slot-line"><span>${name}</span><span>${value}</span></div>` : "");
+  const line = slotLine;
   const video = exercise?.videoId
     ? `<a class="button" href="${videoUrl(exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for ${escapeHtml(preferred.name)}">Video</a>`
     : `<button class="button" type="button" data-action="open-workout-video" data-id="${exerciseId}" aria-label="Find a video for ${escapeHtml(preferred?.name)}">Video</button>`;
@@ -161,9 +169,9 @@ function slotMarkup(state, routine, entry, showOptionalRole) {
     ${row}
     <div class="slot-detail" data-slot="${escapeHtml(entry.id)}">
       ${exerciseFactLines(exercise, preferred?.prescription).map(([name, value]) => line(name, value)).join("")}
-      ${line("Last time", last ? `<span class="slot-last"><span>${escapeHtml(setsSummary(last))}</span><span>${escapeHtml(shortDate(last.dateKey))}</span></span>` : "")}
+      ${slotLinkLine("Last time", last ? `${escapeHtml(setsSummary(last))}<small>${escapeHtml(shortDate(last.dateKey))}</small>` : "", `data-action="view-history" data-id="${exerciseId}" aria-label="Last time ${last ? escapeHtml(`${setsSummary(last)}, ${shortDate(last.dateKey)}`) : ""}. Open history of ${escapeHtml(preferred?.name)}"`)}
       ${line("Note", escapeHtml(entry.note.trim()))}
-      ${line(others.length > 1 ? "Alternatives" : "Alternative", others.length ? `<button class="link-button" type="button" data-action="open-entry-choices" ${data} aria-label="Open exercise choices for ${escapeHtml(title)}">${alternativeNames(others, exercise).map(escapeHtml).join(", ")}${chevronIcon("right")}</button>` : "")}
+      ${slotLinkLine(others.length > 1 ? "Alternatives" : "Alternative", alternativeNames(others, exercise).map(escapeHtml).join(", "), `data-action="open-entry-choices" ${data} aria-label="Open exercise choices for ${escapeHtml(title)}"`)}
       <div class="actions">
         <button class="button" type="button" data-action="view-history" data-id="${exerciseId}" aria-label="History of ${escapeHtml(preferred?.name)}">History</button>
         <button class="button" type="button" data-action="open-workout-exercise" data-id="${exerciseId}" ${data} data-prescription="${escapeHtml(preferred?.prescription)}" aria-label="Open exercise page for ${escapeHtml(preferred?.name)}">Details</button>
@@ -222,6 +230,7 @@ function programMarkup(state) {
           ${routineNoteMarkup(routine.note)}
           ${listMarkup(state, routine)}
           ${routine.entries.length || shown.editing ? "" : `<p class="hint">No exercises yet. Tap Edit to add some.</p>`}
+          ${programNoteMarkup(program)}
         </div>`;
   return `<section class="page fills">
     ${headMarkup(program, followed, routines.length > 0)}
@@ -387,7 +396,7 @@ async function deleteProgram() {
   // The confirmation opens over the editor, so "Keep program" returns to the unsaved draft.
   const confirmed = await confirmAction({
     title: `Delete ${program.name}?`,
-    message: `This removes ${plural(program.routineIds.length, "routine")} and their saved checks. Past completions stay in Log, and master exercises stay in the Library.`,
+    message: `This removes ${plural(program.routineIds.length, "workout")} and their saved checks. Past completions stay in Log, and master exercises stay in the Library.`,
     confirmLabel: "Delete program",
     cancelLabel: "Keep program",
     variant: "program-delete",
@@ -412,7 +421,7 @@ function openRoutineEditor(id = "") {
   const routine = routineById(store.getState(), id);
   routineEditor.id = routine?.id || "";
   routineEditor.blocks = structuredClone(routine?.blocks || [{ id: makeId("block"), name: "" }]);
-  $("#routineDialogTitle").textContent = routine ? `Edit ${routine.name}` : "Add routine";
+  $("#routineDialogTitle").textContent = routine ? `Edit ${routine.name}` : "Add workout";
   $("#routineName").value = routine?.name || "";
   $("#routineNote").value = routine?.note || "";
   setSegment("#routineGroupOptions", routine?.group || "gym");
@@ -428,7 +437,7 @@ function openRoutineEditor(id = "") {
 function moveRoutineBy(direction) {
   const { id } = routineEditor;
   const result = store.update((draft) => moveRoutine(draft, id, routineProgram(draft, id).routineIds.indexOf(id) + direction));
-  if (report(result, "Routine moved.")) {
+  if (report(result, "Workout moved.")) {
     render();
     updateRoutineMoveButtons();
   }
@@ -439,13 +448,13 @@ function saveRoutine() {
   const { id } = routineEditor;
   const name = $("#routineName").value.trim();
   if (!name) {
-    showError("Enter a routine name.");
+    showError("Enter a name for the workout.");
     return;
   }
   // A new routine joins the program on screen.
   const owner = id ? routineProgram(state, id) : looking(state).program;
   if (programRoutines(state, owner).some((routine) => routine.id !== id && routine.name.toLowerCase() === name.toLowerCase())) {
-    showError("A routine with this name already exists.");
+    showError("A workout with this name already exists.");
     return;
   }
   const fields = {
@@ -460,7 +469,7 @@ function saveRoutine() {
     if (id) updateRoutine(draft, id, fields);
     else addedId = addRoutine(draft, owner.id, fields);
   });
-  if (!report(result, id ? "Routine updated." : "Routine added.")) return;
+  if (!report(result, id ? "Workout updated." : "Workout added.")) return;
   closeDialog("#routineDialog");
   // A new routine opens ready for its exercises.
   if (addedId) Object.assign(shown, { routineId: addedId, slotId: "", editing: true });
@@ -473,14 +482,14 @@ async function deleteRoutine() {
   // The confirmation opens over the editor, so "Keep routine" returns to the unsaved draft.
   const confirmed = await confirmAction({
     title: `Delete ${routine.name}?`,
-    message: "This removes the routine and its saved checks. Past completions stay in Log, and master exercises stay in the Library.",
-    confirmLabel: "Delete routine",
-    cancelLabel: "Keep routine",
+    message: "This removes the workout from the program, and its saved checks. Past completions stay in Log, and master exercises stay in the Library.",
+    confirmLabel: "Delete workout",
+    cancelLabel: "Keep workout",
     variant: "routine-delete",
   });
   if (!confirmed) return;
   const result = store.update((draft) => removeRoutine(draft, id));
-  if (!report(result, "Routine deleted.")) return;
+  if (!report(result, "Workout deleted.")) return;
   closeDialog("#routineDialog");
   render();
 }

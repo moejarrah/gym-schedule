@@ -20,9 +20,14 @@ Things a desktop browser can't fully confirm:
 
 - A rest timer. The owner doesn't want one.
 
+## Later, when the owner asks
+
+- **Themes**: the owner liked three of the looks shown in November 2026 ("2 - 3 - 5", most likely Ink, Volt and Sand; not confirmed) and may want them as a choice in Settings. Compactness stays: no size grows.
+- **Logging sheet redesign**: put off by the owner, who didn't like the first sketches. It must keep the chart, drop sets and everything listed in `docs/PRODUCT.md`.
+- **Profiles and programs for clients**: brainstormed only. Each person has the app on their own phone; a client may edit their program, and updating a program must never touch their logs.
+
 ## Maybe later
 
 - A "last backup: N days ago" line in Settings. Backups are the only protection if the home-screen app is deleted. Suggested in the November 2026 review; the owner hasn't asked for it.
-- Store routine names in history so deleted routines show their name instead of "Deleted routine".
 - From the design boards (`references/redesign/`), not built and not asked for yet: Library rows showing the last logged set ("last 15 × 12"), and Program as a plain list of routines instead of tabs.
 - Saved data is one piece in the phone's browser storage (about 5 MB allowed; the Library is about 0.1 MB and a workout day about 3 KB), rewritten on every save. That is years of room. If it ever gets close, keep history apart from the Library and program.

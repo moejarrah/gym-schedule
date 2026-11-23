@@ -1,6 +1,6 @@
 // Markup pieces used by more than one screen.
 
-import { escapeHtml, formatDate } from "../dom.js";
+import { chevronIcon, escapeHtml, formatDate } from "../dom.js";
 import { mainElement, store } from "../context.js";
 import { calendarWeek, dateFromKey, exerciseById, exerciseLabels, fullName, mainEquipment, setupWords } from "../model.js";
 import { label } from "../vocab.js";
@@ -185,15 +185,20 @@ export function saysOptional(blockName) {
   return /\boptional\b/i.test(blockName);
 }
 
-// `marks`: { routineId: "running" | "done" } puts a dot or a tick on a tab (Workout).
-// `action`: the action a tab runs (each screen that shows tabs has its own).
-export function routineTabsMarkup(routines, selectedId, marks = null, action = "select-routine") {
+// An open slot's facts (Workout and Program draw them alike). One labelled line per
+// fact; a line with nothing to say is left out.
+export const slotLine = (name, value) => (value ? `<div class="slot-line"><span>${name}</span><span>${value}</span></div>` : "");
+// A line that opens something is one button: its value in the accent colour, then an arrow.
+export const slotLinkLine = (name, value, attributes) => (value ? `<button class="slot-line" type="button" ${attributes}><span>${name}</span><span class="slot-link">${value}</span>${chevronIcon("right")}</button>` : "");
+
+// `action`: the action a tab runs.
+export function routineTabsMarkup(routines, selectedId, action) {
   if (!routines.length) return "";
-  return `<div class="routine-tabs scroll-x" aria-label="Choose a routine" data-keep-scroll="routine-tabs">
+  return `<div class="routine-tabs scroll-x" aria-label="Choose a workout" data-keep-scroll="routine-tabs">
     ${routines.map((routine) => `
       <button class="routine-tab" type="button"
-        aria-label="${escapeHtml(routine.name)}, ${locationLabel(routine.group)}${marks?.[routine.id] === "running" ? ", in progress" : marks?.[routine.id] === "done" ? ", done this round" : ""}" aria-pressed="${routine.id === selectedId}" data-action="${action}" data-id="${escapeHtml(routine.id)}">
-        ${escapeHtml(routine.name)}${marks ? `<i class="tab-mark ${marks[routine.id] ? `is-${marks[routine.id]}` : ""}" aria-hidden="true"></i>` : ""}
+        aria-label="${escapeHtml(routine.name)}, ${locationLabel(routine.group)}" aria-pressed="${routine.id === selectedId}" data-action="${action}" data-id="${escapeHtml(routine.id)}">
+        ${escapeHtml(routine.name)}
       </button>`).join("")}
   </div>`;
 }

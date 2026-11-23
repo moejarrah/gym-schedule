@@ -219,7 +219,7 @@ async function importData(file) {
   }
   const confirmed = await confirmAction({
     title: "Import app data",
-    message: "Replace the routines, exercises, and history currently stored on this device?",
+    message: "Replace the programs, exercises and history currently stored on this device?",
     confirmLabel: "Import data",
   });
   if (!confirmed) return;
@@ -238,7 +238,7 @@ async function restoreStartingData() {
   clearDataError();
   const confirmed = await confirmAction({
     title: "Restore starting data",
-    message: "Replace all current routines, exercises, and history with the starting program? Your theme and training rules stay.",
+    message: "Replace all current programs, exercises and history with the starting program? Your theme and training rules stay.",
     confirmLabel: "Restore data",
   });
   if (!confirmed) return;

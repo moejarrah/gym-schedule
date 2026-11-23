@@ -385,7 +385,7 @@
     const statusText = document.querySelector("#liveStatusText");
     let lastFingerprint = "";
     let reloading = false;
-    let saved = { view: "workout", scrollTop: 0 };
+    let saved = { view: "round", scrollTop: 0 };
 
     function updateClock() {
       document.querySelector("#clock").textContent = new Intl.DateTimeFormat([], { hour: "numeric", minute: "2-digit" }).format(new Date());
@@ -412,9 +412,9 @@
     function rememberScreen() {
       try {
         const doc = frame.contentDocument;
-        saved = { view: doc.body.dataset.currentView || "workout", scrollTop: screenScroller(doc)?.scrollTop || 0 };
+        saved = { view: doc.body.dataset.currentView || "round", scrollTop: screenScroller(doc)?.scrollTop || 0 };
       } catch (_) {
-        saved = { view: "workout", scrollTop: 0 };
+        saved = { view: "round", scrollTop: 0 };
       }
     }
 

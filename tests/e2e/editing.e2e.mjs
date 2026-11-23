@@ -1,5 +1,6 @@
-// Changing the plan: routines and their slots in Program, the list of programs,
-// the Library's exercises, and how every editor treats a draft.
+// Changing the plan: routines and their slots in Program (which opens for looking and
+// turns into the editor with "Edit"), the list of programs, the Library's exercises,
+// and how every editor treats a draft.
 
 import assert from "node:assert/strict";
 import { PAST_DAY, sampleState } from "../sample.mjs";
@@ -8,19 +9,29 @@ import { dialog, expect, goToView, main, programPicker, readState, routineTab, s
 const { appTest } = suite({ saved: sampleState() });
 
 const nameField = (sheet) => sheet.getByRole("textbox", { name: "Name", exact: true });
+// Program's "Edit" (its name says which program) turns the screen into the editor; "Done" turns it back.
+const editProgram = (page, name) => main(page).getByRole("button", { name: `Edit ${name}`, exact: true });
+const doneEditing = (page) => main(page).getByRole("button", { name: "Done editing", exact: true });
 
-appTest("Program: add a routine, add an exercise from the Library, edit its slot, remove it, delete the routine", async ({ page }) => {
+appTest("Program: look first, then Edit: add a workout, add an exercise from the Library, edit its slot, remove it, delete the workout", async ({ page }) => {
   await goToView(page, "Program");
-  await main(page).getByRole("button", { name: "+ Add routine" }).click();
-  const newRoutine = dialog(page, "Add routine");
+  // Looking comes first: a row unfolds its details in place, and nothing can be changed until "Edit".
+  await main(page).getByRole("button", { name: "Show Bench press (barbell) details", exact: true }).click();
+  await expect(main(page).getByRole("button", { name: "Hide Bench press (barbell) details", exact: true })).toHaveAttribute("aria-expanded", "true");
+  await expect(main(page).getByRole("button", { name: "Add a workout" })).toHaveCount(0);
+  await editProgram(page, "Sample program").click();
+  await expect(main(page).getByRole("button", { name: /^Bench press \(barbell\)\. Tap to edit\./ })).toBeVisible();
+
+  await main(page).getByRole("button", { name: "Add a workout" }).click();
+  const newRoutine = dialog(page, "Add workout");
   await nameField(newRoutine).fill("Day C");
-  await newRoutine.getByRole("button", { name: "Save routine" }).click();
+  await newRoutine.getByRole("button", { name: "Save workout" }).click();
   await expect(routineTab(page, "Day C")).toHaveAttribute("aria-pressed", "true");
 
-  await main(page).getByRole("button", { name: "+ Add exercise" }).click();
+  await main(page).getByRole("button", { name: "Add exercise to this block" }).click();
   const picker = dialog(page, "Add exercise");
   await picker.getByRole("searchbox", { name: "Search exercises" }).fill("squat");
-  await picker.getByRole("button", { name: "Add Squat (barbell) to this routine" }).click();
+  await picker.getByRole("button", { name: "Add Squat (barbell) to this workout" }).click();
   const slot = main(page).getByRole("button", { name: /^Squat \(barbell\)\. Tap to edit\./ });
   await expect(slot).toContainText("3 × 5"); // the Library's default prescription
 
@@ -31,7 +42,7 @@ appTest("Program: add a routine, add an exercise from the Library, edit its slot
   await slotEditor.getByRole("button", { name: "Edit Squat (barbell) choice" }).click();
   await choiceEditor.getByRole("textbox", { name: "Prescription for this choice" }).fill("5 × 5");
   await choiceEditor.getByRole("button", { name: "Save choice" }).click();
-  await slotEditor.getByRole("group", { name: "Routine entry role" }).getByRole("button", { name: "Optional" }).click();
+  await slotEditor.getByRole("group", { name: "Slot role" }).getByRole("button", { name: "Optional" }).click();
   await slotEditor.getByRole("button", { name: "Save entry" }).click();
   await expect(slot).toContainText("5 × 5");
   const dayC = (state) => state.routines.find((routine) => routine.name === "Day C");
@@ -46,28 +57,37 @@ appTest("Program: add a routine, add an exercise from the Library, edit its slot
   assert.deepEqual(dayC(saved).entries, []);
   assert.ok(saved.exercises.some((exercise) => exercise.id === "squat"), "the Library keeps the exercise");
 
-  await main(page).getByRole("button", { name: "Edit Day C", exact: true }).click();
-  await dialog(page, "Edit Day C").getByRole("button", { name: "Delete routine" }).click();
-  await dialog(page, "Delete Day C?").getByRole("button", { name: "Delete routine" }).click();
+  await main(page).getByRole("button", { name: "Edit Day C: rename, notes, blocks" }).click();
+  await dialog(page, "Edit Day C").getByRole("button", { name: "Delete workout" }).click();
+  await dialog(page, "Delete Day C?").getByRole("button", { name: "Delete workout" }).click();
   await expect(routineTab(page, "Day C")).toHaveCount(0);
   await expect(routineTab(page, "Day A")).toHaveAttribute("aria-pressed", "true");
-  saved = await readState(page);
-  assert.deepEqual(saved.routines, sampleState().routines);
-  assert.deepEqual(saved.programs, sampleState().programs);
+  await doneEditing(page).click();
+  await expect(editProgram(page, "Sample program")).toBeVisible();
+  // Everything is as it was, and none of it touched what Workout has selected.
+  assert.deepEqual(await readState(page), sampleState());
 });
 
-appTest("Programs: create one, switch back, duplicate, delete", async ({ page }) => {
+appTest("Programs: create one, look at the other again, duplicate, delete; the program followed stays the same", async ({ page }) => {
   const programs = dialog(page, "Programs");
   const newProgram = dialog(page, "Add program");
-  const editProgram = dialog(page, "Edit program");
+  const programEditor = dialog(page, "Edit program");
+  // The header button says which program is on screen, and whether it is the one being followed.
+  const followed = "the one you're following";
 
+  await goToView(page, "Program");
+  await expect(programPicker(page, "Sample program")).toHaveAccessibleName(new RegExp(`, ${followed}$`));
   await programPicker(page, "Sample program").click();
   await programs.getByRole("button", { name: "Add program" }).click();
   await nameField(newProgram).fill("Block 2");
   await newProgram.getByRole("button", { name: "Create program" }).click();
-  await expect(programPicker(page, "Block 2")).toBeVisible();
-  await expect(main(page)).toContainText("No routines yet");
+  // The new program is the one on screen, but making it isn't following it.
+  await expect(programPicker(page, "Block 2")).not.toHaveAccessibleName(new RegExp(followed));
+  await expect(main(page)).toContainText("No workouts yet");
+  await expect(main(page)).toContainText("You're following Sample program");
+  assert.deepEqual((await readState(page)).settings, sampleState().settings);
 
+  // Choosing a program in the sheet only changes what Program shows.
   await programPicker(page, "Block 2").click();
   await programs.getByRole("button", { name: /^Sample program/ }).click();
   await expect(programPicker(page, "Sample program")).toBeVisible();
@@ -75,10 +95,10 @@ appTest("Programs: create one, switch back, duplicate, delete", async ({ page })
 
   await programPicker(page, "Sample program").click();
   await programs.getByRole("button", { name: "Edit Sample program", exact: true }).click();
-  await editProgram.getByRole("button", { name: "Duplicate program" }).click();
+  await programEditor.getByRole("button", { name: "Duplicate program" }).click();
   await expect(nameField(newProgram)).toHaveValue("Sample program copy");
   await newProgram.getByRole("button", { name: "Create program" }).click();
-  await expect(programPicker(page, "Sample program copy")).toBeVisible();
+  await expect(programPicker(page, "Sample program copy")).not.toHaveAccessibleName(new RegExp(followed));
   await expect(routineTab(page, "Day A")).toHaveAttribute("aria-pressed", "true");
   let saved = await readState(page);
   assert.deepEqual(saved.programs.map((program) => program.name), ["Sample program", "Block 2", "Sample program copy"]);
@@ -91,13 +111,14 @@ appTest("Programs: create one, switch back, duplicate, delete", async ({ page })
 
   await programPicker(page, "Sample program copy").click();
   await programs.getByRole("button", { name: "Edit Sample program copy", exact: true }).click();
-  await editProgram.getByRole("button", { name: "Delete program" }).click();
+  await programEditor.getByRole("button", { name: "Delete program" }).click();
   await dialog(page, "Delete Sample program copy?").getByRole("button", { name: "Delete program" }).click();
   await expect(programPicker(page, "Sample program")).toBeVisible();
   saved = await readState(page);
   assert.deepEqual(saved.programs.map((program) => program.name), ["Sample program", "Block 2"]);
   assert.deepEqual(saved.routines, sampleState().routines);
   assert.deepEqual(saved.sessions, sampleState().sessions, "history is untouched");
+  assert.deepEqual(saved.settings, sampleState().settings, "Sample program is still the one followed");
 });
 
 appTest("Library: search and browse, add an exercise, edit it, and delete one that's in use", async ({ page }) => {
@@ -171,15 +192,16 @@ async function tapBackdrop(page, sheet) {
 
 appTest("Editors: a tap outside keeps the editor and its draft, and Enter in a field saves", async ({ page }) => {
   // A read-only sheet does close on a tap outside, which shows the tap lands where it should.
+  await goToView(page, "Program");
   await programPicker(page, "Sample program").click();
   const programs = dialog(page, "Programs");
   await expect(programs).toBeVisible();
   if (await tapBackdrop(page, programs)) await expect(programs).toBeHidden();
   else await programs.getByRole("button", { name: "Close programs" }).click();
 
-  await goToView(page, "Program");
-  await main(page).getByRole("button", { name: "+ Add routine" }).click();
-  const editor = dialog(page, "Add routine");
+  await editProgram(page, "Sample program").click();
+  await main(page).getByRole("button", { name: "Add a workout" }).click();
+  const editor = dialog(page, "Add workout");
   await nameField(editor).fill("Day C");
   await tapBackdrop(page, editor);
   await expect(editor).toBeVisible();

@@ -81,15 +81,17 @@ const MIGRATIONS = {
     preferTBarRow(state);
   },
   // One round count for the owner's training instead of one per program: the followed
-  // program's count carries on; workouts filed in another program's rounds lose their round.
+  // program's open round carries on; every other workout loses its round, since the
+  // earlier rounds were never recorded as rounds.
   20(state) {
     const counter = state.settings.rounds?.[state.settings.activeProgramId];
     for (const session of Object.values(state.sessions)) {
       for (const record of Object.values(session.workouts || {})) {
-        if (!counter || record.roundOf !== state.settings.activeProgramId) {
+        if (!counter || record.roundOf !== state.settings.activeProgramId || record.round !== counter.number || (record.block || 1) !== counter.block) {
           delete record.round;
           delete record.block;
           delete record.guest;
+          delete record.optional;
         }
         delete record.roundOf;
       }
@@ -192,7 +194,7 @@ export function stateProblem(state) {
   if (![undefined, "line", "letter"].includes(settings.exerciseLabels)) return "exercise labels";
   const counted = (round) => isRecord(round) && Number.isInteger(round.number) && round.number >= 1 && Number.isInteger(round.block) && round.block >= 1;
   if (settings.round !== undefined && !(counted(settings.round) && programs.some((program) => program.id === settings.round.programId))) return "round";
-  if (settings.roundLog !== undefined && !(Array.isArray(settings.roundLog) && settings.roundLog.every((round) => counted(round) && isText(round.program) && Number.isInteger(round.required)))) return "round history";
+  if (settings.roundLog !== undefined && !(Array.isArray(settings.roundLog) && settings.roundLog.every((round) => counted(round) && isText(round.program) && Number.isInteger(round.required) && [undefined, ...Array(round.required + 1).keys()].includes(round.done)))) return "round history";
 
   // History outlives what it points at: the routine, slot and exercise IDs in a
   // day may belong to things deleted since.

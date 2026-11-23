@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { createDefaultState } from "../../js/store.js";
 import { sampleState } from "../sample.mjs";
-import { dialog, expect, goToView, main, openSettings, programPicker, readState, readStoredText, routineTab, suite } from "./helpers.mjs";
+import { closeSettings, dialog, expect, expectView, goToView, main, openSettings, programPicker, readState, readStoredText, roundRow, startButton, suite, tapOnRound } from "./helpers.mjs";
 
 const { appTest } = suite({ saved: sampleState() });
 
@@ -13,6 +13,9 @@ const { appTest } = suite({ saved: sampleState() });
 const starting = createDefaultState();
 const startingProgram = starting.programs.find((program) => program.id === starting.settings.activeProgramId);
 const startingRoutines = startingProgram.routineIds.map((id) => starting.routines.find((routine) => routine.id === id));
+// The workout the Workout tab previews at first, and another one the Round tab lists (a round lists the Required ones).
+const firstRoutine = startingRoutines.find((routine) => routine.id === starting.settings.activeRoutineId);
+const otherRoutine = startingRoutines.find((routine) => routine !== firstRoutine && routine.status !== "optional");
 
 async function download(page, button) {
   const [file] = await Promise.all([page.waitForEvent("download"), button.click()]);
@@ -35,9 +38,9 @@ appTest("Log: a routine and a note marked on a date show in Recent and are kept"
   await day.getByRole("textbox", { name: "Note" }).fill("Easy day");
   await day.getByRole("button", { name: "Save day" }).click();
   await expect(day).toBeHidden();
-  const recent = main(page).getByRole("button", { name: "Open Tuesday, November 3, 2026. Day B. Sample program. Note added", exact: true });
+  const recent = main(page).getByRole("button", { name: "Open Tuesday, November 3, 2026. Day B. Note added", exact: true });
   await expect(recent).toBeVisible();
-  await expect(main(page).getByRole("button", { name: "Tuesday, November 3, 2026, 1 completed routine, note recorded", exact: true })).toBeVisible();
+  await expect(main(page).getByRole("button", { name: "Tuesday, November 3, 2026, 1 finished workout, note recorded", exact: true })).toBeVisible();
 
   await page.reload();
   await goToView(page, "Log");
@@ -64,7 +67,7 @@ appTest("Backup: an exported file brings everything back, and a file that isn't 
 
   // Lose the program and its routines.
   await goToView(page, "Program");
-  await main(page).getByRole("button", { name: /^Choose active program/ }).click();
+  await programPicker(page, "Sample program").click();
   await dialog(page, "Programs").getByRole("button", { name: "Edit Sample program", exact: true }).click();
   await dialog(page, "Edit program").getByRole("button", { name: "Delete program" }).click();
   await dialog(page, "Delete Sample program?").getByRole("button", { name: "Delete program" }).click();
@@ -75,9 +78,10 @@ appTest("Backup: an exported file brings everything back, and a file that isn't 
   await dialog(page, "Import app data").getByRole("button", { name: "Import data" }).click();
   await expect(page.getByRole("status")).toHaveText("App data imported.");
   assert.deepEqual(await readState(page), sampleState());
+  await closeSettings(page);
+  await expect(main(page)).toContainText("Following Sample program");
   await goToView(page, "Workout");
-  await expect(programPicker(page, "Sample program")).toBeVisible();
-  await expect(routineTab(page, "Day A")).toHaveAttribute("aria-pressed", "true");
+  await expect(startButton(page, "Day A")).toBeVisible();
 });
 
 appTest("Settings: the theme is kept across a reload, and Restore starting data brings the starting program back", async ({ page }) => {
@@ -102,18 +106,20 @@ appTest("Settings: the theme is kept across a reload, and Restore starting data 
   // Everything is the starting data again, except the theme and the training rules.
   const { theme, trainingRules } = { ...sampleState().settings, theme: "light" };
   assert.deepEqual(await readState(page), { ...starting, settings: { ...starting.settings, theme, trainingRules } });
+  await closeSettings(page);
+  await expect(main(page)).toContainText(`Following ${startingProgram.name}`);
   await goToView(page, "Workout");
-  await expect(programPicker(page, startingProgram.name)).toBeVisible();
-  await expect(routineTab(page, startingRoutines[0].name)).toHaveAttribute("aria-pressed", "true");
+  await expect(startButton(page, firstRoutine.name)).toBeVisible();
 });
 
 appTest("Saved data the app can't read is left exactly as it is", { saved: "{broken", allowConsole: [/Saved data couldn't be read/] }, async ({ page }) => {
   await expect(page.getByRole("status")).toContainText("nothing will be saved");
-  await expect(programPicker(page, startingProgram.name)).toBeVisible();
+  await expect(main(page)).toContainText(`Following ${startingProgram.name}`);
 
-  // Tapping around saves nothing: the routine stays where it was.
-  await routineTab(page, startingRoutines[1].name).click();
-  await expect(routineTab(page, startingRoutines[0].name)).toHaveAttribute("aria-pressed", "true");
+  // Tapping around saves nothing: picking another workout on Round doesn't take, and Workout stays where it was.
+  await tapOnRound(page, roundRow(page, otherRoutine.name));
+  await goToView(page, "Workout");
+  await expect(startButton(page, firstRoutine.name)).toBeVisible();
   const settings = await openSettings(page);
   await settings.getByRole("button", { name: /^Theme/ }).click();
   await expect(settings).toContainText("Saved data couldn't be read");
@@ -128,7 +134,7 @@ appTest("A first launch opens the starting program, and the app then opens with 
   ownServer: true,
   allowConsole: [/ERR_CONNECTION_REFUSED|ERR_INTERNET_DISCONNECTED|Failed to fetch|Failed to load resource|fetching the script/i],
 }, async ({ page, server }) => {
-  await expect(programPicker(page, startingProgram.name)).toBeVisible();
+  await expect(main(page)).toContainText(`Following ${startingProgram.name}`);
   assert.deepEqual(await readState(page), starting);
 
   // The offline copy is ready once its service worker controls the page.
@@ -139,9 +145,10 @@ appTest("A first launch opens the starting program, and the app then opens with 
   await server.close();
   await assert.rejects(fetch(server.url), "the server is gone");
   await page.reload();
-  await expect(programPicker(page, startingProgram.name)).toBeVisible();
-  await routineTab(page, startingRoutines[1].name).click();
-  await expect(routineTab(page, startingRoutines[1].name)).toHaveAttribute("aria-pressed", "true");
+  await expect(main(page)).toContainText(`Following ${startingProgram.name}`);
+  await tapOnRound(page, roundRow(page, otherRoutine.name));
+  await expectView(page, "Workout");
+  await expect(startButton(page, otherRoutine.name)).toBeVisible();
   await expect(page.getByRole("status")).not.toContainText("Offline mode");
-  assert.equal((await readState(page)).settings.activeRoutineId, startingRoutines[1].id);
+  assert.equal((await readState(page)).settings.activeRoutineId, otherRoutine.id);
 });

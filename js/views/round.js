@@ -43,7 +43,9 @@ import { roundName, shortDate, weeksText } from "./shared.js";
 const page = { name: "home", number: 0, block: 0, scroll: {} };
 const DEPTH = { home: 0, all: 1, one: 2 };
 // The round number being picked with − and +: on the first-time card, and in the sheet.
-const chooser = { number: 1 };
+// `picking`: the owner changed it on the first-time card, so it isn't put back to 1.
+const chooser = { number: 1, picking: false };
+const chooserDone = () => Object.assign(chooser, { number: 1, picking: false });
 // What the sheet shows: "guest", "programs", "follow" (for programId) or "number".
 const sheet = { mode: "", programId: "" };
 
@@ -54,6 +56,8 @@ const gearIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 15.5a
 
 // How a round ended, as All rounds and the round's own page say it.
 const ENDED = { "": "in progress", complete: "complete", early: "ended early", break: "ended by the break", switch: "ended by a change of program" };
+// The same in the narrow last column of All rounds.
+const ENDED_SHORT = { ...ENDED, break: "ended by break", switch: "program changed" };
 const LATER = "9999-12-31"; // "before this day" that leaves no day out
 
 // Always with its unit: a bare "3 of 6" is never shown.
@@ -160,10 +164,15 @@ const cardMarkup = (kicker, title, body, actions) => `<section class="card round
     <p class="label">${escapeHtml(kicker)}</p>
     <h2 id="roundCardTitle">${escapeHtml(title)}</h2>
     ${body}
-    <div class="actions stacked">${actions}</div>
+    ${actions ? `<div class="actions stacked">${actions}</div>` : ""}
   </section>`;
 
-const startButton = (routine, primary = true) => `<button class="button ${primary ? "primary" : ""}" type="button" data-action="round-start" data-id="${escapeHtml(routine.id)}">Start ${escapeHtml(routine.name)}</button>`;
+// No Start for a workout already finished today: starting it again would reopen that one.
+const startButton = (state, routine, primary = true) => (state.sessions[localDateKey()]?.routineIds.includes(routine.id) ? "" : `<button class="button ${primary ? "primary" : ""}" type="button" data-action="round-start" data-id="${escapeHtml(routine.id)}">Start ${escapeHtml(routine.name)}</button>`);
+
+// Today's finished workouts can be reopened from the card (a mistake, a forgotten set).
+const reopenLinks = (state) => (state.sessions[localDateKey()]?.routineIds || []).filter((routineId) => routineById(state, routineId))
+  .map((routineId) => `<button class="link-button" type="button" data-action="round-reopen" data-id="${escapeHtml(routineId)}">Reopen ${escapeHtml(routineById(state, routineId).name)}</button>`).join("");
 
 const lastDone = (state, routine) => {
   const dateKey = lastFinished(state, routine.id, LATER);
@@ -177,7 +186,7 @@ function runningCard(state, running) {
   const done = slots.filter((slot) => isEntryChecked(state, running.dateKey, routine.id, slot.id)).length;
   const timed = !running.reopened && !running.backdated && running.dateKey === todayKey;
   return cardMarkup("In progress", routine.name, `
-    ${running.home ? line("From", escapeHtml(routineProgram(state, routine.id)?.name || "")) : ""}
+    ${running.guest ? line("From", escapeHtml(routineProgram(state, routine.id)?.name || "")) : ""}
     ${timed ? line("Started", `<span data-round-elapsed>${agoText(running.startedAt)}</span>`) : line("Day", escapeHtml(shortDate(running.dateKey)))}
     ${line("Exercises", `${done} of ${slots.length} done`)}`,
   `<button class="button primary" type="button" data-action="round-go-workout">Go to workout</button>`);
@@ -213,7 +222,7 @@ function completeCard(state, record, next) {
     ${line("New bests", bests ? String(bests) : "")}
     ${line("Extras", extras ? plural(extras, "workout") : "")}
     ${next ? line("Next", escapeHtml(next.name)) : ""}`,
-  next ? startButton(next) : "");
+  `${next ? startButton(state, next) : ""}${reopenLinks(state)}`);
 }
 
 function doneTodayCard(state, doneToday, next) {
@@ -223,7 +232,7 @@ function doneTodayCard(state, doneToday, next) {
     ${line("Training time", minutes ? durationText(minutes) : "")}
     ${next ? line("Next", escapeHtml(next.name)) : ""}`,
   // Today's work is done: starting the next one is there, but it isn't the thing to do.
-  next ? startButton(next, false) : "");
+  `${next ? startButton(state, next, false) : ""}${reopenLinks(state)}`);
 }
 
 function roundCard(state, summary) {
@@ -238,7 +247,7 @@ function roundCard(state, summary) {
   if (completed) return completeCard(state, completed, next);
   const doneToday = state.sessions[localDateKey()]?.routineIds || [];
   if (doneToday.length) return doneTodayCard(state, doneToday, next);
-  return next ? cardMarkup("Next workout", next.name, line("Last done", lastDone(state, next)), startButton(next)) : "";
+  return next ? cardMarkup("Next workout", next.name, line("Last done", lastDone(state, next)), startButton(state, next)) : "";
 }
 
 // ---------- the Round tab ----------
@@ -246,7 +255,7 @@ function roundCard(state, summary) {
 // A workout that was done: ticked, muted, its date at the end; it opens its day.
 const doneRow = (name, dateKey, tag = "") => `<button class="row compact round-row is-done" type="button" data-action="open-day" data-date="${dateKey}" aria-label="${escapeHtml(name)}${tag ? `, ${escapeHtml(tag)}` : ""}, done ${escapeHtml(shortDate(dateKey))}. Open that day.">
     <span class="tickbox is-ticked" aria-hidden="true">${tickIcon}</span>
-    <span class="row-main"><span class="row-title truncate">${escapeHtml(name)}</span></span>
+    <span class="row-main"><span class="row-title">${escapeHtml(name)}</span></span>
     ${tag ? `<span class="label tag">${escapeHtml(tag)}</span>` : ""}
     <span class="row-meta">${escapeHtml(shortDate(dateKey))}</span>
   </button>`;
@@ -259,21 +268,26 @@ function workoutsMarkup(state, summary) {
   const doneOn = new Map();
   for (const item of summary.workouts) if (!item.guest && !doneOn.has(item.routineId)) doneOn.set(item.routineId, item.dateKey);
   const requiredIds = new Set(summary.required.map((routine) => routine.id));
-  const nextId = running ? "" : summary.remaining[0]?.id;
-  const rows = summary.required.map((routine, index) => {
-    if (doneOn.has(routine.id)) return doneRow(routine.name, doneOn.get(routine.id));
-    const box = `<span class="tickbox" aria-hidden="true">${index + 1}</span>`;
+  const nextId = running || longBreak(state) ? "" : summary.remaining[0]?.id;
+  // A workout not done yet: its number (none for an Optional one), its name, a tag.
+  const openRow = (routine, number, tag) => {
+    const box = `<span class="tickbox" aria-hidden="true">${number}</span>`;
     const name = `<span class="row-main"><span class="row-title truncate">${escapeHtml(routine.name)}</span></span>`;
+    const label = tag ? `<span class="label tag">${tag}</span>` : "";
     // While a workout runs nothing else can be started: the other rows are quiet.
-    if (running) return `<div class="row compact round-row ${running.routineId === routine.id ? "" : "is-quiet"}">${box}${name}${running.routineId === routine.id ? `<span class="label accent">In progress</span>` : ""}</div>`;
-    return `<button class="row compact round-row" type="button" data-action="round-open-workout" data-id="${escapeHtml(routine.id)}" aria-label="${escapeHtml(routine.name)}, not done${routine.id === nextId ? ", next" : ""}. Open it on Workout.">
-      ${box}${name}${routine.id === nextId ? `<span class="label tag">Next</span>` : ""}
+    if (running) return `<div class="row compact round-row ${running.routineId === routine.id ? "" : "is-quiet"}">${box}${name}${running.routineId === routine.id ? `<span class="label accent">In progress</span>` : label}</div>`;
+    return `<button class="row compact round-row" type="button" data-action="round-open-workout" data-id="${escapeHtml(routine.id)}" aria-label="${escapeHtml(routine.name)}, not done${tag ? `, ${tag.toLowerCase()}` : ""}. Open it on Workout.">
+      ${box}${name}${label}
       <span class="chev" aria-hidden="true">${chevronIcon("right")}</span>
     </button>`;
-  });
+  };
+  const rows = summary.required.map((routine, index) => (doneOn.has(routine.id) ? doneRow(routine.name, doneOn.get(routine.id)) : openRow(routine, index + 1, routine.id === nextId ? "Next" : "")));
+  // Optional workouts are never asked for, but they can be done: they follow the required ones.
+  const optional = programRoutines(state, summary.program).filter((routine) => !requiredIds.has(routine.id) && !summary.workouts.some((item) => item.routineId === routine.id && !item.guest));
   return `<section>
     <div class="label section-label"><span>Workouts in this round</span></div>
     ${rows.join("")}
+    ${optional.map((routine) => openRow(routine, "", "Optional")).join("")}
     ${summary.workouts.filter((item) => item.guest || !requiredIds.has(item.routineId)).map((item) => doneRow(item.name, item.dateKey, workoutTag(item))).join("")}
     ${running ? `<p class="hint round-note">Finish or cancel ${escapeHtml(routineById(state, running.routineId).name)} before starting another workout.</p>` : ""}
   </section>`;
@@ -285,26 +299,18 @@ const moreRow = (name, action, end = "") => `<button class="row compact" type="b
     <span class="chev" aria-hidden="true">${chevronIcon("right")}</span>
   </button>`;
 
-// A row that can't be used now says why, and isn't a button.
-const offRow = (name, reason) => `<div class="row round-off">
-    <span class="row-main"><span class="row-title">${escapeHtml(name)}</span><span class="row-meta">${escapeHtml(reason)}</span></span>
-  </div>`;
-
 function moreMarkup(state, summary) {
   const rows = [];
   const earlier = (state.settings.roundLog || []).length;
   if (summary.counting) rows.push(moreRow("All rounds", `data-action="round-page" data-page="all"`, earlier ? `${earlier} earlier` : ""));
   if (!activeWorkout(state)) {
+    // Only what can be used now is listed: the two about other programs need another
+    // program, and a round with nothing done in it has nothing to end.
     const others = otherPrograms(state);
-    const guest = "A workout from another program";
-    const follow = "Follow a different program";
-    // Before counting, with one program, there is nothing more to offer.
-    if (!others.length && summary.counting) rows.push(offRow(guest, "Add another program first"), offRow(follow, "Add another program first"));
-    else if (others.length) rows.push(others.some((program) => program.routineIds.length) ? moreRow(guest, `data-action="round-guest-open"`) : offRow(guest, "The other programs have no workouts yet"), moreRow(follow, `data-action="follow-program"`));
-    if (summary.counting) {
-      const end = `End round ${summary.number} now`;
-      rows.push(summary.workouts.length ? moreRow(end, `data-action="round-end"`) : offRow(end, "Nothing is done in this round yet"), moreRow("Change round number", `data-action="round-number-open"`));
-    }
+    if (others.some((program) => program.routineIds.length)) rows.push(moreRow("A workout from another program", `data-action="round-guest-open"`));
+    if (others.length) rows.push(moreRow("Follow a different program", `data-action="follow-program"`));
+    if (summary.counting && summary.workouts.length) rows.push(moreRow(`End round ${summary.number} now`, `data-action="round-end"`));
+    if (summary.counting) rows.push(moreRow("Change round number", `data-action="round-number-open"`));
   }
   return rows.length ? `<section><div class="label section-label"><span>More</span></div>${rows.join("")}</section>` : "";
 }
@@ -325,6 +331,8 @@ function homeMarkup(state) {
     </section>`;
   }
   const done = summary.required.length - summary.remaining.length;
+  // The first-time card starts at round 1 unless the owner has changed it there.
+  if (!summary.counting && !chooser.picking) chooser.number = 1;
   return `<section class="page round-page">
     ${headMarkup({
     top: followingMarkup(program),
@@ -366,21 +374,22 @@ function allMarkup(state) {
     return `${index ? gapMarkup(rounds[index - 1], record) : ""}
     <button class="row round-cols" type="button" data-action="round-page" data-page="one" data-number="${record.number}" data-block="${record.block}"
       aria-label="${escapeHtml(roundName(record))}, ${escapeHtml(record.program)}, ${escapeHtml([dates, weeks].filter(Boolean).join(", "))}. ${count} workouts, ${ENDED[record.ended]}. Open the round.">
-      <span class="tickbox ${record.open ? "is-ticked" : ""}" aria-hidden="true">${record.number}</span>
+      <span class="tickbox ${record.open ? "is-open" : ""}" aria-hidden="true">${record.number}</span>
       <span class="row-main">
         <span class="row-title truncate">${escapeHtml(record.program || "Deleted program")}</span>
-        <span class="row-meta"><span>${escapeHtml(dates)}${weeks ? " ·" : ""}</span>${weeks ? `<span>${escapeHtml(weeks)}</span>` : ""}</span>
+        <span class="row-meta">${escapeHtml(dates)}</span>
+        ${weeks ? `<span class="row-meta">${escapeHtml(weeks)}</span>` : ""}
       </span>
       <span class="row-main">
         <span class="row-title">${count}</span>
-        <span class="row-meta">${ENDED[record.ended]}</span>
+        <span class="row-meta">${ENDED_SHORT[record.ended]}</span>
       </span>
       <span class="chev" aria-hidden="true">${chevronIcon("right")}</span>
     </button>`;
   });
   return `<section class="page round-page">
     <header class="page-back">${backMarkup("home", "Round")}<h1 class="title">All rounds</h1></header>
-    ${rounds.length ? `<div class="label round-cols" aria-hidden="true"><span>Round</span><span>Program and dates</span><span>Workouts</span></div>
+    ${rounds.length ? `<div class="label round-cols" aria-hidden="true"><span>Round</span><span>Program</span><span>Workouts</span></div>
     ${rows.join("")}` : `<p class="hint round-note">No rounds yet.</p>`}
   </section>`;
 }
@@ -478,11 +487,15 @@ const errorLine = `<p class="form-error" role="alert" aria-live="polite" data-di
 // Every other program's workouts, under the program's name. Tapping one starts it.
 function guestMarkup(state) {
   const home = roundProgram(state);
+  const doneToday = state.sessions[localDateKey()]?.routineIds || [];
   const groups = otherPrograms(state).filter((program) => program.routineIds.length).map((program) => `<p class="label label-row">${escapeHtml(program.name)}</p>
-    ${programRoutines(state, program).map((routine) => `<button class="row compact" type="button" data-action="round-guest-start" data-id="${escapeHtml(routine.id)}" aria-label="Start ${escapeHtml(routine.name)} from ${escapeHtml(program.name)}">
+    ${programRoutines(state, program).map((routine) => (doneToday.includes(routine.id) ? `<div class="row compact">
+      <span class="row-main"><span class="row-title truncate">${escapeHtml(routine.name)}</span></span>
+      <span class="row-meta">Done today</span>
+    </div>` : `<button class="row compact" type="button" data-action="round-guest-start" data-id="${escapeHtml(routine.id)}" aria-label="Start ${escapeHtml(routine.name)} from ${escapeHtml(program.name)}">
       <span class="row-main"><span class="row-title truncate">${escapeHtml(routine.name)}</span></span>
       <span class="row-action">Start</span>
-    </button>`).join("")}`);
+    </button>`)).join("")}`);
   return `<div class="sheet-panel">
     ${sheetHead("A workout from another program", `For today only. You keep following ${home.name}.`)}
     <div class="sheet-body" data-keep-scroll="round-sheet">
@@ -583,7 +596,7 @@ async function endRoundNow() {
   const left = summary.remaining.map((routine) => routine.name);
   const confirmed = await confirmAction({
     title: `End round ${summary.number} now?`,
-    message: `${listText(left)} ${left.length === 1 ? "is" : "are"} left undone. Round ${summary.number + 1} opens, and this can't be undone.`,
+    message: `${listText(left)} ${left.length === 1 ? "is" : "are"} left undone. The next round opens, and this can't be undone.`,
     confirmLabel: "End round",
     cancelLabel: "Keep going",
     danger: false,
@@ -624,6 +637,7 @@ registerActions({
   // − and +: only the number, the title that repeats it and the buttons' state change.
   "round-number-step": (button) => {
     chooser.number = Math.min(999, Math.max(1, chooser.number + Number(button.dataset.step)));
+    chooser.picking = !openRound(store.getState());
     clearError(); // a refused number no longer stands
     const box = button.closest("[data-round-chooser]");
     $("[data-round-number]", box).textContent = chooser.number;
@@ -633,7 +647,9 @@ registerActions({
     if (title) title.textContent = roundName({ number: chooser.number, block: 1 });
   },
   "round-count-start": () => {
-    if (report(store.update(startCounting))) redrawCard();
+    if (!report(store.update(startCounting))) return;
+    chooserDone();
+    redrawCard();
   },
   "round-start": (button) => {
     const { id } = button.dataset;
@@ -642,14 +658,19 @@ registerActions({
       setActiveRoutine(draft, id);
       startWorkout(draft, id);
     });
-    if (report(result)) navigate("workout");
-  },
-  "round-go-workout": () => {
-    const state = store.getState();
-    const running = activeWorkout(state);
-    if (running && state.settings.activeRoutineId !== running.routineId) store.update((draft) => setActiveRoutine(draft, running.routineId));
+    if (!report(result)) return;
+    chooserDone();
     navigate("workout");
+    pauseTaps();
   },
+  // Today's finished workout, open again: it stays in the round it was filed in.
+  "round-reopen": (button) => {
+    if (!report(store.update((draft) => startWorkout(draft, button.dataset.id)))) return;
+    navigate("workout");
+    pauseTaps();
+  },
+  // The Workout tab shows the workout in progress, whatever is selected.
+  "round-go-workout": () => navigate("workout"),
   // A workout not done yet opens on Workout, ready to start.
   "round-open-workout": (button) => {
     if (report(store.update((draft) => setActiveRoutine(draft, button.dataset.id)))) navigate("workout");
@@ -666,8 +687,10 @@ registerActions({
       startGuestWorkout(draft, button.dataset.id);
     });
     if (!report(result)) return;
+    chooserDone();
     closeDialog("#roundSheet");
     navigate("workout");
+    pauseTaps();
   },
   // With data-id (the Program tab's "Follow <name>", or a row of the list here): what
   // following that program will do, to confirm. Without: the other programs to pick from.
@@ -684,6 +707,7 @@ registerActions({
     if (!report(store.update((draft) => followProgram(draft, sheet.programId, { newBlock: Boolean(button.dataset.newBlock) })))) return;
     closeDialog("#roundSheet");
     render();
+    pauseTaps();
     // On the Round tab the header, card and list all changed in place; Program draws its own.
     if (document.body.dataset.currentView === "round") fresh(...mainElement().children);
   },
@@ -699,6 +723,7 @@ registerActions({
     const changed = chooser.number !== openRound(store.getState())?.number;
     if (!report(store.update((draft) => setRoundNumber(draft, chooser.number)))) return;
     closeDialog("#roundSheet");
+    chooserDone();
     if (!changed) return;
     render();
     fresh(...mainElement().children);

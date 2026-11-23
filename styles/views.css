@@ -68,21 +68,6 @@
   font-weight: 500;
 }
 
-.slot-line .link-button {
-  min-height: 0;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  text-align: left;
-}
-
-.slot-line .link-button > svg {
-  width: 16px;
-  height: 16px;
-  flex: none;
-}
-
 .slot-detail > .actions {
   margin-top: var(--space-2);
   padding-top: var(--space-3);
@@ -193,32 +178,6 @@ button.slot-line > svg {
   color: var(--text-muted);
   flex: none;
   font-size: var(--fs-meta);
-}
-
-/* On a routine tab: a dot while its workout runs, a tick once finished today. */
-.tab-mark {
-  width: 9px;
-  height: 7px;
-  margin-left: 4px;
-  display: inline-block;
-  vertical-align: middle;
-}
-
-.tab-mark.is-running {
-  width: 7px;
-  margin-right: 2px;
-  border-radius: 50%;
-  background: var(--accent);
-}
-
-.tab-mark.is-done {
-  width: 9px;
-  height: 5px;
-  border-radius: 0;
-  border-left: 2px solid var(--up);
-  border-bottom: 2px solid var(--up);
-  background: none;
-  transform: translateY(-2px) rotate(-45deg);
 }
 
 /* An Optional block, and "You sometimes add": a dashed outline drawn around the
@@ -418,36 +377,12 @@ button.slot-line > svg {
   padding-inline: 0;
 }
 
-/* "+ Workout" at the end of the routine tabs while editing. */
-.tab-add {
-  min-height: 48px;
-  flex: none;
-  white-space: nowrap;
-}
-
 .program-list {
   padding-bottom: var(--space-5);
 }
 
 .program-list > .hint {
   padding: var(--space-4) var(--gutter);
-}
-
-/* "Last time" in the open slot: the sets, and under them their date. */
-.slot-last {
-  display: grid;
-  gap: 1px;
-}
-
-.slot-last > :last-child {
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-/* The link to a slot's alternatives is a full tap target without making its line taller. */
-.program-list .slot-line .link-button {
-  margin-block: -12px;
-  padding-block: 12px;
 }
 
 /* A slot in the editor: its number box, then its three lines (the choices, the
@@ -1429,8 +1364,12 @@ body:is([data-current-view="round"], [data-current-view="settings"]) .topbar {
   line-height: 1.5;
 }
 
-.round-card > .actions:not(:empty) {
+.round-card > .actions {
   margin-top: var(--space-2);
+}
+
+.round-card > .actions > .link-button {
+  align-self: center;
 }
 
 /* Labelled lines with longer labels than a slot's ("Calendar weeks", "As a new block"). */
@@ -1453,6 +1392,10 @@ body:is([data-current-view="round"], [data-current-view="settings"]) .topbar {
 /* The round number between − and +. The number keeps its width, so + never moves. */
 .round-number-line {
   align-items: center;
+}
+
+.round-number-line > :last-child {
+  justify-self: end;
 }
 
 .round-chooser {
@@ -1487,12 +1430,8 @@ body:is([data-current-view="round"], [data-current-view="settings"]) .topbar {
   font-weight: 500;
 }
 
-.round-row.is-quiet {
-  opacity: 0.6;
-}
-
-/* A More row that can't be used now: its name dimmed, the reason readable under it. */
-.round-off .row-title {
+/* Not open for a tap now: its box fades, its name stays readable. */
+.round-row.is-quiet > .tickbox {
   opacity: 0.5;
 }
 
@@ -1505,7 +1444,7 @@ body:is([data-current-view="round"], [data-current-view="settings"]) .topbar {
 .round-cols {
   padding-inline: var(--gutter);
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 100px 18px;
+  grid-template-columns: 40px minmax(0, 1fr) 104px 18px;
   align-items: center;
   column-gap: 10px;
 }
@@ -1515,13 +1454,15 @@ body:is([data-current-view="round"], [data-current-view="settings"]) .topbar {
   border-bottom: 1px solid var(--line);
 }
 
-/* Dates, then weeks: on one line where they fit, otherwise a line each. */
+/* Under the program: its dates, then its weeks, a line each. */
 .round-cols .row-meta {
-  column-gap: var(--space-1);
+  white-space: nowrap;
 }
 
-.round-cols .row-meta > span {
-  white-space: nowrap;
+/* The open round's number is outlined in the accent colour; a fill means done. */
+.round-cols > .tickbox.is-open {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* A break, or a new block, between two rounds: one quiet line. */

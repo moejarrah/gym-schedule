@@ -5,6 +5,7 @@
 // name or visible text (never by CSS class, id or data-* attribute, and never by where
 // focus is), and check saved data by reading localStorage. Saved data goes in through
 // suite({ saved }) rather than by clicking, and "now" is Wednesday 2026-11-04 10:00 UTC.
+// The app opens on the Round tab; goToView() taps the bottom navigation.
 
 import assert from "node:assert/strict";
 import path from "node:path";
@@ -16,6 +17,7 @@ import { startServer as serve } from "../../tools/serve.mjs";
 
 export const STORAGE_KEY = "gymAppStateV1";
 export const TODAY = "2026-11-04";
+export const TOMORROW = "2026-11-05"; // after nextDay()
 const NOW = Date.UTC(2026, 10, 4, 10, 0);
 
 // Auto-retrying assertions (toBeVisible, toHaveText, …); they work without the Playwright runner.
@@ -68,28 +70,70 @@ export const main = (page) => page.getByRole("main");
 /** The open dialog or sheet with this title. */
 export const dialog = (page, name) => page.getByRole("dialog", { name, exact: true });
 
-/** A routine tab on Workout or Program. */
+/** A routine tab on Program (Workout has none: it is about one workout). */
 export const routineTab = (page, name) => main(page).getByRole("button", { name: new RegExp(`^${escapeRegExp(name)}, (Gym|Home)$`) });
 
-/** The button that shows the active program and opens the programs sheet. */
-export const programPicker = (page, name) => main(page).getByRole("button", { name: `Choose active program, currently ${name}`, exact: true });
+/** Program's header button: it names the program on screen and opens the Programs sheet. */
+export const programPicker = (page, name) => main(page).getByRole("button", { name: new RegExp(`^Look at another program, showing ${escapeRegExp(name)}(, the one you're following)?$`) });
+
+/** Workout's Start button for the routine it previews (it reads "Start"; its name says which). */
+export const startButton = (page, routine) => main(page).getByRole("button", { name: `Start ${routine}`, exact: true });
+
+/** A row of the Round tab's "Workouts in this round" that isn't done yet: tapping it opens that workout on Workout. */
+export const roundRow = (page, routine) => main(page).getByRole("button", { name: new RegExp(`^${escapeRegExp(routine)}, not done(, next)?\\. Open it on Workout\\.$`) });
 
 const settingsScope = (page) => page.getByRole("region", { name: "Settings" });
 
-/** Bottom navigation: Workout, Program, Library, Log or Settings. */
+const tab = (page, label) => page.getByRole("navigation", { name: "Main navigation" }).getByRole("button", { name: label, exact: true });
+
+/** Bottom navigation: Round, Workout, Program, Library or Log. The app opens on Round. */
 export async function goToView(page, label) {
-  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("button", { name: label }).click();
+  await tab(page, label).click();
 }
 
+/** Waits until this is the tab showing (the app moves between tabs by itself, e.g. back to Round after a workout). */
+export async function expectView(page, label) {
+  await expect(tab(page, label)).toHaveAttribute("aria-current", "page");
+}
+
+/** Settings opens from the gear at the top of the Round tab. */
 export async function openSettings(page) {
-  await goToView(page, "Settings");
+  if (await settingsScope(page).isVisible()) return settingsScope(page);
+  await goToView(page, "Round");
+  // The gear is on the tab's first page. If the tab was left on All rounds or on one round,
+  // tapping the tab again returns there.
+  const gear = main(page).getByRole("button", { name: "Settings", exact: true });
+  if (!(await gear.isVisible())) await tapOnRound(page, tab(page, "Round"));
+  await gear.click();
   await expect(settingsScope(page)).toBeVisible();
   return settingsScope(page);
 }
 
+/** Leaves Settings by its back link, which returns to the Round tab. */
 export async function closeSettings(page) {
-  await goToView(page, "Workout");
+  await main(page).getByRole("button", { name: "Back to Round", exact: true }).click();
   await expect(settingsScope(page)).toBeHidden();
+}
+
+/**
+ * A tap on the Round tab that swaps what it shows in place or moves on to Workout: "Start
+ * counting", "Start <workout>", a row of the round's list, All rounds and back, a choice in
+ * its sheet. The app then ignores taps on the screen for 400 ms, so that a double tap can't
+ * land on a button the owner never saw. This taps and waits that out.
+ */
+export async function tapOnRound(page, button) {
+  await button.click();
+  await roundSettles(page);
+}
+
+/** The wait of tapOnRound on its own (tools/screenshots.mjs uses it). */
+export const roundSettles = (page) => page.waitForTimeout(450);
+
+/** The next morning: the app is opened again a day later. */
+export async function nextDay(page) {
+  await page.clock.setSystemTime(NOW + 24 * 60 * 60 * 1000);
+  await page.reload();
+  await waitForApp(page);
 }
 
 /** What is saved on the device: the parsed state, or the stored text itself. */

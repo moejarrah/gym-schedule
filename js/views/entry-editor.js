@@ -31,7 +31,7 @@ function pickerListMarkup(exercises, existingExerciseIds, mode) {
     const details = [prescription, label(exercise.primaryTargets[0]), label(exercise.movementPattern)].filter(Boolean).join(" · ");
     const exists = existingExerciseIds.has(exercise.id);
     const unavailable = mode !== "entry" && exists;
-    return `<button class="row tall" type="button" data-action="pick-exercise" data-id="${escapeHtml(exercise.id)}" aria-label="${unavailable ? `${escapeHtml(fullName(exercise))} is already added` : `${exists ? "Add another" : "Add"} ${escapeHtml(fullName(exercise))}${mode === "extra" ? " for today" : mode === "replace" ? " instead" : mode === "choice" ? " as a choice" : " to this routine"}`}" ${unavailable ? "disabled" : ""}>
+    return `<button class="row tall" type="button" data-action="pick-exercise" data-id="${escapeHtml(exercise.id)}" aria-label="${unavailable ? `${escapeHtml(fullName(exercise))} is already added` : `${exists ? "Add another" : "Add"} ${escapeHtml(fullName(exercise))}${mode === "extra" ? " for today" : mode === "replace" ? " instead" : mode === "choice" ? " as a choice" : " to this workout"}`}" ${unavailable ? "disabled" : ""}>
       <span class="row-main"><strong class="row-title">${exerciseMarkup(exercise)}</strong><small class="row-meta truncate">${escapeHtml(details)}</small></span>
       <span class="row-action">${unavailable ? "Added" : exists ? "Add again" : "Add"}</span>
     </button>`;
@@ -72,12 +72,12 @@ export function openEntryEditor(routineId, entryId) {
   if (!entry) return;
   Object.assign(entryEditor, { routineId: routine.id, entryId, choices: structuredClone(entry.choices), choiceIndex: -1 });
 
-  $("#entryRoutineContext").textContent = `${routine.name} entry · slot ${entryNumber(routine, entryId)}`;
+  $("#entryRoutineContext").textContent = `${routine.name} · slot ${entryNumber(routine, entryId)}`;
   const blockSelect = $("#entryBlock");
   blockSelect.innerHTML = routine.blocks.map((block) => `<option value="${escapeHtml(block.id)}">${escapeHtml(block.name.trim() || "Main")}</option>`).join("");
   blockSelect.value = entry.blockId;
   $("#entryNote").value = entry.note;
-  $("#entryFormNote").textContent = `Choices, role, block, and note change only the ${routine.name} entry. The master exercises stay unchanged.`;
+  $("#entryFormNote").textContent = `Choices, role, block, and note change only this slot of ${routine.name}. The master exercises stay unchanged.`;
   $("#removeEntryButton").firstChild.textContent = `Remove from ${routine.name} `;
   setSegment("#entryRoleOptions", entry.role);
   renderChoiceDraft();
@@ -93,7 +93,7 @@ function saveEntry() {
   const { routineId, entryId } = entryEditor;
   const changes = entryChanges();
   const result = store.update((draft) => updateEntry(draft, routineId, entryId, changes));
-  if (report(result, "Routine entry updated.")) {
+  if (report(result, "Slot updated.")) {
     closeDialog("#entryDialog");
     render();
   }
@@ -105,14 +105,14 @@ async function removeEntryFromRoutine() {
   const entry = routine.entries.find((item) => item.id === entryEditor.entryId);
   const confirmed = await confirmAction({
     title: `Remove ${entryPresentation(entry, state).title}?`,
-    message: `This removes only the ${routine.name} entry. The master exercise stays in the Library.`,
+    message: `This removes it only from ${routine.name}. The master exercise stays in the Library.`,
     confirmLabel: "Remove entry",
     cancelLabel: "Keep entry",
     variant: "entry-remove",
   });
   if (!confirmed) return;
   const result = store.update((draft) => removeEntry(draft, routine.id, entry.id));
-  if (report(result, "Exercise removed from routine.")) {
+  if (report(result, "Exercise removed from workout.")) {
     closeDialog("#entryDialog");
     render();
   }
@@ -196,7 +196,7 @@ export function openPicker({ routineId = "", blockId = "", mode }) {
   Object.assign(picker, { mode, routineId: routine.id, blockId });
   const block = routine.blocks.find((item) => item.id === blockId);
   $("#pickerRoutineContext").textContent = mode === "choice"
-    ? `${routine.name} entry · add choice from Library`
+    ? `${routine.name} · add choice from Library`
     : mode === "replace"
       ? `Replace ${fullName(exerciseById(state, entryEditor.choices[entryEditor.choiceIndex].exerciseId))}`
       : mode === "extra"
@@ -233,12 +233,12 @@ function pickExercise(exerciseId) {
     return;
   }
   if (!exercise.defaultPrescription.trim()) {
-    showError("Add a default prescription to this Library exercise before creating a new routine slot.");
+    showError("Add a default prescription to this Library exercise before adding it to a workout.");
     return;
   }
   const { routineId, blockId } = picker;
   const result = store.update((draft) => addEntry(draft, routineId, { exerciseId, blockId, prescription: exercise.defaultPrescription }));
-  if (report(result, "Exercise added to routine.")) {
+  if (report(result, "Exercise added to workout.")) {
     closeDialog("#pickerDialog");
     render();
   }
