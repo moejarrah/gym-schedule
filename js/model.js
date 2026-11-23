@@ -290,6 +290,9 @@ export function finishWorkout(state, { now = Date.now(), timed = true } = {}) {
   state.settings.activeWorkout = null;
   if (workout.home) goHome(state, workout.home);
   if (!reopenedTag.round) closeRoundIfComplete(state, workout.dateKey);
+  // The Workout tab moves on to the round's next workout.
+  const next = openRound(state) && !workout.backdated ? roundSummary(state).remaining[0] : null;
+  if (next && roundProgram(state)?.id === state.settings.activeProgramId) state.settings.activeRoutineId = next.id;
 }
 
 // After a workout from another program: back to the program and routine that were showing.
