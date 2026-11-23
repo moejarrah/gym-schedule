@@ -1207,3 +1207,238 @@ details.form-section > summary + * {
 .log-round > .row-meta {
   text-align: right;
 }
+
+/* ---------- Round ---------- */
+
+/* Round and Settings draw their own top, as Workout, Program and Library do. */
+body:is([data-current-view="round"], [data-current-view="settings"]) .topbar {
+  display: none;
+}
+
+/* A page reached from the Round tab (Settings, All rounds): a back link over its title. */
+.page-back {
+  padding: 6px var(--gutter) var(--space-2);
+}
+
+.page-back > .title {
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
+/* The top of the tab: who is followed and the gear; "Round 6" and the week on one
+   baseline; a bar with one segment per Required workout; two facts, one at each end. */
+.round-head {
+  padding: 6px var(--gutter) var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.round-top {
+  min-height: var(--tap);
+  margin-right: calc(12px - var(--gutter));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.round-top > p {
+  min-width: 0;
+  color: var(--text-muted);
+}
+
+.round-top strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.round-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.round-title > h1 {
+  min-width: 0;
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
+/* "· block 2" stays in one piece, and goes under the number only when there is no room. */
+.round-title small {
+  font-size: var(--fs-head);
+  font-weight: 600;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.round-title > span {
+  color: var(--text-muted);
+  flex: none;
+  font-weight: 600;
+}
+
+.round-bar {
+  height: 6px;
+  margin-top: var(--space-1);
+  display: flex;
+  gap: var(--space-1);
+}
+
+.round-bar > i {
+  border-radius: var(--radius-pill);
+  background: var(--press);
+  flex: 1;
+}
+
+.round-bar > .is-done {
+  background: var(--accent-fill);
+}
+
+.round-facts {
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px var(--space-3);
+  font-size: var(--fs-meta);
+}
+
+/* The one card: a small label, what it is about, its facts as labelled lines, its button. */
+.round-card {
+  margin-inline: var(--space-4);
+}
+
+.round-card > h2 {
+  margin-block: 2px var(--space-2);
+  font-size: var(--fs-sheet);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.round-card > p:not(.label) {
+  margin-bottom: var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+
+.round-card > .actions:not(:empty) {
+  margin-top: var(--space-2);
+}
+
+/* Labelled lines with longer labels than a slot's ("Calendar weeks", "As a new block"). */
+.round-lines .slot-line {
+  grid-template-columns: 112px minmax(0, 1fr);
+}
+
+.round-lines .slot-line:last-of-type {
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.sheet-body.round-lines > .slot-line:first-child {
+  border-top: 0;
+}
+
+.round-about {
+  padding-inline: var(--gutter);
+}
+
+/* The round number between − and +. The number keeps its width, so + never moves. */
+.round-number-line {
+  align-items: center;
+}
+
+.round-chooser {
+  margin-block: -2px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.round-chooser > strong {
+  min-width: 46px;
+  font-size: var(--fs-head);
+  text-align: center;
+}
+
+/* A workout of a round: its box, its name on one line, and at the end a tag, its date
+   or an arrow. Done ones are muted, and so are the ones that can't be opened now. */
+.round-row > .row-meta,
+.round-row > .label {
+  flex: none;
+  white-space: nowrap;
+}
+
+.round-row > .tag {
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.round-row:is(.is-done, .is-quiet) .row-title {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.round-row.is-quiet {
+  opacity: 0.6;
+}
+
+/* A More row that can't be used now: its name dimmed, the reason readable under it. */
+.round-off .row-title {
+  opacity: 0.5;
+}
+
+.round-note {
+  padding: var(--space-2) var(--gutter) 0;
+}
+
+/* All rounds: three columns under a small header row (the number, the program with its
+   dates and weeks, the workouts with how it ended) and an arrow. */
+.round-cols {
+  padding-inline: var(--gutter);
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 100px 18px;
+  align-items: center;
+  column-gap: 10px;
+}
+
+.label.round-cols {
+  min-height: 34px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Dates, then weeks: on one line where they fit, otherwise a line each. */
+.round-cols .row-meta {
+  column-gap: var(--space-1);
+}
+
+.round-cols .row-meta > span {
+  white-space: nowrap;
+}
+
+/* A break, or a new block, between two rounds: one quiet line. */
+.round-gap {
+  margin-inline: var(--gutter);
+  padding-block: var(--space-2);
+  border-block: 1px solid var(--line-soft);
+  text-align: center;
+}
+
+/* The sheet: its error line keeps its room at the end of what scrolls, and the quiet
+   second action sits centred under the first. */
+#roundSheet .sheet-body > .hint {
+  padding-block: var(--space-3);
+}
+
+#roundSheet .actions.stacked > .link-button {
+  align-self: center;
+}

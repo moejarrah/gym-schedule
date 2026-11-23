@@ -26,6 +26,7 @@ const FILES = [
   "./js/views/logger.js",
   "./js/views/program.js",
   "./js/views/reference.js",
+  "./js/views/round.js",
   "./js/views/rounds.js",
   "./js/views/settings.js",
   "./js/views/shared.js",

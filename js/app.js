@@ -1,8 +1,8 @@
 // Entry point: loads every screen, routes taps to actions, starts offline support.
 
+import "./views/round.js";
 import "./views/workout.js";
 import "./views/reference.js";
-import "./views/rounds.js";
 import "./views/program.js";
 import "./views/entry-editor.js";
 import "./views/library.js";

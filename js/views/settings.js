@@ -1,9 +1,10 @@
-// Settings screen: theme, backup export and import, restoring the starting data,
+// Settings screen, opened from the gear on the Round tab (its back link returns
+// there): theme, backup export and import, restoring the starting data,
 // downloading saved data that couldn't be read, the owner's training rules
 // (shown formatted, edited inline as plain text), and the installed version.
 
 import { applyTheme, mainElement, registerActions, registerView, render, store } from "../context.js";
-import { $, confirmAction, escapeHtml, report, toast } from "../dom.js";
+import { $, chevronIcon, confirmAction, escapeHtml, report, toast } from "../dom.js";
 import { backupAge, exerciseLabels, localDateKey, setBackupDone, setExerciseLabels, setTheme, setTrainingRules } from "../model.js";
 import { createBackup, createDefaultState, parseBackup } from "../store.js";
 
@@ -88,7 +89,11 @@ function backupLine(state) {
 }
 
 function settingsMarkup(state) {
-  return `<section class="page stack settings-page" aria-label="Settings">
+  return `<header class="page-back">
+      <button class="link-button" type="button" data-view="round" aria-label="Back to Round">${chevronIcon("left")}Round</button>
+      <h1 class="title">Settings</h1>
+    </header>
+    <section class="page stack settings-page" aria-label="Settings">
     <section class="stack tight" aria-labelledby="settingsAppearanceTitle">
       <h2 class="label" id="settingsAppearanceTitle">Appearance</h2>
       <button class="row card" id="settingsThemeButton" type="button" data-action="toggle-theme"><span class="row-main"><strong class="row-title">Theme</strong><small class="row-meta" id="settingsThemeValue">${themeLabel(state.settings.theme)}</small></span><span class="chev" aria-hidden="true">›</span></button>
@@ -272,7 +277,7 @@ function saveTrainingRules() {
   toast("Training rules saved.");
 }
 
-registerView("settings", { markup: settingsMarkup, afterDraw: refreshVersion, title: "Settings" });
+registerView("settings", { markup: settingsMarkup, afterDraw: refreshVersion, tab: "round" });
 
 registerActions({
   "toggle-theme": toggleTheme,
