@@ -32,6 +32,7 @@ const minutesLabel = (minutes) => (typeof minutes === "number" ? `${minutes} min
 function logMarkup(state) {
   const option = (value, name) => `<button type="button" data-value="${value}" aria-pressed="${log.view === value}">${name}</button>`;
   return `<section class="page log-page">
+    <header class="appbar"><h1 class="title">Log</h1></header>
     <div class="segment log-switch" data-segment data-value="${log.view}" data-action="log-view" role="group" aria-label="Log shows">
       ${option("calendar", "Calendar")}${option("progress", "Progress")}
     </div>
@@ -292,7 +293,7 @@ function saveDay(form) {
   render();
 }
 
-registerView("calendar", { markup: logMarkup, title: "Log" });
+registerView("calendar", { markup: logMarkup });
 
 registerActions({
   "log-view": (group) => {

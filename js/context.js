@@ -19,8 +19,8 @@ const afterRenderHooks = [];
 let current = "round"; // the app opens on the Round tab
 let enteringTimer;
 
-// registerView("calendar", { markup(state), title?, afterDraw?(main), tab?, reselect?() })
-// Views without a title draw their own bar; the stylesheet hides the shared top bar for them.
+// registerView("calendar", { markup(state), afterDraw?(main), tab?, reselect?(), back?() })
+// Every view draws its own top. `back`: see backStep below.
 // `tab`: the bottom tab that stays marked while a view without one of its own shows
 // (Settings belongs to "round"). `reselect`: called when the view's tab is tapped while
 // it is showing; it returns true when it did something (went back to its first page),
@@ -68,7 +68,6 @@ export function render({ entering = "" } = {}) {
     enteringTimer = setTimeout(() => main.classList.remove("is-switching"), 220);
   }
   view.afterDraw?.(mainElement());
-  document.querySelector("#viewTitle").textContent = view.title || "";
   for (const hook of afterRenderHooks) hook(state);
 }
 
@@ -77,18 +76,49 @@ export function scrollToTop() {
   for (const area of [mainElement(), ...mainElement().querySelectorAll(".scroll")]) area.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// Changes what the page area shows, with motion. The page as it was stays on screen as
-// a copy (the "ghost") while the page as it is now comes in; the stylesheet moves the two
-// (see "Changing page" in styles/base.css). `kind`: "push" (a deeper page comes in from
-// the right, over the one that leaves), "pop" (back: the page leaves to the right),
-// "right" or "left" (a neighbouring tab: a short slide from its side).
+// ---------- changing page ----------
+//
+// The page as it was stays on screen as a copy (the "ghost") while the page as it is now
+// comes in; the stylesheet moves the two (see "Changing page" in styles/base.css).
+// `kind`: "push" (a deeper page comes in from the right, over the one that leaves),
+// "pop" (back: the page leaves to the right), "right" or "left" (another tab: the pages
+// slide past like pages of a book, toward the side the tab is on).
 // Without motion (Reduce Motion, or a sheet still on screen) the change is immediate.
-const MOTION_MS = 260;
+const MOTION_MS = 340;
 let motionTimer;
+let motionFrame;
 function endMotion() {
   clearTimeout(motionTimer);
+  cancelAnimationFrame(motionFrame);
   document.querySelector("[data-page-ghost]")?.remove();
-  delete mainElement().dataset.motion;
+  const main = mainElement();
+  delete main.dataset.motion;
+  delete main.dataset.run;
+  Object.assign(main.style, { transform: "", opacity: "", transition: "" });
+}
+
+const scrollAreas = (area) => [area, ...area.querySelectorAll(".scroll, .scroll-x")];
+const scrollPlaces = (main) => scrollAreas(main).map((area) => [area.scrollLeft, area.scrollTop]);
+const restorePlaces = (main, places) => scrollAreas(main).forEach((area, index) => area.scrollTo(...(places[index] || [0, 0])));
+
+// Copies the page as it is now. Call the result once the page has changed: it puts the
+// copy on screen, where the page was and scrolled as it was, and returns it. The copy
+// keeps the id so every style of the page applies to it; it comes after the page in the
+// document, so anything looked up by id or selector still finds the real one.
+function ghostOf(main, kind) {
+  const places = scrollPlaces(main);
+  const box = main.getBoundingClientRect();
+  const ghost = main.cloneNode(true);
+  ghost.dataset.pageGhost = kind;
+  ghost.inert = true;
+  ghost.setAttribute("aria-hidden", "true");
+  ghost.removeAttribute("tabindex");
+  Object.assign(ghost.style, { left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px` });
+  return () => {
+    main.after(ghost);
+    restorePlaces(ghost, places);
+    return ghost;
+  };
 }
 
 export function withMotion(kind, change) {
@@ -98,22 +128,115 @@ export function withMotion(kind, change) {
     change();
     return;
   }
-  // The copy keeps the id so every style of the page applies to it; it comes after the
-  // page in the document, so anything looked up by id or selector still finds the real one.
-  const scrolled = (area) => [area, ...area.querySelectorAll(".scroll, .scroll-x")];
-  const places = scrolled(main).map((area) => [area.scrollTop, area.scrollLeft]);
-  const box = main.getBoundingClientRect();
-  const ghost = main.cloneNode(true);
-  ghost.dataset.pageGhost = kind;
-  ghost.inert = true;
-  ghost.setAttribute("aria-hidden", "true");
-  ghost.removeAttribute("tabindex");
-  Object.assign(ghost.style, { left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px` });
+  const show = ghostOf(main, kind);
   change();
-  main.after(ghost);
-  scrolled(ghost).forEach((area, index) => area.scrollTo(places[index]?.[1] || 0, places[index]?.[0] || 0));
-  main.dataset.motion = kind;
-  motionTimer = setTimeout(endMotion, MOTION_MS);
+  const ghost = show();
+  main.dataset.motion = kind; // both wait at their first step (the animation is paused)
+  // They start moving two frames later, once the new page has been laid out and drawn.
+  // Started in the same frame, the first steps were lost to that work and it stuttered.
+  motionTimer = setTimeout(endMotion, 1500); // in case no frame ever comes
+  motionFrame = requestAnimationFrame(() => {
+    motionFrame = requestAnimationFrame(() => {
+      main.dataset.run = "";
+      ghost.dataset.run = "";
+      clearTimeout(motionTimer);
+      motionTimer = setTimeout(endMotion, MOTION_MS + 40);
+    });
+  });
+}
+
+// What going back from the page on screen does, or null when there is nowhere to go
+// back to: a view's own answer (`back()` in registerView: Round's pages), or, for a page
+// that belongs to a tab (Settings), that tab. { apply(): the scroll position to return
+// to, revert() }: both only change what is shown next; drawing it is done here.
+function backStep() {
+  const view = views.get(current);
+  if (view.back) return view.back();
+  if (!view.tab) return null;
+  const from = current;
+  return { apply() { current = view.tab; return 0; }, revert() { current = from; } };
+}
+
+// Going back by dragging from the left edge of the screen, as on iPhone: the page
+// follows the finger and uncovers the one before it; let go past a third of the way (or
+// with a flick) and it leaves, otherwise it comes back.
+export function enableBackSwipe() {
+  const EDGE = 28;
+  const SETTLE_MS = 240;
+  let drag = null;
+  const stop = () => {
+    document.removeEventListener("touchmove", onMove);
+    document.removeEventListener("touchend", onEnd);
+    document.removeEventListener("touchcancel", onEnd);
+    drag = null;
+  };
+  const place = (dx) => {
+    const progress = Math.min(1, Math.max(0, dx / drag.width));
+    drag.progress = progress;
+    drag.ghost.style.transform = `translateX(${Math.max(0, dx)}px)`;
+    Object.assign(drag.main.style, { transform: `translateX(${-25 * (1 - progress)}%)`, opacity: String(0.4 + 0.6 * progress) });
+  };
+  function begin() {
+    endMotion();
+    const main = mainElement();
+    drag.main = main;
+    drag.places = scrollPlaces(main);
+    const show = ghostOf(main, "drag");
+    const top = drag.step.apply();
+    render();
+    main.scrollTop = top;
+    drag.ghost = show();
+    main.dataset.motion = "under";
+    drag.started = true;
+  }
+  function onMove(event) {
+    const touch = event.touches[0];
+    const dx = touch.clientX - drag.x;
+    const dy = touch.clientY - drag.y;
+    if (drag.settling) return;
+    if (!drag.started) {
+      if (Math.abs(dy) > 12 && Math.abs(dy) > dx) return stop(); // scrolling, not going back
+      if (dx < 10) return;
+      begin();
+    }
+    event.preventDefault();
+    const now = performance.now();
+    if (now > drag.at) drag.speed = (touch.clientX - drag.lastX) / (now - drag.at);
+    Object.assign(drag, { lastX: touch.clientX, at: now });
+    place(dx);
+  }
+  function onEnd() {
+    if (!drag.started || drag.settling) {
+      if (!drag.settling) stop();
+      return;
+    }
+    const { main, ghost, step, places } = drag;
+    const leave = drag.progress > 0.35 || drag.speed > 0.45;
+    drag.settling = true;
+    for (const item of [ghost, main]) item.style.transition = `transform ${SETTLE_MS}ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity ${SETTLE_MS}ms linear`;
+    ghost.style.transform = leave ? "translateX(100%)" : "translateX(0)";
+    Object.assign(main.style, { transform: leave ? "translateX(0)" : "translateX(-25%)", opacity: leave ? "1" : "0.4" });
+    setTimeout(() => {
+      // Not far enough: the page that was being left is the page again, where it was.
+      if (!leave && ghost.isConnected) {
+        step.revert();
+        render();
+        restorePlaces(main, places);
+      }
+      if (ghost.isConnected) endMotion();
+      stop();
+    }, SETTLE_MS + 20);
+  }
+  document.addEventListener("touchstart", (event) => {
+    if (drag || event.touches.length !== 1 || event.touches[0].clientX > EDGE || document.querySelector("dialog[open]")) return;
+    const step = backStep();
+    if (!step) return;
+    const { clientX, clientY } = event.touches[0];
+    drag = { step, x: clientX, y: clientY, lastX: clientX, at: performance.now(), speed: 0, progress: 0, width: window.innerWidth, started: false, settling: false };
+    document.addEventListener("touchmove", onMove, { passive: false });
+    document.addEventListener("touchend", onEnd);
+    document.addEventListener("touchcancel", onEnd);
+  }, { passive: true });
 }
 
 // The bottom tabs, left to right.

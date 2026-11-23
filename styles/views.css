@@ -1244,11 +1244,6 @@ details.form-section > summary + * {
 
 /* ---------- Round ---------- */
 
-/* Round and Settings draw their own top, as Workout, Program and Library do. */
-body:is([data-current-view="round"], [data-current-view="settings"]) .topbar {
-  display: none;
-}
-
 /* A page reached from the Round tab (Settings, All rounds): a back link over its title. */
 .page-back {
   padding: 6px var(--gutter) var(--space-2);

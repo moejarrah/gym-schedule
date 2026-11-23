@@ -626,6 +626,22 @@ async function newBlock() {
 
 registerView("round", {
   markup,
+  // Going back (a drag from the left edge): one round returns to All rounds, All rounds
+  // to the tab's first page, each to where it was left.
+  back() {
+    if (page.name === "home") return null;
+    const from = { name: page.name, number: page.number, block: page.block };
+    const to = page.name === "one" ? "all" : "home";
+    return {
+      apply() {
+        Object.assign(page, { name: to, number: 0, block: 0 });
+        return page.scroll[to] || 0;
+      },
+      revert() {
+        Object.assign(page, from);
+      },
+    };
+  },
   // Tapping the Round tab while one of its pages shows goes back to the tab's first page.
   reselect() {
     if (page.name === "home") return false;

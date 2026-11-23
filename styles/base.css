@@ -294,10 +294,10 @@ a:focus-visible,
   height: 100dvh;
   padding-top: env(safe-area-inset-top);
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
 }
 
-/* App bar: the shell's own (Log, Settings) and the ones Program and Library draw. */
+/* App bar: the top of a screen that has a title of its own (Program, Library, Log). */
 .appbar {
   min-height: 60px;
   padding: 0 12px 0 var(--gutter);
@@ -317,13 +317,7 @@ a:focus-visible,
   letter-spacing: -0.015em;
 }
 
-/* Screens without a title draw their own top bar (see registerView in js/context.js). */
-body:is([data-current-view="workout"], [data-current-view="routines"], [data-current-view="exercises"]) .topbar {
-  display: none;
-}
-
 #appMain {
-  grid-row: 2;
   min-height: 0;
   padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + var(--space-5));
   scroll-padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + var(--space-5));
@@ -444,65 +438,78 @@ dialog .sheet-body {
   overscroll-behavior: contain;
 }
 
-/* Changing page (withMotion in js/context.js). A copy of the page as it was (the ghost)
-   stays in its place while the page comes in: a deeper page slides in from the right
-   over the one that leaves, going back reverses it, and a neighbouring tab makes a short
-   slide from its side. Both are drawn with the page's background, so nothing shows
-   through, and both stay under the bottom navigation. */
+/* Changing page (withMotion and enableBackSwipe in js/context.js). A copy of the page as
+   it was (the ghost) stays in its place while the page comes in. Another tab: the two
+   slide past together, toward the side the tab is on. A deeper page slides in from the
+   right over the one that leaves, which gives way a little and dims; going back
+   reverses it, and dragging from the left edge does the same under the finger.
+   Both are drawn with the page's background, so nothing shows through, and both stay
+   under the bottom navigation. They wait at their first step until `data-run` is set. */
+#appMain[data-motion],
+#appMain[data-page-ghost] {
+  background: var(--bg);
+  will-change: transform, opacity;
+  animation: 320ms cubic-bezier(0.32, 0.72, 0, 1) both paused;
+}
+
+#appMain[data-run] {
+  animation-play-state: running;
+}
+
 #appMain[data-motion] {
   position: relative;
-  background: var(--bg);
   z-index: 2;
-  animation: 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 #appMain[data-page-ghost] {
   position: fixed;
   margin: 0;
-  background: var(--bg);
   overflow: hidden;
   pointer-events: none;
   z-index: 1;
-  animation: 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-#appMain[data-motion="push"] { animation-name: page-in-right; }
-#appMain[data-page-ghost="push"] { animation-name: page-out-left; }
-#appMain[data-motion="pop"] { animation-name: page-in-left; z-index: 1; }
-#appMain[data-page-ghost="pop"] { animation-name: page-out-right; z-index: 2; }
-#appMain[data-motion="right"] { animation-name: tab-in-right; animation-duration: 200ms; }
-#appMain[data-motion="left"] { animation-name: tab-in-left; animation-duration: 200ms; }
+#appMain[data-motion="right"] { animation-name: page-in-right; }
+#appMain[data-page-ghost="right"] { animation-name: page-off-left; }
+#appMain[data-motion="left"] { animation-name: page-in-left; }
+#appMain[data-page-ghost="left"] { animation-name: page-off-right; }
 
-#appMain:is([data-page-ghost="right"], [data-page-ghost="left"]) {
-  animation: page-fade-out 90ms ease-out both;
+#appMain[data-motion="push"] { animation-name: page-in-right; }
+#appMain[data-page-ghost="push"] { animation-name: page-give-way; }
+#appMain[data-motion="pop"] { animation-name: page-come-back; z-index: 1; }
+#appMain[data-page-ghost="pop"] { animation-name: page-off-right; z-index: 2; }
+
+/* Dragged back from the left edge: the page on top follows the finger, with a soft
+   edge, over the page it uncovers. */
+#appMain[data-motion="under"] { z-index: 1; }
+
+#appMain[data-page-ghost="drag"] {
+  z-index: 2;
+  box-shadow: -12px 0 28px rgb(0 0 0 / 0.16);
 }
 
 @keyframes page-in-right {
   from { transform: translateX(100%); }
 }
 
-@keyframes page-out-left {
-  to { transform: translateX(-25%); opacity: 0; }
-}
-
 @keyframes page-in-left {
-  from { transform: translateX(-25%); opacity: 0; }
+  from { transform: translateX(-100%); }
 }
 
-@keyframes page-out-right {
+@keyframes page-off-left {
+  to { transform: translateX(-100%); }
+}
+
+@keyframes page-off-right {
   to { transform: translateX(100%); }
 }
 
-@keyframes page-fade-out {
-  to { opacity: 0; }
+@keyframes page-give-way {
+  to { transform: translateX(-25%); opacity: 0.4; }
 }
 
-@keyframes tab-in-right {
-  from { transform: translateX(24px); opacity: 0; }
-}
-
-@keyframes tab-in-left {
-  from { transform: translateX(-24px); opacity: 0; }
+@keyframes page-come-back {
+  from { transform: translateX(-25%); opacity: 0.4; }
 }
 
 @media (prefers-reduced-motion: reduce) {
