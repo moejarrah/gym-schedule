@@ -167,14 +167,63 @@ p.round-line {
   border-top: 1px solid var(--line-soft);
 }
 
-/* Workout's top bar: the program on the left; on the right Start, or while a
-   workout runs its stopwatch and Cancel. Compact pills, not full-size buttons. */
-.workout-bar {
-  gap: var(--space-2);
-  padding-right: var(--space-4);
+/* A line that opens something (the exercise's history, the slot's choices) is a button
+   the height of a tap target: its value in the accent colour, an arrow at its end. */
+button.slot-line {
+  width: 100%;
+  min-height: var(--tap);
+  grid-template-columns: 88px minmax(0, 1fr) auto;
+  align-content: center;
+  text-align: left;
 }
 
-.workout-bar .button {
+.slot-link {
+  color: var(--accent);
+}
+
+/* When it was, under what was done. */
+.slot-link > small {
+  display: block;
+  font-size: var(--fs-meta);
+}
+
+button.slot-line > svg {
+  width: 16px;
+  height: 16px;
+  align-self: center;
+  color: var(--accent);
+}
+
+/* Workout's header: what the workout is to the round, over its name; on the right
+   Start, or while it runs Cancel and the stopwatch. Compact pills, not full-size buttons. */
+.workout-head {
+  min-height: 56px;
+  padding: 6px var(--space-4) 0 var(--gutter);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: center;
+  align-items: center;
+  column-gap: var(--space-2);
+  flex: none;
+}
+
+.workout-control {
+  grid-area: 1 / 2 / span 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* An extra workout also names its program: that line gets the full width. */
+.workout-head.is-guest > .label {
+  grid-column: 1 / -1;
+}
+
+.workout-head.is-guest > .workout-control {
+  grid-area: 2 / 2;
+}
+
+.workout-head .button {
   min-height: var(--tap);
   padding: 0 var(--space-4);
   border-radius: var(--radius-pill);
@@ -182,7 +231,7 @@ p.round-line {
   font-size: var(--fs-small);
 }
 
-.workout-bar .button.text {
+.workout-head .button.text {
   padding-inline: var(--space-2);
 }
 
@@ -190,6 +239,15 @@ p.round-line {
   flex: none;
   font-weight: 700;
   white-space: nowrap;
+}
+
+/* Under the header, one line: how many exercises, and when it was last done. */
+.workout-facts {
+  padding-inline: var(--gutter);
+  border-bottom: 1px solid var(--line);
+  color: var(--text-muted);
+  flex: none;
+  font-size: var(--fs-meta);
 }
 
 /* On a routine tab: a dot while its workout runs, a tick once finished today. */
@@ -548,19 +606,6 @@ p.round-line {
   background: var(--rehab);
 }
 
-/* The recent days sit under their round; a long gap is one quiet line. */
-.log-round {
-  min-height: 0;
-  padding: var(--space-3) var(--space-1) 0;
-  border: 0;
-  align-items: baseline;
-}
-
-.log-gap {
-  padding: var(--space-2) 0;
-  text-align: center;
-}
-
 .log-weekdays {
   padding-block: var(--space-3) var(--space-1);
   border-radius: var(--radius-card) var(--radius-card) 0 0;
@@ -624,12 +669,17 @@ p.round-line {
   background: var(--rehab);
 }
 
-/* Seven 44px days fit a 320px screen only when the card runs nearly edge to edge. */
+/* On a 320px screen the card runs nearly edge to edge, and with the week column there
+   are 40px left for a day: each day's tap target reaches 2px into its neighbours'. */
 @media (max-width: 359px) {
   .log-weekdays,
   .log-calendar {
     margin-inline: 6px;
     padding-inline: 0;
+  }
+
+  .log-calendar-day {
+    margin-inline: -2px;
   }
 }
 

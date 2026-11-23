@@ -10,12 +10,12 @@
 
 import { mainElement, navigate, registerActions, registerView, render, store } from "../context.js";
 import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, formatDate, fresh, openDialog, redraw, report, segmentValue } from "../dom.js";
-import { activeProgram, dateFromKey, entryLog, exerciseById, fullName, localDateKey, programRoutines, removeDayLog, routineById, routineProgram, sessionFor, setDay, startWorkout, workoutName, calendarWeek, openRound, roundWorkouts } from "../model.js";
+import { activeProgram, calendarWeek, dateFromKey, entryLog, exerciseById, fullName, localDateKey, programRoutines, removeDayLog, roundProgram, routineById, routineProgram, sessionFor, setDay, startWorkout, workoutName } from "../model.js";
 import { overview } from "../progress.js";
 import { label } from "../vocab.js";
 import { openExerciseHistory } from "./history.js";
 import { openLogger } from "./logger.js";
-import { exerciseMarkup, locationLabel, setChipsMarkup, shortDate, roundName, weeksText } from "./shared.js";
+import { exerciseMarkup, locationLabel, roundName, setChipsMarkup, shortDate } from "./shared.js";
 
 const LONG_DATE = { weekday: "long", month: "long", day: "numeric", year: "numeric" };
 const RECENT_LIMIT = 8;
@@ -100,65 +100,33 @@ function recentSessionsMarkup(state) {
   if (!recentKeys.length) {
     return `<div class="card row-main log-recent"><strong class="row-title">No history yet</strong><span class="row-meta">Completed routines and day notes will appear here.</span></div>`;
   }
-  const parts = [];
-  let previous = null;
-  for (const dateKey of recentKeys) {
-    const round = dayRound(state, dateKey);
-    if (previous) {
-      const days = Math.round((dateFromKey(previous.dateKey) - dateFromKey(dateKey)) / 86400000);
-      if (days >= 21) parts.push(`<p class="hint log-gap">${Math.floor(days / 7)} weeks off${previous.round && previous.round.block > (round?.block || 1) ? ` · block ${previous.round.block} started ${escapeHtml(shortDate(previous.round.from))}` : ""}</p>`);
-    }
-    if (round && round.key !== previous?.round?.key) {
-      parts.push(`<div class="label-row log-round"><strong>${escapeHtml(round.title)}</strong><span class="row-meta">${escapeHtml(round.span)}</span></div>`);
-    }
-    parts.push(recentRowMarkup(state, dateKey));
-    previous = { dateKey, round };
-  }
-  return `<div class="stack snug log-recent">${parts.join("")}</div>`;
-}
-
-const monthDay = (dateKey) => formatDate(dateFromKey(dateKey), { month: "short", day: "numeric" });
-
-// The round a day's workouts were filed in: its heading for the list, or null.
-function dayRound(state, dateKey) {
-  const record = Object.values(state.sessions[dateKey].workouts || {}).filter((item) => item.round).sort((a, b) => (b.block || 1) - (a.block || 1) || b.round - a.round)[0];
-  if (!record) return null;
-  const tag = { number: record.round, block: record.block || 1 };
-  const workouts = roundWorkouts(state, tag);
-  const from = workouts[0]?.dateKey || dateKey;
-  const to = workouts.at(-1)?.dateKey || dateKey;
-  const counter = openRound(state);
-  const open = counter?.number === tag.number && counter.block === tag.block;
-  return {
-    key: `${tag.block}:${tag.number}`,
-    block: tag.block,
-    from,
-    title: roundName(tag),
-    span: `${open ? `from ${monthDay(from)}` : from === to ? monthDay(from) : `${monthDay(from)} – ${monthDay(to)}`} · ${weeksText(from, open ? localDateKey() : to).replace(/^\d+ · /, "")}`,
-  };
+  return `<div class="stack snug log-recent">${recentKeys.map((dateKey) => recentRowMarkup(state, dateKey)).join("")}</div>`;
 }
 
 function recentRowMarkup(state, dateKey) {
   const session = state.sessions[dateKey];
-  // A finished routine goes by the name it had that day; its program by today's name,
-  // or the one kept with the workout when the routine is gone.
+  // A finished routine goes by the name it had that day.
   const routines = session.routineIds.map((id) => routineById(state, id)).filter(Boolean);
+  const records = session.routineIds.map((id) => session.workouts[id]).filter(Boolean);
   const kept = session.routineIds.filter((id) => !routineById(state, id)).map((id) => session.workouts[id]).filter((record) => record?.name);
   const deletedCount = session.routineIds.length - routines.length - kept.length;
-  const programs = [...new Set(routines.map((routine) => routineProgram(state, routine.id)))];
   const names = [...routines.map((routine) => workoutName(state, dateKey, routine.id)), ...kept.map((record) => record.name)];
   if (deletedCount) names.push(deletedLabel(deletedCount));
   const loggedCount = Object.keys(session.logs).length;
   const title = names.length ? names.join(" · ") : loggedCount ? "Logged sets" : session.note ? "Note only" : "Saved workout checks";
   const minutes = session.routineIds.reduce((sum, id) => sum + (session.workouts[id]?.minutes || 0), 0);
+  // The second line starts with the day's round. A workout that isn't of the program
+  // being followed (an extra in that round, or an older program's) also names its program.
+  const programName = (id) => routineProgram(state, id)?.name || session.workouts[id]?.program || "";
+  const followed = roundProgram(state)?.name;
   const context = [
-    [...new Set([...programs.map((program) => program.name), ...kept.map((record) => record.program).filter(Boolean)])].join(" · "),
+    ...new Set(records.filter((record) => record.round).map((record) => roundName({ number: record.round, block: record.block || 1 }))),
+    ...new Set(session.routineIds.filter((id) => session.workouts[id]?.guest || programName(id) !== followed).map(programName)),
     minutes ? minutesLabel(minutes) : "",
     loggedCount ? `${loggedCount} ${loggedCount === 1 ? "exercise" : "exercises"} logged` : "",
     session.note ? "Note added" : "",
-    programs.some((program) => program.id !== state.settings.activeProgramId) ? "Inactive program" : "",
   ].filter(Boolean);
-  const summary = context.join(" · ") || (deletedCount ? "No longer in any program" : "No completed routines");
+  const summary = context.join(" · ") || (deletedCount ? "No longer in any program" : names.length ? "No sets logged" : "No completed routines");
   const date = dateFromKey(dateKey);
   const fullDate = formatDate(date, LONG_DATE);
   const dayAndMonth = formatDate(date, { day: "numeric", month: "short" });
