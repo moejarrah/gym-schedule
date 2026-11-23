@@ -25,16 +25,20 @@
     } catch (_) {}
   </script>
 </head>
-<body data-current-view="workout">
+<body data-current-view="round">
   <div class="app-shell">
     <header class="appbar topbar">
-      <h1 class="title truncate" id="viewTitle">Workout</h1>
+      <h1 class="title truncate" id="viewTitle"></h1>
     </header>
 
     <main id="appMain" tabindex="-1"></main>
 
     <nav class="bottom-nav" aria-label="Main navigation">
-      <button type="button" data-view="workout" aria-current="page">
+      <button type="button" data-view="round" aria-current="page">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20.5 3.5v4.8h-4.8"/></svg>
+        <span>Round</span>
+      </button>
+      <button type="button" data-view="workout">
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 9v6M8 7v10M16 7v10M19 9v6M8 12h8M3 10v4M21 10v4"/></svg>
         <span>Workout</span>
       </button>
@@ -49,10 +53,6 @@
       <button type="button" data-view="calendar">
         <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
         <span>Log</span>
-      </button>
-      <button type="button" data-view="settings">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
-        <span>Settings</span>
       </button>
     </nav>
   </div>
@@ -344,6 +344,10 @@
 
   <dialog id="roundDialog" class="sheet tall" aria-labelledby="roundTitle">
     <div id="roundContent" class="contents"></div>
+  </dialog>
+
+  <dialog id="roundSheet" class="sheet tall" aria-labelledby="roundSheetTitle">
+    <div id="roundSheetContent" class="contents"></div>
   </dialog>
 
   <dialog id="logDialog" class="sheet tall" aria-labelledby="logTitle">

@@ -16,11 +16,15 @@ export const store = createStore();
 const views = new Map();
 const actions = new Map();
 const afterRenderHooks = [];
-let current = "workout";
+let current = "round"; // the app opens on the Round tab
 let enteringTimer;
 
-// registerView("calendar", { markup(state), title? })
+// registerView("calendar", { markup(state), title?, afterDraw?(main), tab?, reselect?() })
 // Views without a title draw their own bar; the stylesheet hides the shared top bar for them.
+// `tab`: the bottom tab that stays marked while a view without one of its own shows
+// (Settings belongs to "round"). `reselect`: called when the view's tab is tapped while
+// it is showing; it returns true when it did something (went back to its first page),
+// otherwise the screen scrolls to its top.
 export function registerView(id, view) {
   views.set(id, view);
 }
@@ -49,8 +53,9 @@ export function render({ entering = "" } = {}) {
   const state = store.getState();
   const view = views.get(current);
   document.body.dataset.currentView = current;
+  const tab = view.tab || current;
   for (const button of document.querySelectorAll(".bottom-nav [data-view]")) {
-    if (button.dataset.view === current) button.setAttribute("aria-current", "page");
+    if (button.dataset.view === tab) button.setAttribute("aria-current", "page");
     else button.removeAttribute("aria-current");
   }
   const main = mainElement();
@@ -77,7 +82,7 @@ export function scrollToTop() {
 export function navigate(id) {
   if (!views.has(id)) return;
   if (id === current) {
-    scrollToTop();
+    if (!views.get(id).reselect?.()) scrollToTop();
     return;
   }
   current = id;
