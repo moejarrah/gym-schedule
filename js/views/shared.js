@@ -1,7 +1,7 @@
 // Markup pieces used by more than one screen.
 
 import { escapeHtml, formatDate } from "../dom.js";
-import { store } from "../context.js";
+import { mainElement, store } from "../context.js";
 import { calendarWeek, dateFromKey, exerciseById, exerciseLabels, fullName, mainEquipment, setupWords } from "../model.js";
 import { label } from "../vocab.js";
 
@@ -104,6 +104,48 @@ export function entryPresentation(entry, state) {
       ? `${lettered(null, choices[0].exercise.name, letters.join(""))}${setupMarkup(setups.filter(Boolean).join(" or "))}`
       : choices.map((item) => item.markup).join(` <span class="version">or</span>&nbsp;`) || "No exercise choices",
     prescription: shared ? prescriptions[0] : prescriptions.join(" or "),
+  };
+}
+
+// ---------- the open slot ----------
+
+// How a slot's alternatives are named in its open lines: by movement, or, when that
+// alone wouldn't tell one from the exercise shown or from another alternative, with
+// what sets it apart ("Chest press · Machine").
+export function alternativeNames(items, shownExercise) {
+  const repeated = (name) => name === shownExercise?.name || items.filter((item) => item.exercise?.name === name).length > 1;
+  return items.map((item) => {
+    if (!item.exercise) return item.name;
+    const setup = [label(mainEquipment(item.exercise)), ...setupWords(item.exercise)].filter(Boolean).join(" · ");
+    return repeated(item.exercise.name) && setup ? `${item.exercise.name} · ${setup}` : item.exercise.name;
+  });
+}
+
+// The open slot's lines unfold and fold; nothing snaps. A screen that shows slots keeps
+// one of these: `unfold(routineId)` after each draw (if a different slot is open than at
+// the last draw of this routine, it unfolds) and `fold(then)` before a redraw that closes it.
+export function slotMotion() {
+  const UNFOLD = { duration: 220, easing: "cubic-bezier(0.22, 0.8, 0.26, 1)" };
+  const calm = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const openDetail = () => mainElement().querySelector("[data-open-slot] > [data-slot]");
+  let last = { routineId: "", slotId: "" };
+  return {
+    unfold(routineId) {
+      const detail = openDetail();
+      const drawn = { routineId, slotId: detail?.dataset.slot || "" };
+      const changed = drawn.routineId === last.routineId && drawn.slotId && drawn.slotId !== last.slotId;
+      last = drawn;
+      if (!changed || calm()) return;
+      const height = detail.offsetHeight;
+      detail.style.overflow = "hidden";
+      detail.animate([{ height: "0px", paddingBottom: "0px", opacity: 0 }, { height: `${height}px`, opacity: 1 }], UNFOLD).onfinish = () => { detail.style.overflow = ""; };
+    },
+    fold(then) {
+      const detail = openDetail();
+      if (!detail || calm()) return then();
+      detail.style.overflow = "hidden";
+      detail.animate([{ height: `${detail.offsetHeight}px`, opacity: 1 }, { height: "0px", paddingBottom: "0px", opacity: 0 }], { ...UNFOLD, duration: 170, fill: "forwards" }).onfinish = then;
+    },
   };
 }
 

@@ -29,7 +29,6 @@ import {
   entryNumber,
   exerciseHistory,
   lastFinished,
-  mainEquipment,
   makeId,
   moveEntry,
   moveRoutine,
@@ -39,13 +38,11 @@ import {
   roundProgram,
   routineById,
   routineProgram,
-  setupWords,
   updateProgram,
   updateRoutine,
 } from "../model.js";
-import { label } from "../vocab.js";
 import { openEntryEditor, openPicker } from "./entry-editor.js";
-import { entryPresentation, exerciseFactLines, movementMarkup, revealSelectedTab, routineTabsMarkup, saysOptional, setsSummary, shortDate, videoUrl } from "./shared.js";
+import { alternativeNames, entryPresentation, exerciseFactLines, movementMarkup, revealSelectedTab, routineTabsMarkup, saysOptional, setsSummary, shortDate, slotMotion, videoUrl } from "./shared.js";
 
 // What the screen shows. `programId` is "" while it simply shows the program being
 // followed; `routineId` falls back to the program's first routine; `slotId` is the
@@ -145,14 +142,6 @@ function routineNoteMarkup(note) {
   </details>`;
 }
 
-// How an alternative is named in the open slot: its movement, or, when it is another
-// version of the same movement, what sets it apart ("Chest press · Machine").
-function otherName(item, shownExercise) {
-  if (!item.exercise) return item.name;
-  const setup = [label(mainEquipment(item.exercise)), ...setupWords(item.exercise)].filter(Boolean).join(" · ");
-  return item.exercise.name === shownExercise?.name && setup ? `${item.exercise.name} · ${setup}` : item.exercise.name;
-}
-
 // View mode. One slot, drawn as Workout draws it: its number, its movement ("+1" when
 // it has alternatives) and its prescription at the end. The open one unfolds its
 // labelled lines and the buttons that look things up. Nothing here changes anything.
@@ -185,7 +174,7 @@ function slotMarkup(state, routine, entry, showOptionalRole) {
       ${exerciseFactLines(exercise, preferred?.prescription).map(([name, value]) => line(name, value)).join("")}
       ${line("Last time", last ? `<span class="slot-last"><span>${escapeHtml(setsSummary(last))}</span><span>${escapeHtml(shortDate(last.dateKey))}</span></span>` : "")}
       ${line("Note", escapeHtml(entry.note.trim()))}
-      ${line(others.length > 1 ? "Alternatives" : "Alternative", others.length ? `<button class="link-button" type="button" data-action="open-entry-choices" ${data} aria-label="Open exercise choices for ${escapeHtml(title)}">${others.map((item) => escapeHtml(otherName(item, exercise))).join(", ")}${chevronIcon("right")}</button>` : "")}
+      ${line(others.length > 1 ? "Alternatives" : "Alternative", others.length ? `<button class="link-button" type="button" data-action="open-entry-choices" ${data} aria-label="Open exercise choices for ${escapeHtml(title)}">${alternativeNames(others, exercise).map(escapeHtml).join(", ")}${chevronIcon("right")}</button>` : "")}
       <div class="actions">
         <button class="button" type="button" data-action="view-history" data-id="${exerciseId}" aria-label="History of ${escapeHtml(preferred?.name)}">History</button>
         <button class="button" type="button" data-action="open-workout-exercise" data-id="${exerciseId}" ${data} data-prescription="${escapeHtml(preferred?.prescription)}" aria-label="Open exercise page for ${escapeHtml(preferred?.name)}">Details</button>
@@ -294,31 +283,7 @@ function routineBlocksEditorMarkup(blocks, entries) {
 
 // ---------- the open slot ----------
 
-// The open slot's lines unfold and fold as they do on Workout; nothing snaps. Called
-// after a draw: if a different slot is open than at the last draw of this routine, it unfolds.
-const UNFOLD = { duration: 220, easing: "cubic-bezier(0.22, 0.8, 0.26, 1)" };
-const calm = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-const openDetail = () => mainElement().querySelector("[data-open-slot] > [data-slot]");
-let lastDrawn = { routineId: "", slotId: "" };
-
-function unfoldOpenSlot() {
-  const detail = openDetail();
-  const drawn = { routineId: shown.routineId, slotId: detail?.dataset.slot || "" };
-  const changed = drawn.routineId === lastDrawn.routineId && drawn.slotId && drawn.slotId !== lastDrawn.slotId;
-  lastDrawn = drawn;
-  if (!changed || calm()) return;
-  const height = detail.offsetHeight;
-  detail.style.overflow = "hidden";
-  detail.animate([{ height: "0px", paddingBottom: "0px", opacity: 0 }, { height: `${height}px`, opacity: 1 }], UNFOLD).onfinish = () => { detail.style.overflow = ""; };
-}
-
-// Folds the open slot away, then runs what comes next (the redraw).
-function foldOpenSlot(then) {
-  const detail = openDetail();
-  if (!detail || calm()) return then();
-  detail.style.overflow = "hidden";
-  detail.animate([{ height: `${detail.offsetHeight}px`, opacity: 1 }, { height: "0px", paddingBottom: "0px", opacity: 0 }], { ...UNFOLD, duration: 170, fill: "forwards" }).onfinish = then;
-}
+const motion = slotMotion();
 
 // ---------- looking around ----------
 
@@ -603,7 +568,7 @@ function addBlock() {
 
 // ---------- registration ----------
 
-registerView("routines", { markup: programMarkup, afterDraw(root) { revealSelectedTab(root); unfoldOpenSlot(); } });
+registerView("routines", { markup: programMarkup, afterDraw(root) { revealSelectedTab(root); motion.unfold(shown.routineId); } });
 
 registerActions({
   "open-programs": openPrograms,
@@ -620,7 +585,7 @@ registerActions({
   // Opens a slot in place, or closes the one that's open.
   "toggle-program-slot": (element) => {
     shown.slotId = shown.slotId === element.dataset.id ? "" : element.dataset.id;
-    foldOpenSlot(() => render());
+    motion.fold(() => render());
   },
 
   "new-routine": () => openRoutineEditor(),

@@ -7,13 +7,12 @@
 
 import { afterRender, navigate, registerActions, registerView, render, store } from "../context.js";
 import { $, chevronIcon, closeDialog, confirmAction, escapeHtml, openDialog, playIcon, plural, redraw, report, toast } from "../dom.js";
-import { activeProgram, activeRoutine, activeWorkout, addExtra, backupAge, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseById, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, lastFinished, localDateKey, longBreak, mainEquipment, openRound, orderedEntries, roundSummary, routineById, routineProgram, setRoundNumber, setupWords, startWorkout, usualExtras } from "../model.js";
+import { activeProgram, activeRoutine, activeWorkout, addExtra, backupAge, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseById, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, lastFinished, localDateKey, longBreak, openRound, orderedEntries, roundSummary, routineById, routineProgram, setRoundNumber, startWorkout, usualExtras } from "../model.js";
 import { compareSets, exerciseMode, exerciseProgress } from "../progress.js";
-import { label } from "../vocab.js";
 import { openPicker } from "./entry-editor.js";
 import { openLogger } from "./logger.js";
 import { openExerciseReference, openExerciseVideo } from "./reference.js";
-import { entryPresentation, exerciseMarkup, movementMarkup, roundName, saysOptional, setChipsMarkup, setsSummary, shortDate, videoUrl, exerciseFactLines } from "./shared.js";
+import { alternativeNames, entryPresentation, exerciseFactLines, exerciseMarkup, movementMarkup, roundName, saysOptional, setChipsMarkup, setsSummary, shortDate, slotMotion, videoUrl } from "./shared.js";
 
 // When Start was last tapped (page time), to ignore a double-tap landing on Cancel.
 let startedTapAt = -Infinity;
@@ -167,14 +166,6 @@ function openSlotId(state, routine, dateKey) {
   return dateKey ? slots.find((slot) => !done(slot.id))?.id || "" : "";
 }
 
-// How an alternative is named in the open slot: its movement, or, when it is another
-// version of the same movement, what sets it apart ("Chest press · Machine").
-function otherName(item, shown) {
-  if (!item.exercise) return item.name;
-  const setup = [label(mainEquipment(item.exercise)), ...setupWords(item.exercise)].filter(Boolean).join(" · ");
-  return item.exercise.name === shown?.name && setup ? `${item.exercise.name} · ${setup}` : item.exercise.name;
-}
-
 // One slot of the routine, or an exercise added for the day. Outside a workout
 // (no dateKey) it shows no progress and can't be logged.
 function slotMarkup(state, routine, slot, number, dateKey, showOptionalRole = false) {
@@ -219,7 +210,7 @@ function slotMarkup(state, routine, slot, number, dateKey, showOptionalRole = fa
       ${line("Today", log ? `<span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec" })}</span>` : "")}
       ${linkLine("Last time", last ? `${escapeHtml(setsSummary(last))}<small>${escapeHtml(shortDate(last.dateKey))}</small>` : "", `data-action="view-history" data-id="${escapeHtml(exercise?.id || "")}" aria-label="Last time ${last ? escapeHtml(`${setsSummary(last)}, ${shortDate(last.dateKey)}`) : ""}. Open history of ${escapeHtml(shown.name)}"`)}
       ${line("Note", escapeHtml(note))}
-      ${linkLine(others.length > 1 ? "Alternatives" : "Alternative", others.map((item) => escapeHtml(otherName(item, exercise))).join(", "), `data-action="open-entry-choices" ${data} aria-label="Open exercise choices for ${escapeHtml(name)}"`)}
+      ${linkLine(others.length > 1 ? "Alternatives" : "Alternative", alternativeNames(others, exercise).map(escapeHtml).join(", "), `data-action="open-entry-choices" ${data} aria-label="Open exercise choices for ${escapeHtml(name)}"`)}
       <div class="actions">
         ${dateKey ? `<button class="button primary" type="button" data-action="open-logger" data-routine-id="${escapeHtml(routine.id)}" data-id="${escapeHtml(slot.id)}">Log sets</button>` : ""}
         <button class="button" type="button" data-action="open-workout-exercise" data-id="${escapeHtml(exercise?.id || "")}" ${data} data-prescription="${escapeHtml(shown.prescription)}" aria-label="Open exercise page for ${escapeHtml(shown.name)}">Details</button>
@@ -229,30 +220,7 @@ function slotMarkup(state, routine, slot, number, dateKey, showOptionalRole = fa
   </div>`;
 }
 
-// The open slot's lines unfold and fold; nothing snaps. Called after a draw: if a
-// different slot is open than at the last draw of this routine, it unfolds.
-const UNFOLD = { duration: 220, easing: "cubic-bezier(0.22, 0.8, 0.26, 1)" };
-const calm = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-let lastDrawn = { routineId: "", slotId: "" };
-
-function unfoldOpenSlot(root) {
-  const detail = root.querySelector("[data-open-slot] > .slot-detail");
-  const drawn = { routineId: shownRoutine(store.getState())?.id || "", slotId: detail?.dataset.slot || "" };
-  const changed = drawn.routineId === lastDrawn.routineId && drawn.slotId && drawn.slotId !== lastDrawn.slotId;
-  lastDrawn = drawn;
-  if (!changed || calm()) return;
-  const height = detail.offsetHeight;
-  detail.style.overflow = "hidden";
-  detail.animate([{ height: "0px", paddingBottom: "0px", opacity: 0 }, { height: `${height}px`, opacity: 1 }], UNFOLD).onfinish = () => { detail.style.overflow = ""; };
-}
-
-// Folds the open slot away, then runs what comes next (the redraw).
-function foldOpenSlot(then) {
-  const detail = document.querySelector("#appMain [data-open-slot] > .slot-detail");
-  if (!detail || calm()) return then();
-  detail.style.overflow = "hidden";
-  detail.animate([{ height: `${detail.offsetHeight}px`, opacity: 1 }, { height: "0px", paddingBottom: "0px", opacity: 0 }], { ...UNFOLD, duration: 170, fill: "forwards" }).onfinish = then;
-}
+const motion = slotMotion();
 
 // A block whose entries are all Optional is outlined and says so once in its
 // label (unless its name already does, as in "Optional glute block"); in a mixed
@@ -361,7 +329,7 @@ function resultMarkup(state, routineId, dateKey) {
 
 // ---------- screen ----------
 
-registerView("workout", { markup: pageMarkup, afterDraw: unfoldOpenSlot });
+registerView("workout", { markup: pageMarkup, afterDraw() { motion.unfold(shownRoutine(store.getState())?.id || ""); } });
 
 // A one-choice row opens its exercise's reference in the context of this slot.
 function openRowReference(button) {
@@ -457,7 +425,7 @@ registerActions({
     const done = (slotId) => Boolean(dateKey) && isEntryChecked(state, dateKey, routine.id, slotId);
     const slotId = button.getAttribute("aria-expanded") === "true" ? "" : button.dataset.entryId;
     chosen = { routineId: routine.id, slotId, wasDone: slotId ? done(slotId) : false, doneIds: daySlots(state, routine, dateKey).filter((slot) => done(slot.id)).map((slot) => slot.id) };
-    foldOpenSlot(() => render());
+    motion.fold(() => render());
   },
   "open-entry-choices": openEntryChoices,
   "open-workout-exercise": openRowReference,
