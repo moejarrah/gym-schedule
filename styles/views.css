@@ -12,61 +12,6 @@
   font-weight: 700;
 }
 
-/* The round line under the program bar: where the round stands and the calendar week.
-   It opens the round's sheet. */
-.round-line {
-  width: 100%;
-  min-height: var(--tap);
-  padding: 0 var(--gutter);
-  border-bottom: 1px solid var(--line);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  color: var(--text-muted);
-  font-size: var(--fs-small);
-  font-weight: 500;
-  text-align: left;
-}
-
-p.round-line {
-  margin: 0;
-}
-
-.round-line > svg {
-  width: 16px;
-  height: 16px;
-  flex: none;
-  color: var(--faint);
-}
-
-/* In the round sheet: labelled lines start at the edge, and the round number is
-   chosen with − and + around it. */
-#roundDialog .slot-line:first-child {
-  border-top: 0;
-}
-
-.round-stepper {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-block: -8px;
-}
-
-.round-stepper > strong {
-  min-width: 78px;
-  text-align: center;
-}
-
-#roundDialog .row > .tickbox {
-  width: 24px;
-  height: 24px;
-}
-
-#roundDialog .hint {
-  padding-block: var(--space-2);
-}
-
 /* A slot is quiet: number, movement, and at the end its sets (or what was done). */
 .slot .row-title {
   font-size: var(--fs-field);
@@ -1360,19 +1305,6 @@ details.form-section > summary + * {
 /* The sets at a slot's end stand in from the edge like the rest of the page. */
 .slot > .row-body {
   padding-right: 10px;
-}
-
-/* The quiet second action of the round sheet sits centred under the first. */
-#roundDialog .actions.stacked > .link-button {
-  align-self: center;
-}
-
-.log-round > strong {
-  flex: none;
-}
-
-.log-round > .row-meta {
-  text-align: right;
 }
 
 /* ---------- Round ---------- */
