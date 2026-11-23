@@ -6,7 +6,7 @@
 // which workout is next and the choice of program are the Round tab's.
 
 import { afterRender, navigate, registerActions, registerView, render, store } from "../context.js";
-import { $, chevronIcon, closeDialog, confirmAction, escapeHtml, openDialog, playIcon, plural, redraw, report, toast } from "../dom.js";
+import { $, chevronIcon, closeDialog, confirmAction, escapeHtml, fresh, openDialog, playIcon, plural, redraw, report, toast } from "../dom.js";
 import { activeProgram, activeRoutine, activeWorkout, addExtra, backupAge, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseById, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, lastFinished, localDateKey, longBreak, openRound, orderedEntries, roundSummary, routineById, routineProgram, setRoundNumber, startWorkout, usualExtras } from "../model.js";
 import { compareSets, exerciseMode, exerciseProgress } from "../progress.js";
 import { openPicker } from "./entry-editor.js";
@@ -349,7 +349,7 @@ function runningWorkout() {
 function backToRound() {
   chosen = null;
   render();
-  navigate("round");
+  navigate("round", { motion: "pop" });
 }
 
 registerActions({
@@ -371,7 +371,10 @@ registerActions({
     startedTapAt = performance.now();
     // A slot closed while this was a preview doesn't keep the first exercise shut.
     if (chosen?.slotId === "") chosen = null;
-    if (report(result)) render();
+    if (!report(result)) return;
+    render();
+    // Start turned into Cancel and the stopwatch in the same place: they fade in.
+    fresh(".workout-control");
   },
   "cancel-workout": async () => {
     const { routineId, reopened } = activeWorkout(store.getState());
@@ -400,7 +403,7 @@ registerActions({
     const { routineId, dateKey } = activeWorkout(store.getState());
     if (!report(store.update((draft) => finishWorkout(draft)))) return;
     redraw("#finishContent", resultMarkup(store.getState(), routineId, dateKey));
-    openDialog("#finishDialog", { onClose: () => navigate("round") });
+    openDialog("#finishDialog", { onClose: () => navigate("round", { motion: "pop" }) });
     chosen = null;
     render();
   },

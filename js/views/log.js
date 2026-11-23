@@ -341,7 +341,7 @@ registerActions({
     }))) return;
     closeDialog("#dayDialog");
     store.update((draft) => { draft.settings.activeRoutineId = id; });
-    navigate("workout");
+    navigate("workout", { motion: "push" });
   },
   "edit-day-log": (button) => {
     keepDayForm();

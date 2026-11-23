@@ -77,17 +77,67 @@ export function scrollToTop() {
   for (const area of [mainElement(), ...mainElement().querySelectorAll(".scroll")]) area.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// Another screen appears at once, as iPhone tab bars do. The tab already showing
-// isn't redrawn: tapping it goes back to the top.
-export function navigate(id) {
+// Changes what the page area shows, with motion. The page as it was stays on screen as
+// a copy (the "ghost") while the page as it is now comes in; the stylesheet moves the two
+// (see "Changing page" in styles/base.css). `kind`: "push" (a deeper page comes in from
+// the right, over the one that leaves), "pop" (back: the page leaves to the right),
+// "right" or "left" (a neighbouring tab: a short slide from its side).
+// Without motion (Reduce Motion, or a sheet still on screen) the change is immediate.
+const MOTION_MS = 260;
+let motionTimer;
+function endMotion() {
+  clearTimeout(motionTimer);
+  document.querySelector("[data-page-ghost]")?.remove();
+  delete mainElement().dataset.motion;
+}
+
+export function withMotion(kind, change) {
+  endMotion();
+  const main = mainElement();
+  if (!kind || document.querySelector("dialog[open]") || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    change();
+    return;
+  }
+  // The copy keeps the id so every style of the page applies to it; it comes after the
+  // page in the document, so anything looked up by id or selector still finds the real one.
+  const scrolled = (area) => [area, ...area.querySelectorAll(".scroll, .scroll-x")];
+  const places = scrolled(main).map((area) => [area.scrollTop, area.scrollLeft]);
+  const box = main.getBoundingClientRect();
+  const ghost = main.cloneNode(true);
+  ghost.dataset.pageGhost = kind;
+  ghost.inert = true;
+  ghost.setAttribute("aria-hidden", "true");
+  ghost.removeAttribute("tabindex");
+  Object.assign(ghost.style, { left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px` });
+  change();
+  main.after(ghost);
+  scrolled(ghost).forEach((area, index) => area.scrollTo(places[index]?.[1] || 0, places[index]?.[0] || 0));
+  main.dataset.motion = kind;
+  motionTimer = setTimeout(endMotion, MOTION_MS);
+}
+
+// The bottom tabs, left to right.
+const tabOrder = () => [...document.querySelectorAll(".bottom-nav [data-view]")].map((button) => button.dataset.view);
+
+// Another screen. A neighbouring tab slides in from its side; a page that belongs to a
+// tab (Settings) comes in over it and goes back the way it came. `motion` says it for
+// the ways that aren't a tab tap ("push": Round's Start opens the workout; "pop": back
+// to Round after it). The tab already showing isn't redrawn: tapping it goes back to the top.
+export function navigate(id, { motion = "" } = {}) {
   if (!views.has(id)) return;
   if (id === current) {
     if (!views.get(id).reselect?.()) scrollToTop();
     return;
   }
+  const fromTab = views.get(current).tab || current;
+  const toTab = views.get(id).tab || id;
+  const order = tabOrder();
+  const kind = motion || (fromTab === toTab ? (views.get(id).tab ? "push" : "pop") : order.indexOf(toTab) > order.indexOf(fromTab) ? "right" : "left");
   current = id;
-  render();
-  mainElement().scrollTop = 0;
+  withMotion(kind, () => {
+    render();
+    mainElement().scrollTop = 0;
+  });
 }
 
 export function applyTheme(theme) {

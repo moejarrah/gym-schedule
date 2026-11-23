@@ -413,7 +413,7 @@ body:is([data-current-view="workout"], [data-current-view="routines"], [data-cur
 }
 
 /* Switching routine fades in what's under the routine tabs. Nothing moves (a rise
-   read as a jump), and switching screen has no effect at all, as on iPhone. */
+   read as a jump). Changing page has its own motion, further down. */
 #appMain.is-switching [data-keep-scroll="routine-tabs"] ~ * {
   animation: page-in var(--dur) ease-out;
 }
@@ -442,6 +442,67 @@ details[open] > :not(summary) {
 dialog,
 dialog .sheet-body {
   overscroll-behavior: contain;
+}
+
+/* Changing page (withMotion in js/context.js). A copy of the page as it was (the ghost)
+   stays in its place while the page comes in: a deeper page slides in from the right
+   over the one that leaves, going back reverses it, and a neighbouring tab makes a short
+   slide from its side. Both are drawn with the page's background, so nothing shows
+   through, and both stay under the bottom navigation. */
+#appMain[data-motion] {
+  position: relative;
+  background: var(--bg);
+  z-index: 2;
+  animation: 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+#appMain[data-page-ghost] {
+  position: fixed;
+  margin: 0;
+  background: var(--bg);
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+  animation: 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+#appMain[data-motion="push"] { animation-name: page-in-right; }
+#appMain[data-page-ghost="push"] { animation-name: page-out-left; }
+#appMain[data-motion="pop"] { animation-name: page-in-left; z-index: 1; }
+#appMain[data-page-ghost="pop"] { animation-name: page-out-right; z-index: 2; }
+#appMain[data-motion="right"] { animation-name: tab-in-right; animation-duration: 200ms; }
+#appMain[data-motion="left"] { animation-name: tab-in-left; animation-duration: 200ms; }
+
+#appMain:is([data-page-ghost="right"], [data-page-ghost="left"]) {
+  animation: page-fade-out 90ms ease-out both;
+}
+
+@keyframes page-in-right {
+  from { transform: translateX(100%); }
+}
+
+@keyframes page-out-left {
+  to { transform: translateX(-25%); opacity: 0; }
+}
+
+@keyframes page-in-left {
+  from { transform: translateX(-25%); opacity: 0; }
+}
+
+@keyframes page-out-right {
+  to { transform: translateX(100%); }
+}
+
+@keyframes page-fade-out {
+  to { opacity: 0; }
+}
+
+@keyframes tab-in-right {
+  from { transform: translateX(24px); opacity: 0; }
+}
+
+@keyframes tab-in-left {
+  from { transform: translateX(-24px); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

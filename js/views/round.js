@@ -5,7 +5,7 @@
 // following a different program (also opened from Program with "follow-program"), and
 // changing the round number. What a round is: js/model.js, "rounds and calendar weeks".
 
-import { mainElement, navigate, registerActions, registerView, render, store } from "../context.js";
+import { mainElement, navigate, registerActions, registerView, render, store, withMotion } from "../context.js";
 import { $, chevronIcon, clearError, closeDialog, confirmAction, escapeHtml, formatDate, fresh, openDialog, plural, redraw, report, toast } from "../dom.js";
 import {
   activeWorkout,
@@ -463,9 +463,11 @@ function showPage(name, { number = 0, block = 0 } = {}) {
   page.scroll[page.name] = main.scrollTop;
   const back = DEPTH[name] < DEPTH[page.name];
   Object.assign(page, { name, number, block });
-  render();
-  main.scrollTop = back ? page.scroll[name] || 0 : 0;
-  fresh(...main.children);
+  // A deeper page comes in from the right; going back, the page returns from the left.
+  withMotion(back ? "pop" : "push", () => {
+    render();
+    main.scrollTop = back ? page.scroll[name] || 0 : 0;
+  });
   pauseTaps();
 }
 
@@ -660,20 +662,20 @@ registerActions({
     });
     if (!report(result)) return;
     chooserDone();
-    navigate("workout");
+    navigate("workout", { motion: "push" });
     pauseTaps();
   },
   // Today's finished workout, open again: it stays in the round it was filed in.
   "round-reopen": (button) => {
     if (!report(store.update((draft) => startWorkout(draft, button.dataset.id)))) return;
-    navigate("workout");
+    navigate("workout", { motion: "push" });
     pauseTaps();
   },
   // The Workout tab shows the workout in progress, whatever is selected.
-  "round-go-workout": () => navigate("workout"),
+  "round-go-workout": () => navigate("workout", { motion: "push" }),
   // A workout not done yet opens on Workout, ready to start.
   "round-open-workout": (button) => {
-    if (report(store.update((draft) => setActiveRoutine(draft, button.dataset.id)))) navigate("workout");
+    if (report(store.update((draft) => setActiveRoutine(draft, button.dataset.id)))) navigate("workout", { motion: "push" });
   },
   "round-answer-break": (button) => {
     if (report(store.update((draft) => answerBreak(draft, Boolean(button.dataset.restart))))) redrawCard();

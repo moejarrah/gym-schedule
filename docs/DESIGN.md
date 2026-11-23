@@ -131,9 +131,10 @@ The owner notices every jump, flash and unclear button. Each rule below comes fr
 
 ### Motion
 
-- Screens switch at once, as iPhone tab bars do. Content that is swapped in place (another routine's list) fades in, 150–200 ms, without moving.
+- Changing page moves, and the direction says where the owner is going (`withMotion` in `js/context.js`, "Changing page" in `styles/base.css`): a neighbouring tab makes a short slide from its side (200 ms); a deeper page (a workout opened from Round, All rounds, one round, Settings) slides in from the right over the page that leaves, and going back reverses it (240 ms). The bottom navigation never moves. A page changed under a sheet that is closing changes at once: the sheet is the motion.
+- Content that is swapped in place (another routine's list, another month, a card that changed) fades in, 150–200 ms, without moving.
 - Sheets slide up, slide down when closed, and follow the finger when pulled down. Confirmations pop in.
-- A row that is added or removed may ease; a whole screen never slides or rises.
+- A row that is added or removed may ease. A page never rises or drops: pages only move sideways.
 - Everything respects Reduce Motion (the rule in `styles/base.css` turns animation off).
 
 ### Dragging
