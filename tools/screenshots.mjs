@@ -2,6 +2,7 @@
 // Capture deterministic screenshots of every primary view and reachable dialog/sheet.
 //
 //   node tools/screenshots.mjs <outDir>          (APP_ROOT=/abs/path serves another checkout)
+//   SHOTS=result node tools/screenshots.mjs <outDir>   only the shots whose name contains "result"
 //
 // Matrix: 393×852 and 320×700, light and dark, deviceScaleFactor 1, isMobile/hasTouch.
 // Determinism: fresh browser context per size/theme, Date fixed at 2026-11-04 10:00 (UTC context
@@ -18,11 +19,12 @@
 //   started   made by tapping through the app (seedThroughApp): Push A started from the round
 //             page (counting starts with it) and running with two exercises logged and done,
 //             a Log day with a completion and a note, a note-only day
-//   break, round, running, finishing, done, complete
+//   break, round, running, finishing, completing, done, complete
 //             the same made-up history (historyState, built here with the app's own
-//             js/model.js) stopped at six moments: back after eight weeks away; a round
+//             js/model.js) stopped at seven moments: back after eight weeks away; a round
 //             under way; its next workout running; the same with every main exercise done;
-//             that workout finished today; the round completed today
+//             the round's last workout running with every main exercise done; that
+//             workout finished today; the round completed today
 
 import { mkdir, rm } from "node:fs/promises";
 import path from "node:path";
@@ -113,12 +115,15 @@ function historyState(theme, stage) {
 
     // The first exercises of a workout logged and done, a little heavier each time.
     const times = {};
-    const lift = (dateKey, routineId, slots) => {
+    // `top`: every set of the first exercise reaches the top of its rep range ("add weight").
+    const lift = (dateKey, routineId, slots, { top = false } = {}) => {
       times[routineId] = (times[routineId] || 0) + 1;
       model.orderedEntries(model.routineById(state, routineId)).slice(0, slots).forEach((entry, index) => {
         const [{ exerciseId, prescription }] = entry.choices;
         const kg = String(20 + index * 12.5 + times[routineId] * 2.5);
-        const sets = Array.from({ length: model.plannedSetCount(prescription) }, (_, set) => ({ kg, reps: String(10 - set), drops: [] }));
+        const range = /[×x]\s*(\d+)(?:\s*[–-]\s*(\d+))?/.exec(prescription);
+        const most = top && index === 0 && range ? Number(range[2] || range[1]) : 0;
+        const sets = Array.from({ length: model.plannedSetCount(prescription) }, (_, set) => ({ kg, reps: String(most || 10 - set), drops: [] }));
         model.saveEntrySets(state, { routineId, entryId: entry.id, exerciseId, sets, note: "", dateKey });
         model.setEntryChecked(state, routineId, entry.id, true, dateKey);
       });
@@ -155,13 +160,16 @@ function historyState(theme, stage) {
       model.setDay(state, "2026-11-02", state.sessions["2026-11-02"].routineIds, "Hotel gym, lighter than usual");
       model.setDay(state, "2026-11-03", [], "Mobility only");
     }
-    if (stage === "running" || stage === "finishing") {
-      model.startWorkout(state, "push-b", TODAY, FIXED_TIME - 34 * 60000);
-      const main = model.orderedEntries(model.routineById(state, "push-b")).filter((entry) => entry.role === "main").length;
-      lift(TODAY, "push-b", stage === "running" ? 2 : main);
+    if (stage === "complete" || stage === "completing") did(["2026-11-01", "push-b", 59], ["2026-11-03", "pull-b", 63]);
+    // A workout in progress: Push B, or Legs B, the last of the round ("completing").
+    if (stage === "running" || stage === "finishing" || stage === "completing") {
+      const routineId = stage === "completing" ? "legs-b" : "push-b";
+      model.startWorkout(state, routineId, TODAY, FIXED_TIME - 34 * 60000);
+      const main = model.orderedEntries(model.routineById(state, routineId)).filter((entry) => entry.role === "main").length;
+      lift(TODAY, routineId, stage === "running" ? 2 : main, { top: stage === "completing" });
     }
     if (stage === "done") did([TODAY, "push-b", 62]);
-    if (stage === "complete") did(["2026-11-01", "push-b", 59], ["2026-11-03", "pull-b", 63], [TODAY, "legs-b", 66]);
+    if (stage === "complete") did([TODAY, "legs-b", 66]);
 
     const problem = stateProblem(state);
     if (problem) throw new Error(`The "${stage}" state is not a valid saved state: ${problem}`);
@@ -182,7 +190,7 @@ function emptyState(theme) {
 function builtStates(theme) {
   const states = { first: createDefaultState(), empty: emptyState(theme) };
   states.first.settings.theme = theme;
-  for (const stage of ["break", "round", "running", "finishing", "done", "complete"]) states[stage] = historyState(theme, stage);
+  for (const stage of ["break", "round", "running", "finishing", "completing", "done", "complete"]) states[stage] = historyState(theme, stage);
   return Object.fromEntries(Object.entries(states).map(([name, state]) => [name, JSON.stringify(state)]));
 }
 
@@ -244,6 +252,14 @@ async function openSlot(page, name) {
   const row = button(main(page), typeof name === "string" ? `View ${name} details` : name);
   if ((await row.getAttribute("aria-expanded")) !== "true") await row.click();
   await expect(row).toHaveAttribute("aria-expanded", "true");
+}
+
+// Finish (top right), "Finish anyway" when nothing was logged, and the result page.
+async function finishTo(page, routine, { nothingLogged = false } = {}) {
+  await button(main(page), `Finish ${routine}`).click();
+  if (nothingLogged) await button(dialog(page, "Nothing was logged"), "Finish anyway").click();
+  await shown(main(page).getByRole("heading", { name: `${routine} done` }));
+  await roundSettles(page);
 }
 
 // Scrolls the workout's list to its end.
@@ -418,10 +434,32 @@ const SHOTS = [
     await button(main(page), "Finish Push B").click();
     await shown(dialog(page, "Nothing was logged"));
   }, "round"],
-  ["dialog-finish-result", async (page) => {
-    await button(main(page), "Finish Push B").click();
-    await shown(dialog(page, "Push B finished"));
+
+  // ---- The result, after Finish ----
+  ["result", async (page) => { await finishTo(page, "Push B"); }, "running"],
+  ["result-end", async (page) => {
+    await finishTo(page, "Push B");
+    await button(main(page), "Not finished? Continue Push B").scrollIntoViewIfNeeded();
   }, "running"],
+  // The last workout of the round: the round is complete.
+  ["result-round-complete", async (page) => { await finishTo(page, "Legs B"); }, "completing"],
+  ["result-nothing-logged", async (page) => {
+    await openRoundRow(page, "Push B");
+    await startFromRound(page, "Push B");
+    await finishTo(page, "Push B", { nothingLogged: true });
+  }, "round"],
+  // A workout from another program: it counts toward nothing.
+  ["result-extra", async (page) => {
+    const sheet = await openRoundSheet(page, "A workout from another program");
+    await tapOnRound(page, button(sheet, `Start Full body A from ${OTHER_PROGRAM}`));
+    await shown(backToRound(page));
+    await finishTo(page, "Full body A", { nothingLogged: true });
+  }, "round"],
+  // Opened again from the round page's "How it went".
+  ["result-again", async (page) => {
+    await button(main(page), "How Push B went").click();
+    await shown(main(page).getByRole("heading", { name: "Push B done" }));
+  }, "done"],
   ["dialog-confirm-cancel-workout", async (page) => {
     await button(main(page), "Cancel workout").click();
     await shown(dialog(page, `Cancel ${PUSH_A}?`));
@@ -690,7 +728,7 @@ async function captureCombo(browser, server, { width, height }, theme, tempDir) 
   try {
     const { started, backupPath } = await seedThroughApp(page, theme, tempDir);
     const states = { ...builtStates(theme), started };
-    for (const [name, run, state = "started"] of SHOTS) {
+    for (const [name, run, state = "started"] of SHOTS.filter(([name]) => name.includes(process.env.SHOTS || ""))) {
       const file = `${width}-${theme}-${name}.png`;
       try {
         await resetTo(page, states[state]);
