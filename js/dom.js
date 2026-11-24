@@ -281,7 +281,8 @@ export const segmentValue = (group) => element(group).dataset.value;
 // Resolves true when confirmed. `answer: true` resolves which button was tapped instead:
 // "confirm", "cancel", "extra", or "" when the question was closed without an answer
 // (Escape). `extraLabel`: a third answer, the dangerous one, on a line of its own under
-// the other two. The message may have two lines ("\n"). The first answer (cancel) is the
+// the other two. `danger`: true (danger colour), false (primary) or "plain" (the quiet
+// look, for a second answer that isn't the dangerous one). The message may have two lines ("\n"). The first answer (cancel) is the
 // one focused, so Enter, like Escape, changes nothing.
 export function confirmAction({ title, message, confirmLabel, cancelLabel = "Keep it", extraLabel = "", variant = "", danger = true, answer = false }) {
   const dialog = $("#confirmDialog");
@@ -291,8 +292,8 @@ export function confirmAction({ title, message, confirmLabel, cancelLabel = "Kee
   $("#confirmCancel").textContent = cancelLabel;
   $("#confirmExtra").textContent = extraLabel;
   $("#confirmExtra").hidden = !extraLabel;
-  $("#confirmAction").classList.toggle("danger", danger);
-  $("#confirmAction").classList.toggle("primary", !danger);
+  $("#confirmAction").classList.toggle("danger", danger === true);
+  $("#confirmAction").classList.toggle("primary", danger === false);
   dialog.dataset.variant = variant;
   return new Promise((resolve) => {
     openDialog(dialog, {

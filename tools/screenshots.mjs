@@ -389,6 +389,13 @@ const SHOTS = [
     await tapOnRound(page, button(main(page), startsWith("Blocks")));
     await tapOnRound(page, button(main(page), startsWith("Block 2,")));
   }, "round"],
+  // Deleting a round with workouts: keep it, the round and its workouts, or the round only.
+  ["dialog-confirm-delete-round", async (page) => {
+    await openRound(page, "Round 2 · block 2");
+    await roundSettles(page);
+    await button(main(page), "Delete Round 2 · block 2").click();
+    await shown(dialog(page, "Delete Round 2 · block 2?"));
+  }, "round"],
   // The open round's page: End this round now and Delete this round.
   ["round-one-open", async (page) => { await openRound(page, "Round 3 · block 2"); }, "round"],
   // An open round with nothing in it yet.

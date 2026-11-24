@@ -615,13 +615,16 @@ appTest("A workout from another program is listed in the round as an extra and c
   assert.equal(saved.settings.activeWorkout, null);
 });
 
-appTest("Delete this round: after a confirmation the round leaves the count, its workouts stay in Log", { saved: twoPrograms() }, async ({ page }) => {
+appTest("Delete this round, the round only: the round leaves the count, its workouts stay in Log", { saved: twoPrograms() }, async ({ page }) => {
   await tapOnRound(page, main(page).getByRole("button", { name: /^All rounds/ }));
   await tapOnRound(page, main(page).getByRole("button", { name: /^Round 5, Sample program/ }));
   await main(page).getByRole("button", { name: "Delete Round 5" }).click();
   const confirm = dialog(page, "Delete Round 5?");
-  await expect(confirm).toContainText("It leaves the round count and Rounds. Its 1 workout stays in Log with its sets, but no longer belongs to a round.");
-  await tapOnRound(page, confirm.getByRole("button", { name: "Delete round" }));
+  // Three answers: keep it, the round and its workouts, or the round only.
+  await expect(confirm).toContainText("Round and workouts: its 1 workout and 4 sets are deleted too.");
+  await expect(confirm).toContainText("Round only: they stay in Log, in no round.");
+  await expect(confirm.getByRole("button", { name: "Delete round and workouts" })).toBeVisible();
+  await tapOnRound(page, confirm.getByRole("button", { name: "Delete round only" }));
   await expect(page.getByText("Round deleted.")).toBeVisible();
   // It was the only round: counting is as before it began, and Home lays round 1 out.
   await expect(roundTitle(page, "Round 1")).toBeVisible();
@@ -631,4 +634,25 @@ appTest("Delete this round: after a confirmation the round leaves the count, its
   assert.deepEqual(saved.sessions[PAST_DAY].routineIds, ["day-a"]);
   assert.deepEqual(saved.sessions[PAST_DAY].workouts["day-a"], { name: "Day A", program: "Sample program", minutes: 48 });
   assert.deepEqual(saved.sessions[PAST_DAY].logs, sampleState().sessions[PAST_DAY].logs, "its sets stay");
+});
+
+// His case: a workout finished today that belongs to no round (its round deleted).
+function finishedTodayInNoRound() {
+  const state = sampleState();
+  state.sessions[TODAY] = { routineIds: ["day-a"], checkedEntryIdsByRoutine: {}, note: "", logs: {}, extras: {}, workouts: { "day-a": { name: "Day A", program: "Sample program", minutes: 5 } } };
+  return state;
+}
+
+appTest("No dead tiles: a workout finished today in no round can be picked, and the bottom button reopens it", { saved: finishedTodayInNoRound() }, async ({ page }) => {
+  await beginRound(page);
+  // The next one is Day B; Day A says it is done today, and picking it offers to reopen it.
+  await expect(startButton(page, "Day B")).toBeVisible();
+  await expect(homeTile(page, "Day A")).toContainText("done today");
+  await tapOnRound(page, homeTile(page, "Day A"));
+  await expect(homeTile(page, "Day A")).toHaveAttribute("aria-pressed", "true");
+  await tapOnRound(page, bottomButton(page, "Reopen Day A"));
+  await tapOnRound(page, main(page).getByRole("button", { name: "Close again" }));
+  // Closed again, it is filed in the round it opened (counting started with it).
+  const saved = await readState(page);
+  assert.deepEqual([saved.sessions[TODAY].workouts["day-a"].round, saved.settings.round.number], [1, 1]);
 });

@@ -1592,7 +1592,7 @@ details.form-section > summary + * {
 
 /* Pressed: a tile or a day square darkens a little, as a row tints. */
 button.home-day:active,
-.home-tile:active {
+button.home-tile:active {
   filter: brightness(0.9);
 }
 
