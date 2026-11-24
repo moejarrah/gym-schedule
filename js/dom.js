@@ -115,12 +115,21 @@ export function redraw(root, html) {
 
 // Fades in content that was just swapped in place (another month, another chart,
 // a filtered list, a new row). It never moves anything; see "Motion" in docs/DESIGN.md.
+// `freshAfter(ms, ...targets)` does the same a moment later (one change after another).
 export function fresh(...targets) {
+  freshAfter(0, ...targets);
+}
+
+export function freshAfter(delay, ...targets) {
   for (const item of targets.map(element).filter(Boolean)) {
     item.classList.remove("is-fresh");
     void item.offsetWidth; // restarts the animation
+    item.style.animationDelay = delay ? `${delay}ms` : "";
     item.classList.add("is-fresh");
-    setTimeout(() => item.classList.remove("is-fresh"), 220);
+    setTimeout(() => {
+      item.classList.remove("is-fresh");
+      item.style.animationDelay = "";
+    }, delay + 220);
   }
 }
 

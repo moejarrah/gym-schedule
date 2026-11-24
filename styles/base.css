@@ -449,6 +449,11 @@ details[open] > :not(summary) {
   animation: page-in var(--dur) ease-out;
 }
 
+/* A fade that waits (freshAfter) starts from its first step. */
+.is-fresh {
+  animation-fill-mode: backwards;
+}
+
 @keyframes page-in {
   from {
     opacity: 0.35;

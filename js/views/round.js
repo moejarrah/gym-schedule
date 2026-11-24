@@ -7,8 +7,8 @@
 // (opened from Program with "follow-program"), and changing the round number. What a
 // round is: js/model.js, "rounds and calendar weeks".
 
-import { mainElement, navigate, pauseTaps, registerActions, registerView, render, store, withMotion } from "../context.js";
-import { $, chevronIcon, clearError, closeDialog, confirmAction, escapeHtml, formatDate, fresh, openDialog, plural, redraw, report, toast } from "../dom.js";
+import { dockElement, mainElement, navigate, pauseTaps, registerActions, registerView, render, store, withMotion } from "../context.js";
+import { $, chevronIcon, clearError, closeDialog, confirmAction, escapeHtml, formatDate, fresh, freshAfter, openDialog, plural, redraw, report, toast } from "../dom.js";
 import {
   activeWorkout,
   allBlocks,
@@ -305,6 +305,7 @@ function dayMarkup(state, view, dateKey, { from, round, todayName }) {
   const running = isToday && view.running && view.running.dateKey === dateKey ? routineById(state, view.running.routineId) : null;
   const classes = ["home-day"];
   if (isToday) classes.push("is-today");
+  const mark = isToday ? ` data-home="today"` : "";
   let name = "";
   if (shown) {
     const counts = inRound.includes(shown) && !shown.record.guest && !shown.record.optional;
@@ -322,9 +323,9 @@ function dayMarkup(state, view, dateKey, { from, round, todayName }) {
   }
   const more = finished.length > 1 ? `<i>+${finished.length - 1}</i>` : "";
   const inner = `<small>${day}</small><b>${name}</b>${more}`;
-  if (!shown) return `<div class="${classes.join(" ")}"${isToday ? ` aria-label="Today${name ? `, ${escapeHtml(running ? `${running.name} in progress` : todayName)}` : ""}"` : ` aria-hidden="true"`}>${inner}</div>`;
+  if (!shown) return `<div class="${classes.join(" ")}"${mark}${isToday ? ` aria-label="Today${name ? `, ${escapeHtml(running ? `${running.name} in progress` : todayName)}` : ""}"` : ` aria-hidden="true"`}>${inner}</div>`;
   const label = `${shortDate(dateKey)}: ${finished.map(({ record, routineId }) => record.name || routineById(state, routineId)?.name || "Workout").join(" and ")}. Open how it went`;
-  return `<button class="${classes.join(" ")}" type="button" data-action="open-result" data-id="${escapeHtml(shown.routineId)}" data-date="${dateKey}" aria-label="${escapeHtml(label)}">${inner}</button>`;
+  return `<button class="${classes.join(" ")}"${mark} type="button" data-action="open-result" data-id="${escapeHtml(shown.routineId)}" data-date="${dateKey}" aria-label="${escapeHtml(label)}">${inner}</button>`;
 }
 
 // The calendar weeks from `from` to `to`, a row each: the week number, then Monday to Sunday.
@@ -338,9 +339,9 @@ function calendarMarkup(state, view, { from, to, round, todayName = "" }) {
 }
 
 // Small cells under a picture: [value, label] each.
-const cellsMarkup = (cells, extra = "") => `<div class="result-cells home-cells ${extra}">${cells.map(([value, name]) => `<p><strong>${value}</strong><small>${name}</small></p>`).join("")}</div>`;
+const cellsMarkup = (cells, extra = "") => `<div class="result-cells home-cells ${extra}" data-home="cells">${cells.map(([value, name]) => `<p><strong>${value}</strong><small>${name}</small></p>`).join("")}</div>`;
 
-const card = (label, right, body, extra = "") => `<section class="result-card ${extra}" aria-label="${escapeHtml(label.replace(/<[^>]+>/g, ""))}">
+const card = (label, right, body, extra = "", part = "card") => `<section class="result-card ${extra}" data-home="${part}" aria-label="${escapeHtml(label.replace(/<[^>]+>/g, ""))}">
     <h2 class="label result-card-label"><span>${label}</span>${right ? `<span>${right}</span>` : ""}</h2>
     ${body}
   </section>`;
@@ -356,7 +357,7 @@ function roundCardMarkup(state, view) {
   const calendar = calendarMarkup(state, view, { from: kind === "laid" ? view.todayKey : from, to: view.todayKey, round, todayName });
   const last = lastClosed(state);
   const { required } = summary;
-  if (kind === "laid") return card("This week", `${escapeHtml(name)} not begun`, calendar);
+  if (kind === "laid") return card("This week", `${escapeHtml(name)} not begun`, calendar, "", "calendar");
   const doneCount = view.found ? 0 : required.length - summary.remaining.length;
   const left = view.left.map((routine) => usualMinutes(state, routine.id));
   // Only the cells that have something to say.
@@ -366,7 +367,7 @@ function roundCardMarkup(state, view) {
     left.length && left.every((minutes) => minutes) ? [hoursText(left.reduce((sum, minutes) => sum + minutes, 0)), "still to do"] : null,
     roundDays(last) ? [daysText(roundDays(last)), `round ${last.number}`] : null,
   ].filter(Boolean);
-  return card(escapeHtml(name), workouts.length ? `since ${escapeHtml(shortDate(begunOn))}` : "", `${calendar}${cellsMarkup(cells)}`);
+  return card(escapeHtml(name), workouts.length ? `since ${escapeHtml(shortDate(begunOn))}` : "", `${calendar}${cellsMarkup(cells)}`, "", "calendar");
 }
 
 // The round completed today, whole: its weeks, four facts, and today's workout.
@@ -385,7 +386,7 @@ function completedCardMarkup(state, view) {
   const today = record.workouts.filter((item) => item.dateKey === view.todayKey).at(-1);
   const sets = today ? Object.values(state.sessions[today.dateKey].logs || {}).filter((log) => log.routineId === today.routineId).reduce((count, log) => count + log.sets.filter((set) => !set.warmup).length, 0) : 0;
   const todayLine = today ? `<button class="result-line" type="button" data-action="open-result" data-id="${escapeHtml(today.routineId)}" data-date="${today.dateKey}" aria-label="${escapeHtml(today.name)}, today. How it went"><span class="result-name"><span class="result-label is-link">${escapeHtml(today.name)}, today</span><small>${escapeHtml([today.minutes ? `${today.minutes} min` : "", plural(sets, "set")].filter(Boolean).join(" · "))}</small></span>${chevron()}</button>` : "";
-  return card(`${escapeHtml(name)} complete`, escapeHtml(datesShort(record.from, record.to)), `${calendar}${cellsMarkup(cells)}${todayLine}`);
+  return card(`${escapeHtml(name)} complete`, escapeHtml(datesShort(record.from, record.to)), `${calendar}${cellsMarkup(cells)}${todayLine}`, "", "calendar");
 }
 
 const chevron = (direction = "right") => `<span class="chev" aria-hidden="true">${chevronIcon(direction)}</span>`;
@@ -453,7 +454,7 @@ function toBeatMarkup(state, view) {
   const counts = slotCounts(routine);
   const all = `<button class="result-line" type="button" data-action="program-show-routine" data-id="${escapeHtml(routine.id)}" aria-label="All of ${escapeHtml(routine.name)}: ${counts.main} exercises${counts.optional ? `, plus ${counts.optional} optional` : ""}. Open it on Program"><span class="result-label is-link">All of ${escapeHtml(routine.name)}</span><span class="result-value is-quiet"><strong>${counts.main}${counts.optional ? ` + ${counts.optional} optional` : ""}</strong></span>${chevron()}</button>`;
   const body = rows.length ? rows.join("") : `<p class="hint home-first">${last ? "Nothing logged in it to beat yet." : `The first time for ${escapeHtml(routine.name)}: nothing to beat yet.`}</p>`;
-  return card(`${escapeHtml(routine.name)} · to beat`, last ? escapeHtml(shortDate(last)) : "", `${body}${all}`);
+  return card(`${escapeHtml(routine.name)} · to beat`, last ? escapeHtml(shortDate(last)) : "", `${body}${all}`, "", "to-beat");
 }
 
 // While a workout runs: one card about the session, its bar, four facts and what is next.
@@ -507,6 +508,74 @@ function laidOutMarkup(state, view, round) {
     required[0] ? [escapeHtml(required[0].name), "first"] : null,
   ].filter(Boolean);
   return card(`In ${escapeHtml(name.toLowerCase())}`, "any order", `<div class="home-tiles">${tiles.join("")}</div>${view.kind === "laid" ? cellsMarkup(cells) : ""}`);
+}
+
+// ---------- motion ----------
+//
+// Home moves only where something changed. Picking a tile: the picked look passes from one
+// tile to the other, the lifts to beat fade in (their card easing to its new height),
+// today's square and the bottom button fade to their new words. Between two layouts
+// (Begin round, a workout started or finished, a round complete): what stays stays still
+// and what is new fades in; a square that has just been filled fills in once. A redraw
+// that changes none of these (the minutes ticking, another tab's data) moves nothing.
+
+const calm = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const part = (main, name) => main.querySelector(`[data-home="${name}"]`);
+
+// What the pick looks like before it changes: the tile picked and the lifts' card height.
+function pickedLook() {
+  const main = mainElement();
+  return { id: main.querySelector("[data-action='home-pick'][aria-pressed='true']")?.dataset.id || "", height: part(main, "to-beat")?.offsetHeight || 0 };
+}
+
+function movePick(before) {
+  const main = mainElement();
+  const now = main.querySelector("[data-action='home-pick'][aria-pressed='true']");
+  if (!now || now.dataset.id === before.id) return;
+  fresh(part(main, "to-beat"), part(main, "today"), dockElement().firstElementChild);
+  if (calm()) return;
+  const was = before.id ? main.querySelector(`[data-action='home-pick'][data-id="${CSS.escape(before.id)}"]`) : null;
+  const look = (element) => ({ backgroundColor: getComputedStyle(element).backgroundColor, color: getComputedStyle(element).color });
+  const timing = { duration: 180, easing: "ease-out" };
+  if (was) {
+    const [on, off] = [look(now), look(was)];
+    now.animate([off, on], timing);
+    was.animate([on, off], timing);
+  }
+  const card = part(main, "to-beat");
+  if (card && before.height && card.offsetHeight !== before.height) {
+    card.style.overflow = "hidden";
+    card.animate([{ height: `${before.height}px` }, { height: `${card.offsetHeight}px` }], { duration: 200, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" }).onfinish = () => { card.style.overflow = ""; };
+  }
+}
+
+// What Home showed when it was last drawn, and whether it is arriving from another page.
+let lastHome = null;
+let arriving = false;
+function homeLook(state) {
+  const view = homeView(state);
+  return { kind: view.kind, round: `${view.round.number}-${view.round.block}`, today: (state.sessions[view.todayKey]?.routineIds || []).length, running: view.running?.routineId || "" };
+}
+
+function moveHome(main) {
+  const now = homeLook(store.getState());
+  const was = lastHome;
+  lastHome = now;
+  if (!was || (was.kind === now.kind && was.round === now.round && was.today === now.today && was.running === now.running)) return;
+  // Arriving from another page, the page slides in first.
+  const wait = arriving ? 300 : 0;
+  arriving = false;
+  const filled = now.today > was.today;
+  const square = part(main, "today");
+  if (filled && square && !calm()) {
+    square.animate([{ transform: "scale(0.82)", opacity: 0.3 }, { transform: "scale(1)", opacity: 1 }], { duration: 220, delay: wait, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "backwards" });
+  }
+  // What is new fades in; the calendar card stays, only its facts change.
+  const after = wait + (filled ? 160 : 0);
+  const calendar = part(main, "calendar");
+  const cards = [...main.querySelectorAll("section[data-home]:not([data-home='calendar'])")];
+  const calendarChanged = was.round !== now.round || was.today !== now.today || [was.kind, now.kind].some((kind) => kind === "laid" || kind === "complete");
+  freshAfter(after, ...cards, ...(calendar && calendarChanged ? [calendar.querySelector("h2"), part(calendar, "cells")] : []));
 }
 
 // ---------- the parts under the cards ----------
@@ -973,9 +1042,13 @@ registerView("round", {
   landing: (state) => (activeWorkout(state) ? "workout" : ""),
   // Back from the workout or from a result: the round page, at its first page.
   arrive(from) {
+    arriving = true;
     if (from !== "workout" && from !== "result") return;
     Object.assign(page, { name: "home", number: 0, block: 0, from: "" });
     forgetPick();
+  },
+  afterDraw(main) {
+    if (page.name === "home") moveHome(main);
   },
   // Going back (a drag from the left edge): one round returns to where it was opened from
   // (its block, the round page or Rounds and blocks), a block to Rounds and blocks, that to
@@ -1016,8 +1089,10 @@ registerActions({
   // Another workout picked: the lifts to beat, today's square and the bottom button follow.
   "home-pick": (button) => {
     if (button.getAttribute("aria-pressed") === "true" && home.pickId) return;
+    const before = pickedLook();
     home.pickId = button.dataset.id;
     render();
+    movePick(before);
   },
   // The round laid out is begun: the training day comes (nothing is saved).
   "home-begin": () => {
@@ -1025,7 +1100,6 @@ registerActions({
     keepBegun({ begun: roundKey(summary), started: false });
     render();
     pauseTaps();
-    fresh(...mainElement().children);
   },
   // After a long break: which round this is. Only the title and the switch change.
   "round-break-choice": (button) => {
