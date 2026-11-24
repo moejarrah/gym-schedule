@@ -539,7 +539,7 @@ const SHOTS = [
   }, "running"],
   // Opened again from the round page's "How it went".
   ["result-again", async (page) => {
-    await button(main(page), "How Push B went").click();
+    await button(main(page), "Full result of Push B").click();
     await shown(main(page).getByRole("heading", { name: "Push B done" }));
   }, "done"],
   ["dialog-confirm-cancel-workout", async (page) => {
