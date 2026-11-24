@@ -9,6 +9,7 @@ import {
   allBlocks,
   allRounds,
   answerBreak,
+  beginRound,
   calendarWeek,
   cancelWorkout,
   createProgram,
@@ -17,6 +18,8 @@ import {
   endRound,
   finishWorkout,
   followProgram,
+  forgetEmptyFirstRound,
+  forgetsEmptyFirstRound,
   localDateKey,
   longBreak,
   nextWorkout,
@@ -724,4 +727,34 @@ test("deleting rounds with extras, Optional workouts, a deleted program, an earl
   const back = parseBackup(JSON.stringify(createBackup(state)));
   assert.deepEqual(back, state);
   assert.equal(stateProblem(back), "");
+});
+
+test("an empty round left from an earlier day: the first one is forgotten as it stands; Begin opens any other one today", () => {
+  // His phone: round 1 opened on Nov 21 by a start that left nothing; nothing closed or filed.
+  const stale = freshStore().store;
+  save(stale, (draft) => { draft.settings.round = { number: 1, block: 1, programId: "sample", since: "2026-11-21" }; });
+  assert.equal(forgetsEmptyFirstRound(stale.getState()), true);
+  save(stale, (draft) => forgetEmptyFirstRound(draft));
+  assert.equal(openRound(stale.getState()), null);
+
+  // Kept while a workout of it runs, or once something is filed anywhere.
+  const running = freshStore().store;
+  save(running, (draft) => startTodaysWorkout(draft, "day-a"));
+  assert.equal(forgetsEmptyFirstRound(running.getState()), false);
+
+  // Another round, empty since an earlier day: Begin makes today its first day; one with a
+  // workout in it, or opened today, keeps its day.
+  const { store } = freshStore();
+  save(store, (draft) => setRoundNumber(draft, 1));
+  train(store, "day-a", "2026-11-16");
+  train(store, "day-b", "2026-11-17"); // round 2 opens on 11-17, empty
+  assert.equal(forgetsEmptyFirstRound(store.getState()), false);
+  save(store, (draft) => beginRound(draft, "2026-11-24"));
+  assert.equal(openRound(store.getState()).since, "2026-11-24");
+  save(store, (draft) => setDay(draft, "2026-11-20", ["day-a"], "")); // a past day before it: round 1, not round 2
+  assert.equal(filed(store, "2026-11-20", "day-a").round, 1);
+  train(store, "day-a", "2026-11-24");
+  save(store, (draft) => beginRound(draft, "2026-11-25"));
+  assert.equal(openRound(store.getState()).since, "2026-11-24", "a round with a workout keeps its day");
+  assert.equal(stateProblem(store.getState()), "");
 });

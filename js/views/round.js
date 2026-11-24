@@ -13,11 +13,14 @@ import {
   activeWorkout,
   allBlocks,
   calendarWeek,
+  beginRound,
   dateFromKey,
   deleteRound,
   endRound,
   exerciseById,
   exerciseHistory,
+  forgetEmptyFirstRound,
+  forgetsEmptyFirstRound,
   followProgram,
   fullName,
   lastFinished,
@@ -172,17 +175,17 @@ const backMarkup = (to, name) => `<button class="link-button" type="button" data
 const home = { pickId: "", restart: false };
 
 // "Begin round N" is remembered on this phone only, under its own key, for the round it
-// was tapped for (its number and block), with whether a workout was started in it since;
-// anything else there is ignored. A round with a workout in it, or one running, is begun
-// whatever is remembered; one whose workouts have all gone again (deleted, cancelled,
-// unmarked) is not: it is laid out again, as an open round with nothing in it is never
-// "started".
+// was tapped for (its number and block), the day it was tapped, and whether a workout was
+// started in it since; anything else there is ignored. A round with a workout in it, or one
+// running, is begun whatever is remembered. Without one it is begun only on the day Begin
+// was tapped; and one whose workouts have all gone again (deleted, cancelled, unmarked) is
+// laid out again: an open round with nothing in it is never "started".
 const BEGUN_KEY = "gymAppHomeV1";
 const roundKey = (summary) => `${summary.number}-${summary.block}`;
 let begunMemory = (() => {
   try {
     const saved = JSON.parse(localStorage.getItem(BEGUN_KEY));
-    return typeof saved?.begun === "string" ? { begun: saved.begun, started: saved.started === true } : null;
+    return typeof saved?.begun === "string" && typeof saved.on === "string" ? { begun: saved.begun, on: saved.on, started: saved.started === true } : null;
   } catch (_) {
     return null;
   }
@@ -202,8 +205,8 @@ function isBegun(summary, hasWork) {
     if (memory && !memory.started) keepBegun({ ...memory, started: true });
     return true;
   }
-  if (memory?.started) {
-    keepBegun(null); // what was started in it has gone again
+  if (memory?.started || (memory && memory.on !== localDateKey())) {
+    keepBegun(null); // what was started in it has gone again, or Begin was another day
     return false;
   }
   return Boolean(memory);
@@ -351,10 +354,11 @@ const card = (label, right, body, extra = "", part = "card") => `<section class=
 function roundCardMarkup(state, view) {
   const { summary, round, kind, workouts } = view;
   const name = roundName({ number: round.number, block: 1 });
-  const begunOn = workouts[0]?.dateKey || (view.found ? view.todayKey : summary.since || view.todayKey);
-  const from = kind === "laid" ? mondayOf(view.todayKey) : begunOn;
+  // The round runs from its first workout: with none, there are no days of it to shade
+  // and no "Day N", only this week with today outlined.
+  const firstDay = workouts[0]?.dateKey || "";
   const todayName = kind === "day" && view.picked && !(state.sessions[view.todayKey]?.routineIds || []).length ? view.picked.name : "";
-  const calendar = calendarMarkup(state, view, { from: kind === "laid" ? view.todayKey : from, to: view.todayKey, round, todayName });
+  const calendar = calendarMarkup(state, view, { from: firstDay || view.todayKey, to: view.todayKey, round, todayName });
   const last = lastClosed(state);
   const { required } = summary;
   if (kind === "laid") return card("This week", `${escapeHtml(name)} not begun`, calendar, "", "calendar");
@@ -362,12 +366,12 @@ function roundCardMarkup(state, view) {
   const left = view.left.map((routine) => usualMinutes(state, routine.id));
   // Only the cells that have something to say.
   const cells = [
-    [`Day ${daysBetween(begunOn, view.todayKey) + 1}`, `of ${name.toLowerCase()}`],
+    firstDay ? [`Day ${daysBetween(firstDay, view.todayKey) + 1}`, `of ${name.toLowerCase()}`] : null,
     [`${doneCount} of ${required.length}`, "done"],
     left.length && left.every((minutes) => minutes) ? [hoursText(left.reduce((sum, minutes) => sum + minutes, 0)), "still to do"] : null,
     roundDays(last) ? [daysText(roundDays(last)), `round ${last.number}`] : null,
   ].filter(Boolean);
-  return card(escapeHtml(name), workouts.length ? `since ${escapeHtml(shortDate(begunOn))}` : "", `${calendar}${cellsMarkup(cells)}`, "", "calendar");
+  return card(escapeHtml(name), firstDay ? `since ${escapeHtml(shortDate(firstDay))}` : "", `${calendar}${cellsMarkup(cells)}`, "", "calendar");
 }
 
 // The round completed today, whole: its weeks, four facts, and today's workout.
@@ -1030,6 +1034,12 @@ async function newBlock() {
   fresh(...mainElement().children);
 }
 
+// Counting that began with nothing in it any more is undone (forgetEmptyFirstRound in
+// js/model.js), whenever Home comes on screen and when the app opens.
+export function tidyRounds() {
+  if (forgetsEmptyFirstRound(store.getState())) store.update((draft) => forgetEmptyFirstRound(draft));
+}
+
 // Leaves Home as it was: the tile picked by the owner and the answer to a break are forgotten.
 function forgetPick() {
   Object.assign(home, { pickId: "", restart: false });
@@ -1043,6 +1053,7 @@ registerView("round", {
   // Back from the workout or from a result: the round page, at its first page.
   arrive(from) {
     arriving = true;
+    tidyRounds();
     if (from !== "workout" && from !== "result") return;
     Object.assign(page, { name: "home", number: 0, block: 0, from: "" });
     forgetPick();
@@ -1096,8 +1107,11 @@ registerActions({
   },
   // The round laid out is begun: the training day comes (nothing is saved).
   "home-begin": () => {
+    // An empty round from an earlier day opens today (only then is anything saved).
+    const open = openRound(store.getState());
+    if (open && !roundSummary(store.getState()).workouts.length && (open.since || "") < localDateKey() && !report(store.update((draft) => beginRound(draft)))) return;
     const summary = roundSummary(store.getState());
-    keepBegun({ begun: roundKey(summary), started: false });
+    keepBegun({ begun: roundKey(summary), on: localDateKey(), started: false });
     render();
     pauseTaps();
   },

@@ -14,6 +14,7 @@ import "./views/settings.js";
 import { afterRender, applyTheme, enableBackSwipe, navigate, openOn, openTab, render, runAction, store } from "./context.js";
 import { closeDialog, initDialogs, setSegment, toast } from "./dom.js";
 import { activeWorkout, finishStaleWorkout, localDateKey } from "./model.js";
+import { tidyRounds } from "./views/round.js";
 import { enableRoutineSwipe } from "./views/shared.js";
 import { STORAGE_KEY } from "./store.js";
 
@@ -117,7 +118,10 @@ document.addEventListener("visibilitychange", () => {
 
 applyTheme(store.getState().settings.theme);
 if (store.getLastError()) toast(store.getLastError(), { long: true });
-else fileStaleWorkout();
+else {
+  fileStaleWorkout();
+  tidyRounds();
+}
 // The app opens where the work is: the workout in progress, otherwise the round page.
 if (activeWorkout(store.getState())) openOn("workout");
 render();

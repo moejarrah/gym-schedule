@@ -686,11 +686,24 @@ const anyFiled = (state) => Object.entries(state.sessions).some(([, session]) =>
 // is round 1 of block 1, no round has closed, nothing anywhere is filed in a round and no
 // workout runs, counting is as it was before it began (the round goes; Home shows the
 // first launch). A round the owner numbered himself ("Already on a later round?") stays.
-// Called after a workout is deleted, cancelled or unmarked.
-function forgetEmptyFirstRound(state) {
+// Called after a workout is deleted, cancelled or unmarked, and when Home comes on screen
+// or the app opens (for data left like this by an earlier version).
+export function forgetsEmptyFirstRound(state) {
   const round = openRound(state);
-  if (!round || round.number !== 1 || round.block !== 1 || state.settings.roundLog?.length || state.settings.activeWorkout || anyFiled(state)) return;
-  delete state.settings.round;
+  return Boolean(round) && round.number === 1 && round.block === 1 && !state.settings.roundLog?.length && !state.settings.activeWorkout && !anyFiled(state);
+}
+
+export function forgetEmptyFirstRound(state) {
+  if (forgetsEmptyFirstRound(state)) delete state.settings.round;
+}
+
+// Home's "Begin round N" for an open round with nothing in it: the round opens today. Nothing
+// is filed in it, so no day moves; a past day marked afterwards still goes to the round that
+// was open then (roundAt: before `since`), never into this one.
+export function beginRound(state, todayKey = localDateKey()) {
+  const round = openRound(state);
+  if (!round || roundWorkouts(state, round).length || (round.since || "") >= todayKey) return;
+  round.since = todayKey;
 }
 
 // Deletes a round from the count: it leaves Rounds and blocks, and its workouts stay in Log
