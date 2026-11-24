@@ -1,7 +1,7 @@
 // The round page, the first page of the Workout tab and the app's home: where the open
 // round stands (header and bar), then the round's workouts as one list with one row open
 // and the bottom button acting on it (Start, Do it again, Reopen), what is news today
-// (back after a break, a round completed), and the rows under it. Two pages open inside
+// (back after a break, a round completed), and the rows under it. Three pages open inside
 // the tab, each with a back link: Rounds and blocks, one block, and one round. One
 // sheet (#roundSheet): a workout from another program, following a different program
 // (opened from Program with "follow-program"), and changing the round number. What a
