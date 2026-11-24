@@ -259,10 +259,10 @@ test("saving an exercise keeps related links in step on both sides and refuses a
   save(store, (draft) => saveExercise(draft, cableFly, []));
   assert.deepEqual(exerciseById(store.getState(), "bench-press").relatedExercises, [{ exerciseId: "push-up", relation: "easier" }]);
   // Two exercises may share a movement name, but not a name and a setup.
-  refuse(stored, (draft) => saveExercise(draft, { ...cableFly, id: "copy" }, []), "An exercise with this name and setup already exists.");
+  refuse(stored, (draft) => saveExercise(draft, { ...cableFly, id: "copy" }, []), "Cable fly (cable) already exists. Add a detail, or use that one.");
   save(store, (draft) => saveExercise(draft, { ...cableFly, id: "copy", equipment: ["dumbbells"] }, []));
   assert.deepEqual(store.getState().exercises.filter((item) => item.name === "Cable fly").map(fullName), ["Cable fly (cable)", "Cable fly (dumbbell)"]);
-  refuse(stored, (draft) => saveExercise(draft, { ...cableFly, aliases: ["Push up"] }, []), "An alias is already used by another exercise.");
+  refuse(stored, (draft) => saveExercise(draft, { ...cableFly, aliases: ["Push up"] }, []), "Push-up already goes by \"Push up\". Remove that alias here.");
 });
 
 test("duplicating a program copies its routines under new IDs and leaves the original and the history alone", () => {

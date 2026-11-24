@@ -1057,16 +1057,30 @@ export function fullName(exercise) {
 const plain = (exercise) => fullName(exercise).toLowerCase();
 export const byFullName = (a, b) => a.name.localeCompare(b.name) || (plain(a) < plain(b) ? -1 : plain(a) > plain(b) ? 1 : 0);
 
+// What stops an exercise being saved because another one already answers to its name
+// and setup, or to one of its aliases, naming that other exercise and the ways forward;
+// "" when nothing does.
+export function exerciseClash(state, exercise) {
+  const owners = new Map();
+  for (const other of state.exercises) {
+    if (other.id === exercise.id) continue;
+    for (const identity of [fullName(other), ...other.aliases]) owners.set(normalizedName(identity), other);
+  }
+  const same = owners.get(normalizedName(fullName(exercise)));
+  if (same) return `${fullName(same)} already exists. Add a detail, or use that one.`;
+  const alias = exercise.aliases.find((item) => owners.has(normalizedName(item)));
+  return alias ? `${fullName(owners.get(normalizedName(alias)))} already goes by "${alias}". Remove that alias here.` : "";
+}
+
 // Adds or replaces a master exercise and sets its related exercises, keeping
 // the reverse links on the other exercises in sync.
 export function saveExercise(state, exercise, relatedExercises) {
   const others = state.exercises.filter((item) => item.id !== exercise.id);
-  const taken = new Set(others.flatMap((item) => [fullName(item), ...item.aliases]).map(normalizedName));
   const identities = [fullName(exercise), ...exercise.aliases].map(normalizedName);
   if (identities.some((identity) => !identity)) fail("Names and aliases need at least one letter or number.");
   if (new Set(identities).size !== identities.length) fail("The name and aliases must each be unique.");
-  if (taken.has(identities[0])) fail("An exercise with this name and setup already exists.");
-  if (identities.some((identity) => taken.has(identity))) fail("An alias is already used by another exercise.");
+  const clash = exerciseClash(state, exercise);
+  if (clash) fail(clash);
 
   const index = state.exercises.findIndex((item) => item.id === exercise.id);
   const saved = { ...structuredClone(exercise), relatedExercises: [] };

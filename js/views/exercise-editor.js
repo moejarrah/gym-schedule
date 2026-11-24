@@ -5,7 +5,7 @@
 
 import { registerActions, render, store } from "../context.js";
 import { $, closeDialog, confirmAction, escapeHtml, openDialog, plural, report, showError } from "../dom.js";
-import { exerciseById, exerciseDeletionImpact, makeId, normalizedName, removeExercise, saveExercise as saveExerciseInState, fullName, mainEquipment } from "../model.js";
+import { exerciseById, exerciseClash, exerciseDeletionImpact, makeId, normalizedName, removeExercise, saveExercise as saveExerciseInState, fullName, mainEquipment } from "../model.js";
 import { searchExercises } from "../search.js";
 import { ATTACHMENTS, CHALLENGES, EMPHASES, EQUIPMENT, GRIPS, LATERALITIES, MOVEMENTS, PURPOSES, RELATIONS, STYLES, SUPPORTS, TARGETS, WEIGHT_MODES, WIDTHS, label } from "../vocab.js";
 import { exerciseMarkup } from "./shared.js";
@@ -204,13 +204,9 @@ function formProblem(state, exercise) {
   if (!normalizedName(name) || identities.some((identity) => !identity) || new Set(identities).size !== identities.length) {
     return ["The name and aliases must each be unique.", aliases.length ? aliasesField : nameField];
   }
-  const taken = new Set(state.exercises
-    .filter((other) => other.id !== editor.exerciseId)
-    .flatMap((other) => [fullName(other), ...other.aliases])
-    .map(normalizedName));
-  const conflict = identities.findIndex((identity) => taken.has(identity));
-  if (conflict === 0) return ["An exercise with this name and setup already exists. Change the name, equipment, attachment, grip, width or detail.", nameField];
-  if (conflict > 0) return ["An alias is already used by another exercise.", aliasesField];
+  // Another exercise already answers to this name and setup, or to one of its aliases.
+  const clash = exerciseClash(state, { ...exercise, id: editor.exerciseId });
+  if (clash) return [clash, clash.includes("already goes by") ? aliasesField : nameField];
   if (!primaryTargets.length) return ["Choose a primary target.", $("#exercisePrimaryTarget1")];
   if (!movementPattern) return ["Choose a movement.", $("#exerciseMovement")];
   if (!equipment.length) return ["Choose at least one equipment option.", $("#chooseEquipmentButton")];

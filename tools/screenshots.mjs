@@ -648,6 +648,18 @@ const SHOTS = [
     await button(editor, /^Alternatives and progressions/).click();
     await shown(dialog(page, "Alternatives and progressions"));
   }],
+  // Saving a setup another exercise already has: the message names it and the ways forward.
+  ["dialog-exercise-editor-clash", async (page) => {
+    const editor = await openMasterEditor(page, "Hip abduction (cable)");
+    await button(editor, /^Equipment/).click();
+    const picker = await shown(dialog(page, "Equipment"));
+    await button(picker, /^Cable/).click();
+    await button(picker, /^Machine/).click();
+    await button(picker, "Done").click();
+    await expect(picker).toBeHidden();
+    await button(editor, "Save exercise").click();
+    await expect(editor.getByRole("alert")).toContainText("already exists");
+  }],
   ["dialog-confirm-delete-exercise", async (page) => {
     const editor = await openMasterEditor(page, "Ab-wheel rollout");
     await button(editor, "Delete exercise").click();
