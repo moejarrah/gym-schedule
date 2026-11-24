@@ -7,7 +7,7 @@
 // (opened from Program with "follow-program"), and changing the round number. What a
 // round is: js/model.js, "rounds and calendar weeks".
 
-import { dockElement, mainElement, navigate, registerActions, registerView, render, store, withMotion } from "../context.js";
+import { mainElement, navigate, pauseTaps, registerActions, registerView, render, store, withMotion } from "../context.js";
 import { $, chevronIcon, clearError, closeDialog, confirmAction, escapeHtml, formatDate, fresh, openDialog, plural, redraw, report, toast } from "../dom.js";
 import {
   activeWorkout,
@@ -591,19 +591,6 @@ function markup(state) {
     page.name = "all"; // the block is gone (another backup was imported)
   }
   return page.name === "all" ? allMarkup(state) : homeMarkup(state);
-}
-
-// What was just tapped has been replaced by something else in the same place, so the
-// second tap of a double tap would land on a control the owner never saw: the screen
-// ignores taps for a moment (it still scrolls).
-let quietUntil = 0;
-const pauseTaps = () => { quietUntil = performance.now() + 400; };
-for (const area of [mainElement(), dockElement()]) {
-  area.addEventListener("click", (event) => {
-    if (performance.now() >= quietUntil) return;
-    event.preventDefault();
-    event.stopPropagation();
-  }, true);
 }
 
 // Another page of the tab. Going deeper starts at the top; coming back returns to

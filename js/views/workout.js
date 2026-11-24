@@ -9,7 +9,7 @@
 // sheet after Finish (also opened from the round page), the exercise-choices sheet,
 // swapping a slot to another of its choices for today, and keeping the screen on.
 
-import { afterRender, navigate, registerActions, registerView, render, store } from "../context.js";
+import { afterRender, navigate, pauseTaps, registerActions, registerView, render, store } from "../context.js";
 import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, fresh, openDialog, playIcon, plural, redraw, report, toast } from "../dom.js";
 import { activeWorkout, addExtra, backupAge, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseById, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, orderedEntries, roundSummary, routineById, routineProgram, usualExtras, workoutHasWork, workoutProgress } from "../model.js";
 import { compareSets, exerciseMode, exerciseProgress } from "../progress.js";
@@ -419,8 +419,12 @@ function openRowReference(button) {
   openExerciseReference(id, { prescription, routineName: routine.name, routineNote: entry?.note || "" });
 }
 
-// A workout that was cancelled or closed again hands back to the round page.
-const backToRound = () => navigate("round", { motion: "pop" });
+// A workout that was cancelled or closed again hands back to the round page (which
+// ignores taps for a moment: a double tap would land on one of its controls).
+const backToRound = () => {
+  navigate("round", { motion: "pop" });
+  pauseTaps();
+};
 
 // Finish files the workout as it stands and shows the result; closing the result
 // returns to the round page. Only a workout with nothing logged or done asks first,
