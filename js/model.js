@@ -311,6 +311,7 @@ export function cancelWorkout(state) {
     state.settings.roundLog?.splice(undo.logged);
     if (state.settings.roundLog?.length === 0) delete state.settings.roundLog;
   }
+  forgetEmptyFirstRound(state);
 }
 
 // Deletes a finished workout from its day, as if it had never been done: the routine
@@ -332,7 +333,10 @@ export function deleteWorkout(state, dateKey, routineId) {
   delete session.extras[routineId];
   for (const [slotId, log] of Object.entries(session.logs)) if (log.routineId === routineId) delete session.logs[slotId];
   writeSession(state, dateKey, session);
-  if (!reopen) return;
+  if (!reopen) {
+    forgetEmptyFirstRound(state);
+    return;
+  }
   state.settings.roundLog.pop();
   if (!state.settings.roundLog.length) delete state.settings.roundLog;
   Object.assign(state.settings.round, { number: reopen.number, block: reopen.block, programId: reopen.programId, since: reopen.since });
@@ -675,6 +679,46 @@ export function endRound(state) {
   closeRound(state, "early");
 }
 
+// Whether any finished workout anywhere is filed in a round.
+const anyFiled = (state) => Object.entries(state.sessions).some(([, session]) => Object.entries(session.workouts || {}).some(([routineId, record]) => record.round && session.routineIds.includes(routineId)));
+
+// Counting that began with a workout that no longer exists is undone: when the open round
+// is round 1 of block 1, no round has closed, nothing anywhere is filed in a round and no
+// workout runs, counting is as it was before it began (the round goes; Home shows the
+// first launch). A round the owner numbered himself ("Already on a later round?") stays.
+// Called after a workout is deleted, cancelled or unmarked.
+function forgetEmptyFirstRound(state) {
+  const round = openRound(state);
+  if (!round || round.number !== 1 || round.block !== 1 || state.settings.roundLog?.length || state.settings.activeWorkout || anyFiled(state)) return;
+  delete state.settings.round;
+}
+
+// Deletes a round from the count: it leaves Rounds and blocks, and its workouts stay in Log
+// with their sets but belong to no round any more (their round tags go). Other rounds keep
+// their numbers. A closed round leaves the round log; the open round stays open, with the
+// same number and the day it opened, now empty (Home lays it out again). Once no round is
+// left at all, counting is as it was before it began. Refused while a workout runs.
+export function deleteRound(state, { number, block }) {
+  if (state.settings.activeWorkout) fail("Finish or cancel the workout in progress first.");
+  const round = openRound(state);
+  const isOpen = Boolean(round) && round.number === number && round.block === block;
+  const log = state.settings.roundLog || [];
+  const index = log.findIndex((item) => item.number === number && item.block === block);
+  if (!isOpen && index < 0) fail("That round is no longer in your history.");
+  for (const session of Object.values(state.sessions)) {
+    for (const record of Object.values(session.workouts || {})) {
+      if (!sameRound(record, { number, block })) continue;
+      delete record.round;
+      delete record.block;
+      delete record.guest;
+      delete record.optional;
+    }
+  }
+  if (index >= 0) log.splice(index, 1);
+  if (state.settings.roundLog && !log.length) delete state.settings.roundLog;
+  if (isOpen && !state.settings.roundLog && !anyFiled(state)) delete state.settings.round;
+}
+
 // A fresh start of the count: round 1 of the next block. The open round, if anything
 // was done in it, ends here.
 export function startNewBlock(state, dateKey = localDateKey(), ended = "early") {
@@ -843,6 +887,7 @@ export function setDay(state, dateKey, routineIds, note) {
   session.note = note;
   writeSession(state, dateKey, session);
   closeRoundIfComplete(state);
+  forgetEmptyFirstRound(state);
 }
 
 // ---------- programs ----------

@@ -119,11 +119,12 @@ appTest("Logging: Start opens the workout, a tick takes last time's set, typed s
   await expect(main(page)).toContainText("0 min");
   await main(page).getByRole("button", { name: "Finish Day A" }).click();
   await dialog(page, "Nothing is logged").getByRole("button", { name: "Cancel workout" }).click();
-  await expect(startButton(page, "Day A")).toBeVisible();
-  assert.equal((await readState(page)).settings.activeWorkout, null);
+  // The round had nothing else in it: as if counting never began, laid out again.
+  await expect(bottomButton(page, "Begin round 1")).toBeVisible();
+  assert.deepEqual([(await readState(page)).settings.activeWorkout, (await readState(page)).settings.round], [null, undefined]);
   await start(page, "Day A");
   await main(page).getByRole("button", { name: "Cancel workout" }).click();
-  await expect(startButton(page, "Day A")).toBeVisible();
+  await expect(bottomButton(page, "Begin round 1")).toBeVisible();
   assert.equal((await todaySaved(page)), undefined, "a cancelled workout leaves no day behind");
 
   await start(page, "Day A");
@@ -352,13 +353,13 @@ appTest("A finished workout is deleted from its result page after a confirmation
   await deleteButton.click();
   await tapOnRound(page, confirm.getByRole("button", { name: "Delete workout" }));
   await expect(page.getByText("Workout deleted.")).toBeVisible();
-  // Back on Home, as if it had never been done; counting stays started.
-  await expect(homeTile(page, "Day A")).toHaveAttribute("aria-pressed", "true");
-  await expect(main(page).getByRole("region", { name: "Round 1", exact: true })).toContainText("0 of 2done");
-  await expect(startButton(page, "Day A")).toBeVisible();
+  // Back on Home, as if it had never been done: it was the round's only workout, so the
+  // round is laid out again, and as it was the very first, counting is as before it began.
+  await expect(main(page).getByRole("region", { name: "In round 1", exact: true })).toBeVisible();
+  await expect(bottomButton(page, "Begin round 1")).toBeVisible();
   const saved = await readState(page);
   assert.equal(saved.sessions[TODAY], undefined);
-  assert.deepEqual(saved.settings.round, { number: 1, block: 1, programId: "sample", since: TODAY });
+  assert.equal(saved.settings.round, undefined);
 
   await roundSettles(page);
   await goToView(page, "Log");
@@ -612,4 +613,22 @@ appTest("A workout from another program is listed in the round as an extra and c
   assert.equal(saved.settings.roundLog, undefined, "no round was closed");
   assert.equal(saved.settings.activeProgramId, "sample");
   assert.equal(saved.settings.activeWorkout, null);
+});
+
+appTest("Delete this round: after a confirmation the round leaves the count, its workouts stay in Log", { saved: twoPrograms() }, async ({ page }) => {
+  await tapOnRound(page, main(page).getByRole("button", { name: /^Rounds and blocks/ }));
+  await tapOnRound(page, main(page).getByRole("button", { name: /^Round 5, Sample program/ }));
+  await main(page).getByRole("button", { name: "Delete Round 5" }).click();
+  const confirm = dialog(page, "Delete Round 5?");
+  await expect(confirm).toContainText("It leaves the round count and Rounds and blocks. Its 1 workout stays in Log with its sets, but no longer belongs to a round.");
+  await tapOnRound(page, confirm.getByRole("button", { name: "Delete round" }));
+  await expect(page.getByText("Round deleted.")).toBeVisible();
+  // It was the only round: counting is as before it began, and Home lays round 1 out.
+  await expect(roundTitle(page, "Round 1")).toBeVisible();
+  await expect(bottomButton(page, "Begin round 1")).toBeVisible();
+  const saved = await readState(page);
+  assert.deepEqual([saved.settings.round, saved.settings.roundLog], [undefined, undefined]);
+  assert.deepEqual(saved.sessions[PAST_DAY].routineIds, ["day-a"]);
+  assert.deepEqual(saved.sessions[PAST_DAY].workouts["day-a"], { name: "Day A", program: "Sample program", minutes: 48 });
+  assert.deepEqual(saved.sessions[PAST_DAY].logs, sampleState().sessions[PAST_DAY].logs, "its sets stay");
 });

@@ -14,6 +14,7 @@ import {
   allBlocks,
   calendarWeek,
   dateFromKey,
+  deleteRound,
   endRound,
   exerciseById,
   exerciseHistory,
@@ -171,23 +172,42 @@ const backMarkup = (to, name) => `<button class="link-button" type="button" data
 const home = { pickId: "", restart: false };
 
 // "Begin round N" is remembered on this phone only, under its own key, for the round it
-// was tapped for (its number and block); anything else there is ignored.
-// A round with a workout in it, or one running, is begun whatever is remembered.
+// was tapped for (its number and block), with whether a workout was started in it since;
+// anything else there is ignored. A round with a workout in it, or one running, is begun
+// whatever is remembered; one whose workouts have all gone again (deleted, cancelled,
+// unmarked) is not: it is laid out again, as an open round with nothing in it is never
+// "started".
 const BEGUN_KEY = "gymAppHomeV1";
 const roundKey = (summary) => `${summary.number}-${summary.block}`;
-function begunHere(summary) {
+let begunMemory = (() => {
   try {
-    return JSON.parse(localStorage.getItem(BEGUN_KEY))?.begun === roundKey(summary);
+    const saved = JSON.parse(localStorage.getItem(BEGUN_KEY));
+    return typeof saved?.begun === "string" ? { begun: saved.begun, started: saved.started === true } : null;
   } catch (_) {
+    return null;
+  }
+})();
+function keepBegun(memory) {
+  begunMemory = memory;
+  try {
+    if (memory) localStorage.setItem(BEGUN_KEY, JSON.stringify(memory));
+    else localStorage.removeItem(BEGUN_KEY);
+  } catch (_) { /* storage blocked: it lasts until the app is reopened */ }
+}
+// Whether the round shown is begun: it has (or runs) a workout, or Begin was tapped for it
+// and nothing was started in it since. What is remembered follows along.
+function isBegun(summary, hasWork) {
+  const memory = begunMemory?.begun === roundKey(summary) ? begunMemory : null;
+  if (hasWork) {
+    if (memory && !memory.started) keepBegun({ ...memory, started: true });
+    return true;
+  }
+  if (memory?.started) {
+    keepBegun(null); // what was started in it has gone again
     return false;
   }
+  return Boolean(memory);
 }
-function rememberBegun(summary) {
-  try {
-    localStorage.setItem(BEGUN_KEY, JSON.stringify({ begun: roundKey(summary) }));
-  } catch (_) { /* storage blocked: the round shows begun until the app is reopened */ }
-}
-const begunNow = new Set(); // in case storage is blocked
 
 // A workout that was done: ticked, muted, its date at the end; it opens its day (a round's page).
 const doneRow = (name, dateKey, tag = "") => `<button class="row compact round-row is-done" type="button" data-action="open-day" data-date="${dateKey}" aria-label="${escapeHtml(name)}${tag ? `, ${escapeHtml(tag)}` : ""}, done ${escapeHtml(shortDate(dateKey))}. Open that day.">
@@ -244,7 +264,7 @@ function homeView(state) {
   const picked = [...pickable, ...optional].find((routine) => routine.id === home.pickId) || next || pickable[0] || null;
   const justDone = justCompleted(state, summary);
   const completed = justDone?.to === todayKey ? justDone : null;
-  const begun = Boolean(found) || workouts.length > 0 || Boolean(running) || begunNow.has(roundKey(summary)) || begunHere(summary);
+  const begun = Boolean(found) || isBegun(summary, summary.workouts.length > 0 || Boolean(running));
   // The workout of this round finished today last.
   const lastToday = [...finishedToday].reverse().find((id) => workouts.some((item) => item.dateKey === todayKey && item.routineId === id)) || "";
   const kind = !begun && completed ? "complete" : !begun ? "laid" : running ? "running" : lastToday && !home.pickId ? "after" : "day";
@@ -753,6 +773,10 @@ function oneMarkup(state, record) {
     ? left.names.map((name) => `<div class="row compact round-row is-quiet"><span class="tickbox" aria-hidden="true"></span><span class="row-main"><span class="row-title truncate">${escapeHtml(name)}</span></span></div>`).join("")
     : `<p class="hint round-note">${plural(left.count, "workout")} ${left.count === 1 ? "was" : "were"} not done.</p>`}
     </section>` : ""}
+    ${activeWorkout(state) ? "" : `<div class="result-cards round-more"><section class="result-card" aria-label="More">
+      <h2 class="label result-card-label"><span>More</span></h2>
+      <button class="result-line" type="button" data-action="round-delete" aria-label="Delete ${escapeHtml(roundName(record))}"><span class="result-label is-danger">Delete this round</span><span class="chev" aria-hidden="true">${chevronIcon("right")}</span></button>
+    </section></div>`}
   </section>`;
 }
 
@@ -901,6 +925,26 @@ async function endRoundNow() {
   fresh(...mainElement().children);
 }
 
+// Deletes the round shown, after saying exactly what happens to it and its workouts.
+async function deleteRoundNow() {
+  const state = store.getState();
+  const record = roundRecord(state, page);
+  if (!record) return;
+  const name = roundName(record);
+  const count = record.workouts.length;
+  const workouts = count ? `Its ${plural(count, "workout")} stay${count === 1 ? "s" : ""} in Log with ${count === 1 ? "its" : "their"} sets, but no longer belong${count === 1 ? "s" : ""} to a round. ` : "";
+  const after = record.open ? `${name} is laid out again, with nothing in it. ` : "Other rounds keep their numbers. ";
+  const confirmed = await confirmAction({
+    title: `Delete ${name}?`,
+    message: `It leaves the round count and Rounds and blocks. ${workouts}${after}This can't be undone.`,
+    confirmLabel: "Delete round",
+    cancelLabel: "Keep it",
+    variant: "round-delete",
+  });
+  if (!confirmed || !report(store.update((draft) => deleteRound(draft, record)), "Round deleted.")) return;
+  showPage(roundSummary(store.getState()).counting ? "all" : "home");
+}
+
 async function newBlock() {
   const summary = roundSummary(store.getState());
   const done = summary.required.length - summary.remaining.length;
@@ -978,8 +1022,7 @@ registerActions({
   // The round laid out is begun: the training day comes (nothing is saved).
   "home-begin": () => {
     const summary = roundSummary(store.getState());
-    begunNow.add(roundKey(summary));
-    rememberBegun(summary);
+    keepBegun({ begun: roundKey(summary), started: false });
     render();
     pauseTaps();
     fresh(...mainElement().children);
@@ -996,6 +1039,7 @@ registerActions({
   "round-start": (button) => {
     const result = store.update((draft) => startTodaysWorkout(draft, button.dataset.id, { restart: home.restart }));
     if (!report(result)) return;
+    isBegun(roundSummary(store.getState()), true); // something is started in the round now
     navigate("workout", { motion: "push" });
     pauseTaps();
   },
@@ -1050,6 +1094,9 @@ registerActions({
     fresh(...mainElement().children);
   },
   "round-new-block": newBlock,
+  "round-delete": () => {
+    if (nothingRunning()) deleteRoundNow();
+  },
 });
 
 // The card of the workout in progress says how long it has run; it keeps up.
