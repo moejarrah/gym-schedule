@@ -11,6 +11,8 @@ Things a desktop browser can't fully confirm:
 - [ ] Logging sheet: the number keypad appears for weight and reps, and the sheet stays usable with the keyboard open. (The iPhone number keypad has no Return key, so a set is ticked with its tick button.) Sheets don't resize for the keyboard; iOS scrolls the field being typed in into view.
 - [ ] Nothing hides under the notch or the home bar, and sheets' rounded corners and the bottom navigation look right in both themes.
 - [ ] Opening an editor doesn't bring up the keyboard by itself, and no focus ring shows around a button after a tap.
+- [ ] The screen stays on during a workout (installed apps can since iOS 18.4), also after switching to another app and back; and a screen left on in a pocket doesn't log sets by itself.
+- [ ] The bottom button and the running bar sit right above the tab bar, clear of the home bar, in both themes.
 
 ## Next
 

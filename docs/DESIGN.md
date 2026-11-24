@@ -20,7 +20,8 @@ The current look was agreed with the owner in November 2026 on a design canvas. 
 | `program.png` | Program |
 
 The boards show a few things that weren't built, and the app differs from them on purpose in these places:
-- The boards have no Round tab. It came later and is the app's home: the round and the calendar week are shown there (`docs/PRODUCT.md`, "Rounds, blocks and calendar weeks"), and the Workout tab lost its program bar and routine tabs to it.
+- The boards have no round page. It came later and is the app's home, the first page of the Workout tab: the round and the calendar week are shown there (`docs/PRODUCT.md`, "Rounds, blocks and calendar weeks"), and the workout lost its program bar and routine tabs to it. The workout in progress is a page of that tab, with the round page's header (a bar of its main exercises) instead of the board's Active badge.
+- There are four tabs (Workout · Program · Library · Log), and a bottom button above them on the round page and the workout (see "The dock" below).
 - The rest-timer note under the logging sheet was left out because the owner doesn't want a timer.
 - Program keeps its routine tabs instead of the board's list of routines. It opens as a read-only view, and "Edit" turns it into the editor.
 - Library rows show the prescription, not "last 15 × 12".
@@ -44,7 +45,7 @@ Each token has a light and a dark value, which `:root` and `:root[data-theme="da
 | `--border-strong` | Outlines of empty number boxes, play circles, chips |
 | `--text`, `--text-muted`, `--faint` | Main text, secondary text (prescriptions, meta), labels and placeholders |
 | `--accent` | Accent text and links, the tab underline, focus rings |
-| `--accent-fill`, `--accent-press` | Filled accent: primary buttons (and their pressed state), done tick boxes, today in the calendar |
+| `--accent-fill`, `--accent-press` | Filled accent: primary buttons (and their pressed state), done tick boxes, today in the calendar, the running bar |
 | `--on-accent` | Text and ticks on `--accent-fill` |
 | `--accent-soft` | Tinted backgrounds: saved set rows, selected items |
 | `--badge-bg`, `--badge-text` | The "Active" badge |
@@ -99,6 +100,10 @@ The shared classes are in `styles/components.css`, each with a comment saying wh
 - **Pills and segments**: an outline when off. When on, they're filled with the text colour and the label in the page colour.
 - **Buttons** (`.button`): 48px tall. Primary uses `--accent-fill`, the plain one `--surface-2`, danger the danger pair. Accent text alone (`.link-button`) for "+ Add exercise" and the like.
 - **Sheets** (`.sheet`): a grab handle, title and × at the top, one scrolling area, and the main action fixed at the bottom. At most 84% of the screen tall; the exercise editor is full screen.
+- **The dock** (`.dock`, drawn by `render()` in `js/context.js` from a view's `dock(state)`): pages keep their main action fixed at the bottom too. One 48px button above the tab bar, full width, one line cut with an ellipsis, always naming what it does on what ("Start Push B", "Log sets · Chest fly", "Finish workout"). Filled when it is the thing to do now, quiet (`--surface-2`) when it is merely there ("Reopen Push B", "Do Push A again today"). The page's own bottom padding makes room for it, and it doesn't move when the page changes. A workout's Finish is also at its top right, as an outlined pill (the shape of Program's Edit).
+- **The running bar** (`.dock-bar`): while a workout runs, the dock of every other page holds one filled accent bar, 48px, two lines: the workout "in progress" and its minutes; how far it is ("3 of 8 done · next: Chest fly") and "Back →". The whole bar is one button.
+- **Labelled lines** (`.slot-line`): a muted label, then its value; a line that opens something is a button with its value in the accent colour and an arrow. The open exercise ends with one row of three equal cells (`.slot-tools`: Details │ Video │ History), 44px tall.
+- Weights are written with their unit wherever they are listed: "37.5 kg × 10, 9, 8", "60 kg × 10 · 62.5 kg × 8"; without weight "15, 13 reps"; timed "45, 40 sec".
 - **Logging sheet rows**: a saved row is tinted. A set and its drops sit together in one rounded group. The weight stays next to its "kg".
 
 ## Layout
@@ -131,8 +136,9 @@ The owner notices every jump, flash and unclear button. Each rule below comes fr
 
 ### Motion
 
-- Changing page moves, and the direction says where the owner is going (`withMotion` in `js/context.js`, "Changing page" in `styles/base.css`): another tab slides in from the side it is on while the page that leaves slides off the other way, the two moving together (320 ms); a deeper page (a workout opened from Round, All rounds, one round, Settings) slides in from the right over the page that leaves, which gives way a little and dims, and going back reverses it. The pages wait for the new one to be drawn before they move (two frames), or the first steps are lost and the slide stutters. The bottom navigation never moves.
-- A page with a back link (All rounds, one round, Settings) also goes back by a drag from the left edge of the screen, as on iPhone: it follows the finger over the page it uncovers, and leaves when let go past a third of the way or with a flick; otherwise it comes back (`enableBackSwipe` in `js/context.js`). A page changed under a sheet that is closing changes at once: the sheet is the motion.
+- Changing page moves, and the direction says where the owner is going (`withMotion` in `js/context.js`, "Changing page" in `styles/base.css`): another tab slides in from the side it is on while the page that leaves slides off the other way, the two moving together (320 ms); a deeper page (the workout, All rounds, one round, Settings) slides in from the right over the page that leaves, which gives way a little and dims, and going back reverses it. The pages wait for the new one to be drawn before they move (two frames), or the first steps are lost and the slide stutters. The bottom navigation and the dock never move; what the dock says changes as the page changes.
+- A page with a back link (All rounds, one round, Settings) also goes back by a drag from the left edge of the screen, as on iPhone: it follows the finger over the page it uncovers, and leaves when let go past a third of the way or with a flick; otherwise it comes back (`enableBackSwipe` in `js/context.js`). The workout in progress doesn't (its `back()` answers null): its number boxes sit in the edge zone and its list is the most scrolled. A page changed under a sheet that is closing changes at once: the sheet is the motion.
+- On the round page, opening another row folds the open one and unfolds the new one, as on the workout. A row open when the page arrives doesn't unfold.
 - Content that is swapped in place (another routine's list, another month, a card that changed) fades in, 150–200 ms, without moving.
 - Sheets slide up, slide down when closed, and follow the finger when pulled down. Confirmations pop in.
 - A row that is added or removed may ease. A page never rises or drops: pages only move sideways.
@@ -171,7 +177,7 @@ These are mechanical: each can be checked by reading the code or measuring the s
 - Typing in a search field brings its results back to the top.
 - A message for the owner while a sheet is open shows in that sheet (`toast()` puts it in the top dialog; errors go in the sheet's error line).
 - Every button, link, summary and tick row is at least 44 × 44 px at 320 and 393 wide.
-- A control that an action replaces is not replaced by a different action in the same place. Where that can't be avoided, the new one ignores taps for a moment.
+- A control that an action replaces is not replaced by a different action in the same place. Where that can't be avoided, the new one ignores taps for a moment: the dock does this by itself whenever what it says changes, the round page after a row opens, and the result sheet just after it opens (a double tap on Finish).
 - A mark that comes and goes (a tab's dot, "Best", "Preferred") has its room reserved on every sibling.
 - Text of varying length (a number, its change, a caption) gets a line each, or a box of fixed height.
 - Something being added exists only once its editor is saved, not when the editor opens.

@@ -14,8 +14,8 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 | Path | Owns |
 | --- | --- |
 | `index.html` | Page shell, bottom navigation, every `<dialog>` |
-| `js/app.js` | Startup: loads the screens, routes every tap and form to its action, service-worker registration |
-| `js/context.js` | The one `store`, `registerView`, `registerActions`, `render()`, `navigate()` |
+| `js/app.js` | Startup: loads the screens, routes every tap and form to its action (a bottom tab through `openTab`), opens on the workout in progress, service-worker registration |
+| `js/context.js` | The one `store`, `registerView`, `registerActions`, `render()` (the page and the dock), `navigate()`, `openTab()`, changing page and going back |
 | `js/store.js` | Saved data: schema version, upgrades from older versions, shape check, load/save, backups |
 | `js/model.js` | Reading data (selectors) and changing it (mutators) |
 | `js/search.js` | Exercise search and Library filters |
@@ -23,7 +23,8 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 | `js/seed.js` | Starting data (first launch and "Restore starting data"), one exercise or slot per line |
 | `js/library-update.js` | What the upgrades from version 14 to 19 apply to saved data: Library renames, links and added exercises, machine kinds, moving the version out of the name into the setup fields, and the coach's edits to PPL 9 |
 | `js/dom.js` | DOM helpers: escaping, toasts, `redraw`, dialogs, confirmations, hold-to-drag |
-| `js/views/round.js` | The Round tab, the app's home: the round's states, All rounds, one round, and the sheets for an extra workout, following another program, ending a round and changing its number |
+| `js/views/round.js` | The round page, the Workout tab's first page and the app's home: the round as one list with one row open and the bottom button acting on it, All rounds, one round, and the sheets for an extra workout, following another program and changing the round number |
+| `js/views/workout.js` | The workout in progress (a page of the Workout tab), its bottom button, the running bar every other page shows, the result after Finish, the choices sheet, keeping the screen on |
 | `js/views/*.js` | One file per screen or sheet, each with its markup and actions |
 | `styles/` | `base.css` (tokens, element defaults, page shell), `components.css` (the shared classes every screen is built from), `views.css` (what only one screen needs) |
 | `sw.js` | Offline cache; its file list and version are stamped by `npm run check` |
@@ -33,7 +34,8 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 
 ## How a screen works
 
-- A screen is one function, `markup(state)`, registered with `registerView`. `render()` redraws the current screen from the saved state. A sheet fills its `<dialog>` the same way and opens it with `openDialog`.
+- A screen is one function, `markup(state)`, registered with `registerView`. `render()` redraws the current screen from the saved state, and the dock above the tab bar from the view's `dock(state)` (or another view's `banner(state)`: the running bar). A sheet fills its `<dialog>` the same way and opens it with `openDialog`.
+- A page that belongs to a tab (the workout, Settings) registers `tab: "round"`; `back()` says where the drag from the left edge goes (null: nowhere), `landing(state)` where a tap on the tab really opens, `unavailable(state)` when the page has nothing to show.
 - Every tap is a `data-action="name"` on the element, handled by `registerActions({ name(element, event) { … } })`. A `<form data-submit="name">` runs its action when saved (its button, or Enter in a field). There are no other click listeners.
 - A handler changes data with `store.update((draft) => mutator(draft, …))` using functions from `js/model.js`, shows the result with `report()`, then calls `render()`.
 - Redrawing replaces the markup. A scroll area keeps its place if it is marked `data-keep-scroll="name"`. Text being typed that must survive a redraw lives in the module's own state (see the logging sheet's rows).
@@ -49,7 +51,7 @@ One JSON object in `localStorage` under `gymAppStateV1`. The schema version, cur
 - `programs` and `routines`: a program lists its routine IDs. A routine holds its blocks and entries, and each entry its choices (master exercise plus prescription).
 - `sessions`: one per date (`YYYY-MM-DD`) with `routineIds` (routines whose workout was finished), `checkedEntryIdsByRoutine` (slots marked done), `note`, `logs` (sets logged per slot, keyed by slot ID; see `saveEntrySets` in `js/model.js`) and `extras` (exercises added to a routine for that day only; `findSlot` treats them like slots).
 - Rounds: there is one round count for the owner's training. `settings.round = { number, block, programId, since }` is the open round (absent until counting starts) and `settings.roundLog` lists the closed ones with the program each followed and how it ended. Each finished workout in `sessions[date].workouts[routineId]` carries `round` and `block`, plus `guest` (a routine of another program) or `optional` when it doesn't count. See "rounds and calendar weeks" in `js/model.js` and the spec in `docs/PRODUCT.md`.
-- `settings`: the followed program and the selected routine (`activeProgramId`, `activeRoutineId`; the Program tab keeps what it is *showing* in its own module state, not here), the theme, `exerciseLabels` ("line" or "letter": how an exercise's version shows), the training rules, and `activeWorkout` (the workout in progress: routine, the day it was started, and when, plus `guest: true` while it is a routine of another program; or null).
+- `settings`: the followed program and the selected routine (`activeProgramId`, `activeRoutineId`: no screen reads it any more, but the shape check requires it to be a routine of the followed program, so starting and finishing keep it up; the Program tab keeps what it is *showing* in its own module state, and the round page which row is open), the theme, `exerciseLabels` ("line" or "letter": how an exercise's version shows), the training rules, and `activeWorkout` (the workout in progress: routine, the day it was started, and when, plus `guest: true` while it is a routine of another program; or null).
 
 ## Rules
 
@@ -58,7 +60,7 @@ One JSON object in `localStorage` under `gymAppStateV1`. The schema version, cur
 - `store.getState()` is the saved state itself. Read it; change data only inside `store.update`. Never report success after a failed save.
 - Workout content, notes and training rules are the owner's own words. Don't rewrite them. The owner's program and Library live in `js/seed.js`; tests must not depend on them.
 - Keep it simple. No framework, bundler, backend, accounts, analytics or production dependency without asking. Dev-only tools (Playwright) are fine. Add an abstraction only when it removes real duplication. Delete dead code.
-- Phone UI: works at 320 px wide; tap targets at least 44 × 44 px; form fields at least 16 px text (smaller makes iOS zoom in); light and dark themes; safe areas; pinch zoom stays on.
+- Phone UI: works at 320 px wide; tap targets at least 44 × 44 px; form fields at least 16 px text (smaller makes iOS zoom in); light and dark themes; safe areas; pinch zoom stays on. A weight is always written with "kg".
 - Editors don't close on a backdrop tap (only read-only sheets marked `data-dismissable` do), and Enter in a field saves.
 
 ## Checks
