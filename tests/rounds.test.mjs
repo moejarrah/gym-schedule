@@ -13,7 +13,9 @@ import {
   endRound,
   finishWorkout,
   followProgram,
+  localDateKey,
   longBreak,
+  nextWorkout,
   openRound,
   removeProgram,
   roundRecord,
@@ -22,6 +24,7 @@ import {
   setRoundNumber,
   startGuestWorkout,
   startNewBlock,
+  startTodaysWorkout,
   startWorkout,
   updateProgram,
   updateRoutine,
@@ -244,6 +247,66 @@ test("after three weeks away the owner chooses once: carry on, or start again as
 
   save(store, (draft) => answerBreak(draft, true, "2027-02-02"));
   assert.deepEqual([number(store), openRound(store.getState()).block], [1, 2], "start again: round 1 of block 2");
+});
+
+test("Next is the first Required workout not done in the round, leaving out one finished today", () => {
+  const { store } = freshStore();
+  const today = localDateKey();
+  const next = () => nextWorkout(store.getState(), today)?.id || null;
+  assert.equal(next(), "day-a", "before counting: the first one");
+  save(store, (draft) => setRoundNumber(draft, 3));
+  train(store, "day-a", today);
+  assert.equal(next(), "day-b", "a workout done in the round is passed over");
+  // Day B finished today completes round 3; round 4 starts with Day A, but it was done today.
+  train(store, "day-b", today);
+  assert.deepEqual([number(store), next()], [4, null], "both were done today: nothing to propose");
+  assert.equal(nextWorkout(store.getState(), "2099-01-01")?.id, "day-a", "the next day, the round's first one again");
+});
+
+test("Start after a long break answers it in the same save, once; an extra carries on; a past day answers nothing", () => {
+  const away = new Date();
+  away.setDate(away.getDate() - 40);
+  const lastDay = localDateKey(away);
+  const setup = () => {
+    const { store } = freshStore();
+    save(store, (draft) => setRoundNumber(draft, 6));
+    train(store, "day-a", lastDay);
+    assert.ok(longBreak(store.getState()));
+    return store;
+  };
+  const closed = (store) => store.getState().settings.roundLog || [];
+
+  // Carry on (the default): round 6 ends at the break, the workout runs in round 7.
+  let store = setup();
+  save(store, (draft) => startTodaysWorkout(draft, "day-b"));
+  assert.deepEqual(closed(store).map((round) => [round.number, round.ended]), [[6, "break"]]);
+  assert.deepEqual([number(store), store.getState().settings.activeWorkout.routineId, store.getState().settings.activeRoutineId], [7, "day-b", "day-b"]);
+  assert.equal(longBreak(store.getState()), null, "answered");
+  // Cancelled and started again: the break isn't recorded a second time.
+  save(store, (draft) => cancelWorkout(draft));
+  save(store, (draft) => startTodaysWorkout(draft, "day-b", { restart: true }));
+  assert.deepEqual([closed(store).length, number(store), openRound(store.getState()).block], [1, 7, 1]);
+
+  // Start again: a new block.
+  store = setup();
+  save(store, (draft) => startTodaysWorkout(draft, "day-a", { restart: true }));
+  assert.deepEqual([closed(store).map((round) => round.ended), number(store), openRound(store.getState()).block], [["break"], 1, 2]);
+
+  // An extra from another program carries on.
+  store = setup();
+  const { ids } = secondProgram(store);
+  save(store, (draft) => startTodaysWorkout(draft, ids[0], { guest: true }));
+  assert.deepEqual([closed(store).length, number(store), store.getState().settings.activeWorkout.guest], [1, 7, true]);
+
+  // A workout logged for a past day leaves the question for the next Start.
+  store = setup();
+  save(store, (draft) => startWorkout(draft, "day-b", localDateKey(new Date(Date.now() - 86400000)), Date.now(), true));
+  assert.deepEqual([closed(store).length, Boolean(longBreak(store.getState()))], [0, true]);
+
+  // Starting before counting has begun starts it at round 1.
+  const fresh = freshStore().store;
+  save(fresh, (draft) => startTodaysWorkout(draft, "day-a"));
+  assert.deepEqual([number(fresh), fresh.getState().settings.activeWorkout.routineId], [1, "day-a"]);
 });
 
 test("a day marked for before the round opened doesn't count toward it", () => {

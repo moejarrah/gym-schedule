@@ -33,10 +33,14 @@ import {
   setActiveProgram,
   setDay,
   setEntryChecked,
+  slotCounts,
   startWorkout,
   updateEntry,
   updateRoutine,
   usualExtras,
+  usualMinutes,
+  workoutHasWork,
+  workoutProgress,
 } from "../js/model.js";
 import { PAST_DAY } from "./sample.mjs";
 import { freshStore, refuse, save } from "./support.mjs";
@@ -71,6 +75,36 @@ test("a workout runs from Start to Finish; finishing files the routine in that d
   save(store, (draft) => setDay(draft, DAY, ["day-a", "day-b"], ""));
   assert.deepEqual([day(store.getState()).routineIds, day(store.getState()).checkedEntryIdsByRoutine["day-b"]], [["day-a"], ["b1"]]);
   refuse(stored, (draft) => removeRoutine(draft, "day-b"), "Finish or cancel the workout in progress first.");
+});
+
+test("the round page's facts: a workout's main and optional exercises, how long it usually takes", () => {
+  const { store } = freshStore();
+  assert.deepEqual(slotCounts(routineById(store.getState(), "day-a")), { main: 3, optional: 1 });
+  assert.equal(usualMinutes(store.getState(), "day-b"), null, "never timed");
+  assert.equal(usualMinutes(store.getState(), "day-a"), 50, "48 minutes, to the nearest 5");
+  const timed = (dateKey, minutes) => save(store, (draft) => {
+    startWorkout(draft, "day-a", dateKey, 0);
+    finishWorkout(draft, { now: minutes * 60000 });
+  });
+  for (const [dateKey, minutes] of [["2026-10-01", 30], ["2026-10-03", 90], ["2026-10-05", 61], ["2026-10-07", 58], ["2026-10-09", 64], ["2026-10-11", 200]]) timed(dateKey, minutes);
+  // The last five timed: 48, 200, 64, 58, 61 (Oct 3's 90 is older); their middle is 61.
+  assert.equal(usualMinutes(store.getState(), "day-a"), 60);
+});
+
+test("a workout's progress counts its main exercises, and knows whether anything was done", () => {
+  const { store } = freshStore();
+  save(store, (draft) => startWorkout(draft, "day-a", "2026-11-04", 0));
+  let progress = workoutProgress(store.getState());
+  assert.deepEqual([progress.counted.map((slot) => slot.id), progress.done, progress.optional, progress.next.id], [["a2", "a3", "a4"], 0, 1, "a1"]);
+  assert.equal(workoutHasWork(store.getState()), false);
+  save(store, (draft) => setEntryChecked(draft, "day-a", "a1", true, "2026-11-04"));
+  assert.equal(workoutHasWork(store.getState()), true, "an Optional exercise marked done counts as something done");
+  assert.equal(workoutProgress(store.getState()).done, 0, "but not toward the main exercises");
+  for (const id of ["a2", "a3", "a4"]) save(store, (draft) => setEntryChecked(draft, "day-a", id, true, "2026-11-04"));
+  progress = workoutProgress(store.getState());
+  assert.deepEqual([progress.done, progress.next], [3, null], "all main done: nothing next");
+  save(store, (draft) => cancelWorkout(draft));
+  assert.equal(workoutProgress(store.getState()), null);
 });
 
 test("a workout left open is filed the next day, but not while it's still running past midnight", () => {

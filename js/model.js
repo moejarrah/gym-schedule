@@ -323,6 +323,74 @@ export function finishStaleWorkout(state, todayKey = localDateKey(), now = Date.
   return name;
 }
 
+// Starts a workout for today from the round page (or today's Log): counting begins at
+// round 1 if it hasn't yet, and a break of three weeks or more is answered in the same
+// save (`restart`: as a new block; otherwise the round left open ends at the break).
+// Starting is the only thing that answers a break; opening the app never does.
+// `guest`: a routine of another program, done for the day.
+export function startTodaysWorkout(state, routineId, { restart = false, guest = false } = {}) {
+  if (!openRound(state)) setRoundNumber(state, 1);
+  answerBreak(state, restart);
+  if (guest) {
+    startGuestWorkout(state, routineId);
+    return;
+  }
+  if (routineProgram(state, routineId)?.id === state.settings.activeProgramId) state.settings.activeRoutineId = routineId;
+  startWorkout(state, routineId);
+}
+
+// A routine's Main and Optional slots, counted.
+export function slotCounts(routine) {
+  const main = routine.entries.filter((entry) => entry.role !== "optional").length;
+  return { main, optional: routine.entries.length - main };
+}
+
+// How long the routine usually takes: the middle of its last five timed workouts,
+// rounded to 5 minutes; null when it was never timed.
+export function usualMinutes(state, routineId) {
+  const timed = Object.keys(state.sessions).sort().reverse()
+    .map((dateKey) => state.sessions[dateKey].routineIds.includes(routineId) ? state.sessions[dateKey].workouts?.[routineId]?.minutes : null)
+    .filter((minutes) => typeof minutes === "number")
+    .slice(0, 5)
+    .sort((a, b) => a - b);
+  if (!timed.length) return null;
+  const middle = timed.length % 2 ? timed[(timed.length - 1) / 2] : (timed[timed.length / 2 - 1] + timed[timed.length / 2]) / 2;
+  return Math.max(5, Math.round(middle / 5) * 5);
+}
+
+// How far the workout in progress is: its slots (the routine's, then the ones added for
+// the day), the ones that count (the Main slots; every slot when it has none), how many
+// of those are done, and the slot to do next (the first not done, while any that count
+// are left; null once they are all done).
+export function workoutProgress(state, workout = state.settings.activeWorkout) {
+  const routine = workout && routineById(state, workout.routineId);
+  if (!routine) return null;
+  const slots = [...orderedEntries(routine), ...dayExtras(state, workout.dateKey, routine.id).map((extra) => findSlot(state, routine.id, extra.id, workout.dateKey))];
+  const isDone = (slot) => isEntryChecked(state, workout.dateKey, routine.id, slot.id);
+  const main = slots.filter((slot) => slot.role === "main");
+  const counted = main.length ? main : slots;
+  const done = counted.filter(isDone).length;
+  return { routine, slots, counted, done, optional: slots.length - main.length, next: done < counted.length ? slots.find((slot) => !isDone(slot)) || null : null, isDone };
+}
+
+// Whether anything was logged or marked done in the workout in progress.
+export function workoutHasWork(state, workout = state.settings.activeWorkout) {
+  const session = workout && state.sessions[workout.dateKey];
+  if (!session) return false;
+  return Boolean(session.checkedEntryIdsByRoutine?.[workout.routineId]?.length) || Object.values(session.logs || {}).some((log) => log.routineId === workout.routineId);
+}
+
+// The workout the round page proposes: the first Required workout of the followed
+// program not done in the open round, leaving out one finished today (so it can always
+// be started). After a long break the round shown is a new one, so it is the first one
+// not finished today. Null when there is none.
+export function nextWorkout(state, todayKey = localDateKey()) {
+  const summary = roundSummary(state);
+  const today = state.sessions[todayKey]?.routineIds || [];
+  const pool = longBreak(state, todayKey) ? summary.required : summary.remaining;
+  return pool.find((routine) => !today.includes(routine.id)) || null;
+}
+
 // ---------- rounds and calendar weeks ----------
 
 // Two counts run side by side. The calendar week is fixed by the date. A round is one
