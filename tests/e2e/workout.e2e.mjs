@@ -1,12 +1,12 @@
-// The Workout tab: the round page (one list, one row open, the bottom button acting on
-// it), a workout from Start to the Log, logging sets from a slot's number, the exercise
+// Home, the first tab: the round on the calendar, the workouts left as tiles to pick, the
+// lifts to beat and the bottom button acting on the pick; a workout from Start to the Log, logging sets from a slot's number, the exercise
 // reference and history, swapping a slot to its alternative, leaving a running workout
 // and coming back with the running bar; and the round count: setting the round, a round
 // completed, following a different program, and a workout from another program.
 
 import assert from "node:assert/strict";
 import { PAST_DAY, sampleState } from "../sample.mjs";
-import { TODAY, backToRound, bottomButton, dialog, escapeRegExp, expect, expectView, goToView, main, nextDay, programPicker, readState, roundRow, roundSettles, routineTab, runningBar, startButton, suite, tapOnRound } from "./helpers.mjs";
+import { TODAY, backToRound, beginRound, bottomButton, dialog, escapeRegExp, expect, expectView, goToView, homeTile, main, nextDay, programPicker, readState, roundSettles, routineTab, runningBar, startButton, suite, tapOnRound } from "./helpers.mjs";
 
 const { appTest } = suite({ saved: sampleState() });
 
@@ -15,20 +15,21 @@ const TWO_CHOICES = "Incline dumbbell press (dumbbell) or Cable fly (cable)";
 // A slot's number box (it opens the logging sheet) and the rest of its row.
 const numberOf = (page, title) => main(page).getByRole("button", { name: new RegExp(`^Log sets for ${escapeRegExp(title)}(, |$)`) });
 const rowOf = (page, title) => main(page).getByRole("button", { name: `View ${title} details`, exact: true });
-const logSheet = (page) => page.getByRole("dialog").filter({ has: page.getByRole("region", { name: "Last 3 times" }) });
+const logSheet = (page) => page.getByRole("dialog").filter({ has: page.getByRole("region", { name: "Last 3 times", exact: true }) });
 const tick = (sheet, name) => sheet.getByRole("button", { name: `${name} done`, exact: true });
 const done = (sheet) => sheet.getByRole("button", { name: "Exercise done", exact: true });
 const todaySaved = async (page) => (await readState(page)).sessions[TODAY];
 
-// "Round 3" at the top of the round page ("Round 1 · block 2" from the second block on).
+// "Round 3" at the top of Home ("Round 1 · block 2" from the second block on).
 const roundTitle = (page, name) => main(page).getByRole("heading", { level: 1, name, exact: true });
-// A row of the round page, by what it says ("Day A, done today", "Day B, not done, next").
-const row = (page, name) => main(page).getByRole("button", { name, exact: true });
-// A done row that opens its day: an extra, listed with its program's name.
-const doneRow = (page, name) => main(page).getByRole("button", { name: new RegExp(`^${escapeRegExp(name)}, done .+\\. Open that day\\.$`) });
-// The round page's bottom button starts the workout of the open row, on the workout page.
+// A day square on Home with a finished workout: it opens how it went.
+const daySquare = (page, name) => main(page).getByRole("button", { name: new RegExp(`^${escapeRegExp(name)}\\. Open how it went$`) });
+// Home's bottom button starts the picked workout, on the workout page: the round is begun
+// first if it isn't, and the workout picked if it isn't.
 // (The bottom button may just have changed: it ignores taps for a moment then.)
 const start = async (page, routine) => {
+  await beginRound(page);
+  if (!(await startButton(page, routine).isVisible())) await tapOnRound(page, homeTile(page, routine));
   await expect(startButton(page, routine)).toBeVisible();
   await roundSettles(page);
   await tapOnRound(page, startButton(page, routine));
@@ -79,32 +80,34 @@ function twoPrograms() {
   return state;
 }
 
-appTest("The round page lists the round's workouts with one open, and the bottom button starts the open one", async ({ page }) => {
-  await expectView(page, "Workout");
+appTest("Home: the round laid out, Begin round, pick a workout, its lifts to beat, Start", async ({ page }) => {
+  await expectView(page, "Home");
   await expect(main(page)).toContainText("A round is one pass through these two workouts, in any order, over as many days as it takes.");
-  await expect(main(page)).toContainText("not started yet");
-  // The next workout is open by itself, with its lines.
-  const dayA = row(page, "Day A, not done, next");
-  await expect(dayA).toHaveAttribute("aria-expanded", "true");
-  await expect(main(page).getByRole("button", { name: /^Exercises of Day A: 3, plus 1 optional\./ })).toBeVisible();
-  await expect(main(page)).toContainText("about 50 min");
-  await expect(main(page)).toContainText("Mon, Nov 2");
+  await expect(main(page).getByRole("region", { name: "In round 1", exact: true })).toContainText("Day A");
+  await expect(main(page).getByRole("region", { name: "In round 1", exact: true })).toContainText("Day B");
+  // Begin round 1: the training day, the next workout picked, its lifts to beat (last time's sets).
+  await beginRound(page);
+  await expect(homeTile(page, "Day A")).toHaveAttribute("aria-pressed", "true");
   await expect(startButton(page, "Day A")).toBeVisible();
+  const toBeat = main(page).getByRole("region", { name: "Day A · to beat", exact: true });
+  await expect(toBeat).toContainText("Mon, Nov 2");
+  await expect(toBeat.getByRole("button", { name: /^Bench press \(barbell\): last time 60 kg × 10 · 9, 57\.5 kg × 8 \+1 drop; to beat it \+1 rep\. Open its history$/ })).toBeVisible();
+  assert.deepEqual(await readState(page), sampleState(), "beginning saves nothing");
 
-  // Another row opens in place, and the bottom button follows it; the open row stays open.
-  await tapOnRound(page, roundRow(page, "Day B"));
-  await expect(row(page, "Day B, not done")).toHaveAttribute("aria-expanded", "true");
-  await expect(dayA).toHaveAttribute("aria-expanded", "false");
+  // Another workout picked: the bottom button and the lifts to beat follow.
+  await tapOnRound(page, homeTile(page, "Day B"));
+  await expect(homeTile(page, "Day B")).toHaveAttribute("aria-pressed", "true");
   await expect(startButton(page, "Day B")).toBeVisible();
-  await expect(main(page)).toContainText("Never");
-  await tapOnRound(page, row(page, "Day B, not done"));
-  await expect(row(page, "Day B, not done")).toHaveAttribute("aria-expanded", "true");
-
-  // Its exercises are on the Program tab.
-  await main(page).getByRole("button", { name: /^Exercises of Day B: 2\./ }).click();
+  await expect(main(page).getByRole("region", { name: "Day B · to beat", exact: true })).toContainText("The first time for Day B");
+  // All of it is on the Program tab.
+  await main(page).getByRole("button", { name: /^All of Day B: 2 exercises\./ }).click();
   await expectView(page, "Program");
   await expect(routineTab(page, "Day B")).toHaveAttribute("aria-pressed", "true");
-  assert.deepEqual(await readState(page), sampleState(), "looking changes nothing");
+
+  // Back on Home the pick is kept; Start opens it.
+  await goToView(page, "Home");
+  await start(page, "Day B");
+  assert.equal((await readState(page)).settings.activeWorkout.routineId, "day-b");
 });
 
 appTest("Logging: Start opens the workout, a tick takes last time's set, typed sets and a drop are saved, and a reload opens on the workout", async ({ page }) => {
@@ -129,7 +132,7 @@ appTest("Logging: Start opens the workout, a tick takes last time's set, typed s
   await numberOf(page, "Bench press (barbell)").click();
   const sheet = logSheet(page);
   await expect(sheet.getByRole("heading", { name: "Bench press (barbell)" })).toBeVisible();
-  await expect(sheet.getByRole("region", { name: "Last 3 times" })).toContainText("Day A");
+  await expect(sheet.getByRole("region", { name: "Last 3 times", exact: true })).toContainText("Day A");
   // Last time's set, with its unit.
   await expect(sheet.getByRole("button", { name: "60 kg × 10, copy last time to set 1" })).toBeVisible();
 
@@ -172,7 +175,7 @@ appTest("Logging: Start opens the workout, a tick takes last time's set, typed s
   // Opened again, the app opens on the workout in progress.
   await page.reload();
   await expect(backToRound(page)).toBeVisible();
-  await expectView(page, "Workout");
+  await expectView(page, "Home");
   await expect(numberOf(page, "Bench press (barbell)")).toHaveAccessibleName("Log sets for Bench press (barbell), done");
   assert.deepEqual(await todaySaved(page), {
     routineIds: [],
@@ -237,18 +240,17 @@ appTest("A workout: Done and Not done on slots, an exercise added for today, and
   await expect(card(page, "Summary")).toContainText("= 1vs last");
   // Done returns to the round page, where today's workout is open and can be reopened.
   await closeResult(page);
-  await expectView(page, "Workout");
-  await expect(row(page, "Day A, done today")).toHaveAttribute("aria-expanded", "true");
-  await expect(main(page)).toContainText("1 set, 1 exercise");
-  await expect(row(page, "Day B, not done, next")).toBeVisible();
+  await expectView(page, "Home");
+  await expect(main(page).getByRole("region", { name: "Today · Day A done", exact: true })).toContainText("1set");
+  await expect(homeTile(page, "Day B")).toHaveAttribute("aria-pressed", "true");
   await expect(bottomButton(page, "Reopen Day A")).toBeVisible();
   const saved = await readState(page);
   assert.deepEqual([saved.sessions[TODAY].routineIds, saved.sessions[TODAY].checkedEntryIdsByRoutine, saved.settings.activeWorkout], [["day-a"], { "day-a": ["a2"] }, null]);
   // Starting it started the count at round 1.
   assert.deepEqual(saved.sessions[TODAY].workouts, { "day-a": { name: "Day A", program: "Sample program", minutes: 1, round: 1, block: 1 } });
 
-  // "How it went" shows the result again.
-  await tapOnRound(page, main(page).getByRole("button", { name: "How Day A went" }));
+  // "Full result" shows the result again.
+  await tapOnRound(page, main(page).getByRole("button", { name: "Full result of Day A" }));
   await expect(resultTitle(page, "Day A")).toBeVisible();
   await closeResult(page);
 
@@ -297,11 +299,10 @@ appTest("The result: the header sums it up, every exercise with its sets and cha
   await history.getByRole("button", { name: "Close history" }).click();
   await expect(history).toBeHidden();
 
-  // Done: the round page, where "How it went" says the tally and opens the result again.
+  // Done: Home, where today's card says the tally and opens the result again.
   await closeResult(page);
-  const again = main(page).getByRole("button", { name: "How Day A went" });
-  await expect(again).toContainText("▲ 1");
-  await tapOnRound(page, again);
+  await expect(main(page).getByRole("region", { name: "Today · Day A done", exact: true })).toContainText("▲ 1");
+  await tapOnRound(page, main(page).getByRole("button", { name: "Full result of Day A" }));
   await expect(resultTitle(page, "Day A")).toBeVisible();
   await expect(best).toBeVisible();
   await closeResult(page);
@@ -351,9 +352,9 @@ appTest("A finished workout is deleted from its result page after a confirmation
   await deleteButton.click();
   await tapOnRound(page, confirm.getByRole("button", { name: "Delete workout" }));
   await expect(page.getByText("Workout deleted.")).toBeVisible();
-  // Back on the round page, as if it had never been done; counting stays started.
-  await expect(row(page, "Day A, not done, next")).toBeVisible();
-  await expect(main(page)).toContainText("0 of 2 workouts done");
+  // Back on Home, as if it had never been done; counting stays started.
+  await expect(homeTile(page, "Day A")).toHaveAttribute("aria-pressed", "true");
+  await expect(main(page).getByRole("region", { name: "Round 1", exact: true })).toContainText("0 of 2done");
   await expect(startButton(page, "Day A")).toBeVisible();
   const saved = await readState(page);
   assert.equal(saved.sessions[TODAY], undefined);
@@ -367,7 +368,6 @@ appTest("A finished workout is deleted from its result page after a confirmation
 });
 
 appTest("Leaving a workout in progress: the running bar shows on every other page and brings it back", async ({ page }) => {
-  await tapOnRound(page, roundRow(page, "Day B"));
   await start(page, "Day B");
   await goToView(page, "Program");
   await expect(runningBar(page)).toHaveAccessibleName("Day B in progress, 0 of 2 done. Back to the workout");
@@ -375,21 +375,20 @@ appTest("Leaving a workout in progress: the running bar shows on every other pag
   await roundSettles(page); // the bar has just taken the bottom button's place
   await runningBar(page).click();
   await expect(backToRound(page)).toBeVisible();
-  await expectView(page, "Workout");
+  await expectView(page, "Home");
   await expect(runningBar(page)).toHaveCount(0);
 
-  // Back to the round page: the workout's row says so, the others are quiet, the bar is at the bottom.
+  // Back to Home: a card about the session, the tiles only shown, the bar at the bottom.
   await tapOnRound(page, backToRound(page));
-  await expect(main(page)).toContainText("In progress");
-  await expect(main(page)).toContainText("0 of 2 done");
-  await expect(roundRow(page, "Day A")).toHaveCount(0);
+  await expect(main(page).getByRole("region", { name: "Day B · in progress", exact: true })).toContainText("0 of 2exercises");
+  await expect(homeTile(page, "Day A")).toHaveCount(0);
   await expect(runningBar(page)).toBeVisible();
-  // The Workout tab leads to the workout, from here and from another tab.
-  await goToView(page, "Workout");
+  // The Home tab leads to the workout, from here and from another tab.
+  await goToView(page, "Home");
   await expect(backToRound(page)).toBeVisible();
   await goToView(page, "Log");
   await expect(runningBar(page)).toBeVisible();
-  await goToView(page, "Workout");
+  await goToView(page, "Home");
   await expect(backToRound(page)).toBeVisible();
   assert.equal((await readState(page)).settings.activeWorkout.routineId, "day-b");
 });
@@ -425,7 +424,7 @@ appTest("A slot's row opens in place: Last time opens the history, Details the r
   await expect(history.getByRole("heading", { name: "Bench press (barbell)" })).toBeVisible();
   await expect(history).toContainText("1 session");
   await expect(history).toContainText("60 kg × 10"); // the best set
-  const sessions = history.getByRole("region", { name: "Sessions" });
+  const sessions = history.getByRole("region", { name: "Sessions", exact: true });
   await expect(sessions).toContainText("Day A");
   await expect(sessions).toContainText(/57\.5\s*kg\s*×\s*8/);
   await expect(sessions).toContainText(/Drop\s*45\s*kg\s*×\s*6/);
@@ -448,7 +447,7 @@ appTest("A two-choice slot swaps to its alternative for today, logs it, and the 
   await choices.getByRole("button", { name: "Close exercise choices" }).click();
   await expect(choices).toBeHidden();
 
-  await goToView(page, "Workout");
+  await goToView(page, "Home");
   await start(page, "Day A");
   await rowOf(page, TWO_CHOICES).click();
   await expect(rowOf(page, TWO_CHOICES)).toHaveAttribute("aria-expanded", "true");
@@ -509,34 +508,33 @@ appTest("Rounds: set the round you're on, a round takes every workout once and t
   await sheet.getByRole("button", { name: "One round more" }).click();
   await tapOnRound(page, sheet.getByRole("button", { name: "Save round number" }));
   await expect(roundTitle(page, "Round 3")).toBeVisible();
-  await expect(main(page)).toContainText("0 of 2 workouts done");
+  await expect(bottomButton(page, "Begin round 3")).toBeVisible();
   assert.deepEqual((await readState(page)).settings.round, { number: 3, block: 1, programId: "sample", since: TODAY });
 
   // Start, then finish with nothing logged (it asks once): the round is one further.
   await start(page, "Day A");
   await finish(page, "Day A", { nothingLogged: true });
   await expect(roundTitle(page, "Round 3")).toBeVisible();
-  await expect(main(page)).toContainText("1 of 2 workouts done");
-  await expect(row(page, "Day A, done today")).toHaveAttribute("aria-expanded", "true");
+  await expect(main(page).getByRole("region", { name: "Round 3", exact: true })).toContainText("1 of 2done");
+  await expect(main(page).getByRole("region", { name: "Today · Day A done", exact: true })).toBeVisible();
 
-  // The other workout completes the round, and the next one opens.
-  await tapOnRound(page, roundRow(page, "Day B"));
+  // The other workout completes the round: shown whole, and the next one laid out.
   await start(page, "Day B");
   await finish(page, "Day B", { nothingLogged: true });
   await expect(roundTitle(page, "Round 4")).toBeVisible();
-  await expect(main(page).getByRole("button", { name: "Round 3 complete, 2 of 2 in 1 day. Open the round." })).toBeVisible();
-  await expect(main(page)).toContainText("0 of 2 workouts done");
+  await expect(main(page).getByRole("region", { name: "Round 3 complete", exact: true })).toContainText("2 of 2done");
+  await expect(main(page).getByRole("region", { name: "In round 4", exact: true })).toBeVisible();
+  await expect(bottomButton(page, "Begin round 4")).toBeVisible();
   let saved = await readState(page);
   assert.deepEqual(saved.settings.roundLog, [closedRound(3, 2, "complete")]);
   assert.deepEqual(saved.settings.round, { number: 4, block: 1, programId: "sample", since: TODAY });
   assert.deepEqual([saved.sessions[TODAY].workouts["day-a"].round, saved.sessions[TODAY].workouts["day-b"].round], [3, 3]);
 
-  // Today's last workout is open; reopened, it stays in the round it was filed in.
-  await expect(main(page)).toContainText("Round 3");
-  await roundSettles(page);
-  await tapOnRound(page, bottomButton(page, "Reopen Day B"));
+  // Today's workout, reopened from its result, stays in the round it was filed in.
+  await tapOnRound(page, main(page).getByRole("button", { name: "Day B, today. How it went" }));
+  await tapOnRound(page, main(page).getByRole("button", { name: "Not finished? Continue Day B" }));
   await tapOnRound(page, main(page).getByRole("button", { name: "Close again" }));
-  await expect(bottomButton(page, "Reopen Day B")).toBeVisible();
+  await expect(bottomButton(page, "Begin round 4")).toBeVisible();
   saved = await readState(page);
   assert.deepEqual([saved.sessions[TODAY].routineIds, saved.sessions[TODAY].workouts["day-b"].round, saved.settings.round.number], [["day-a", "day-b"], 3, 4]);
 
@@ -548,16 +546,17 @@ appTest("Rounds: set the round you're on, a round takes every workout once and t
   await tapOnRound(page, main(page).getByRole("button", { name: "Back to Round" }));
   await expect(roundTitle(page, "Round 4")).toBeVisible();
 
-  // The next day, round 4 starts with Day A.
+  // The next day, round 4 is laid out, and begun it starts with Day A.
   await nextDay(page);
-  await expect(row(page, "Day A, not done, next")).toHaveAttribute("aria-expanded", "true");
-  await expect(main(page).getByRole("button", { name: /^Round 3 complete/ })).toHaveCount(0);
+  await expect(main(page).getByRole("region", { name: "Round 3 complete", exact: true })).toHaveCount(0);
+  await beginRound(page);
+  await expect(startButton(page, "Day A")).toBeVisible();
 });
 
 appTest("Following a different program as a new block ends the open round and starts round 1 of block 2", { saved: twoPrograms() }, async ({ page }) => {
   await expect(main(page)).toContainText("Following Sample program");
   await expect(roundTitle(page, "Round 5")).toBeVisible();
-  await expect(main(page)).toContainText("1 of 2 workouts done");
+  await expect(main(page).getByRole("region", { name: "Round 5", exact: true })).toContainText("1 of 2done");
 
   // On Program: look at the other program, then "Follow Block 2" says what will happen.
   await goToView(page, "Program");
@@ -570,10 +569,11 @@ appTest("Following a different program as a new block ends the open round and st
   await follow.getByRole("button", { name: "Start a new block with Block 2" }).click();
   await expect(follow).toBeHidden();
 
-  await goToView(page, "Workout");
+  await goToView(page, "Home");
   await expect(main(page)).toContainText("Following Block 2");
   await expect(roundTitle(page, "Round 1 · block 2")).toBeVisible();
-  await expect(main(page)).toContainText("0 of 1 workout done");
+  await expect(main(page).getByRole("region", { name: "In round 1", exact: true })).toContainText("Day X");
+  await beginRound(page);
   await expect(startButton(page, "Day X")).toBeVisible();
   const saved = await readState(page);
   assert.deepEqual(saved.settings.round, { number: 1, block: 2, programId: "block-2", since: TODAY });
@@ -594,18 +594,18 @@ appTest("A workout from another program is listed in the round as an extra and c
   // While it runs, the program followed and the round's count are what they were.
   await tapOnRound(page, backToRound(page));
   await expect(main(page)).toContainText("Following Sample program");
-  await expect(main(page)).toContainText("1 of 2 workouts done");
-  await expect(main(page)).toContainText("In progress");
+  await expect(main(page).getByRole("region", { name: "Round 5", exact: true })).toContainText("1 of 2done");
+  await expect(main(page).getByRole("region", { name: "Day X · in progress · Block 2", exact: true })).toBeVisible();
   await roundSettles(page);
   await runningBar(page).click();
   await finish(page, "Day X", { nothingLogged: true });
 
   await expect(main(page)).toContainText("Following Sample program");
   await expect(roundTitle(page, "Round 5")).toBeVisible();
-  await expect(main(page)).toContainText("1 of 2 workouts done");
-  // Listed with the round's workouts, tagged with its program's name.
-  await expect(doneRow(page, "Day X, Block 2")).toBeVisible();
-  await expect(roundRow(page, "Day B")).toBeVisible();
+  await expect(main(page).getByRole("region", { name: "Round 5", exact: true })).toContainText("1 of 2done");
+  // On the calendar, today's square opens it; Day B is still left to do.
+  await expect(daySquare(page, "Wed, Nov 4: Day X")).toBeVisible();
+  await expect(homeTile(page, "Day B")).toBeVisible();
   const saved = await readState(page);
   assert.deepEqual(saved.sessions[TODAY].workouts, { "day-x": { name: "Day X", program: "Block 2", minutes: 1, round: 5, block: 1, guest: true } });
   assert.deepEqual(saved.settings.round, twoPrograms().settings.round);

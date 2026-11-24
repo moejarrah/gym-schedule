@@ -5,8 +5,8 @@
 // name or visible text (never by CSS class, id or data-* attribute, and never by where
 // focus is), and check saved data by reading localStorage. Saved data goes in through
 // suite({ saved }) rather than by clicking, and "now" is Wednesday 2026-11-04 10:00 UTC.
-// The app opens on the Workout tab's round page (or on the workout in progress);
-// goToView() taps the bottom navigation.
+// The app opens on Home, the first tab (or on the workout in progress); goToView() taps
+// the bottom navigation.
 
 import assert from "node:assert/strict";
 import path from "node:path";
@@ -84,11 +84,19 @@ export const programPicker = (page, name) => main(page).getByRole("button", { na
  */
 export const bottomButton = (page, name) => page.getByRole("region", { name: "Next step" }).getByRole("button", { name, exact: typeof name === "string" });
 
-/** The round page's bottom button that starts this workout. */
+/** Home's bottom button that starts this workout. */
 export const startButton = (page, routine) => bottomButton(page, `Start ${routine}`);
 
-/** A row of the round page that isn't done yet: tapping it opens it in place. */
-export const roundRow = (page, routine) => main(page).getByRole("button", { name: new RegExp(`^${escapeRegExp(routine)}, not done(, next|, optional)?$`) });
+/** A workout's tile on Home, left to do in the round: tapping it picks it. */
+export const homeTile = (page, routine) => main(page).getByRole("button", { name: new RegExp(`^${escapeRegExp(routine)}, (optional, )?(usually|never timed)`) });
+
+/** Home's "Begin round N", when the round is laid out and not begun: taps it. */
+export async function beginRound(page) {
+  const begin = bottomButton(page, /^Begin round \d+$/);
+  if (!(await begin.isVisible())) return;
+  await roundSettles(page);
+  await tapOnRound(page, begin);
+}
 
 /** The bar of the workout in progress, above the tab bar on every page but the workout. */
 export const runningBar = (page) => page.getByRole("button", { name: /^.+ in progress, \d+ of \d+ done\. Back to the workout$/ });
@@ -98,7 +106,7 @@ const settingsScope = (page) => page.getByRole("region", { name: "Settings" });
 const tab = (page, label) => page.getByRole("navigation", { name: "Main navigation" }).getByRole("button", { name: label, exact: true });
 
 /**
- * Bottom navigation: Workout, Program, Library or Log. The Workout tab opens the round page,
+ * Bottom navigation: Home, Program, Library or Log. The Home tab opens the round page,
  * or the workout in progress when there is one.
  */
 export async function goToView(page, label) {
@@ -134,8 +142,8 @@ export async function closeSettings(page) {
 }
 
 /**
- * A tap that changes what the bottom button does, or swaps what the round page shows: a
- * row of the round's list, "Start <workout>", All rounds and back, a choice in its sheet,
+ * A tap that changes what the bottom button does, or swaps what Home shows: a tile picked,
+ * "Begin round N", "Start <workout>", All rounds and back, a choice in its sheet,
  * an exercise marked done, any answer to a confirmation. The app then ignores taps on the screen (and on the bottom
  * button) for 400 ms, so that a double tap can't land on a button the owner never saw.
  * This taps and waits that out.

@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { createDefaultState } from "../../js/store.js";
 import { sampleState } from "../sample.mjs";
-import { closeSettings, dialog, expect, goToView, main, openSettings, programPicker, readState, readStoredText, roundRow, startButton, suite, tapOnRound } from "./helpers.mjs";
+import { beginRound, bottomButton, closeSettings, dialog, expect, goToView, main, openSettings, programPicker, readState, readStoredText, homeTile, startButton, suite, tapOnRound } from "./helpers.mjs";
 
 const { appTest } = suite({ saved: sampleState() });
 
@@ -13,7 +13,7 @@ const { appTest } = suite({ saved: sampleState() });
 const starting = createDefaultState();
 const startingProgram = starting.programs.find((program) => program.id === starting.settings.activeProgramId);
 const startingRoutines = startingProgram.routineIds.map((id) => starting.routines.find((routine) => routine.id === id));
-// The workout the round page proposes first, and another one it lists (a round lists the Required ones).
+// The workout Home proposes first, and another one it lists (a round lists the Required ones).
 const firstRoutine = startingRoutines.find((routine) => routine.status !== "optional");
 const otherRoutine = startingRoutines.find((routine) => routine !== firstRoutine && routine.status !== "optional");
 
@@ -80,7 +80,7 @@ appTest("Backup: an exported file brings everything back, and a file that isn't 
   assert.deepEqual(await readState(page), sampleState());
   await closeSettings(page);
   await expect(main(page)).toContainText("Following Sample program");
-  await expect(startButton(page, "Day A")).toBeVisible();
+  await expect(bottomButton(page, "Begin round 1")).toBeVisible();
 });
 
 appTest("Settings: the theme is kept across a reload, and Restore starting data brings the starting program back", async ({ page }) => {
@@ -107,7 +107,7 @@ appTest("Settings: the theme is kept across a reload, and Restore starting data 
   assert.deepEqual(await readState(page), { ...starting, settings: { ...starting.settings, theme, trainingRules } });
   await closeSettings(page);
   await expect(main(page)).toContainText(`Following ${startingProgram.name}`);
-  await expect(startButton(page, firstRoutine.name)).toBeVisible();
+  await expect(bottomButton(page, "Begin round 1")).toBeVisible();
 });
 
 // Real touch events are sent through CDP, which only Chromium has: skipped in WebKit.
@@ -133,8 +133,9 @@ appTest("Saved data the app can't read is left exactly as it is", { saved: "{bro
   await expect(page.getByRole("status")).toContainText("nothing will be saved");
   await expect(main(page)).toContainText(`Following ${startingProgram.name}`);
 
-  // Tapping around saves nothing: another workout opens on the round page, and that is all.
-  await tapOnRound(page, roundRow(page, otherRoutine.name));
+  // Tapping around saves nothing: the round begun on this phone, another workout picked, and that is all.
+  await beginRound(page);
+  await tapOnRound(page, homeTile(page, otherRoutine.name));
   await expect(startButton(page, otherRoutine.name)).toBeVisible();
   const settings = await openSettings(page);
   await settings.getByRole("button", { name: /^Theme/ }).click();
@@ -162,7 +163,8 @@ appTest("A first launch opens the starting program, and the app then opens with 
   await assert.rejects(fetch(server.url), "the server is gone");
   await page.reload();
   await expect(main(page)).toContainText(`Following ${startingProgram.name}`);
-  await tapOnRound(page, roundRow(page, otherRoutine.name));
+  await beginRound(page);
+  await tapOnRound(page, homeTile(page, otherRoutine.name));
   await expect(startButton(page, otherRoutine.name)).toBeVisible();
   await expect(page.getByRole("status")).not.toContainText("Offline mode");
   assert.deepEqual(await readState(page), starting);

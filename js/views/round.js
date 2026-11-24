@@ -171,10 +171,10 @@ const backMarkup = (to, name) => `<button class="link-button" type="button" data
 const home = { pickId: "", restart: false };
 
 // "Begin round N" is remembered on this phone only, under its own key, for the round it
-// was tapped for (number, block and the day it opened); anything else there is ignored.
+// was tapped for (its number and block); anything else there is ignored.
 // A round with a workout in it, or one running, is begun whatever is remembered.
 const BEGUN_KEY = "gymAppHomeV1";
-const roundKey = (summary) => `${summary.number}-${summary.block}-${summary.since}`;
+const roundKey = (summary) => `${summary.number}-${summary.block}`;
 function begunHere(summary) {
   try {
     return JSON.parse(localStorage.getItem(BEGUN_KEY))?.begun === roundKey(summary);
@@ -422,7 +422,8 @@ function toBeatMarkup(state, view) {
     const lines = setLines(previous);
     const top = repsToAddWeight(previous.sets, choice.prescription, mode, previous.unit);
     const target = previous.unit === "sec" ? "+5 sec" : top ? "+2.5 kg" : "+1 rep";
-    const weight = lines.at(-1);
+    // The heaviest weight of last time, with its reps.
+    const weight = lines.reduce((top, line) => (parseFloat(line[0].replace("−", "-")) > parseFloat(top[0].replace("−", "-")) ? line : top), lines[0]);
     rows.push(`<button class="result-line result-exercise" type="button" data-action="view-history" data-id="${escapeHtml(exercise.id)}" aria-label="${escapeHtml(`${fullName(exercise)}: last time ${lines.map(([kg, reps]) => (kg ? `${kg} × ${reps}` : reps)).join(", ")}; to beat it ${target}. Open its history`)}">
       <span class="result-name"><span class="result-title"><span class="truncate">${movementMarkup(exercise)}</span></span><small class="truncate">${escapeHtml(setupText(exercise)) || "&nbsp;"}</small></span>
       <span class="result-sets"><strong>${weight[0] || weight[1]}</strong><small>${weight[0] ? weight[1] : previous.unit === "sec" ? "sec" : "reps"}</small></span>
