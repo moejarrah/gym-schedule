@@ -168,6 +168,24 @@ function historyState(theme, stage) {
       const main = model.orderedEntries(model.routineById(state, routineId)).filter((entry) => entry.role === "main").length;
       lift(TODAY, routineId, stage === "running" ? 2 : main, { top: stage === "completing" });
     }
+    // Push B running with every kind of logged sets: two weights (after a warm-up), a drop
+    // set, a per-side weight, an assisted one, reps only, and seconds (an exercise added
+    // for today); three main exercises and the optional ones not done.
+    if (stage === "variety") {
+      model.startWorkout(state, "push-b", TODAY, FIXED_TIME - 41 * 60000);
+      model.exerciseById(state, "incline-chest-press-machine").weightMode = "per-side";
+      model.exerciseById(state, "hanging-knee-raise").weightMode = "assistance";
+      const extra = model.addExtra(state, "90-90-lean");
+      const set = (kg, reps, more = {}) => ({ kg, reps, drops: [], ...more });
+      for (const [entryId, exerciseId, sets] of [
+        ["push-b-01", "machine-overhead-press", [set("20", "12", { warmup: true }), set("40", "10"), set("42.5", "8"), set("42.5", "8")]],
+        ["push-b-02", "flat-dumbbell-press", [set("30", "10", { drops: [{ kg: "20", reps: "8" }] }), set("30", "9")]],
+        ["push-b-03", "incline-chest-press-machine", [set("25", "10"), set("25", "10")]],
+        ["push-b-07", "hanging-knee-raise", [set("-20", "12"), set("-20", "10")]],
+        ["push-b-08", "ab-wheel-rollout", [set("", "10"), set("", "8")]],
+        [extra, "90-90-lean", [set("", "30"), set("", "25")]],
+      ]) model.saveEntrySets(state, { routineId: "push-b", entryId, exerciseId, sets, note: "", dateKey: TODAY });
+    }
     if (stage === "done") did([TODAY, "push-b", 62]);
     if (stage === "complete") did([TODAY, "legs-b", 66]);
 
@@ -190,7 +208,7 @@ function emptyState(theme) {
 function builtStates(theme) {
   const states = { first: createDefaultState(), empty: emptyState(theme) };
   states.first.settings.theme = theme;
-  for (const stage of ["break", "round", "running", "finishing", "completing", "done", "complete"]) states[stage] = historyState(theme, stage);
+  for (const stage of ["break", "round", "running", "finishing", "completing", "done", "complete", "variety"]) states[stage] = historyState(theme, stage);
   return Object.fromEntries(Object.entries(states).map(([name, state]) => [name, JSON.stringify(state)]));
 }
 
@@ -497,6 +515,14 @@ const SHOTS = [
     await finishTo(page, "Push B");
     await button(main(page), "Delete this workout").scrollIntoViewIfNeeded();
   }, "finishing"],
+  // Every kind of logged sets: two weights, a drop set, per side, assisted, reps only, seconds.
+  ["result-sets-kinds", async (page) => { await finishTo(page, "Push B"); }, "variety"],
+  // The optional ones skipped, opened at the end of the Not done card.
+  ["result-optional-open", async (page) => {
+    await finishTo(page, "Push B");
+    await main(page).getByText(/optional ones skipped$/).click();
+    await expect(main(page).getByText("Neck lateral flexion")).toBeVisible();
+  }, "variety"],
   // Every main exercise done (only optional ones left), several new bests.
   ["result-all-done", async (page) => { await finishTo(page, "Push B"); }, "finishing"],
   ["dialog-confirm-delete-workout", async (page) => {
@@ -783,7 +809,9 @@ async function captureCombo(browser, server, { width, height }, theme, tempDir) 
         await resetTo(page, states[state]);
         await run(page, { backupPath });
         await settle(page);
-        await page.screenshot({ path: path.join(outDir, file), animations: "disabled", caret: "hide", scale: "css" });
+        const whole = name.startsWith("result");
+        if (whole) await page.addStyleTag({ content: "html, body, .app-shell { height: auto !important; overflow: visible !important; } #appMain { overflow: visible !important; padding-bottom: 8px !important; } .dock, .bottom-nav { position: relative !important; inset: auto !important; }" });
+        await page.screenshot({ path: path.join(outDir, file), animations: "disabled", caret: "hide", scale: "css", fullPage: whole });
         results.push({ file, ok: true });
       } catch (error) {
         results.push({ file, ok: false, error: error.message.split("\n")[0] });
