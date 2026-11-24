@@ -186,15 +186,18 @@ function youtubeId(value) {
   return /^[a-zA-Z0-9_-]{11}$/.test(id) ? id : null;
 }
 
+// `field`: the field that must be typed in or chosen, which gets the focus; none when the
+// fault isn't one field's (a clash: the setup may be what changed), and focus stays put.
 function showExerciseEditorError(message, field) {
   showError(message);
+  if (!field) return;
   field.scrollIntoView({ block: "center" });
   field.focus({ preventScroll: true });
 }
 
 // Returns [message, field] for the first problem with the form, or null.
 // The model checks names and aliases too; checking them here first keeps the
-// old order of messages and puts focus on the field at fault.
+// old order of messages and puts focus on the field at fault (none for a clash).
 function formProblem(state, exercise) {
   const { name, aliases, primaryTargets, movementPattern, equipment, purpose, videoId } = exercise;
   const nameField = $("#exerciseName");
@@ -206,7 +209,7 @@ function formProblem(state, exercise) {
   }
   // Another exercise already answers to this name and setup, or to one of its aliases.
   const clash = exerciseClash(state, { ...exercise, id: editor.exerciseId });
-  if (clash) return [clash, clash.includes("already goes by") ? aliasesField : nameField];
+  if (clash) return [clash, null];
   if (!primaryTargets.length) return ["Choose a primary target.", $("#exercisePrimaryTarget1")];
   if (!movementPattern) return ["Choose a movement.", $("#exerciseMovement")];
   if (!equipment.length) return ["Choose at least one equipment option.", $("#chooseEquipmentButton")];
