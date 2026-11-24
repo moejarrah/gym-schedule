@@ -152,10 +152,8 @@ export function targetHint(lastSets, prescription, mode, unit) {
 // slots) against that exercise's session before this day, as compareSets says.
 // [{ slotId, exerciseId, name (as saved with the sets), unit, kind: "up" | "down" | "same"
 // | "first", text ("▲ 1 rep"), previous (that session's day, or ""), best ({ set, before }
-// when it beat every earlier session: the best set and the one it beat), addWeight (the
-// top of the rep range every set reached, or 0) }]. `prescriptionOf(slotId, exerciseId)`
-// gives the prescription the sets were logged against ("" when it can't be told).
-export function workoutComparison(state, routineId, dateKey, prescriptionOf = () => "") {
+// when it beat every earlier session: the best set and the one it beat) }].
+export function workoutComparison(state, routineId, dateKey) {
   const logs = Object.entries(state.sessions[dateKey]?.logs || {}).filter(([, log]) => log.routineId === routineId);
   const byExercise = logsByExercise(state);
   return logs.map(([slotId, log]) => {
@@ -177,7 +175,6 @@ export function workoutComparison(state, routineId, dateKey, prescriptionOf = ()
       ...change,
       previous: previous?.dateKey || "",
       best,
-      addWeight: repsToAddWeight(log.sets, prescriptionOf(slotId, log.exerciseId), mode, log.unit),
     };
   });
 }

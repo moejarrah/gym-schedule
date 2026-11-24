@@ -135,7 +135,7 @@ function exercisesMarkup(state, items, routineId, dateKey) {
   const checked = state.sessions[dateKey].checkedEntryIdsByRoutine?.[routineId] || [];
   const marked = slots.filter((slot) => !logged.has(slot.id) && checked.includes(slot.id));
   const rows = items.map((item) => {
-    const said = setLines(item.log).map((pair) => pair.filter(Boolean).join(" ")).join(", ");
+    const said = setLines(item.log).map(([weight, reps]) => (weight ? `${weight} × ${reps}` : `${reps} ${item.unit === "sec" ? "sec" : "reps"}`)).join(", ");
     const change = item.kind === "first" ? "first time" : item.kind === "same" ? "same as last time" : item.text.replace("▲", "up").replace("▼", "down");
     return `<button class="result-line result-exercise" type="button" data-action="view-history" data-id="${escapeHtml(item.exerciseId)}" aria-label="${escapeHtml(`${item.name}: ${said}; ${change}${item.best ? "; new best" : ""}. Open its history`)}">
       ${exerciseCell(item.exercise, item.name, Boolean(item.best))}${setsMarkup(item)}<span class="result-change ${item.kind === "up" || item.kind === "down" ? item.kind : ""}">${escapeHtml(changeText(item))}</span>${chev()}

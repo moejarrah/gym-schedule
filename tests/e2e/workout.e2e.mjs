@@ -45,7 +45,7 @@ const closeResult = async (page) => {
 };
 // Finish (top right) always asks first; its answer "Finish" ("Finish anyway" when nothing
 // is logged) files the workout and shows its result.
-// A card of the result page, by its label ("Summary", "New bests", "Round 3", "Not done").
+// A card of the result page, by its label ("Exercises · 2", "Not done · 1", "More").
 const card = (page, label) => main(page).getByRole("region", { name: label, exact: true });
 const finishQuestion = (page, routine) => dialog(page, `Finish ${routine}?`);
 const finishTo = async (page, routine, { nothingLogged = false } = {}) => {
@@ -234,7 +234,7 @@ appTest("A workout: Done and Not done on slots, an exercise added for today, and
   await roundSettles(page); // a second tap right after an answer lands nowhere
   // Finish: the result shows, against last time.
   await finishTo(page, "Day A");
-  await expect(card(page, "Summary").getByRole("img", { name: "0 up, 1 same, 0 down" })).toBeVisible();
+  await expect(card(page, "Exercises · 2")).toContainText("= 1 vs last");
   // Done returns to the round page, where today's workout is open and can be reopened.
   await closeResult(page);
   await expectView(page, "Workout");
@@ -258,7 +258,7 @@ appTest("A workout: Done and Not done on slots, an exercise added for today, and
   await expect(main(page).getByRole("button", { name: /^Open Wednesday, November 4, 2026\. Day A\. Round 1\./ })).toContainText(/Round 1 · /);
 });
 
-appTest("The result: the tally against last time, a new best with what it beat, the round, and How it went opens it again", async ({ page }) => {
+appTest("The result: the header sums it up, every exercise with its sets and change, what was not done, and How it went opens it again", async ({ page }) => {
   await start(page, "Day A");
   // Bench press beats last time's 60 kg × 10; push-up does what it did then.
   await numberOf(page, "Bench press (barbell)").click();
@@ -272,24 +272,24 @@ appTest("The result: the tally against last time, a new best with what it beat, 
   await expect(logSheet(page)).toBeHidden();
 
   await finishTo(page, "Day A");
-  await expect(main(page)).toContainText("saved to your log");
-  // One card each: Summary, New bests, the round, Not done, and the actions.
-  const summary = card(page, "Summary");
-  await expect(summary).toContainText("2 of 3");
-  await expect(summary).toContainText("2sets");
-  await expect(summary.getByRole("img", { name: "1 up, 1 same, 0 down" })).toBeVisible();
-  await expect(summary).toContainText("against Mon, Nov 2");
-  const best = card(page, "New bests").getByRole("button", { name: "Bench press (barbell), new best 62.5 kg × 10, before 60 kg × 10. Open its history" });
-  await expect(best).toContainText("was 60 kg × 10");
-  // The round: counting started with this workout.
-  await expect(card(page, "Round 1")).toContainText("Workouts1 of 2 done");
-  await expect(card(page, "Round 1")).toContainText("NextDay B");
-  // Not done: the main exercise skipped, then the optional one under its own label.
-  const notDone = card(page, "Not done");
-  await expect(notDone.getByRole("heading", { level: 2 })).toHaveText("Not done1");
+  // The header sums it up; nothing about the round.
+  await expect(main(page)).toContainText("Wed, Nov 4");
+  await expect(main(page)).toContainText("2 of 3 exercises");
+  await expect(main(page)).toContainText("1 min · 2 sets");
+  await expect(main(page)).not.toContainText("Round 1");
+  // Every exercise done, with its sets and its change against last time; the best is tagged.
+  const exercises = card(page, "Exercises · 2");
+  await expect(exercises).toContainText("▲ 1 vs last");
+  const best = exercises.getByRole("button", { name: "Bench press (barbell): 62.5 kg × 10; up 2.5 kg; new best. Open its history" });
+  await expect(best).toContainText("Best");
+  await expect(best).toContainText("▲ 2.5");
+  await expect(exercises.getByRole("button", { name: "Push-up: 15 reps; same as last time. Open its history" })).toBeVisible();
+  // Not done: the main exercise skipped; the optional one opens from the line under it.
+  const notDone = card(page, "Not done · 1");
   await expect(notDone).toContainText("Incline dumbbell press");
-  await expect(notDone.getByRole("heading", { level: 3 })).toHaveText("Optional1");
-  await expect(notDone).toContainText("Plank");
+  await expect(notDone.getByText("Plank")).toBeHidden();
+  await notDone.getByText("1 optional one skipped").click();
+  await expect(notDone.getByText("Plank")).toBeVisible();
   await expect(card(page, "More").getByRole("button", { name: "Not finished? Continue Day A" })).toBeVisible();
   // A best opens the exercise's history.
   await best.click();
@@ -301,7 +301,7 @@ appTest("The result: the tally against last time, a new best with what it beat, 
   // Done: the round page, where "How it went" says the tally and opens the result again.
   await closeResult(page);
   const again = main(page).getByRole("button", { name: "How Day A went" });
-  await expect(again).toContainText("▲ 1 · = 1 · ▼ 0");
+  await expect(again).toContainText("▲ 1");
   await tapOnRound(page, again);
   await expect(resultTitle(page, "Day A")).toBeVisible();
   await expect(best).toBeVisible();

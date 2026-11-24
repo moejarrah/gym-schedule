@@ -116,13 +116,12 @@ test("A workout's result: each exercise against its own session before, its best
   const state = history();
   log(state, "2026-11-16", "a4", "day-a", "push-up", [set(null, 15)]);
   log(state, "2026-11-16", "x9", "day-a", "ab-wheel", [set(null, 10)]);
-  const prescriptions = { a2: "3 × 6–9" };
-  const items = workoutComparison(state, "day-a", "2026-11-16", (slotId) => prescriptions[slotId] || "");
-  const pick = ({ slotId, kind, text, previous, best, addWeight }) => ({ slotId, kind, text, previous, best, addWeight });
+  const items = workoutComparison(state, "day-a", "2026-11-16");
+  const pick = ({ slotId, kind, text, previous, best }) => ({ slotId, kind, text, previous, best });
   assert.deepEqual(items.map(pick), [
-    { slotId: "a2", kind: "up", text: "▲ 2.5 kg", previous: "2026-11-09", best: { set: set(62.5, 10), before: set(60, 10) }, addWeight: 9 },
-    { slotId: "a4", kind: "same", text: "Same", previous: "2026-11-02", best: null, addWeight: 0 },
-    { slotId: "x9", kind: "first", text: "First time", previous: "", best: null, addWeight: 0 },
+    { slotId: "a2", kind: "up", text: "▲ 2.5 kg", previous: "2026-11-09", best: { set: set(62.5, 10), before: set(60, 10) } },
+    { slotId: "a4", kind: "same", text: "Same", previous: "2026-11-02", best: null },
+    { slotId: "x9", kind: "first", text: "First time", previous: "", best: null },
   ]);
   assert.deepEqual(workoutComparison(state, "day-b", "2026-11-16"), [], "nothing logged in it that day");
 });
