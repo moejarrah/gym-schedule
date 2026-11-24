@@ -415,6 +415,47 @@ export function allRounds(state) {
   return [...(round ? [round] : []), ...closed].map((item) => roundRecord(state, item)).filter(Boolean);
 }
 
+// Every block, newest first. Nothing is saved about a block itself: it is the rounds that
+// share a block number, and everything below is worked out from them. One block as history
+// shows it: { block, open (it holds the open round), rounds (newest first, as roundRecord
+// gives them), programs (names in the order followed, none repeated in a row), workouts
+// (every workout filed in it, oldest first), from, to (first and last workout; an open
+// block with none yet starts on the day its round opened), minutes, endings (how many of
+// its closed rounds ended each way), gapBefore (days from the block before's last workout
+// to this one's first; 0 when either has none) }.
+export function allBlocks(state) {
+  const groups = [];
+  for (const record of allRounds(state)) {
+    if (groups.at(-1)?.block !== record.block) groups.push({ block: record.block, rounds: [] });
+    groups.at(-1).rounds.push(record);
+  }
+  const blocks = groups.map(({ block, rounds }) => {
+    const oldest = [...rounds].reverse();
+    const workouts = oldest.flatMap((record) => record.workouts);
+    const endings = {};
+    for (const record of rounds) if (!record.open) endings[record.ended] = (endings[record.ended] || 0) + 1;
+    return {
+      block,
+      open: rounds.some((record) => record.open),
+      rounds,
+      programs: oldest.map((record) => record.program).filter((name, index, names) => name && name !== names[index - 1]),
+      workouts,
+      from: workouts[0]?.dateKey || oldest[0].from,
+      to: workouts.at(-1)?.dateKey || "",
+      minutes: workouts.reduce((sum, item) => sum + (item.minutes || 0), 0),
+      endings,
+      gapBefore: 0,
+    };
+  });
+  blocks.forEach((item, index) => {
+    const before = blocks[index + 1];
+    if (before?.to && item.workouts.length) item.gapBefore = Math.round((dateFromKey(item.from) - dateFromKey(before.to)) / 86400000);
+  });
+  return blocks;
+}
+
+export const blockRecord = (state, block) => allBlocks(state).find((item) => item.block === block) || null;
+
 // The program a round follows or followed (its id), for deciding what counts in it.
 const programOfRound = (state, tag) => (sameRound({ round: tag.round, block: tag.block }, openRound(state) || {}) ? openRound(state).programId : (state.settings.roundLog || []).find((item) => item.number === tag.round && item.block === tag.block)?.programId) || "";
 

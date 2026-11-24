@@ -5,8 +5,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   addRoutine,
+  allBlocks,
   allRounds,
   answerBreak,
+  blockRecord,
   calendarWeek,
   cancelWorkout,
   createProgram,
@@ -252,4 +254,47 @@ test("a day marked for before the round opened doesn't count toward it", () => {
   save(store, (draft) => setDay(draft, "2026-10-01", ["day-b"], ""));
   assert.equal(filed(store, "2026-10-01", "day-b").round, undefined);
   assert.deepEqual(roundSummary(store.getState()).remaining.map((routine) => routine.id), ["day-a", "day-b"]);
+});
+
+// ---------- blocks ----------
+
+const blockShape = (block) => ({ block: block.block, open: block.open, rounds: block.rounds.map((item) => item.number), programs: block.programs, workouts: block.workouts.length, from: block.from, to: block.to, minutes: block.minutes, endings: block.endings, gapBefore: block.gapBefore });
+
+test("block 1 alone: its rounds newest first, the open one included", () => {
+  const { store } = freshStore();
+  save(store, (draft) => setRoundNumber(draft, 4));
+  train(store, "day-a", "2026-11-09");
+  train(store, "day-b", "2026-11-10"); // round 4 complete, round 5 open
+  train(store, "day-a", "2026-11-12");
+  assert.deepEqual(allBlocks(store.getState()).map(blockShape), [
+    { block: 1, open: true, rounds: [5, 4], programs: ["Sample program"], workouts: 3, from: "2026-11-09", to: "2026-11-12", minutes: 90, endings: { complete: 1 }, gapBefore: 0 },
+  ]);
+  assert.equal(blockRecord(store.getState(), 2), null);
+});
+
+test("a block that changed program lists both programs in order and how its rounds ended", () => {
+  const { store } = freshStore();
+  const other = secondProgram(store);
+  save(store, (draft) => setRoundNumber(draft, 1));
+  train(store, "day-a", "2026-11-09");
+  save(store, (draft) => followProgram(draft, other.programId)); // round 1 ends with the change
+  train(store, other.ids[0], "2026-11-11");
+  train(store, other.ids[1], "2026-11-12"); // round 2 complete, round 3 open
+  assert.deepEqual(blockShape(blockRecord(store.getState(), 1)), { block: 1, open: true, rounds: [3, 2, 1], programs: ["Sample program", "Full body"], workouts: 3, from: "2026-11-09", to: "2026-11-12", minutes: 90, endings: { switch: 1, complete: 1 }, gapBefore: 0 });
+});
+
+test("a block started after a break: the one before is closed, and the new one says how long the gap was", () => {
+  const { store } = freshStore();
+  save(store, (draft) => setRoundNumber(draft, 1));
+  train(store, "day-a", "2026-11-09");
+  train(store, "day-b", "2026-11-10"); // round 1 complete, round 2 open with nothing in it
+  save(store, (draft) => answerBreak(draft, true, "2026-12-22")); // start again: block 2
+  let blocks = allBlocks(store.getState());
+  assert.deepEqual(blocks.map((item) => [item.block, item.open, item.rounds.map((round) => round.number), item.from, item.to, item.gapBefore]), [
+    [2, true, [1], "2026-12-22", "", 0], // nothing done yet: it starts on the day its round opened
+    [1, false, [1], "2026-11-09", "2026-11-10", 0],
+  ]);
+  train(store, "day-a", "2026-12-23");
+  blocks = allBlocks(store.getState());
+  assert.deepEqual([blocks[0].from, blocks[0].to, blocks[0].gapBefore, blocks[1].endings], ["2026-12-23", "2026-12-23", 43, { complete: 1 }]);
 });
