@@ -1508,67 +1508,174 @@ details.form-section > summary + * {
 
 /* ---------- Result ---------- */
 
-/* The result of a finished workout: the round page's header (the name with its minutes,
-   then the day), the tally in larger type, then its parts, each under a small label. */
+/* The result of a finished workout: its title and day, then a stack of cards with one gap
+   between them. Four sizes only: the title, the cards' small labels, one line size for
+   names and values alike, one meta size for the line under a name or a value. */
 .result-head {
   padding-top: var(--space-4);
   padding-bottom: var(--space-3);
 }
 
-.result-tally {
-  padding-inline: var(--gutter);
+.result-cards {
+  padding: 0 var(--space-4) var(--space-4);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
 }
 
-.result-score {
-  font-size: var(--fs-head);
-  font-weight: 700;
+/* A card: its label (and a count at the right) inside at the top, then its lines. */
+.result-card {
+  min-width: 0;
+  padding: var(--space-3) var(--space-4) var(--space-1);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.result-card-label,
+.result-sublabel {
+  padding-bottom: var(--space-1);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--fs-label);
   line-height: 1.3;
 }
 
-/* A new best: the set that did it, and under it the one it beat. */
-.result-set {
-  flex: none;
+/* "Optional · 3" inside Not done. */
+.result-sublabel {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line-soft);
+}
+
+/* Every line of a card is one grid: the name at the left, the value at the right, a
+   chevron when it opens something. A soft rule between lines. */
+.result-line {
+  width: 100%;
+  min-height: var(--tap);
+  padding-block: var(--space-2);
+  border-top: 1px solid var(--line-soft);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: var(--space-3);
+  font-size: var(--fs-body);
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: left;
+}
+
+:is(.result-card-label, .result-sublabel, .result-bar) + .result-line,
+.result-card-label + .result-fold > .result-line {
+  border-top: 0;
+}
+
+:is(button, summary).result-line:active {
+  background: var(--press);
+}
+
+.result-line .chev svg {
+  width: 16px;
+  height: 16px;
+}
+
+.result-fold[open] > summary .chev svg {
+  transform: rotate(180deg);
+}
+
+/* An exercise: its movement over its setup; a long name ends with an ellipsis, so the
+   value at the right never wraps under it. */
+.result-name {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.result-value {
   display: grid;
   justify-items: end;
   gap: 2px;
   text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
-.result-set > strong {
-  font-size: var(--fs-body);
-  font-weight: 700;
+.result-value > strong {
+  font-weight: 600;
 }
 
-.result-set > small {
+:is(.result-name, .result-value, .result-cells p) > small {
   color: var(--text-muted);
   font-size: var(--fs-meta);
   font-weight: 500;
+  line-height: 1.35;
 }
 
-.result-round {
-  padding: var(--space-1) var(--gutter) 0;
-  display: grid;
-  gap: var(--space-2);
-}
-
-/* Names in one compact paragraph (Same, Not done, Next time); asides muted. */
-.result-text {
-  padding: var(--space-1) var(--gutter) 0;
-  font-size: var(--fs-small);
-  font-weight: 500;
-  line-height: 1.5;
-}
-
-.result-text em {
+.result-value.is-quiet,
+.result-label {
   color: var(--text-muted);
-  font-style: normal;
   font-weight: 500;
 }
 
-.result-foot {
-  margin-top: var(--space-4);
+.result-label.is-link,
+.result-link {
+  color: var(--accent);
+  font-weight: 600;
 }
 
-.result-note {
-  padding: var(--space-3) var(--gutter) 0;
+.result-label.is-danger {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.result-fold:not([open]) .result-link > :last-child,
+.result-fold[open] .result-link > :first-child {
+  display: none;
+}
+
+/* Summary: three facts side by side, each a value over a small label. */
+.result-cells {
+  padding-block: var(--space-1) var(--space-3);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.result-cells p {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.result-cells p + p {
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--line-soft);
+}
+
+.result-cells :is(strong, small) {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.result-cells strong {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Against last time: three counters of one width, ▲ up · = same · ▼ down. */
+.result-counts {
+  display: grid;
+  grid-template-columns: repeat(3, 2.8em);
+  justify-items: end;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.result-counts > .is-zero {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.result-bar {
+  margin-block: var(--space-2) var(--space-2);
 }

@@ -254,12 +254,25 @@ async function openSlot(page, name) {
   await expect(row).toHaveAttribute("aria-expanded", "true");
 }
 
-// Finish (top right), "Finish anyway" when nothing was logged, and the result page.
+// Finish (top right) asks first: "Finish" ("Finish anyway" when nothing was logged), then
+// the result page.
 async function finishTo(page, routine, { nothingLogged = false } = {}) {
   await button(main(page), `Finish ${routine}`).click();
-  if (nothingLogged) await button(dialog(page, "Nothing was logged"), "Finish anyway").click();
+  if (nothingLogged) await button(dialog(page, "Nothing is logged"), "Finish anyway").click();
+  else await button(dialog(page, `Finish ${routine}?`), "Finish").click();
   await shown(main(page).getByRole("heading", { name: `${routine} done` }));
   await roundSettles(page);
+}
+
+// Logs one set of a slot of the workout in progress and closes its sheet.
+async function logOneSet(page, title, kg, reps) {
+  await button(main(page), new RegExp(`^Log sets for ${escapeRegExp(title)}`)).click();
+  const sheet = await shown(page.locator("#logDialog"));
+  await sheet.getByLabel("Weight for set 1, kg").fill(kg);
+  await sheet.getByLabel("Reps for set 1").fill(reps);
+  await sheet.getByRole("button", { name: "Set 1 done", exact: true }).click();
+  await sheet.getByRole("button", { name: "Close", exact: true }).first().click();
+  await expect(sheet).toBeHidden();
 }
 
 // Scrolls the workout's list to its end.
@@ -427,19 +440,25 @@ const SHOTS = [
     await button(main(page), "Add exercise for today").click();
     await shown(dialog(page, "Add exercise"));
   }],
-  // Finish with nothing logged asks once whether to cancel instead.
+  // Finish always asks, saying where the workout stands.
+  ["dialog-finish", async (page) => {
+    await button(main(page), "Finish Push B").click();
+    await shown(dialog(page, "Finish Push B?"));
+  }, "running"],
+  // With nothing logged: back to the workout, finish anyway, or cancel it.
   ["dialog-finish-nothing-logged", async (page) => {
     await openRoundRow(page, "Push B");
     await startFromRound(page, "Push B");
     await button(main(page), "Finish Push B").click();
-    await shown(dialog(page, "Nothing was logged"));
+    await shown(dialog(page, "Nothing is logged"));
   }, "round"],
 
   // ---- The result, after Finish ----
   ["result", async (page) => { await finishTo(page, "Push B"); }, "running"],
+  // The end of the page: the actions, Delete this workout last.
   ["result-end", async (page) => {
     await finishTo(page, "Push B");
-    await button(main(page), "Not finished? Continue Push B").scrollIntoViewIfNeeded();
+    await button(main(page), "Delete this workout").scrollIntoViewIfNeeded();
   }, "running"],
   // The last workout of the round: the round is complete.
   ["result-round-complete", async (page) => { await finishTo(page, "Legs B"); }, "completing"],
@@ -455,6 +474,20 @@ const SHOTS = [
     await shown(backToRound(page));
     await finishTo(page, "Full body A", { nothingLogged: true });
   }, "round"],
+  // One set of one exercise logged, the rest not done.
+  ["result-one-set", async (page) => {
+    await openRoundRow(page, "Push B");
+    await startFromRound(page, "Push B");
+    await logOneSet(page, "Overhead press (machine)", "30", "10");
+    await finishTo(page, "Push B");
+  }, "round"],
+  // Every main exercise done, several new bests.
+  ["result-all-done", async (page) => { await finishTo(page, "Push B"); }, "finishing"],
+  ["dialog-confirm-delete-workout", async (page) => {
+    await finishTo(page, "Push B");
+    await button(main(page), "Delete this workout").click();
+    await shown(dialog(page, "Delete Push B from Wed, Nov 4?"));
+  }, "running"],
   // Opened again from the round page's "How it went".
   ["result-again", async (page) => {
     await button(main(page), "How Push B went").click();

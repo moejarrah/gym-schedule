@@ -43,10 +43,20 @@ const closeResult = async (page) => {
   await tapOnRound(page, bottomButton(page, "Done"));
   await expect(main(page).getByRole("button", { name: "Settings", exact: true })).toBeVisible();
 };
-// Finish (top right) files the workout and shows its result.
-const finish = async (page, { nothingLogged = false } = {}) => {
-  await main(page).getByRole("button", { name: /^Finish / }).click();
-  if (nothingLogged) await dialog(page, "Nothing was logged").getByRole("button", { name: "Finish anyway" }).click();
+// Finish (top right) always asks first; its answer "Finish" ("Finish anyway" when nothing
+// is logged) files the workout and shows its result.
+// A card of the result page, by its label ("Summary", "New bests", "Round 3", "Not done").
+const card = (page, label) => main(page).getByRole("region", { name: label, exact: true });
+const finishQuestion = (page, routine) => dialog(page, `Finish ${routine}?`);
+const finishTo = async (page, routine, { nothingLogged = false } = {}) => {
+  await main(page).getByRole("button", { name: `Finish ${routine}`, exact: true }).click();
+  if (nothingLogged) await dialog(page, "Nothing is logged").getByRole("button", { name: "Finish anyway" }).click();
+  else await finishQuestion(page, routine).getByRole("button", { name: "Finish", exact: true }).click();
+  await expect(resultTitle(page, routine)).toBeVisible();
+  await roundSettles(page); // taps rest for a moment after the answer
+};
+const finish = async (page, routine, options) => {
+  await finishTo(page, routine, options);
   await closeResult(page);
 };
 
@@ -98,14 +108,14 @@ appTest("The round page lists the round's workouts with one open, and the bottom
 });
 
 appTest("Logging: Start opens the workout, a tick takes last time's set, typed sets and a drop are saved, and a reload opens on the workout", async ({ page }) => {
-  // Finish with nothing logged asks whether to cancel instead; Cancel workout with nothing
+  // Finish with nothing logged offers to cancel instead; Cancel workout with nothing
   // logged asks nothing. Either way nothing is left behind.
   await start(page, "Day A");
   await expect(main(page)).toContainText("0 of 3 exercises done");
   await expect(main(page)).toContainText("1 optional");
   await expect(main(page)).toContainText("0 min");
   await main(page).getByRole("button", { name: "Finish Day A" }).click();
-  await dialog(page, "Nothing was logged").getByRole("button", { name: "Cancel workout" }).click();
+  await dialog(page, "Nothing is logged").getByRole("button", { name: "Cancel workout" }).click();
   await expect(startButton(page, "Day A")).toBeVisible();
   assert.equal((await readState(page)).settings.activeWorkout, null);
   await start(page, "Day A");
@@ -182,7 +192,7 @@ appTest("Logging: Start opens the workout, a tick takes last time's set, typed s
   });
 });
 
-appTest("A workout: Done and Not done on slots, an exercise added for today, and Finish files it at once", async ({ page }) => {
+appTest("A workout: Done and Not done on slots, an exercise added for today, and Finish asks, then files it", async ({ page }) => {
   await start(page, "Day A");
   // Done with no sets asks first.
   await numberOf(page, "Bench press (barbell)").click();
@@ -210,11 +220,19 @@ appTest("A workout: Done and Not done on slots, an exercise added for today, and
   await expect(numberOf(page, "Squat (barbell)")).toHaveText("6");
   assert.equal((await readState(page)).routines[0].entries.length, 4, "the program isn't changed");
 
-  // Finish asks nothing: the result shows at once, against last time.
+  // Finish asks first, saying where the workout stands; Keep going changes nothing.
   assert.deepEqual((await todaySaved(page)).routineIds, []);
   await main(page).getByRole("button", { name: "Finish Day A" }).click();
-  await expect(resultTitle(page, "Day A")).toBeVisible();
-  await expect(main(page)).toContainText("0 up · 1 same · 0 down");
+  const question = finishQuestion(page, "Day A");
+  await expect(question).toContainText("2 of 3 exercises done · 1 set logged.");
+  await expect(question).toContainText("Not done: Incline dumbbell press (dumbbell).");
+  await question.getByRole("button", { name: "Keep going" }).click();
+  await expect(question).toBeHidden();
+  assert.equal((await readState(page)).settings.activeWorkout.routineId, "day-a");
+  await roundSettles(page); // a second tap right after an answer lands nowhere
+  // Finish: the result shows, against last time.
+  await finishTo(page, "Day A");
+  await expect(card(page, "Summary").getByRole("img", { name: "0 up, 1 same, 0 down" })).toBeVisible();
   // Done returns to the round page, where today's workout is open and can be reopened.
   await closeResult(page);
   await expectView(page, "Workout");
@@ -251,19 +269,26 @@ appTest("The result: the tally against last time, a new best with what it beat, 
   await done(logSheet(page)).click();
   await expect(logSheet(page)).toBeHidden();
 
-  await main(page).getByRole("button", { name: "Finish Day A" }).click();
-  await expect(resultTitle(page, "Day A")).toBeVisible();
+  await finishTo(page, "Day A");
   await expect(main(page)).toContainText("saved to your log");
-  await expect(main(page)).toContainText("1 up · 1 same · 0 down");
-  await expect(main(page)).toContainText("against Mon, Nov 2");
-  const best = main(page).getByRole("button", { name: "Bench press (barbell), new best 62.5 kg × 10, before 60 kg × 10. Open its history" });
-  await expect(best).toBeVisible();
+  // One card each: Summary, New bests, the round, Not done, and the actions.
+  const summary = card(page, "Summary");
+  await expect(summary).toContainText("2 of 3");
+  await expect(summary).toContainText("2sets");
+  await expect(summary.getByRole("img", { name: "1 up, 1 same, 0 down" })).toBeVisible();
+  await expect(summary).toContainText("against Mon, Nov 2");
+  const best = card(page, "New bests").getByRole("button", { name: "Bench press (barbell), new best 62.5 kg × 10, before 60 kg × 10. Open its history" });
+  await expect(best).toContainText("was 60 kg × 10");
   // The round: counting started with this workout.
-  await expect(main(page)).toContainText("1 of 2 workouts done");
-  await expect(main(page)).toContainText("next: Day B");
-  // Not done: the main exercise skipped, then the optional one.
-  await expect(main(page)).toContainText("Incline dumbbell press (dumbbell) (optional: Plank)");
-  await expect(main(page).getByRole("button", { name: "Not finished? Continue Day A" })).toBeVisible();
+  await expect(card(page, "Round 1")).toContainText("Workouts1 of 2 done");
+  await expect(card(page, "Round 1")).toContainText("NextDay B");
+  // Not done: the main exercise skipped, then the optional one under its own label.
+  const notDone = card(page, "Not done");
+  await expect(notDone.getByRole("heading", { level: 2 })).toHaveText("Not done2");
+  await expect(notDone).toContainText("Incline dumbbell press");
+  await expect(notDone.getByRole("heading", { level: 3 })).toHaveText("Optional1");
+  await expect(notDone).toContainText("Plank");
+  await expect(card(page, "More").getByRole("button", { name: "Not finished? Continue Day A" })).toBeVisible();
   // A best opens the exercise's history.
   await best.click();
   const history = page.getByRole("dialog").filter({ has: page.getByRole("button", { name: "Close history" }) });
@@ -280,6 +305,64 @@ appTest("The result: the tally against last time, a new best with what it beat, 
   await expect(best).toBeVisible();
   await closeResult(page);
   await expect(bottomButton(page, "Reopen Day A")).toBeVisible();
+});
+
+appTest("Finish with nothing logged has three answers: back to the workout, finish anyway, or cancel it", async ({ page }) => {
+  await start(page, "Day A");
+  const before = await readState(page);
+  const question = dialog(page, "Nothing is logged");
+  await main(page).getByRole("button", { name: "Finish Day A" }).click();
+  await expect(question).toContainText("Day A has no sets and nothing marked done.");
+  await question.getByRole("button", { name: "Back to workout" }).click();
+  await expect(question).toBeHidden();
+  await expect(backToRound(page)).toBeVisible();
+  assert.deepEqual(await readState(page), before, "nothing changes");
+  // Escape does the same.
+  await roundSettles(page);
+  await main(page).getByRole("button", { name: "Finish Day A" }).click();
+  await expect(question.getByRole("button", { name: "Cancel workout" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(question).toBeHidden();
+  assert.deepEqual(await readState(page), before);
+  // Finish anyway files it as it is (Cancel workout: see "Logging").
+  await roundSettles(page);
+  await finishTo(page, "Day A", { nothingLogged: true });
+  assert.deepEqual((await todaySaved(page)).routineIds, ["day-a"]);
+});
+
+appTest("A finished workout is deleted from its result page after a confirmation; the round page and Log no longer show it", async ({ page }) => {
+  await start(page, "Day A");
+  await numberOf(page, "Push-up").click();
+  await tick(logSheet(page), "Set 1").click();
+  await done(logSheet(page)).click();
+  await expect(logSheet(page)).toBeHidden();
+  await finishTo(page, "Day A");
+
+  const deleteButton = card(page, "More").getByRole("button", { name: "Delete this workout" });
+  const confirm = dialog(page, "Delete Day A from Wed, Nov 4?");
+  await deleteButton.click();
+  await expect(confirm).toContainText("Its 1 set and done marks are deleted. This can't be undone.");
+  await confirm.getByRole("button", { name: "Keep it" }).click();
+  await expect(confirm).toBeHidden();
+  await expect(resultTitle(page, "Day A")).toBeVisible();
+  assert.deepEqual((await todaySaved(page)).routineIds, ["day-a"], "kept");
+
+  await deleteButton.click();
+  await confirm.getByRole("button", { name: "Delete workout" }).click();
+  await expect(page.getByText("Workout deleted.")).toBeVisible();
+  // Back on the round page, as if it had never been done; counting stays started.
+  await expect(row(page, "Day A, not done, next")).toBeVisible();
+  await expect(main(page)).toContainText("0 of 2 workouts done");
+  await expect(startButton(page, "Day A")).toBeVisible();
+  const saved = await readState(page);
+  assert.equal(saved.sessions[TODAY], undefined);
+  assert.deepEqual(saved.settings.round, { number: 1, block: 1, programId: "sample", since: TODAY });
+
+  await roundSettles(page);
+  await goToView(page, "Log");
+  await expect(main(page).getByRole("button", { name: /^Wednesday, November 4, 2026, today/ })).toBeVisible();
+  await expect(main(page).getByRole("button", { name: /^Wednesday, November 4, 2026, today, 1 finished workout/ })).toHaveCount(0);
+  await expect(main(page).getByRole("button", { name: /^Open Wednesday, November 4, 2026/ })).toHaveCount(0);
 });
 
 appTest("Leaving a workout in progress: the running bar shows on every other page and brings it back", async ({ page }) => {
@@ -430,7 +513,7 @@ appTest("Rounds: set the round you're on, a round takes every workout once and t
 
   // Start, then finish with nothing logged (it asks once): the round is one further.
   await start(page, "Day A");
-  await finish(page, { nothingLogged: true });
+  await finish(page, "Day A", { nothingLogged: true });
   await expect(roundTitle(page, "Round 3")).toBeVisible();
   await expect(main(page)).toContainText("1 of 2 workouts done");
   await expect(row(page, "Day A, done today")).toHaveAttribute("aria-expanded", "true");
@@ -438,7 +521,7 @@ appTest("Rounds: set the round you're on, a round takes every workout once and t
   // The other workout completes the round, and the next one opens.
   await tapOnRound(page, roundRow(page, "Day B"));
   await start(page, "Day B");
-  await finish(page, { nothingLogged: true });
+  await finish(page, "Day B", { nothingLogged: true });
   await expect(roundTitle(page, "Round 4")).toBeVisible();
   await expect(main(page).getByRole("button", { name: "Round 3 complete, 2 of 2 in 1 day. Open the round." })).toBeVisible();
   await expect(main(page)).toContainText("0 of 2 workouts done");
@@ -514,7 +597,7 @@ appTest("A workout from another program is listed in the round as an extra and c
   await expect(main(page)).toContainText("In progress");
   await roundSettles(page);
   await runningBar(page).click();
-  await finish(page, { nothingLogged: true });
+  await finish(page, "Day X", { nothingLogged: true });
 
   await expect(main(page)).toContainText("Following Sample program");
   await expect(roundTitle(page, "Round 5")).toBeVisible();

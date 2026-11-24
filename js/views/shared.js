@@ -29,7 +29,8 @@ function letterMarkup(exercise) {
 }
 
 // The grey words after the name: the equipment (unless its letter is shown), then the rest.
-function setupText(exercise) {
+// The result shows them on a line of their own, under the movement.
+export function setupText(exercise) {
   const tag = TAGS[mainEquipment(exercise)];
   const said = tag && exercise.name.toLowerCase().includes(tag[0].toLowerCase());
   const equipment = tag && !said && !(lettersOn() && tag[1]) ? [tag[0]] : [];
