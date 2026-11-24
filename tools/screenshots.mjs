@@ -356,6 +356,12 @@ const SHOTS = [
   ["home", async () => {}, "round"],
   // Another workout picked: the lifts to beat, today's square and the bottom button follow.
   ["home-picked", async (page) => { await openRoundRow(page, "Legs B"); }, "round"],
+  // A week later: the round across three calendar weeks.
+  ["home-three-weeks", async (page) => {
+    await page.clock.setFixedTime(FIXED_TIME + 7 * 86400000);
+    await page.reload();
+    await waitForApp(page);
+  }, "round"],
   ["home-running", async (page) => { await roundPage(page); }, "running"],
   ["home-done-today", async () => {}, "done"],
   // The round completed today, whole, and the next one laid out.
@@ -765,6 +771,7 @@ async function seedThroughApp(page, theme, tempDir) {
 }
 
 async function resetTo(page, saved) {
+  await page.clock.setFixedTime(FIXED_TIME); // a shot may have moved the clock
   await page.evaluate(([key, value]) => {
     sessionStorage.clear();
     localStorage.clear(); // what the phone remembers besides the saved data goes too

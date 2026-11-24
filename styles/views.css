@@ -1511,8 +1511,26 @@ details.form-section > summary + * {
 .home-cal {
   padding-bottom: var(--space-2);
   display: grid;
-  grid-template-columns: 22px repeat(7, minmax(0, 1fr));
+  grid-template-columns: 24px repeat(7, minmax(0, 1fr));
   gap: 5px;
+}
+
+/* The week number labels its row: no box, faint, small, set apart from Monday by a
+   hairline, so it never reads as a day. */
+.home-cal > .home-week {
+  margin-right: 1px;
+  padding-right: 5px;
+  border-right: 1px solid var(--line-soft);
+  color: var(--faint);
+  display: grid;
+  place-items: center end;
+  font-size: var(--fs-tag);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.home-cal > .label.home-week {
+  border-right-color: transparent;
 }
 
 .home-cal > .label {

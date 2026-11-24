@@ -309,10 +309,10 @@ function dayMarkup(state, view, dateKey, { from, round, todayName }) {
 
 // The calendar weeks from `from` to `to`, a row each: the week number, then Monday to Sunday.
 function calendarMarkup(state, view, { from, to, round, todayName = "" }) {
-  const head = `<span class="label">Wk</span>${["M", "T", "W", "T", "F", "S", "S"].map((letter, index) => `<span class="label${index === (dateFromKey(view.todayKey).getDay() + 6) % 7 && to >= view.todayKey ? " is-today" : ""}">${letter}</span>`).join("")}`;
+  const head = `<span class="label home-week">Wk</span>${["M", "T", "W", "T", "F", "S", "S"].map((letter, index) => `<span class="label${index === (dateFromKey(view.todayKey).getDay() + 6) % 7 && to >= view.todayKey ? " is-today" : ""}">${letter}</span>`).join("")}`;
   const rows = [];
   for (let monday = mondayOf(from); monday <= to; monday = addDays(monday, 7)) {
-    rows.push(`<span class="label">${calendarWeek(monday).week}</span>${Array.from({ length: 7 }, (_, index) => dayMarkup(state, view, addDays(monday, index), { from, round, todayName })).join("")}`);
+    rows.push(`<span class="home-week" aria-label="Week ${calendarWeek(monday).week}">${calendarWeek(monday).week}</span>${Array.from({ length: 7 }, (_, index) => dayMarkup(state, view, addDays(monday, index), { from, round, todayName })).join("")}`);
   }
   return `<div class="home-cal">${head}${rows.join("")}</div>`;
 }
