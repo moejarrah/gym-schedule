@@ -234,7 +234,7 @@ appTest("A workout: Done and Not done on slots, an exercise added for today, and
   await roundSettles(page); // a second tap right after an answer lands nowhere
   // Finish: the result shows, against last time.
   await finishTo(page, "Day A");
-  await expect(card(page, "Exercises · 2")).toContainText("= 1 vs last");
+  await expect(card(page, "Summary")).toContainText("= 1vs last");
   // Done returns to the round page, where today's workout is open and can be reopened.
   await closeResult(page);
   await expectView(page, "Workout");
@@ -272,14 +272,13 @@ appTest("The result: the header sums it up, every exercise with its sets and cha
   await expect(logSheet(page)).toBeHidden();
 
   await finishTo(page, "Day A");
-  // The header sums it up; nothing about the round.
+  // The Summary card: time, sets, exercises done, the tally against last time; nothing about the round.
   await expect(main(page)).toContainText("Wed, Nov 4");
-  await expect(main(page)).toContainText("2 of 3 exercises");
-  await expect(main(page)).toContainText("1 min · 2 sets");
+  const summary = card(page, "Summary");
+  for (const cell of ["1 mintime", "2sets", "2 of 3exercises", "▲ 1vs last"]) await expect(summary).toContainText(cell);
   await expect(main(page)).not.toContainText("Round 1");
   // Every exercise done, with its sets and its change against last time; the best is tagged.
   const exercises = card(page, "Exercises · 2");
-  await expect(exercises).toContainText("▲ 1 vs last");
   const best = exercises.getByRole("button", { name: "Bench press (barbell): 62.5 kg × 10; up 2.5 kg; new best. Open its history" });
   await expect(best).toContainText("Best");
   await expect(best).toContainText("▲ 2.5");

@@ -3,10 +3,10 @@
 // button Done goes back to the round page (to Log for a workout logged for a past day),
 // as does a drag from the left edge. Built from saved data only: what it shows is the
 // workout and day held in `shown`, which a reload forgets (the app then opens on the
-// round page). The header is the summary (the workout's name and day, a bar with a
-// segment per main exercise, how many were done, its time and sets); then three cards:
-// Exercises (every one done, its sets and its change against last time), Not done, and
-// More (continue, back up, delete this workout). Nothing about the round: the round page
+// round page). The workout's name and day, then four cards: Summary (a bar with a segment
+// per main exercise, and under it time, sets, exercises done and the tally against last
+// time), Exercises (every one done, its sets and its change against last time), Not done,
+// and More (continue, back up, delete this workout). Nothing about the round: the round page
 // tells that.
 
 import { navigate, pauseTaps, registerActions, registerView, store } from "../context.js";
@@ -103,16 +103,28 @@ const chev = (direction = "right") => `<span class="chev" aria-hidden="true">${c
 
 // The header is the summary: the name and day, a bar with a segment per main exercise
 // (filled when marked done or with sets logged), how many were done, its time and sets.
-function headMarkup(state, record, routineId, dateKey) {
+// The summary card: a bar with a segment per main exercise (filled when marked done or with sets
+// logged), and under it, sharing its width, four small cells: time, sets, exercises done
+// and the tally against last time.
+function summaryMarkup(state, record, items, routineId, dateKey) {
   const { counted, isDone, sets, exercises } = workoutStanding(state, routineId, dateKey);
-  const facts = [record.minutes ? durationText(record.minutes) : "", sets ? plural(sets, "set") : "no sets logged"].filter(Boolean).join(" · ");
-  const done = counted.length ? `${counted.filter(isDone).length} of ${plural(counted.length, "exercise")}` : plural(exercises, "exercise");
-  return `<header class="round-head result-head">
-    <div class="round-title"><h1>${escapeHtml(record.name || "Workout")} done</h1><span>${escapeHtml(shortDate(dateKey))}</span></div>
+  const tally = escapeHtml(tallyText(items)).replace(/▲ \d+/, (match) => `<span class="up">${match}</span>`).replace(/▼ \d+/, (match) => `<span class="down">${match}</span>`);
+  const cells = [
+    [record.minutes ? escapeHtml(durationText(record.minutes)) : "–", "time"],
+    [String(sets), sets === 1 ? "set" : "sets"],
+    [counted.length ? `${counted.filter(isDone).length} of ${counted.length}` : String(exercises), "exercises"],
+    [tally || "–", "vs last"],
+  ];
+  return `<section class="result-card result-summary" aria-label="Summary">
     ${counted.length ? `<div class="round-bar" aria-hidden="true">${counted.map((slot) => `<i${isDone(slot) ? ` class="is-done"` : ""}></i>`).join("")}</div>` : ""}
-    <p class="round-facts"><span>${escapeHtml(done)}</span><span>${escapeHtml(facts)}</span></p>
-  </header>`;
+    <div class="result-cells">${cells.map(([value, name]) => `<p><strong>${value}</strong><small>${name}</small></p>`).join("")}</div>
+  </section>`;
 }
+
+// The title: the workout's name and, at the right, its day.
+const headMarkup = (record, dateKey) => `<header class="round-head result-head">
+    <div class="round-title"><h1>${escapeHtml(record.name || "Workout")} done</h1><span>${escapeHtml(shortDate(dateKey))}</span></div>
+  </header>`;
 
 // The right side of an exercise's line: one weight over its reps; several weights, one
 // line each with its reps beside it; without weight the reps over "reps" (or "sec").
@@ -144,8 +156,7 @@ function exercisesMarkup(state, items, routineId, dateKey) {
   const markedRows = marked.map((slot) => `<div class="result-line result-exercise">${exerciseCell(exerciseById(state, slot.choices[0]?.exerciseId), "Missing exercise")}<span class="result-sets"><strong>Done</strong><small>no sets</small></span></div>`);
   const count = rows.length + markedRows.length;
   if (!count) return "";
-  const tally = escapeHtml(tallyText(items)).replace(/▲ \d+/, (match) => `<span class="up">${match}</span>`).replace(/▼ \d+/, (match) => `<span class="down">${match}</span>`);
-  return card(`Exercises · ${count}`, [...rows, ...markedRows].join(""), tally ? `<span class="result-tally">${tally} <span>vs last</span></span>` : "");
+  return card(`Exercises · ${count}`, [...rows, ...markedRows].join(""));
 }
 
 // What wasn't done: the main exercises (and the ones added for the day) neither marked
@@ -190,8 +201,9 @@ function markup(state) {
   const record = state.sessions[dateKey].workouts?.[routineId] || {};
   const items = compared(state, routineId, dateKey);
   return `<section class="page result-page">
-    ${headMarkup(state, record, routineId, dateKey)}
+    ${headMarkup(record, dateKey)}
     <div class="result-cards">
+      ${summaryMarkup(state, record, items, routineId, dateKey)}
       ${exercisesMarkup(state, items, routineId, dateKey)}
       ${notDoneMarkup(state, routineId, dateKey)}
       ${actionsMarkup(state, routineId, dateKey)}

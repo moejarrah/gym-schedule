@@ -1508,13 +1508,12 @@ details.form-section > summary + * {
 
 /* ---------- Result ---------- */
 
-/* The result of a finished workout: the header is the summary (the running workout's
-   header: name and day, a bar of its main exercises, two facts), with air under it, then
-   a stack of cards with one gap between them. Four sizes only: the title, the cards'
+/* The result of a finished workout: its name and day, with air under them, then a stack
+   of cards with one gap between them. Four sizes only: the title, the cards'
    small labels, one line size for names and values alike, one meta size. */
 .result-head {
   padding-top: var(--space-4);
-  padding-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
 }
 
 .result-head .round-title > span {
@@ -1551,15 +1550,45 @@ details.form-section > summary + * {
   line-height: 1.3;
 }
 
-/* "▲ 3 ▼ 1 vs last" at the right of the Exercises label. */
-.result-tally {
-  display: flex;
-  gap: 6px;
+/* The Summary card: the bar of the main exercises and, under it across the same width,
+   four small cells (a value over a label): time, sets, exercises, against last time. */
+.result-summary {
+  padding-block: var(--space-4) var(--space-3);
+  display: grid;
+  gap: var(--space-3);
 }
 
-.result-tally > :last-child {
-  color: var(--faint);
+.result-summary .round-bar {
+  margin: 0;
 }
+
+.result-cells {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.result-cells p {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.result-cells strong {
+  display: flex;
+  gap: 6px;
+  font-size: var(--fs-body);
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.result-cells small {
+  color: var(--text-muted);
+  font-size: var(--fs-meta);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 
 /* Every line of a card is one grid of three fixed columns: the name at the left, the value,
    and the chevron's own 16px column, kept empty on a line that opens nothing. So every
