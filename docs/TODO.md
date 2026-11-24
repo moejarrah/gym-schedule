@@ -24,6 +24,7 @@ Things a desktop browser can't fully confirm:
 
 ## Later, when the owner asks
 
+- **A Home tab** in front of Workout (a briefing: what is next, what to watch for today, how the last workout went, guides, a welcome on first launch). The owner wants one, saw three rounds of mock-ups in November 2026 and put it off: "it's ugly, needs a lot of work". Show new full-page designs before building. What it would hold, and the research behind it, is in the strategy notes of that month (not in the repository).
 - **Themes**: the owner liked three of the looks shown in November 2026 ("2 - 3 - 5", most likely Ink, Volt and Sand; not confirmed) and may want them as a choice in Settings. Compactness stays: no size grows.
 - **Logging sheet redesign**: put off by the owner, who didn't like the first sketches. It must keep the chart, drop sets and everything listed in `docs/PRODUCT.md`.
 - **Profiles and programs for clients**: brainstormed only. Each person has the app on their own phone; a client may edit their program, and updating a program must never touch their logs.
