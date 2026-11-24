@@ -7,7 +7,7 @@
 // Also here: the programs sheet and the program, routine and block editors. Entry
 // editing and the Library picker live in entry-editor.js.
 
-import { mainElement, registerActions, registerView, render, scrollToTop, store } from "../context.js";
+import { mainElement, navigate, registerActions, registerView, render, scrollToTop, store } from "../context.js";
 import {
   $,
   chevronIcon,
@@ -579,6 +579,11 @@ registerActions({
   "delete-program": deleteProgram,
 
   "view-routine": (button) => viewRoutine(button.dataset.id),
+  // From the round page ("Exercises ›"): that workout of the followed program, viewed.
+  "program-show-routine": (button) => {
+    Object.assign(shown, { programId: "", routineId: button.dataset.id, slotId: "", editing: false });
+    navigate("routines");
+  },
   "toggle-program-edit": toggleEditing,
   // Opens a slot in place, or closes the one that's open.
   "toggle-program-slot": (element) => {

@@ -1164,6 +1164,72 @@ textarea.control {
   transform: translate(-50%, 0);
 }
 
+/* Over the page, a message sits above the dock when there is one. */
+body:has(.dock:not([hidden])) > .toast {
+  bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + var(--dock-height) + var(--space-3));
+}
+
+/* ---------- the dock (see .dock in base.css) ---------- */
+
+/* Its button names what it does on one line, cut with an ellipsis when the name is long. */
+.dock > .button {
+  min-width: 0;
+}
+
+.dock > .button > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The bar of the workout in progress: two lines in the accent fill, the whole bar one
+   button. Line 1: the workout and its minutes; line 2: how far it is, and the way back. */
+.dock-bar {
+  min-height: 48px;
+  padding: 5px var(--space-4);
+  border-radius: var(--radius-button);
+  background: var(--accent-fill);
+  color: var(--on-accent);
+  display: grid;
+  align-content: center;
+  gap: 1px;
+  text-align: left;
+  transition: background-color var(--dur-fast) ease;
+}
+
+.dock-bar:active {
+  background: var(--accent-press);
+}
+
+.dock-bar > span {
+  min-width: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.dock-bar > span:first-child {
+  font-weight: 700;
+}
+
+.dock-bar > span:last-child {
+  font-size: var(--fs-meta);
+  font-weight: 600;
+}
+
+.dock-bar > span > :first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dock-bar > span > :last-child {
+  flex: none;
+}
+
 /* ---------- hold-drag (see enableHoldDrag in js/dom.js) ---------- */
 
 .drag-row,

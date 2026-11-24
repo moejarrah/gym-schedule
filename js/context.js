@@ -16,17 +16,29 @@ export const store = createStore();
 const views = new Map();
 const actions = new Map();
 const afterRenderHooks = [];
-let current = "round"; // the app opens on the Round tab
+let current = "round"; // the app opens on the round page (app.js: or on the workout in progress)
 let enteringTimer;
 
-// registerView("calendar", { markup(state), afterDraw?(main), tab?, reselect?(), back?() })
+// registerView("calendar", { markup(state), afterDraw?(main), tab?, reselect?(), back?(),
+//   dock?(state), banner?(state), landing?(state), arrive?(from), unavailable?(state) })
 // Every view draws its own top. `back`: see backStep below.
 // `tab`: the bottom tab that stays marked while a view without one of its own shows
-// (Settings belongs to "round"). `reselect`: called when the view's tab is tapped while
-// it is showing; it returns true when it did something (went back to its first page),
-// otherwise the screen scrolls to its top.
+// (Settings and the workout belong to "round", the Workout tab). `reselect`: called when
+// the view's tab is tapped while it is showing; it returns true when it did something
+// (went back to its first page), otherwise the screen scrolls to its top.
+// `dock`: the markup of the bottom button above the tab bar ("" for none). `banner`: what
+// the dock shows on every OTHER page while there is something to say (the workout in
+// progress); it takes the place of their own bottom button.
+// `landing`: the view a tap on this view's tab really opens ("" for itself).
+// `arrive(from)`: called when the view comes on screen from another one.
+// `unavailable`: true when the view has nothing to show; its tab's view shows instead.
 export function registerView(id, view) {
   views.set(id, view);
+}
+
+// Starts the app on another view than the round page (the workout in progress).
+export function openOn(id) {
+  if (views.has(id)) current = id;
 }
 
 export function registerActions(map) {
@@ -46,12 +58,42 @@ export function afterRender(hook) {
 }
 
 export const mainElement = () => document.querySelector("#appMain");
+export const dockElement = () => document.querySelector("#appDock");
+
+// The dock: one bottom button (or the bar of the workout in progress) above the tab bar.
+// It is redrawn only when what it says changes, and when it now does something else
+// where the finger just was, it ignores taps for a moment.
+let dockMarkup = "";
+let dockQuietUntil = 0;
+function drawDock(state, view) {
+  let markup = "";
+  for (const [id, other] of views) {
+    if (id !== current && other.banner) markup ||= other.banner(state) || "";
+  }
+  markup ||= view.dock?.(state) || "";
+  const dock = dockElement();
+  if (markup === dockMarkup) return;
+  if (dockMarkup && markup) dockQuietUntil = performance.now() + 400;
+  dockMarkup = markup;
+  dock.innerHTML = markup;
+  dock.hidden = !markup;
+}
+
+export function dockIsQuiet() {
+  return performance.now() < dockQuietUntil;
+}
 
 // `entering: "routine"`: another routine was picked, so what's under the routine
 // tabs fades in (the tabs stay still under the finger).
 export function render({ entering = "" } = {}) {
   const state = store.getState();
-  const view = views.get(current);
+  let view = views.get(current);
+  if (view.unavailable?.(state)) {
+    const from = current;
+    current = view.tab;
+    view = views.get(current);
+    view.arrive?.(from);
+  }
   document.body.dataset.currentView = current;
   const tab = view.tab || current;
   for (const button of document.querySelectorAll(".bottom-nav [data-view]")) {
@@ -67,9 +109,17 @@ export function render({ entering = "" } = {}) {
     clearTimeout(enteringTimer);
     enteringTimer = setTimeout(() => main.classList.remove("is-switching"), 220);
   }
+  drawDock(state, view);
   view.afterDraw?.(mainElement());
   for (const hook of afterRenderHooks) hook(state);
 }
+
+// The second tap of a double tap on the dock never lands on what replaced the first.
+dockElement().addEventListener("click", (event) => {
+  if (!dockIsQuiet()) return;
+  event.preventDefault();
+  event.stopPropagation();
+}, true);
 
 // Scrolls what's on screen back to its top, as tapping the tab you're on does on iPhone.
 export function scrollToTop() {
@@ -146,9 +196,10 @@ export function withMotion(kind, change) {
 }
 
 // What going back from the page on screen does, or null when there is nowhere to go
-// back to: a view's own answer (`back()` in registerView: Round's pages), or, for a page
-// that belongs to a tab (Settings), that tab. { apply(): the scroll position to return
-// to, revert() }: both only change what is shown next; drawing it is done here.
+// back to: a view's own answer (`back()` in registerView: Round's pages; the running
+// workout answers null, since its number boxes sit where the drag starts), or, for a
+// page that belongs to a tab (Settings), that tab. { apply(): the scroll position to
+// return to, revert() }: both only change what is shown next; drawing it is done here.
 function backStep() {
   const view = views.get(current);
   if (view.back) return view.back();
@@ -243,9 +294,10 @@ export function enableBackSwipe() {
 const tabOrder = () => [...document.querySelectorAll(".bottom-nav [data-view]")].map((button) => button.dataset.view);
 
 // Another screen. A neighbouring tab slides in from its side; a page that belongs to a
-// tab (Settings) comes in over it and goes back the way it came. `motion` says it for
-// the ways that aren't a tab tap ("push": Round's Start opens the workout; "pop": back
-// to Round after it). The tab already showing isn't redrawn: tapping it goes back to the top.
+// tab (Settings, the workout) comes in over it and goes back the way it came. `motion`
+// says it for the ways that aren't a tab tap ("push": the running bar opens the workout
+// from another tab; "pop"). The view already showing isn't redrawn: tapping its tab goes
+// back to the top.
 export function navigate(id, { motion = "" } = {}) {
   if (!views.has(id)) return;
   if (id === current) {
@@ -256,11 +308,20 @@ export function navigate(id, { motion = "" } = {}) {
   const toTab = views.get(id).tab || id;
   const order = tabOrder();
   const kind = motion || (fromTab === toTab ? (views.get(id).tab ? "push" : "pop") : order.indexOf(toTab) > order.indexOf(fromTab) ? "right" : "left");
+  const from = current;
   current = id;
+  views.get(id).arrive?.(from);
   withMotion(kind, () => {
     render();
     mainElement().scrollTop = 0;
   });
+}
+
+// A tap on a bottom tab: the tab's view, or where its `landing` says it really opens (the
+// Workout tab, while a workout runs, opens that workout).
+export function openTab(id) {
+  if (!views.has(id)) return;
+  navigate(views.get(id).landing?.(store.getState()) || id);
 }
 
 export function applyTheme(theme) {

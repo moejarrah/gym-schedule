@@ -10,7 +10,7 @@
 
 import { mainElement, navigate, registerActions, registerView, render, store } from "../context.js";
 import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, formatDate, fresh, openDialog, redraw, report, segmentValue } from "../dom.js";
-import { activeProgram, calendarWeek, dateFromKey, entryLog, exerciseById, fullName, localDateKey, longBreak, openRound, programRoutines, removeDayLog, roundProgram, routineById, routineProgram, sessionFor, setDay, setRoundNumber, startWorkout, workoutName } from "../model.js";
+import { activeProgram, calendarWeek, dateFromKey, entryLog, exerciseById, fullName, localDateKey, programRoutines, removeDayLog, roundProgram, routineById, routineProgram, sessionFor, setDay, startTodaysWorkout, startWorkout, workoutName } from "../model.js";
 import { overview } from "../progress.js";
 import { label } from "../vocab.js";
 import { openExerciseHistory } from "./history.js";
@@ -193,7 +193,7 @@ function routineRowMarkup(state, session, routine, dateKey, inactive = false) {
   const completion = selected && mainIds.length ? `${checkedMain}/${mainIds.length} main` : "";
   const minutes = selected ? minutesLabel(session.workouts[routine.id]?.minutes) : "";
   const running = state.settings.activeWorkout?.routineId === routine.id && state.settings.activeWorkout.dateKey === dateKey;
-  const context = [running ? "In progress: finish it on Workout" : "", routineProgram(state, routine.id).name, locationLabel(routine.group), inactive ? "Not followed" : "", completion, minutes].filter(Boolean).join(" · ");
+  const context = [running ? "In progress" : "", routineProgram(state, routine.id).name, locationLabel(routine.group), inactive ? "Not followed" : "", completion, minutes].filter(Boolean).join(" · ");
   return checkRowMarkup({ routineId: routine.id, checked: selected, name: routine.name, context, locked: running || dateKey > localDateKey() });
 }
 
@@ -327,21 +327,14 @@ registerActions({
   "backfill-workout": (button) => {
     const { id, date } = button.dataset;
     keepDayForm();
-    // For today it is an ordinary start: the Round tab asks first after a long break, and
-    // counting begins with it.
-    const state = store.getState();
-    const today = date === localDateKey() && !state.sessions[date]?.routineIds.includes(id);
-    if (today && longBreak(state)) {
-      closeDialog("#dayDialog");
-      navigate("round");
-      return;
-    }
+    // For today it is an ordinary start: counting begins with it, and after a long break
+    // the round carries on (the default answer). A past day answers nothing.
+    const today = date === localDateKey();
     if (!report(store.update((draft) => {
-      if (today && !openRound(draft)) setRoundNumber(draft, 1);
-      startWorkout(draft, id, date, Date.now(), date !== localDateKey());
+      if (today) startTodaysWorkout(draft, id);
+      else startWorkout(draft, id, date, Date.now(), true);
     }))) return;
     closeDialog("#dayDialog");
-    store.update((draft) => { draft.settings.activeRoutineId = id; });
     navigate("workout", { motion: "push" });
   },
   "edit-day-log": (button) => {

@@ -55,7 +55,9 @@ export function exerciseMarkup(exercise, savedName = "Missing exercise") {
 // A quiet row names only the movement (with its letter, if that's the setting).
 export const movementMarkup = (exercise, savedName = "Missing exercise") => (exercise ? lettered(exercise, exercise.name) : escapeHtml(savedName));
 
-// Logged sets in one short line: "60 × 10, 9, 8", "30 × 9 · 32.5 × 8 +1 drop", "45, 40 sec".
+// Logged sets in one short line, every weight with its unit: "60 kg × 10, 9, 8",
+// "30 kg × 9 · 32.5 kg × 8 +1 drop", "15, 13 reps", "45, 40 sec", "10 kg × 45 sec".
+// An assisted set keeps its minus ("-20 kg × 8").
 export function setsSummary({ sets, unit }) {
   const working = sets.some((set) => !set.warmup) ? sets.filter((set) => !set.warmup) : sets;
   const groups = [];
@@ -64,8 +66,9 @@ export function setsSummary({ sets, unit }) {
     else groups.push({ kg: set.kg, reps: [set.reps] });
   }
   const drops = sets.reduce((count, set) => count + set.drops.length, 0);
-  const text = groups.map(({ kg, reps }) => `${kg === null ? "" : `${formatKg(kg)} × `}${reps.join(", ")}`).join(" · ");
-  return `${text}${unit === "sec" ? " sec" : ""}${drops ? ` +${drops} drop${drops === 1 ? "" : "s"}` : ""}`;
+  const amount = (kg, reps) => `${reps.join(", ")}${unit === "sec" ? " sec" : kg === null ? " reps" : ""}`;
+  const text = groups.map(({ kg, reps }) => (kg === null ? amount(kg, reps) : `${formatKg(kg)} kg × ${amount(kg, reps)}`)).join(" · ");
+  return `${text}${drops ? ` +${drops} drop${drops === 1 ? "" : "s"}` : ""}`;
 }
 
 // One version under its movement's name in the Library: the setup alone, equipment spelled out.

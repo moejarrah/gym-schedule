@@ -64,7 +64,7 @@ appTest("Program: look first, then Edit: add a workout, add an exercise from the
   await expect(routineTab(page, "Day A")).toHaveAttribute("aria-pressed", "true");
   await doneEditing(page).click();
   await expect(editProgram(page, "Sample program")).toBeVisible();
-  // Everything is as it was, and none of it touched what Workout has selected.
+  // Everything is as it was, and none of it touched what the round page proposes.
   assert.deepEqual(await readState(page), sampleState());
 });
 

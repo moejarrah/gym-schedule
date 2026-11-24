@@ -5,7 +5,8 @@
 // name or visible text (never by CSS class, id or data-* attribute, and never by where
 // focus is), and check saved data by reading localStorage. Saved data goes in through
 // suite({ saved }) rather than by clicking, and "now" is Wednesday 2026-11-04 10:00 UTC.
-// The app opens on the Round tab; goToView() taps the bottom navigation.
+// The app opens on the Workout tab's round page (or on the workout in progress);
+// goToView() taps the bottom navigation.
 
 import assert from "node:assert/strict";
 import path from "node:path";
@@ -76,50 +77,68 @@ export const routineTab = (page, name) => main(page).getByRole("button", { name:
 /** Program's header button: it names the program on screen and opens the Programs sheet. */
 export const programPicker = (page, name) => main(page).getByRole("button", { name: new RegExp(`^Look at another program, showing ${escapeRegExp(name)}(, the one you're following)?$`) });
 
-/** Workout's Start button for the routine it previews (it reads "Start"; its name says which). */
-export const startButton = (page, routine) => main(page).getByRole("button", { name: `Start ${routine}`, exact: true });
+/**
+ * The bottom button above the tab bar (it isn't in the page itself): "Start Day A", "Log sets
+ * for …", "Finish workout", … It ignores taps for a moment after it changed what it does, so
+ * tap it with tapOnRound when it has just changed.
+ */
+export const bottomButton = (page, name) => page.getByRole("region", { name: "Next step" }).getByRole("button", { name, exact: typeof name === "string" });
 
-/** A row of the Round tab's "Workouts in this round" that isn't done yet: tapping it opens that workout on Workout. */
-export const roundRow = (page, routine) => main(page).getByRole("button", { name: new RegExp(`^${escapeRegExp(routine)}, not done(, next)?\\. Open it on Workout\\.$`) });
+/** The round page's bottom button that starts this workout. */
+export const startButton = (page, routine) => bottomButton(page, `Start ${routine}`);
+
+/** A row of the round page that isn't done yet: tapping it opens it in place. */
+export const roundRow = (page, routine) => main(page).getByRole("button", { name: new RegExp(`^${escapeRegExp(routine)}, not done(, next|, optional)?$`) });
+
+/** The bar of the workout in progress, above the tab bar on every page but the workout. */
+export const runningBar = (page) => page.getByRole("button", { name: /^.+ in progress, \d+ of \d+ done\. Back to the workout$/ });
 
 const settingsScope = (page) => page.getByRole("region", { name: "Settings" });
 
 const tab = (page, label) => page.getByRole("navigation", { name: "Main navigation" }).getByRole("button", { name: label, exact: true });
 
-/** Bottom navigation: Round, Workout, Program, Library or Log. The app opens on Round. */
+/**
+ * Bottom navigation: Workout, Program, Library or Log. The Workout tab opens the round page,
+ * or the workout in progress when there is one.
+ */
 export async function goToView(page, label) {
   await tab(page, label).click();
 }
 
-/** Waits until this is the tab showing (the app moves between tabs by itself, e.g. back to Round after a workout). */
+/** Waits until this is the tab showing (the app moves between tabs by itself, e.g. to the workout from Log). */
 export async function expectView(page, label) {
   await expect(tab(page, label)).toHaveAttribute("aria-current", "page");
 }
 
-/** Settings opens from the gear at the top of the Round tab. */
+/** The running workout's back link to the round page ("‹ Round 3"). */
+export const backToRound = (page) => main(page).getByRole("button", { name: /^Back to Round \d+$/ });
+
+/** Settings opens from the gear at the top of the round page. */
 export async function openSettings(page) {
   if (await settingsScope(page).isVisible()) return settingsScope(page);
-  await goToView(page, "Round");
-  // The gear is on the tab's first page. If the tab was left on All rounds or on one round,
-  // tapping the tab again returns there.
+  await goToView(page, "Workout");
+  // The gear is on the tab's first page. From a workout in progress, its back link goes
+  // there; from All rounds or one round, tapping the tab again does.
   const gear = main(page).getByRole("button", { name: "Settings", exact: true });
-  if (!(await gear.isVisible())) await tapOnRound(page, tab(page, "Round"));
+  if (await backToRound(page).isVisible()) await tapOnRound(page, backToRound(page));
+  else if (!(await gear.isVisible())) await tapOnRound(page, tab(page, "Workout"));
   await gear.click();
   await expect(settingsScope(page)).toBeVisible();
   return settingsScope(page);
 }
 
-/** Leaves Settings by its back link, which returns to the Round tab. */
+/** Leaves Settings by its back link, which returns to the round page. */
 export async function closeSettings(page) {
   await main(page).getByRole("button", { name: "Back to Round", exact: true }).click();
   await expect(settingsScope(page)).toBeHidden();
 }
 
 /**
- * A tap on the Round tab that swaps what it shows in place or moves on to Workout: "Start
- * counting", "Start <workout>", a row of the round's list, All rounds and back, a choice in
- * its sheet. The app then ignores taps on the screen for 400 ms, so that a double tap can't
- * land on a button the owner never saw. This taps and waits that out.
+ * A tap that changes what the bottom button does, or swaps what the round page shows: a
+ * row of the round's list, "Start <workout>", All rounds and back, a choice in its sheet,
+ * an exercise marked done. The app then ignores taps on the screen (and on the bottom
+ * button) for 400 ms, so that a double tap can't land on a button the owner never saw.
+ * This taps and waits that out.
  */
 export async function tapOnRound(page, button) {
   await button.click();

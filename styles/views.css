@@ -124,60 +124,44 @@ button.slot-line > svg {
   color: var(--accent);
 }
 
-/* Workout's header: what the workout is to the round, over its name; on the right
-   Start, or while it runs Cancel and the stopwatch. Compact pills, not full-size buttons. */
+/* The workout's header is the round page's (.round-head): the way back and Finish, the
+   name and its stopwatch, a bar with a segment per main exercise, how many are done.
+   It doesn't scroll with the list. */
 .workout-head {
-  min-height: 56px;
-  padding: 6px var(--space-4) 0 var(--gutter);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-content: center;
-  align-items: center;
-  column-gap: var(--space-2);
-  flex: none;
-}
-
-.workout-control {
-  grid-area: 1 / 2 / span 2;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-/* An extra workout also names its program: that line gets the full width. */
-.workout-head.is-guest > .label {
-  grid-column: 1 / -1;
-}
-
-.workout-head.is-guest > .workout-control {
-  grid-area: 2 / 2;
-}
-
-.workout-head .button {
-  min-height: var(--tap);
-  padding: 0 var(--space-4);
-  border-radius: var(--radius-pill);
-  flex: none;
-  font-size: var(--fs-small);
-}
-
-.workout-head .button.text {
-  padding-inline: var(--space-2);
-}
-
-.workout-clock {
-  flex: none;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-/* Under the header, one line: how many exercises, and when it was last done. */
-.workout-facts {
-  padding-inline: var(--gutter);
+  padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--line);
-  color: var(--text-muted);
   flex: none;
-  font-size: var(--fs-meta);
+}
+
+.workout-head .round-title > h1 {
+  font-size: var(--fs-sheet);
+}
+
+/* The open exercise's three tools: one row of three equal cells, a tap target each. */
+.slot-tools {
+  min-height: var(--tap);
+  margin-top: var(--space-2);
+  border-radius: var(--radius-button);
+  background: var(--surface-2);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+}
+
+.slot-tools > * {
+  min-height: var(--tap);
+  display: grid;
+  place-items: center;
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.slot-tools > :active {
+  background: var(--press);
+}
+
+.slot-tools > * + * {
+  border-left: 1px solid var(--line);
 }
 
 /* An Optional block, and "You sometimes add": a dashed outline drawn around the
@@ -212,11 +196,39 @@ button.slot-line > svg {
   padding-left: var(--gutter);
 }
 
-/* Under the list: Start workout, or Add exercise for today and Finish workout. */
+/* Under the list: Add exercise for today; last of all, Cancel workout (quiet). */
 .workout-actions {
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-5) var(--gutter) var(--space-4);
+  padding: var(--space-4) var(--gutter) var(--space-2);
+}
+
+.workout-actions > .button,
+.workout-end > .button {
+  justify-content: flex-start;
+  padding-inline: 0;
+}
+
+.workout-actions > .button {
+  color: var(--accent);
+}
+
+.workout-end {
+  padding: var(--space-4) var(--gutter) var(--space-2);
+}
+
+/* "Use today" on a choice: the same room on every row, "Today" on the one shown. */
+.choice-use {
+  min-width: 76px;
+  flex: none;
+  justify-content: center;
+  align-self: center;
+  font-size: var(--fs-meta);
+}
+
+.row-action.choice-use.is-current {
+  color: var(--text-muted);
+  text-align: center;
 }
 
 .workout-actions svg {
@@ -228,41 +240,6 @@ button.slot-line > svg {
   stroke-linecap: round;
 }
 
-/* Finish summary: one group per state; tap a group to see what's in it. */
-.finish-group {
-  border-radius: var(--radius-card);
-  background: var(--surface-2);
-}
-
-.finish-group summary {
-  min-height: 52px;
-  padding: 0 var(--space-4);
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  font-weight: 600;
-}
-
-.finish-group summary > span {
-  flex: 1;
-}
-
-.finish-group summary > svg {
-  width: 20px;
-  height: 20px;
-  color: var(--faint);
-  transition: transform 120ms ease;
-}
-
-.finish-group[open] summary > svg {
-  transform: rotate(180deg);
-}
-
-.finish-group > :not(summary) {
-  margin: 0;
-  padding: var(--space-2) var(--space-4);
-  border-top: 1px solid var(--line);
-}
 
 /* ---------- Program ---------- */
 
@@ -1003,14 +980,21 @@ a > svg {
   gap: 6px;
 }
 
+/* Last time's set, with its unit; it wraps between the weight and the reps when the
+   column is too narrow for one line. */
 .log-last {
   min-width: var(--tap);
   min-height: var(--tap);
   color: var(--text-muted);
   justify-self: start;
   display: inline-flex;
+  flex-wrap: wrap;
+  align-content: center;
   align-items: center;
-  white-space: nowrap;
+  column-gap: 0.3em;
+  font-size: var(--fs-small);
+  line-height: 1.2;
+  text-align: left;
 }
 
 .log-last.is-empty {
@@ -1452,6 +1436,58 @@ details.form-section > summary + * {
 /* Under the program: its dates, then its weeks, a line each. */
 .round-cols .row-meta {
   white-space: nowrap;
+}
+
+/* The round page's list: one row open, its number stronger and its lines under it
+   (where the name starts), as an open exercise on the workout. */
+.round-row.is-open:not(.is-done) > .tickbox {
+  border-color: var(--text);
+  color: var(--text);
+}
+
+/* A row that opens a round's own page ("Round 3 complete"): set apart from the list,
+   with what the round came to on a line of its own. */
+.round-complete {
+  margin-bottom: var(--space-2);
+}
+
+
+/* Before anything is counted: what a round is, in one sentence over the list. */
+.round-intro {
+  padding: 0 var(--gutter) var(--space-3);
+}
+
+/* Back after a long break: a small label, what happened, and which round this is. */
+.round-news {
+  padding: 0 var(--gutter) var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--fs-small);
+}
+
+.round-switch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.round-switch > span {
+  color: var(--text-muted);
+}
+
+/* At 320 wide the switch goes under "This is", so each answer keeps its room. */
+.round-switch > .segment {
+  flex: 1 1 240px;
+}
+
+.round-switch .segment button {
+  white-space: nowrap;
+}
+
+/* Under the list: another program's workout, Rounds and blocks, setting the round. */
+.round-foot {
+  margin-top: var(--space-4);
 }
 
 /* The open round's number is outlined in the accent colour; a fill means done. */

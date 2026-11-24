@@ -1,5 +1,5 @@
-// Logging sheet: today's sets for one routine slot, opened from its number on
-// Workout. It shows the exercise's last three sessions from any routine, one row
+// Logging sheet: today's sets for one routine slot, opened from its number (or the
+// bottom button) on the workout. It shows the exercise's last three sessions from any routine, one row
 // per set (last time, weight, reps, tick) with drop chains under a set (each drop
 // can be removed), and Done, which marks the slot done. Ticking a set saves it
 // straight away; empty fields take the grey suggestion from last time.
@@ -150,9 +150,11 @@ function rowMarkup({ setIndex, dropIndex, row, last, timed }) {
   const lastTimed = last?.unit === "sec";
   // Assistance is typed with a minus sign, which the number pad doesn't have.
   const assisted = exerciseById(store.getState(), current(store.getState()).choice.exerciseId)?.weightMode === "assistance";
-  const shown = lastLift ? liftText(lastLift, lastTimed).replace(" kg", "") : "";
+  // With its unit: "17.5 kg × 14". In a narrow column the weight and the reps take a line each.
+  const shown = lastLift ? liftText(lastLift, lastTimed) : "";
+  const pieces = lastLift?.kg != null ? [`${formatKg(lastLift.kg)} kg`, shown.slice(`${formatKg(lastLift.kg)} kg `.length)] : [shown];
   const lastValue = lastLift
-    ? `<button class="log-last" type="button" data-action="log-use-last" ${data} aria-label="${escapeHtml(shown)}, copy last time to ${name}">${escapeHtml(shown)}</button>`
+    ? `<button class="log-last" type="button" data-action="log-use-last" ${data} aria-label="${escapeHtml(shown)}, copy last time to ${name}">${pieces.map((piece) => `<span class="nowrap">${escapeHtml(piece)}</span>`).join(" ")}</button>`
     : `<span class="log-last is-empty" aria-hidden="true">—</span>`;
   const best = !isDrop && isSaved(setIndex, -1) && !row.warmup && isNewBest(store.getState(), current(store.getState()).choice.exerciseId, { kg: row.kg === "" ? null : Number(row.kg), reps: Number(row.reps), drops: [] }, sheet.dateKey);
   const lastCell = isDrop ? `<span class="log-last-cell"><span class="label accent">Drop</span>${lastValue}</span>`
@@ -398,16 +400,21 @@ function undoDone() {
 
 // Opens the sheet for a slot (or an exercise added that day) on a date: the day of
 // the workout in progress, or a past day opened from Log to fix its sets.
-export function openLogger(routineId, entryId, dateKey) {
+// `exerciseId`: the choice the slot was swapped to for today. With sets already saved
+// as another choice, switching to it asks first (see choose).
+export function openLogger(routineId, entryId, dateKey, { exerciseId = "" } = {}) {
   const state = store.getState();
   Object.assign(sheet, { routineId, entryId, dateKey, choiceIndex: 0 });
   const found = current(state);
   if (!found) return;
   const log = entryLog(state, sheet.dateKey, entryId);
+  const wanted = found.entry.choices.findIndex((choice) => choice.exerciseId === exerciseId);
   sheet.choiceIndex = Math.max(0, found.entry.choices.findIndex((choice) => choice.exerciseId === log?.exerciseId));
+  if (!log && wanted >= 0) sheet.choiceIndex = wanted;
   loadRows(state);
   refresh();
   openDialog("#logDialog");
+  if (log && wanted >= 0 && wanted !== sheet.choiceIndex) choose(wanted);
 }
 
 // The row a button or field belongs to: [setIndex, dropIndex], with -1 for the set itself.

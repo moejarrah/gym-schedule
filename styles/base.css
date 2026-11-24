@@ -1,5 +1,5 @@
 /* Base: fonts, the design tokens for both themes, element defaults, the page shell
-   (app bar, scrolling main area, bottom navigation) and the scroll areas.
+   (app bar, scrolling main area, the dock, bottom navigation) and the scroll areas.
    docs/DESIGN.md describes the look; use these tokens rather than new values.
 
    The three files load in this order:
@@ -10,6 +10,7 @@
                      .row-number .row-action .chev .grip) .section-label .label-row
                      .card .note .more .empty .bar .routine-tabs .set-chips .sheet
                      (+ .sheet-panel .sheet-head .sheet-body .actions) .confirm .toast,
+                     the dock's button and .dock-bar,
                      hold-drag, and the utilities .tap .contents .stack .ruled
                      .truncate .clamp-2 .faint .danger .up .down .visually-hidden
      views.css       what is left that only one screen or sheet needs */
@@ -101,6 +102,7 @@
   --gutter: 20px; /* side padding of screens and sheets */
   --tap: 44px; /* smallest tap target */
   --nav-height: 58px;
+  --dock-height: 64px; /* the bottom button above the tab bar, with its padding */
 
   /* Corner radii */
   --radius-chip: 7px; /* set chips, tags */
@@ -318,9 +320,15 @@ a:focus-visible,
 }
 
 #appMain {
+  --below: calc(var(--nav-height) + env(safe-area-inset-bottom));
   min-height: 0;
-  padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + var(--space-5));
-  scroll-padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + var(--space-5));
+  padding-bottom: calc(var(--below) + var(--space-5));
+  scroll-padding-bottom: calc(var(--below) + var(--space-5));
+}
+
+/* With the dock on screen, a page ends above it. */
+.app-shell:has(> .dock:not([hidden])) > #appMain {
+  --below: calc(var(--nav-height) + env(safe-area-inset-bottom) + var(--dock-height));
 }
 
 /* A screen that fills the main area and scrolls a list inside it (Workout, Library). */
@@ -339,6 +347,29 @@ a:focus-visible,
   flex: 1;
 }
 
+/* The dock: one bottom button that names the next thing to do (the round page, the
+   workout), or the bar of the workout in progress on every other page. It sits on the
+   bottom navigation and, like it, never moves when the page changes. */
+.dock {
+  position: fixed;
+  inset: auto 0 calc(var(--nav-height) + env(safe-area-inset-bottom));
+  height: var(--dock-height);
+  padding: var(--space-2) max(var(--space-4), env(safe-area-inset-right)) var(--space-2) max(var(--space-4), env(safe-area-inset-left));
+  background: var(--bg);
+  border-top: 1px solid var(--line-soft);
+  display: flex;
+  z-index: var(--z-nav);
+}
+
+.dock[hidden] {
+  display: none;
+}
+
+.dock > * {
+  width: 100%;
+  min-width: 0;
+}
+
 .bottom-nav {
   position: fixed;
   inset: auto 0 0;
@@ -347,7 +378,7 @@ a:focus-visible,
   background: var(--nav-bg);
   border-top: 1px solid var(--line);
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   z-index: var(--z-nav);
 }
 

@@ -1,74 +1,83 @@
-// Workout screen: one workout. Until it is started, the selected routine as a
-// read-only preview with Start; from Start to "Finish workout" the running one,
-// whatever else is selected: a slot's number opens its logging sheet, its sets show
-// at the end of its row, and exercises can be added for that day only. Also here:
-// the finish summary and the exercise-choices sheet of multi-choice slots. The round,
-// which workout is next and the choice of program are the Round tab's.
+// The workout in progress: a page of the Workout tab, pushed in from the round page and
+// left by its back link ("‹ Round 3") while the workout keeps running (no drag from the
+// edge: the number boxes sit there). From Start to Finish: the header says how far it is
+// (a bar with one segment per main exercise); a slot's number opens its logging sheet,
+// its sets show at the end of its row, one slot at a time is open, and exercises can be
+// added for that day only. The bottom button logs the open exercise, then finishes.
+// Finish is always at the top right and asks nothing once anything is logged.
+// Also here: the bar of the workout in progress that every other page shows, the result
+// sheet after Finish (also opened from the round page), the exercise-choices sheet,
+// swapping a slot to another of its choices for today, and keeping the screen on.
 
 import { afterRender, navigate, registerActions, registerView, render, store } from "../context.js";
-import { $, chevronIcon, closeDialog, confirmAction, escapeHtml, fresh, openDialog, playIcon, plural, redraw, report, toast } from "../dom.js";
-import { activeProgram, activeRoutine, activeWorkout, addExtra, backupAge, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseById, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, lastFinished, localDateKey, longBreak, openRound, orderedEntries, roundSummary, routineById, routineProgram, setRoundNumber, startWorkout, usualExtras } from "../model.js";
+import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, fresh, openDialog, playIcon, plural, redraw, report, toast } from "../dom.js";
+import { activeWorkout, addExtra, backupAge, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseById, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, localDateKey, orderedEntries, roundSummary, routineById, routineProgram, usualExtras, workoutHasWork, workoutProgress } from "../model.js";
 import { compareSets, exerciseMode, exerciseProgress } from "../progress.js";
 import { openPicker } from "./entry-editor.js";
 import { openLogger } from "./logger.js";
 import { openExerciseReference, openExerciseVideo } from "./reference.js";
-import { alternativeNames, entryPresentation, exerciseFactLines, exerciseMarkup, movementMarkup, roundName, saysOptional, setChipsMarkup, setsSummary, shortDate, slotLine, slotLinkLine, slotMotion, videoUrl } from "./shared.js";
-
-// When Start was last tapped (page time), to ignore a double-tap landing on Cancel.
-let startedTapAt = -Infinity;
+import { alternativeNames, entryPresentation, exerciseFactLines, exerciseMarkup, movementMarkup, saysOptional, setChipsMarkup, setsSummary, shortDate, slotLine, slotLinkLine, slotMotion, videoUrl } from "./shared.js";
 
 // The routine slot shown in the open choices sheet.
 const choicesSheet = { routineId: "", entryId: "" };
 
 const plusIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>`;
 
-// The routine on screen: the one whose workout is running, otherwise the selected one.
-const shownRoutine = (state) => (activeWorkout(state) ? routineById(state, activeWorkout(state).routineId) : activeRoutine(state));
+// What the screen remembers about the workout in progress, forgotten when it ends:
+// `chosen`, the owner's own choice of open slot ({ slotId ("" = none open), wasDone,
+// doneIds }); `swaps`, the choice a slot was swapped to for today (slot id → exercise
+// id) until a set of it is saved (the saved log then records which choice was done).
+const memory = { key: "", chosen: null, swaps: {} };
+function remember(workout) {
+  const key = workout ? `${workout.routineId} ${workout.dateKey} ${workout.startedAt}` : "";
+  if (key !== memory.key) Object.assign(memory, { key, chosen: null, swaps: {} });
+  return memory;
+}
 
-// The day of the workout in progress; "" while the screen is a preview.
-const workoutDay = (state) => activeWorkout(state)?.dateKey || "";
+// The stopwatch: whole minutes since Start ("34 min", "1 h 05 min").
+function elapsedText(startedAt) {
+  const minutes = Math.max(0, Math.floor((Date.now() - startedAt) / 60000));
+  return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")} min`;
+}
+
+// What stands where the stopwatch is: the minutes; "for <date>" for a workout logged for
+// a past day; nothing for a reopened one.
+function clockMarkup(workout) {
+  if (workout.reopened) return "";
+  if (workout.backdated || workout.dateKey !== localDateKey()) return `<span>for ${escapeHtml(shortDate(workout.dateKey))}</span>`;
+  return `<span data-elapsed>${elapsedText(workout.startedAt)}</span>`;
+}
+
+// The exercise a slot shows: the choice logged today, else the one it was swapped to
+// for today, else its preferred choice.
+function shownChoice(state, slot, dateKey, { choices, preferred } = entryPresentation(slot, state)) {
+  const log = entryLog(state, dateKey, slot.id);
+  const swapped = memory.swaps[slot.id];
+  return choices.find((item) => item.exercise && item.exercise.id === log?.exerciseId)
+    || choices.find((item) => item.exercise && item.exercise.id === swapped)
+    || preferred;
+}
 
 // ---------- markup ----------
 
-// The header: what this workout is to the round, over its name; at the right its one
-// control (Start or Reopen; while it runs, Cancel and the stopwatch). Under it one
-// line with a fact at each end.
-function headMarkup(state, routine) {
-  const workout = activeWorkout(state);
-  const todayKey = localDateKey();
-  const summary = roundSummary(state);
-  const open = summary.counting ? summary : null;
-  // What today's Log keeps of this routine when it was already finished today.
-  const record = !workout && state.sessions[todayKey]?.routineIds.includes(routine.id) ? state.sessions[todayKey].workouts[routine.id] || {} : null;
-  // A round is named only when it is known: a reopened workout stays in the round it was
-  // filed in, and one logged for a past day joins the round that was open on that day.
-  const filed = (tag) => (tag?.round ? { number: tag.round, block: tag.block || 1 } : null);
-  const [round, what] = workout
-    ? [workout.reopened ? filed(workout.reopened) : workout.backdated ? null : open, workout.guest ? `extra workout · ${routineProgram(state, routine.id).name}` : "in progress"]
-    : record
-      ? [filed(record), "done today"]
-      : [open, summary.remaining[0]?.id === routine.id ? "next workout" : "workout"];
-  const eyebrow = round ? `${roundName(round)} · ${what}` : what.charAt(0).toUpperCase() + what.slice(1);
-  const last = record ? todayKey : lastFinished(state, routine.id, workout?.dateKey || todayKey);
-  return `<header class="workout-head ${workout?.guest ? "is-guest" : ""}">
-      <p class="label">${escapeHtml(eyebrow)}</p>
-      <h2 class="bar-title truncate">${escapeHtml(routine.name)}</h2>
-      <div class="workout-control">${controlMarkup(workout, routine, Boolean(record))}</div>
-    </header>
-    <div class="label-row workout-facts">
-      <span>${plural(daySlots(state, routine, workoutDay(state)).length, "exercise")}</span>
-      <span>${last ? `last done ${escapeHtml(shortDate(last))}` : "not done yet"}</span>
-    </div>`;
-}
-
-function controlMarkup(workout, routine, doneToday) {
-  if (workout) {
-    const clock = workout.reopened ? "" : workout.backdated || workout.dateKey !== localDateKey()
-      ? `<span class="workout-clock">for ${escapeHtml(shortDate(workout.dateKey))}</span>`
-      : `<span class="workout-clock" data-elapsed>${elapsedText(workout.startedAt)}</span>`;
-    return `<button class="button text" type="button" data-action="cancel-workout">${workout.reopened ? "Close again" : "Cancel"}</button>${clock}`;
-  }
-  return `<button class="button primary" type="button" data-action="start-workout" data-id="${escapeHtml(routine.id)}" aria-label="${doneToday ? "Reopen today's workout" : `Start ${escapeHtml(routine.name)}`}">${doneToday ? "Reopen" : "Start"}</button>`;
+// The header: the way back and Finish; the workout's name with its stopwatch; for an
+// extra, its program; a bar with a segment per main exercise; how many are done.
+function headMarkup(state, workout, progress) {
+  const { routine, counted, done, optional, isDone } = progress;
+  const round = `Round ${roundSummary(state).number}`;
+  return `<header class="round-head workout-head">
+    <div class="round-top">
+      <button class="link-button" type="button" data-action="workout-back" aria-label="Back to ${round}">${chevronIcon("left")}${round}</button>
+      <button class="program-mode" type="button" data-action="finish-workout" aria-label="Finish ${escapeHtml(routine.name)}"><span>Finish</span></button>
+    </div>
+    <div class="round-title">
+      <h1 class="truncate">${escapeHtml(routine.name)}</h1>
+      ${clockMarkup(workout)}
+    </div>
+    ${workout.guest ? `<p class="label">Extra · ${escapeHtml(routineProgram(state, routine.id)?.name || "")}</p>` : ""}
+    <div class="round-bar" aria-hidden="true">${counted.map((slot) => `<i${isDone(slot) ? ` class="is-done"` : ""}></i>`).join("")}</div>
+    <p class="round-facts"><span>${done} of ${plural(counted.length, "exercise")} done</span><span>${optional ? `${optional} optional` : ""}</span></p>
+  </header>`;
 }
 
 function routineNoteMarkup(note) {
@@ -79,41 +88,26 @@ function routineNoteMarkup(note) {
   </details>`;
 }
 
-// Nothing to show or do here yet: the way on is the Program tab.
-function emptyMarkup(title, text, look = "primary") {
-  return `<div class="empty"><h3>${title}</h3><p>${text}</p><button class="button ${look}" type="button" data-view="routines">Go to Program</button></div>`;
-}
-
-// The list keeps its scroll position while the same routine is shown, so ticking
-// a slot doesn't jump; another routine starts at its first exercise.
+// The list keeps its scroll position while the same workout is shown, so ticking a
+// slot doesn't jump.
 function pageMarkup(state) {
-  const program = activeProgram(state);
-  const routine = shownRoutine(state);
-  if (!routine) {
-    return `<section class="page fills">${program
-      ? emptyMarkup("No workout selected", `${escapeHtml(program.name)} has no workouts yet. Add the first one in Program.`)
-      : emptyMarkup("No program yet", "Add a program and its workouts in Program.")}</section>`;
-  }
+  const workout = activeWorkout(state);
+  remember(workout);
+  const progress = workoutProgress(state, workout);
+  const { routine } = progress;
   return `<section class="page fills">
-    ${headMarkup(state, routine)}
+    ${headMarkup(state, workout, progress)}
     ${routineNoteMarkup(routine.note)}
-    ${routine.entries.length || activeWorkout(state)
-      ? `<div class="scroll" data-keep-scroll="workout-${escapeHtml(routine.id)}">${listMarkup(state, routine)}</div>`
-      : emptyMarkup("No exercises yet", "Add this workout's exercises in Program.", "")}
+    <div class="scroll" data-keep-scroll="workout-${escapeHtml(routine.id)}">${listMarkup(state, routine, workout)}</div>
   </section>`;
 }
 
-function listMarkup(state, routine) {
-  const dateKey = workoutDay(state);
-  const todayKey = localDateKey();
-  const extras = dateKey ? dayExtras(state, dateKey, routine.id) : [];
-  const usual = usualExtras(state, routine.id, dateKey || todayKey);
-  const action = dateKey
-    ? `<div class="workout-actions">
-        <button class="button text" type="button" data-action="pick-extra">${plusIcon}Add exercise for today</button>
-        <button class="button primary" type="button" data-action="review-workout">Finish workout</button>
-      </div>`
-    : "";
+// The blocks, what was added for today, then the way to add more and, last of all, the
+// way out without filing it.
+function listMarkup(state, routine, workout) {
+  const { dateKey } = workout;
+  const extras = dayExtras(state, dateKey, routine.id);
+  const usual = usualExtras(state, routine.id, dateKey);
   const firstExtraNumber = orderedEntries(routine).length + 1;
   return `
     ${routine.blocks.map((block) => blockMarkup(state, routine, block, dateKey)).join("")}
@@ -121,6 +115,9 @@ function listMarkup(state, routine) {
       <div class="label section-label"><span>Added today</span></div>
       ${extras.map((extra, index) => slotMarkup(state, routine, findSlot(state, routine.id, extra.id, dateKey), firstExtraNumber + index, dateKey)).join("")}
     </section>` : ""}
+    <div class="workout-actions">
+      <button class="button text" type="button" data-action="pick-extra">${plusIcon}Add exercise for today</button>
+    </div>
     ${usual.length ? `<section class="workout-group">
       <div class="label section-label"><span>You sometimes add</span></div>
       ${usual.map(({ exercise, count }) => `<div class="row split">
@@ -128,52 +125,33 @@ function listMarkup(state, routine) {
         <button class="icon-button" type="button" data-action="add-extra" data-id="${escapeHtml(exercise.id)}" aria-label="Add ${escapeHtml(fullName(exercise))} for today">${plusIcon}</button>
       </div>`).join("")}
     </section>` : ""}
-    ${action}`;
+    <div class="workout-end">
+      <button class="button text" type="button" data-action="cancel-workout">${workout.reopened ? "Close again" : "Cancel workout"}</button>
+    </div>`;
 }
-
-// The stopwatch: whole minutes since Start ("34 min", "1 h 05 min").
-function elapsedText(startedAt) {
-  const minutes = Math.max(0, Math.floor((Date.now() - startedAt) / 60000));
-  return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")} min`;
-}
-
-setInterval(() => {
-  const workout = activeWorkout(store.getState());
-  const label = $("[data-elapsed]");
-  if (workout && label) label.textContent = elapsedText(workout.startedAt);
-}, 10000);
 
 // ---------- a slot ----------
 // The list is quiet: a slot is its number, its movement and its sets. One slot at a
-// time is open, showing the rest (setup, last time, note, alternatives) in place.
-// While a workout runs the app opens the first slot not done yet; tapping a row
-// opens that one instead, and tapping the open one closes it.
-
-// The owner's own choice: { routineId, slotId ("" = none open), wasDone, doneIds }.
-// It ends with the workout.
-let chosen = null;
-
-const daySlots = (state, routine, dateKey) => [
-  ...orderedEntries(routine),
-  ...(dateKey ? dayExtras(state, dateKey, routine.id).map((extra) => findSlot(state, routine.id, extra.id, dateKey)) : []),
-];
+// time is open, showing the rest (setup, last time, note, the choice to swap to) in
+// place. The first slot not done is open by itself (none once every main exercise is
+// done); tapping a row opens that one instead, and tapping the open one closes it.
 
 function openSlotId(state, routine, dateKey) {
-  const done = (slotId) => Boolean(dateKey) && isEntryChecked(state, dateKey, routine.id, slotId);
-  const slots = daySlots(state, routine, dateKey);
+  const progress = workoutProgress(state);
+  const { slots, isDone } = progress;
+  const { chosen } = memory;
   // The choice stands until the chosen slot gets done; then the next one opens by itself.
-  if (chosen?.routineId === routine.id && (chosen.slotId === "" || slots.some((slot) => slot.id === chosen.slotId)) && (chosen.slotId === "" ? !slots.some((slot) => done(slot.id) && !chosen.doneIds.includes(slot.id)) : done(chosen.slotId) === chosen.wasDone)) return chosen.slotId;
-  return dateKey ? slots.find((slot) => !done(slot.id))?.id || "" : "";
+  if (chosen && (chosen.slotId === "" || slots.some((slot) => slot.id === chosen.slotId)) && (chosen.slotId === "" ? !slots.some((slot) => isDone(slot) && !chosen.doneIds.includes(slot.id)) : isDone({ id: chosen.slotId }) === chosen.wasDone)) return chosen.slotId;
+  return progress.next?.id || "";
 }
 
-// One slot of the routine, or an exercise added for the day. Outside a workout
-// (no dateKey) it shows no progress and can't be logged.
+// One slot of the routine, or an exercise added for the day.
 function slotMarkup(state, routine, slot, number, dateKey, showOptionalRole = false) {
-  const { choices, preferred, title: name } = entryPresentation(slot, state);
-  const checked = Boolean(dateKey) && isEntryChecked(state, dateKey, routine.id, slot.id);
-  const log = dateKey ? entryLog(state, dateKey, slot.id) : null;
-  // What was logged today is the exercise the slot shows; otherwise its preferred choice.
-  const shown = choices.find((item) => item.exercise && item.exercise.id === log?.exerciseId) || preferred;
+  const presentation = entryPresentation(slot, state);
+  const { choices, title: name } = presentation;
+  const checked = isEntryChecked(state, dateKey, routine.id, slot.id);
+  const log = entryLog(state, dateKey, slot.id);
+  const shown = shownChoice(state, slot, dateKey, presentation);
   const others = choices.filter((item) => item !== shown);
   const status = checked ? ", done" : log ? `, ${plural(log.sets.length, "set")} logged` : "";
   const open = openSlotId(state, routine, dateKey) === slot.id;
@@ -195,25 +173,29 @@ function slotMarkup(state, routine, slot, number, dateKey, showOptionalRole = fa
   if (!open) return row;
 
   const exercise = shown.exercise;
-  const last = exercise ? exerciseHistory(state, exercise.id, { beforeDateKey: dateKey || localDateKey(), limit: 1 })[0] : null;
+  const last = exercise ? exerciseHistory(state, exercise.id, { beforeDateKey: dateKey, limit: 1 })[0] : null;
   const note = slot.note.trim();
-  const line = slotLine;
-  const linkLine = slotLinkLine;
+  const id = escapeHtml(exercise?.id || "");
+  // One alternative: the line swaps to it. Several: it opens the choices, to pick one.
+  const swapNames = alternativeNames(others, exercise).map(escapeHtml).join(", ");
+  const swap = others.length === 1
+    ? slotLinkLine("Swap to", swapNames, `data-action="swap-choice" ${data} data-exercise-id="${escapeHtml(others[0].exercise?.id || "")}" aria-label="Swap to ${escapeHtml(others[0].name)} for today"`)
+    : slotLinkLine("Swap to", swapNames, `data-action="open-entry-choices" ${data} aria-label="Open exercise choices for ${escapeHtml(name)}"`);
   const video = exercise?.videoId
-    ? `<a class="button" href="${videoUrl(exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for preferred choice ${escapeHtml(shown.name)}">Video</a>`
-    : `<button class="button" type="button" data-action="open-workout-video" data-id="${escapeHtml(exercise?.id || "")}" aria-label="Find a video for preferred choice ${escapeHtml(shown.name)}">Video</button>`;
+    ? `<a href="${videoUrl(exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for preferred choice ${escapeHtml(shown.name)}">Video</a>`
+    : `<button type="button" data-action="open-workout-video" data-id="${id}" aria-label="Find a video for preferred choice ${escapeHtml(shown.name)}">Video</button>`;
   return `<div class="slot-open" data-open-slot>
     ${row}
     <div class="slot-detail" data-slot="${escapeHtml(slot.id)}">
-      ${exerciseFactLines(exercise, shown.prescription).map(([name, value]) => line(name, value)).join("")}
-      ${line("Today", log ? `<span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec" })}</span>` : "")}
-      ${linkLine("Last time", last ? `${escapeHtml(setsSummary(last))}<small>${escapeHtml(shortDate(last.dateKey))}</small>` : "", `data-action="view-history" data-id="${escapeHtml(exercise?.id || "")}" aria-label="Last time ${last ? escapeHtml(`${setsSummary(last)}, ${shortDate(last.dateKey)}`) : ""}. Open history of ${escapeHtml(shown.name)}"`)}
-      ${line("Note", escapeHtml(note))}
-      ${linkLine(others.length > 1 ? "Alternatives" : "Alternative", alternativeNames(others, exercise).map(escapeHtml).join(", "), `data-action="open-entry-choices" ${data} aria-label="Open exercise choices for ${escapeHtml(name)}"`)}
-      <div class="actions">
-        ${dateKey ? `<button class="button primary" type="button" data-action="open-logger" data-routine-id="${escapeHtml(routine.id)}" data-id="${escapeHtml(slot.id)}">Log sets</button>` : ""}
-        <button class="button" type="button" data-action="open-workout-exercise" data-id="${escapeHtml(exercise?.id || "")}" ${data} data-prescription="${escapeHtml(shown.prescription)}" aria-label="Open exercise page for ${escapeHtml(shown.name)}">Details</button>
+      ${exerciseFactLines(exercise, shown.prescription).map(([label, value]) => slotLine(label, value)).join("")}
+      ${slotLine("Today", log ? `<span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec" })}</span>` : "")}
+      ${slotLinkLine("Last time", last ? `${escapeHtml(setsSummary(last))}<small>${escapeHtml(shortDate(last.dateKey))}</small>` : "", `data-action="view-history" data-id="${id}" aria-label="Last time ${last ? escapeHtml(`${setsSummary(last)}, ${shortDate(last.dateKey)}`) : ""}. Open history of ${escapeHtml(shown.name)}"`)}
+      ${slotLine("Note", escapeHtml(note))}
+      ${swap}
+      <div class="slot-tools">
+        <button type="button" data-action="open-workout-exercise" data-id="${id}" ${data} data-prescription="${escapeHtml(shown.prescription)}" aria-label="Open exercise page for ${escapeHtml(shown.name)}">Details</button>
         ${video}
+        <button type="button" data-action="view-history" data-id="${id}" aria-label="History of ${escapeHtml(shown.name)}">History</button>
       </div>
     </div>
   </div>`;
@@ -236,17 +218,26 @@ function blockMarkup(state, routine, block, dateKey) {
   </section>`;
 }
 
+// While a workout runs, the sheet also lets one choice be picked for today.
 function entryChoicesMarkup(state, routine, entry) {
+  const workout = activeWorkout(state);
+  const running = workout?.routineId === routine.id;
+  const shownId = running ? shownChoice(state, entry, workout.dateKey).exercise?.id : "";
   const rows = entryPresentation(entry, state).choices.map((item, index) => {
     const video = item.exercise.videoId
       ? `<a class="icon-button is-linked" href="${videoUrl(item.exercise.videoId)}" target="_blank" rel="noopener noreferrer" aria-label="Watch video for ${escapeHtml(item.name)}"><span class="play">${playIcon()}</span></a>`
       : `<button class="icon-button" type="button" data-action="open-choice-video" data-index="${index}" aria-label="Find a video for ${escapeHtml(item.name)}"><span class="play">${playIcon()}</span></button>`;
+    // "Use today" keeps its place on every row; on the choice already shown it is "Today".
+    const use = !running ? "" : item.exercise.id === shownId
+      ? `<span class="row-action choice-use is-current">Today</span>`
+      : `<button class="link-button choice-use" type="button" data-action="swap-choice" data-routine-id="${escapeHtml(routine.id)}" data-entry-id="${escapeHtml(entry.id)}" data-exercise-id="${escapeHtml(item.exercise.id)}" aria-label="Use ${escapeHtml(item.name)} today">Use today</button>`;
     return `<div class="row split">
       <button class="row-body" type="button" data-action="open-choice-reference" data-index="${index}" aria-label="Open reference for ${escapeHtml(item.name)}">
         <span class="row-main"><span class="row-title">${item.markup}</span><span class="row-meta">${escapeHtml(item.prescription)}</span></span>
         <span class="label accent" style="visibility: ${index === 0 ? "visible" : "hidden"}">Preferred</span>
-        ${chevronIcon("right")}
+        ${running ? "" : chevronIcon("right")}
       </button>
+      ${use}
       ${video}
     </div>`;
   }).join("");
@@ -259,45 +250,13 @@ function entryChoicesMarkup(state, routine, entry) {
     </header>
     <div class="sheet-body">
       ${rows}
-      <p class="hint">${entry.note.trim() ? `${escapeHtml(entry.note)}\n\n` : ""}Log it from the slot's number on Workout, where you pick which choice you did.</p>
+      ${entry.note.trim() ? `<p class="hint">${escapeHtml(entry.note)}</p>` : ""}
     </div>
   </div>`;
 }
 
-// The finish summary: every slot of the workout in one of three groups, each
-// opening to show what's in it.
-function finishMarkup(state) {
-  const { routineId, dateKey } = activeWorkout(state);
-  const routine = routineById(state, routineId);
-  const slots = [...orderedEntries(routine), ...dayExtras(state, dateKey, routineId).map((extra) => findSlot(state, routineId, extra.id, dateKey))];
-  const groups = { Done: [], "Started, not marked done": [], "Not touched": [] };
-  for (const slot of slots) {
-    const log = entryLog(state, dateKey, slot.id);
-    const name = isEntryChecked(state, dateKey, routineId, slot.id) ? "Done" : log ? "Started, not marked done" : "Not touched";
-    groups[name].push({ title: entryPresentation(slot, state).titleMarkup, log });
-  }
-  const groupMarkup = ([name, items]) => `<details class="finish-group" data-keep-open="${name}">
-    <summary><span>${name}</span><strong>${items.length}</strong>${chevronIcon("down")}</summary>
-    ${items.map(({ title, log }) => `<div class="row-main">
-      <span class="row-title">${log ? exerciseMarkup(exerciseById(state, log.exerciseId), log.exerciseName) : title}</span>
-      ${log ? `<span class="set-chips">${setChipsMarkup(log.sets, { timed: log.unit === "sec" })}</span>` : `<span class="row-meta">${name === "Done" ? "No sets logged" : ""}</span>`}
-    </div>`).join("") || `<p class="hint">None.</p>`}
-  </details>`;
-  return `<div class="sheet-panel">
-    <header class="sheet-head">
-      <div><h2 id="finishTitle">Finish ${escapeHtml(routine.name)}?</h2><p>It goes into the Log for ${escapeHtml(shortDate(dateKey))}.</p></div>
-      <button class="icon-button" type="button" data-close-dialog="finishDialog" aria-label="Close summary">×</button>
-    </header>
-    <div class="sheet-body stack tight">${Object.entries(groups).map(groupMarkup).join("")}</div>
-    <footer class="actions">
-      <button class="button text" type="button" data-close-dialog="finishDialog">Keep going</button>
-      <button class="button primary" type="button" data-action="finish-workout">Finish</button>
-    </footer>
-  </div>`;
-}
-
-// After Finish: duration, what was done, and each logged exercise against its
-// session before this one.
+// The result: duration, what was done, and each logged exercise against its session
+// before this one. Shown after Finish, and again from the round page ("How it went").
 function resultMarkup(state, routineId, dateKey) {
   const session = state.sessions[dateKey];
   const record = session.workouts[routineId];
@@ -326,9 +285,108 @@ function resultMarkup(state, routineId, dateKey) {
   </div>`;
 }
 
+// The result sheet ignores taps for a moment after it opens: the second tap of a double
+// tap on Finish would otherwise land on its Close.
+let resultOpenedAt = -Infinity;
+$("#finishDialog").addEventListener("click", (event) => {
+  if (performance.now() - resultOpenedAt >= 400) return;
+  event.preventDefault();
+  event.stopPropagation();
+}, true);
+
+function showResult(routineId, dateKey, options = {}) {
+  const state = store.getState();
+  if (!state.sessions[dateKey]?.routineIds.includes(routineId)) {
+    toast("That workout is no longer in the Log.");
+    return;
+  }
+  redraw("#finishContent", resultMarkup(state, routineId, dateKey));
+  resultOpenedAt = performance.now();
+  openDialog("#finishDialog", options);
+}
+
+// ---------- the bottom button and the bar ----------
+
+// What the bottom button does: log the open exercise (or the next one, when none is
+// open), or finish once every main exercise is done and the owner hasn't opened another.
+function dockTarget(state) {
+  const workout = activeWorkout(state);
+  const progress = workoutProgress(state, workout);
+  if (!progress) return null;
+  const openId = openSlotId(state, progress.routine, workout.dateKey);
+  const open = progress.slots.find((slot) => slot.id === openId);
+  const picked = open && memory.chosen?.slotId === openId && !progress.isDone(open);
+  if (!progress.next && !picked) return null;
+  return { workout, slot: open || progress.next };
+}
+
+function dockMarkup(state) {
+  remember(activeWorkout(state));
+  const target = dockTarget(state);
+  if (!target) return `<button class="button primary" type="button" data-action="finish-workout"><span>Finish workout</span></button>`;
+  const { workout, slot } = target;
+  const shown = shownChoice(state, slot, workout.dateKey);
+  return `<button class="button primary" type="button" data-action="open-logger" data-routine-id="${escapeHtml(workout.routineId)}" data-id="${escapeHtml(slot.id)}" aria-label="Log sets for ${escapeHtml(shown.name)}"><span>Log sets · ${movementMarkup(shown.exercise)}</span></button>`;
+}
+
+// On every other page: the workout in progress as one filled bar that takes him back.
+function bannerMarkup(state) {
+  const workout = activeWorkout(state);
+  const progress = workoutProgress(state, workout);
+  if (!progress) return "";
+  remember(workout);
+  const { routine, counted, done, next } = progress;
+  const shown = next ? shownChoice(state, next, workout.dateKey) : null;
+  const clock = workout.reopened ? "Reopened" : workout.backdated || workout.dateKey !== localDateKey() ? `for ${shortDate(workout.dateKey)}` : elapsedText(workout.startedAt);
+  return `<button class="dock-bar" type="button" data-action="workout-resume" aria-label="${escapeHtml(routine.name)} in progress, ${done} of ${counted.length} done. Back to the workout">
+    <span><span>${escapeHtml(routine.name)} in progress</span><span${workout.reopened || workout.backdated || workout.dateKey !== localDateKey() ? "" : " data-elapsed"}>${escapeHtml(clock)}</span></span>
+    <span><span>${done} of ${counted.length} done${shown ? ` · next: ${movementMarkup(shown.exercise)}` : ""}</span><span>Back →</span></span>
+  </button>`;
+}
+
+// The minutes keep up without redrawing anything else.
+setInterval(() => {
+  const workout = activeWorkout(store.getState());
+  if (!workout) return;
+  for (const label of $$("[data-elapsed]")) label.textContent = elapsedText(workout.startedAt);
+}, 10000);
+
+// ---------- keeping the screen on ----------
+
+// While a workout runs and the app is in front, the phone doesn't lock. The phone lets go
+// whenever the app is hidden, so it is asked again each time the app comes back.
+const awake = { lock: null, asking: false };
+async function keepAwake() {
+  const wanted = Boolean(activeWorkout(store.getState())) && document.visibilityState === "visible";
+  if (!wanted) {
+    awake.lock?.release().catch(() => {});
+    awake.lock = null;
+    return;
+  }
+  if (awake.lock || awake.asking || !navigator.wakeLock) return;
+  awake.asking = true;
+  try {
+    const lock = await navigator.wakeLock.request("screen");
+    lock.addEventListener("release", () => { if (awake.lock === lock) awake.lock = null; });
+    awake.lock = lock;
+    if (!activeWorkout(store.getState())) keepAwake();
+  } catch (_) { /* not allowed or not supported: the phone locks as usual */ }
+  awake.asking = false;
+}
+afterRender(keepAwake);
+document.addEventListener("visibilitychange", keepAwake);
+
 // ---------- screen ----------
 
-registerView("workout", { markup: pageMarkup, afterDraw() { motion.unfold(shownRoutine(store.getState())?.id || ""); } });
+registerView("workout", {
+  markup: pageMarkup,
+  tab: "round",
+  dock: dockMarkup,
+  banner: bannerMarkup,
+  unavailable: (state) => !activeWorkout(state),
+  back: () => null,
+  afterDraw() { motion.unfold(activeWorkout(store.getState())?.routineId || ""); },
+});
 
 // A one-choice row opens its exercise's reference in the context of this slot.
 function openRowReference(button) {
@@ -338,95 +396,95 @@ function openRowReference(button) {
   openExerciseReference(id, { prescription, routineName: routine.name, routineNote: entry?.note || "" });
 }
 
-// Logging and adding exercises need a workout in progress.
-function runningWorkout() {
+// A workout that was cancelled or closed again hands back to the round page.
+const backToRound = () => navigate("round", { motion: "pop" });
+
+// Finish files the workout as it stands and shows the result; closing the result
+// returns to the round page. Only a workout with nothing logged or done asks first,
+// whether to cancel it instead.
+async function finish() {
   const workout = activeWorkout(store.getState());
-  if (!workout) toast("Start the workout first.");
-  return workout;
+  if (!workout) return;
+  const { routineId, dateKey } = workout;
+  if (!workout.reopened && !workoutHasWork(store.getState(), workout)) {
+    const name = routineById(store.getState(), routineId).name;
+    const answer = await confirmAction({
+      title: "Nothing was logged",
+      message: `Cancel ${name} instead, or finish it as done anyway?`,
+      confirmLabel: "Finish anyway",
+      cancelLabel: "Cancel workout",
+      danger: false,
+      answer: true,
+    });
+    if (answer === "cancel") {
+      if (report(store.update(cancelWorkout), "Workout cancelled.")) backToRound();
+      return;
+    }
+    if (answer !== "confirm" || activeWorkout(store.getState())?.startedAt !== workout.startedAt) return;
+  }
+  if (!report(store.update((draft) => finishWorkout(draft)))) return;
+  showResult(routineId, dateKey, { onClose: () => navigate("round", { motion: "pop" }) });
 }
 
-// A workout that was cancelled or closed again hands back to the Round tab.
-function backToRound() {
-  chosen = null;
+// Today, the slot shows another of its choices. Once sets are saved the swap moves them,
+// so it goes through the logging sheet, which asks first.
+function swapTo(button) {
+  const { entryId, exerciseId } = button.dataset;
+  const workout = activeWorkout(store.getState());
+  if (!workout) return;
+  closeDialog("#entryChoicesDialog");
+  if (entryLog(store.getState(), workout.dateKey, entryId)) {
+    openLogger(workout.routineId, entryId, workout.dateKey, { exerciseId });
+    return;
+  }
+  memory.swaps[entryId] = exerciseId;
   render();
-  navigate("round", { motion: "pop" });
+  fresh(`[data-slot="${CSS.escape(entryId)}"]`);
 }
 
 registerActions({
-  // Start begins the workout at once. Reopening today's finished workout is no new start:
-  // it changes nothing about the round.
-  "start-workout": (button) => {
-    const { id } = button.dataset;
-    const state = store.getState();
-    const reopening = Boolean(state.sessions[localDateKey()]?.routineIds.includes(id));
-    // After three weeks away the Round tab asks how to carry on, before anything starts.
-    if (!reopening && longBreak(state)) {
-      navigate("round");
-      return;
-    }
-    const result = store.update((draft) => {
-      if (!reopening && !openRound(draft)) setRoundNumber(draft, 1);
-      startWorkout(draft, id);
-    });
-    startedTapAt = performance.now();
-    // A slot closed while this was a preview doesn't keep the first exercise shut.
-    if (chosen?.slotId === "") chosen = null;
-    if (!report(result)) return;
-    render();
-    // Start turned into Cancel and the stopwatch in the same place: they fade in.
-    fresh(".workout-control");
-  },
+  "workout-back": backToRound,
+  "workout-resume": () => navigate("workout", { motion: "push" }),
+  // With nothing logged it simply goes; otherwise it asks first. A reopened workout
+  // just closes again; nothing is deleted.
   "cancel-workout": async () => {
-    const { routineId, reopened } = activeWorkout(store.getState());
-    // The second tap of a double-tap on Start lands here; it isn't a wish to cancel.
-    if (performance.now() - startedTapAt < 500) return;
-    // A reopened workout just closes again; nothing is deleted.
-    if (reopened) {
-      if (report(store.update(cancelWorkout))) backToRound();
-      return;
+    const state = store.getState();
+    const workout = activeWorkout(state);
+    if (!workout) return;
+    if (!workout.reopened && workoutHasWork(state, workout)) {
+      const confirmed = await confirmAction({
+        title: `Cancel ${routineById(state, workout.routineId).name}?`,
+        message: "Everything logged in this workout is deleted: its sets, done marks and added exercises. This can't be undone.",
+        confirmLabel: "Cancel workout",
+        cancelLabel: "Keep going",
+      });
+      if (!confirmed) return;
     }
-    const confirmed = await confirmAction({
-      title: `Cancel ${routineById(store.getState(), routineId).name}?`,
-      message: "Everything logged in this workout is deleted: its sets, done marks and added exercises. This can't be undone.",
-      confirmLabel: "Cancel workout",
-      cancelLabel: "Keep going",
-    });
-    if (confirmed && report(store.update(cancelWorkout), "Workout cancelled.")) backToRound();
+    if (report(store.update(cancelWorkout), workout.reopened ? "" : "Workout cancelled.")) backToRound();
   },
-  "review-workout": () => {
-    redraw("#finishContent", finishMarkup(store.getState()));
-    openDialog("#finishDialog");
-  },
-  // Finishing swaps the summary for the result: how it went against last time. Closing
-  // the result, however it is closed, returns to the Round tab.
-  "finish-workout": () => {
-    const { routineId, dateKey } = activeWorkout(store.getState());
-    if (!report(store.update((draft) => finishWorkout(draft)))) return;
-    redraw("#finishContent", resultMarkup(store.getState(), routineId, dateKey));
-    openDialog("#finishDialog", { onClose: () => navigate("round", { motion: "pop" }) });
-    chosen = null;
-    render();
-  },
+  "finish-workout": finish,
+  "open-result": (button) => showResult(button.dataset.id, button.dataset.date),
   "pick-extra": () => {
-    if (runningWorkout()) openPicker({ mode: "extra" });
+    if (activeWorkout(store.getState())) openPicker({ mode: "extra" });
   },
   "add-extra": (button) => {
-    if (!runningWorkout()) return;
     const result = store.update((draft) => addExtra(draft, button.dataset.id));
     if (report(result)) render();
   },
   "open-logger": (button) => {
-    const workout = runningWorkout();
-    if (workout) openLogger(button.dataset.routineId, button.dataset.id, workout.dateKey);
+    const workout = activeWorkout(store.getState());
+    // A swap for today opens the sheet on that choice; once sets are saved, they decide.
+    const swapped = entryLog(store.getState(), workout?.dateKey, button.dataset.id) ? "" : memory.swaps[button.dataset.id];
+    if (workout) openLogger(button.dataset.routineId, button.dataset.id, workout.dateKey, { exerciseId: swapped });
   },
+  "swap-choice": swapTo,
   // Opens a slot in place, or closes the one that's open.
   "toggle-slot": (button) => {
     const state = store.getState();
-    const routine = shownRoutine(state);
-    const dateKey = workoutDay(state);
-    const done = (slotId) => Boolean(dateKey) && isEntryChecked(state, dateKey, routine.id, slotId);
+    const progress = workoutProgress(state);
+    if (!progress) return;
     const slotId = button.getAttribute("aria-expanded") === "true" ? "" : button.dataset.entryId;
-    chosen = { routineId: routine.id, slotId, wasDone: slotId ? done(slotId) : false, doneIds: daySlots(state, routine, dateKey).filter((slot) => done(slot.id)).map((slot) => slot.id) };
+    memory.chosen = { slotId, wasDone: slotId ? progress.isDone({ id: slotId }) : false, doneIds: progress.slots.filter(progress.isDone).map((slot) => slot.id) };
     motion.fold(() => render());
   },
   "open-entry-choices": openEntryChoices,
@@ -464,7 +522,7 @@ function openEntryChoices(button) {
 // its references): show the new names, or close it when there's nothing left to choose.
 function refreshEntryChoices(state) {
   const dialog = $("#entryChoicesDialog");
-  if (!dialog.open) return;
+  if (!dialog.open || "closing" in dialog.dataset) return;
   const current = sheetEntry(state);
   if (!current || current.entry.choices.length < 2) closeDialog(dialog);
   else redraw("#entryChoicesContent", entryChoicesMarkup(state, current.routine, current.entry));

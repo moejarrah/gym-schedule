@@ -29,12 +29,11 @@
   <div class="app-shell">
     <main id="appMain" tabindex="-1"></main>
 
+    <!-- The bottom button of the page, or the bar of the workout in progress (drawDock in js/context.js). -->
+    <section class="dock" id="appDock" aria-label="Next step" hidden></section>
+
     <nav class="bottom-nav" aria-label="Main navigation">
       <button type="button" data-view="round" aria-current="page">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20.5 3.5v4.8h-4.8"/></svg>
-        <span>Round</span>
-      </button>
-      <button type="button" data-view="workout">
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 9v6M8 7v10M16 7v10M19 9v6M8 12h8M3 10v4M21 10v4"/></svg>
         <span>Workout</span>
       </button>

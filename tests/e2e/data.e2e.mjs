@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { createDefaultState } from "../../js/store.js";
 import { sampleState } from "../sample.mjs";
-import { closeSettings, dialog, expect, expectView, goToView, main, openSettings, programPicker, readState, readStoredText, roundRow, startButton, suite, tapOnRound } from "./helpers.mjs";
+import { closeSettings, dialog, expect, goToView, main, openSettings, programPicker, readState, readStoredText, roundRow, startButton, suite, tapOnRound } from "./helpers.mjs";
 
 const { appTest } = suite({ saved: sampleState() });
 
@@ -13,8 +13,8 @@ const { appTest } = suite({ saved: sampleState() });
 const starting = createDefaultState();
 const startingProgram = starting.programs.find((program) => program.id === starting.settings.activeProgramId);
 const startingRoutines = startingProgram.routineIds.map((id) => starting.routines.find((routine) => routine.id === id));
-// The workout the Workout tab previews at first, and another one the Round tab lists (a round lists the Required ones).
-const firstRoutine = startingRoutines.find((routine) => routine.id === starting.settings.activeRoutineId);
+// The workout the round page proposes first, and another one it lists (a round lists the Required ones).
+const firstRoutine = startingRoutines.find((routine) => routine.status !== "optional");
 const otherRoutine = startingRoutines.find((routine) => routine !== firstRoutine && routine.status !== "optional");
 
 async function download(page, button) {
@@ -80,7 +80,6 @@ appTest("Backup: an exported file brings everything back, and a file that isn't 
   assert.deepEqual(await readState(page), sampleState());
   await closeSettings(page);
   await expect(main(page)).toContainText("Following Sample program");
-  await goToView(page, "Workout");
   await expect(startButton(page, "Day A")).toBeVisible();
 });
 
@@ -108,7 +107,6 @@ appTest("Settings: the theme is kept across a reload, and Restore starting data 
   assert.deepEqual(await readState(page), { ...starting, settings: { ...starting.settings, theme, trainingRules } });
   await closeSettings(page);
   await expect(main(page)).toContainText(`Following ${startingProgram.name}`);
-  await goToView(page, "Workout");
   await expect(startButton(page, firstRoutine.name)).toBeVisible();
 });
 
@@ -116,10 +114,9 @@ appTest("Saved data the app can't read is left exactly as it is", { saved: "{bro
   await expect(page.getByRole("status")).toContainText("nothing will be saved");
   await expect(main(page)).toContainText(`Following ${startingProgram.name}`);
 
-  // Tapping around saves nothing: picking another workout on Round doesn't take, and Workout stays where it was.
+  // Tapping around saves nothing: another workout opens on the round page, and that is all.
   await tapOnRound(page, roundRow(page, otherRoutine.name));
-  await goToView(page, "Workout");
-  await expect(startButton(page, firstRoutine.name)).toBeVisible();
+  await expect(startButton(page, otherRoutine.name)).toBeVisible();
   const settings = await openSettings(page);
   await settings.getByRole("button", { name: /^Theme/ }).click();
   await expect(settings).toContainText("Saved data couldn't be read");
@@ -147,8 +144,7 @@ appTest("A first launch opens the starting program, and the app then opens with 
   await page.reload();
   await expect(main(page)).toContainText(`Following ${startingProgram.name}`);
   await tapOnRound(page, roundRow(page, otherRoutine.name));
-  await expectView(page, "Workout");
   await expect(startButton(page, otherRoutine.name)).toBeVisible();
   await expect(page.getByRole("status")).not.toContainText("Offline mode");
-  assert.equal((await readState(page)).settings.activeRoutineId, otherRoutine.id);
+  assert.deepEqual(await readState(page), starting);
 });

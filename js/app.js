@@ -1,4 +1,5 @@
-// Entry point: loads every screen, routes taps to actions, starts offline support.
+// Entry point: loads every screen, routes taps to actions (a tap on a bottom tab goes
+// through openTab), opens on the workout in progress if there is one, starts offline support.
 
 import "./views/round.js";
 import "./views/workout.js";
@@ -9,9 +10,9 @@ import "./views/library.js";
 import "./views/exercise-editor.js";
 import "./views/log.js";
 import "./views/settings.js";
-import { afterRender, applyTheme, enableBackSwipe, navigate, render, runAction, store } from "./context.js";
+import { afterRender, applyTheme, enableBackSwipe, navigate, openOn, openTab, render, runAction, store } from "./context.js";
 import { closeDialog, initDialogs, setSegment, toast } from "./dom.js";
-import { finishStaleWorkout, localDateKey } from "./model.js";
+import { activeWorkout, finishStaleWorkout, localDateKey } from "./model.js";
 import { enableRoutineSwipe } from "./views/shared.js";
 import { STORAGE_KEY } from "./store.js";
 
@@ -29,7 +30,7 @@ document.addEventListener("click", (event) => {
   const action = target("[data-action]");
   if (action) runAction(action.dataset.action, action, event);
   const link = target("[data-view]");
-  if (link) navigate(link.dataset.view);
+  if (link) (link.closest("nav") ? openTab : navigate)(link.dataset.view);
 });
 
 // Saving a form (its button, or Enter in a field) runs the form's action.
@@ -116,4 +117,6 @@ document.addEventListener("visibilitychange", () => {
 applyTheme(store.getState().settings.theme);
 if (store.getLastError()) toast(store.getLastError(), { long: true });
 else fileStaleWorkout();
+// The app opens where the work is: the workout in progress, otherwise the round page.
+if (activeWorkout(store.getState())) openOn("workout");
 render();

@@ -262,7 +262,9 @@ export const segmentValue = (group) => element(group).dataset.value;
 
 // ---------- confirmation ----------
 
-export function confirmAction({ title, message, confirmLabel, cancelLabel = "Keep it", variant = "", danger = true }) {
+// Resolves true when confirmed. `answer: true` resolves which button was tapped instead:
+// "confirm", "cancel", or "" when the question was closed without an answer.
+export function confirmAction({ title, message, confirmLabel, cancelLabel = "Keep it", variant = "", danger = true, answer = false }) {
   const dialog = $("#confirmDialog");
   $("#confirmTitle").textContent = title;
   $("#confirmMessage").textContent = message;
@@ -275,7 +277,7 @@ export function confirmAction({ title, message, confirmLabel, cancelLabel = "Kee
     openDialog(dialog, {
       onClose: (value) => {
         delete dialog.dataset.variant;
-        resolve(value === "confirm");
+        resolve(answer ? (["confirm", "cancel"].includes(value) ? value : "") : value === "confirm");
       },
     });
   });

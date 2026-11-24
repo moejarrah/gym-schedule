@@ -1,4 +1,4 @@
-// Settings screen, opened from the gear on the Round tab (its back link returns
+// Settings screen, opened from the gear on the round page (its back link returns
 // there): theme, backup export and import, restoring the starting data,
 // downloading saved data that couldn't be read, the owner's training rules
 // (shown formatted, edited inline as plain text), and the installed version.
@@ -121,12 +121,17 @@ function settingsMarkup(state) {
 
 // ---------- helpers ----------
 
+// Import and restore also run from the round page when there is no program: there, a
+// message is a toast.
 function showDataError(message) {
-  $("#settingsFormError").textContent = message;
+  const line = $("#settingsFormError");
+  if (line) line.textContent = message;
+  else toast(message, { long: true });
 }
 
 function clearDataError() {
-  $("#settingsFormError").textContent = "";
+  const line = $("#settingsFormError");
+  if (line) line.textContent = "";
 }
 
 // The share sheet's "Save to Files" is the dependable way to get a file out of the
