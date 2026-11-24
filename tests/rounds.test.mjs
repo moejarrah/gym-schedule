@@ -481,6 +481,44 @@ test("deleting the workout that completed the last round, before anything else i
   assert.equal(number(store), 3);
 });
 
+test("a reopened workout of the next round counts as something done in it: deleting reopens nothing", () => {
+  const { store } = freshStore();
+  save(store, (draft) => setRoundNumber(draft, 3));
+  train(store, "day-a", "2026-11-16");
+  train(store, "day-b", "2026-11-17"); // round 3 complete
+  train(store, "day-a", "2026-11-18"); // round 4
+  save(store, (draft) => startWorkout(draft, "day-a", "2026-11-18", 0)); // reopened: it leaves the day's finished list
+  save(store, (draft) => deleteWorkout(draft, "2026-11-17", "day-b"));
+  assert.deepEqual([number(store), store.getState().settings.roundLog.length], [4, 1]);
+  save(store, (draft) => cancelWorkout(draft)); // closed again, still in round 4
+  assert.deepEqual([filed(store, "2026-11-18", "day-a").round, names(roundSummary(store.getState()))], [4, ["11-18 Day A"]]);
+});
+
+test("a workout deleted from a closed round and marked again for its day goes back to that round, not the open one", () => {
+  const { store } = freshStore();
+  save(store, (draft) => setRoundNumber(draft, 3));
+  train(store, "day-a", "2026-11-16");
+  train(store, "day-b", "2026-11-17"); // round 3 complete; round 4 opens on 11-17
+  train(store, "day-a", "2026-11-18"); // round 4 has work, so deleting reopens nothing
+  save(store, (draft) => deleteWorkout(draft, "2026-11-17", "day-b"));
+  save(store, (draft) => setDay(draft, "2026-11-17", ["day-b"], ""));
+  assert.deepEqual([filed(store, "2026-11-17", "day-b").round, number(store), roundSummary(store.getState()).remaining.map((routine) => routine.id)], [3, 4, ["day-b"]], "round 4 isn't completed by it");
+  // A day the open round opened on, with a workout of the open round already on it, belongs to the open round.
+  train(store, "day-b", "2026-11-18");
+  assert.equal(filed(store, "2026-11-18", "day-b").round, 4);
+});
+
+test("a workout can't be deleted while the workout in progress is one whose start answered a long break", () => {
+  const away = new Date();
+  away.setDate(away.getDate() - 40);
+  const { store } = freshStore();
+  save(store, (draft) => setRoundNumber(draft, 6));
+  train(store, "day-a", localDateKey(away));
+  save(store, (draft) => startTodaysWorkout(draft, "day-b"));
+  assert.ok(store.getState().settings.activeWorkout.breakUndo);
+  assert.deepEqual(store.update((draft) => deleteWorkout(draft, localDateKey(away), "day-a")), { ok: false, error: "Finish or cancel the workout in progress first." });
+});
+
 test("a closed round keeps its numbers when one of its workouts is deleted after something was done in the next, or when it ended another way", () => {
   const { store } = freshStore();
   save(store, (draft) => setRoundNumber(draft, 3));

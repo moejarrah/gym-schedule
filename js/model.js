@@ -318,10 +318,11 @@ export function cancelWorkout(state) {
 // exercises added to it for that day (a day left with nothing goes). It leaves the round
 // it was filed in; a closed round keeps its recorded numbers, except the one case
 // `roundReopenedBy` describes, where that round opens again. Refused while that workout
-// is the one in progress.
+// is the one in progress, and while the workout in progress is one whose start answered a
+// long break (cancelling it puts the rounds back as they were; see cancelWorkout).
 export function deleteWorkout(state, dateKey, routineId) {
   const running = state.settings.activeWorkout;
-  if (running?.dateKey === dateKey && running.routineId === routineId) fail("Finish or cancel the workout in progress first.");
+  if ((running?.dateKey === dateKey && running.routineId === routineId) || running?.breakUndo) fail("Finish or cancel the workout in progress first.");
   const session = sessionFor(state, dateKey);
   if (!session.routineIds.includes(routineId)) fail("That workout is no longer in the Log.");
   const reopen = roundReopenedBy(state, dateKey, routineId);
@@ -340,15 +341,17 @@ export function deleteWorkout(state, dateKey, routineId) {
 // The round that deleting this finished workout opens again, or null: the most recently
 // closed round, when it was complete, this workout counted in it and nothing else there
 // does the same job (so without it the round isn't complete any more), and nothing has
-// been done in the round opened after it (same block, same program). Then a workout
-// finished by mistake and deleted leaves no completed round behind. { number, block,
-// programId, since (the day of its first workout left) }.
+// been done in the round opened after it (same block, same program) and no reopened
+// workout is running (it has left its day's finished list but still belongs to a round).
+// Then a workout finished by mistake and deleted leaves no completed round behind.
+// { number, block, programId, since (the earlier of the day of its first workout left
+// and the deleted workout's day) }.
 export function roundReopenedBy(state, dateKey, routineId) {
   const record = state.sessions[dateKey]?.workouts?.[routineId];
   const round = openRound(state);
   const last = state.settings.roundLog?.at(-1);
   if (!record?.round || record.guest || record.optional || !round || last?.ended !== "complete" || !sameRound(record, last)) return null;
-  if (round.block !== last.block || round.programId !== last.programId || roundWorkouts(state, round).length || state.settings.activeWorkout?.breakUndo) return null;
+  if (round.block !== last.block || round.programId !== last.programId || roundWorkouts(state, round).length || state.settings.activeWorkout?.breakUndo || state.settings.activeWorkout?.reopened) return null;
   const program = state.programs.find((item) => item.id === last.programId);
   if (!requiredRoutines(state, program).some((routine) => routine.id === routineId)) return null;
   const others = roundWorkouts(state, last).filter((item) => item.dateKey !== dateKey || item.routineId !== routineId);
@@ -608,7 +611,9 @@ function tagFor(state, routineId, found) {
 
 // The round that was open on a day: the open one if the day is after every closed
 // round's last workout and not before the open round opened; otherwise the round of the
-// latest closed workout on or before that day. Null when there is none.
+// latest closed workout on or before that day. The day the open round opened is also the
+// day the round before it closed: it belongs to that closed round, unless the open round
+// already has a workout on or before it. Null when there is none.
 function roundAt(state, dateKey) {
   const round = openRound(state);
   if (!round) return null;
@@ -621,7 +626,9 @@ function roundAt(state, dateKey) {
       else closedAfter = true;
     }
   }
-  return closedAfter || dateKey < (round.since || "") ? found : { round: round.number, block: round.block };
+  const since = round.since || "";
+  const closedThatDay = dateKey === since && found && !roundWorkouts(state, round).some((item) => item.dateKey <= dateKey);
+  return closedAfter || dateKey < since || closedThatDay ? found : { round: round.number, block: round.block };
 }
 
 // Closes the open round as it stands and opens the next one, following the same program.
