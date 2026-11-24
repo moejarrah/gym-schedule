@@ -129,16 +129,57 @@ export function compareSets(newerSets, olderSets, mode, unit) {
   return { kind: up ? "up" : "down", text: `${up ? "▲" : "▼"} ${text}` };
 }
 
-// One short sentence on what beats last time, or "" when there is no last time.
-// With weight, a prescription's reps ("3 × 6–10" → 10, "3 × 5" → 5) say when to add weight.
-export function targetHint(lastSets, prescription, mode, unit) {
-  const sets = workingSets(lastSets || []);
-  if (!sets.length) return "";
-  if (unit === "sec") return "To beat it: a few more seconds on any set.";
+// The top of the prescription's rep range ("3 × 6–10" → 10, "3 × 5" → 5) when every
+// working set reached it with weight, which says to add weight next time; otherwise 0.
+export function repsToAddWeight(sets, prescription, mode, unit) {
+  const working = workingSets(sets || []);
+  if (!working.length || unit === "sec" || mode !== "weight") return 0;
   const reps = /[×x]\s*(\d+)(?:\s*[–-]\s*(\d+))?/i.exec(prescription || "");
   const top = reps ? Number(reps[2] || reps[1]) : 0;
-  if (mode === "weight" && top && sets.every((set) => set.reps >= top)) return `All sets hit ${top}. Add weight.`;
+  return top && working.every((set) => set.reps >= top) ? top : 0;
+}
+
+// One short sentence on what beats last time, or "" when there is no last time.
+export function targetHint(lastSets, prescription, mode, unit) {
+  if (!workingSets(lastSets || []).length) return "";
+  if (unit === "sec") return "To beat it: a few more seconds on any set.";
+  const top = repsToAddWeight(lastSets, prescription, mode, unit);
+  if (top) return `All sets hit ${top}. Add weight.`;
   return "To beat it: one more rep on any set.";
+}
+
+// A workout as its result tells it: each exercise logged in it (in the order of its
+// slots) against that exercise's session before this day, as compareSets says.
+// [{ slotId, exerciseId, name (as saved with the sets), unit, kind: "up" | "down" | "same"
+// | "first", text ("▲ 1 rep"), previous (that session's day, or ""), best ({ set, before }
+// when it beat every earlier session: the best set and the one it beat), addWeight (the
+// top of the rep range every set reached, or 0) }]. `prescriptionOf(slotId, exerciseId)`
+// gives the prescription the sets were logged against ("" when it can't be told).
+export function workoutComparison(state, routineId, dateKey, prescriptionOf = () => "") {
+  const logs = Object.entries(state.sessions[dateKey]?.logs || {}).filter(([, log]) => log.routineId === routineId);
+  const byExercise = logsByExercise(state);
+  return logs.map(([slotId, log]) => {
+    const { mode, sessions } = progressOf(state, byExercise.get(log.exerciseId) || []);
+    const index = sessions.findIndex((session) => session.dateKey === dateKey && session.routineId === routineId);
+    const session = sessions[index];
+    const previous = sessions.slice(0, index).filter((item) => item.dateKey < dateKey).at(-1);
+    const change = previous ? compareSets(log.sets, previous.sets, mode, log.unit) : { kind: "first", text: "First time" };
+    let best = null;
+    if (session?.isBest) {
+      const beaten = sessions.slice(0, index).filter((item) => item.best).reduce((top, item) => (!top || item.score > top.score ? item : top), null);
+      best = { set: session.best, before: beaten.best };
+    }
+    return {
+      slotId,
+      exerciseId: log.exerciseId,
+      name: log.exerciseName,
+      unit: log.unit,
+      ...change,
+      previous: previous?.dateKey || "",
+      best,
+      addWeight: repsToAddWeight(log.sets, prescriptionOf(slotId, log.exerciseId), mode, log.unit),
+    };
+  });
 }
 
 // Whether a set just logged beats every session of the exercise before `beforeDateKey`.

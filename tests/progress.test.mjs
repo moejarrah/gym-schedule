@@ -3,7 +3,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { bestSet, compareSets, exerciseMode, exerciseProgress, isNewBest, overview, setScore, targetHint, workingSets } from "../js/progress.js";
+import { bestSet, compareSets, exerciseMode, exerciseProgress, isNewBest, overview, repsToAddWeight, setScore, targetHint, workingSets, workoutComparison } from "../js/progress.js";
 import { sampleState } from "./sample.mjs";
 
 const TODAY = "2026-11-19"; // a Thursday; its week starts Monday 16 November
@@ -102,6 +102,29 @@ test("The hint says what beats last time", () => {
   assert.equal(targetHint([set(80, 5)], "As heavy as feels right", "weight", "reps"), "To beat it: one more rep on any set.");
   assert.equal(targetHint([set(null, 15)], "2 × 15", "reps", "reps"), "To beat it: one more rep on any set.");
   assert.equal(targetHint([set(null, 30)], "2 × 30 sec", "reps", "sec"), "To beat it: a few more seconds on any set.");
+});
+
+test("Add weight once every working set reached the top of the rep range, with weight", () => {
+  assert.equal(repsToAddWeight([set(60, 12), set(60, 12), set(40, 5, { warmup: true })], "3 × 8–12", "weight", "reps"), 12);
+  assert.equal(repsToAddWeight([set(60, 12), set(60, 11)], "3 × 8–12", "weight", "reps"), 0);
+  assert.equal(repsToAddWeight([set(null, 15)], "2 × 15", "reps", "reps"), 0);
+  assert.equal(repsToAddWeight([set(10, 45)], "2 × 30–45 sec", "weight", "sec"), 0);
+  assert.equal(repsToAddWeight([set(60, 12)], "", "weight", "reps"), 0);
+});
+
+test("A workout's result: each exercise against its own session before, its best with the one it beat", () => {
+  const state = history();
+  log(state, "2026-11-16", "a4", "day-a", "push-up", [set(null, 15)]);
+  log(state, "2026-11-16", "x9", "day-a", "ab-wheel", [set(null, 10)]);
+  const prescriptions = { a2: "3 × 6–9" };
+  const items = workoutComparison(state, "day-a", "2026-11-16", (slotId) => prescriptions[slotId] || "");
+  const pick = ({ slotId, kind, text, previous, best, addWeight }) => ({ slotId, kind, text, previous, best, addWeight });
+  assert.deepEqual(items.map(pick), [
+    { slotId: "a2", kind: "up", text: "▲ 2.5 kg", previous: "2026-11-09", best: { set: set(62.5, 10), before: set(60, 10) }, addWeight: 9 },
+    { slotId: "a4", kind: "same", text: "Same", previous: "2026-11-02", best: null, addWeight: 0 },
+    { slotId: "x9", kind: "first", text: "First time", previous: "", best: null, addWeight: 0 },
+  ]);
+  assert.deepEqual(workoutComparison(state, "day-b", "2026-11-16"), [], "nothing logged in it that day");
 });
 
 test("A set is a new best only when it beats every earlier session", () => {
