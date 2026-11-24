@@ -118,6 +118,11 @@ const quietUntil = { main: 0, dock: 0 };
 export function pauseTaps(areas = ["main", "dock"]) {
   for (const area of areas) quietUntil[area] = performance.now() + 400;
 }
+// An answer to a confirmation (confirmAction in js/dom.js) pauses taps the moment it is
+// tapped: the question eases out over the page, and a second tap would land on it.
+document.addEventListener("submit", (event) => {
+  if (event.target.closest("#confirmDialog")) pauseTaps();
+}, true);
 for (const [area, element] of [["main", mainElement()], ["dock", dockElement()]]) {
   element.addEventListener("click", (event) => {
     if (performance.now() >= quietUntil[area]) return;
