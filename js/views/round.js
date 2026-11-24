@@ -843,9 +843,9 @@ registerActions({
   "round-guest-open": () => {
     if (nothingRunning()) showSheet("guest");
   },
-  // An extra carries on after a long break (the default answer).
+  // After a long break an extra answers it as the switch says, as Start does.
   "round-guest-start": (button) => {
-    const result = store.update((draft) => startTodaysWorkout(draft, button.dataset.id, { guest: true }));
+    const result = store.update((draft) => startTodaysWorkout(draft, button.dataset.id, { guest: true, restart: home.restart }));
     if (!report(result)) return;
     closeDialog("#roundSheet");
     navigate("workout");
