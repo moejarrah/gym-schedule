@@ -90,7 +90,7 @@ function backupLine(state) {
 
 function settingsMarkup(state) {
   return `<header class="page-back">
-      <button class="link-button" type="button" data-view="round" aria-label="Back to Round">${chevronIcon("left")}Round</button>
+      <button class="link-button" type="button" data-view="round" aria-label="Back to Home">${chevronIcon("left")}Home</button>
       <h1 class="title">Settings</h1>
     </header>
     <section class="page stack settings-page" aria-label="Settings">

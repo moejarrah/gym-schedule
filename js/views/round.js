@@ -2,7 +2,7 @@
 // round stands (header and bar), then the round's workouts as one list with one row open
 // and the bottom button acting on it (Start, Do it again, Reopen), what is news today
 // (back after a break, a round completed), and the rows under it. Three pages open inside
-// the tab, each with a back link: Rounds and blocks, one block, and one round. One
+// the tab, each with a back link: Rounds, Blocks, one block, and one round. One
 // sheet (#roundSheet): a workout from another program, following a different program
 // (opened from Program with "follow-program"), and changing the round number. What a
 // round is: js/model.js, "rounds and calendar weeks".
@@ -12,6 +12,7 @@ import { $, chevronIcon, clearError, closeDialog, confirmAction, escapeHtml, for
 import {
   activeWorkout,
   allBlocks,
+  allRounds,
   calendarWeek,
   beginRound,
   dateFromKey,
@@ -44,29 +45,28 @@ import {
   workoutProgress,
   workoutStanding,
 } from "../model.js";
-import { exerciseMode, exerciseProgress, repsToAddWeight } from "../progress.js";
+import { exerciseMode, repsToAddWeight } from "../progress.js";
 import { setLines, workoutTally } from "./result.js";
-import { daysBetween, durationText, movementMarkup, roundName, setupText, shortDate, weeksText, workoutsDone } from "./shared.js";
+import { daysBetween, movementMarkup, roundName, setupText, shortDate, workoutsDone } from "./shared.js";
 
-// Which page of the tab shows: "home", "all" (Rounds and blocks), "block" (the block
-// `block`) or "one" (the round `number` of `block`; `from` "block" or "home" when it was opened
-// from its block's page or the round page, which is where it goes back to). `scroll`
-// remembers where a page was left, for coming back to it.
+// Which page of the tab shows: "home", "all" (Rounds), "blocks" (Blocks), "block" (the block
+// `block`) or "one" (the round `number` of `block`; `from` "block", "home" or "all": the page
+// it was opened from, which is where it goes back to). `scroll` remembers where a page was
+// left, for coming back to it.
 const page = { name: "home", number: 0, block: 0, from: "", scroll: {} };
-const DEPTH = { home: 0, all: 1, block: 2, one: 3 };
+const DEPTH = { home: 0, all: 1, blocks: 1, block: 2, one: 3 };
 // The round number being picked with − and + in the sheet.
 const chooser = { number: 1 };
 // What the sheet shows: "guest", "follow" (for programId) or "number".
 const sheet = { mode: "", programId: "" };
 
-const tickIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>`;
 const gearIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>`;
 
 // ---------- words ----------
 
-// How a round ended, as Rounds and blocks and the round's own page say it.
+// How a round ended, as the round's own page says it.
 const ENDED = { "": "in progress", complete: "complete", early: "ended early", break: "ended by the break", switch: "ended by a change of program" };
-// The same in the narrow last column of Rounds and blocks.
+// The same, shorter, under a round's count in a list.
 const ENDED_SHORT = { ...ENDED, break: "ended by break", switch: "program changed" };
 const LATER = "9999-12-31"; // "before this day" that leaves no day out
 
@@ -74,8 +74,6 @@ const listText = (names) => (names.length < 2 ? names.join("") : `${names.slice(
 const sameWeek = (fromKey, toKey) => calendarWeek(fromKey).year === calendarWeek(toKey).year && calendarWeek(fromKey).week === calendarWeek(toKey).week;
 // "Week 47", or "Weeks 47–48" for a stretch of days.
 const weekTitle = (fromKey, toKey = fromKey) => (sameWeek(fromKey, toKey) ? `Week ${calendarWeek(fromKey).week}` : `Weeks ${calendarWeek(fromKey).week}–${calendarWeek(toKey).week}`);
-// In a list of rounds the year is said only when it isn't this one: "weeks 47–48".
-const weeksShort = (fromKey, toKey) => weeksText(fromKey, toKey).replace(new RegExp(`^${calendarWeek(localDateKey()).year} · `), "");
 const dayMonth = (dateKey) => formatDate(dateFromKey(dateKey), { day: "numeric", month: "short", ...(dateKey.startsWith(`${new Date().getFullYear()}-`) ? {} : { year: "numeric" }) });
 const datesShort = (fromKey, toKey) => (fromKey === toKey ? dayMonth(fromKey) : `${dayMonth(fromKey)} – ${dayMonth(toKey)}`);
 
@@ -93,21 +91,6 @@ const otherPrograms = (state) => state.programs.filter((program) => program !== 
 function justCompleted(state, summary) {
   const last = (state.settings.roundLog || []).at(-1);
   return summary.counting && !summary.workouts.length && last?.ended === "complete" && last.block === summary.block ? roundRecord(state, last) : null;
-}
-
-// How many exercises set a new best in these workouts.
-function newBests(state, workouts) {
-  const filed = new Set(workouts.map((item) => `${item.dateKey} ${item.routineId}`));
-  const progress = new Map();
-  const bests = new Set();
-  for (const dateKey of new Set(workouts.map((item) => item.dateKey))) {
-    for (const log of Object.values(state.sessions[dateKey]?.logs || {})) {
-      if (!filed.has(`${dateKey} ${log.routineId}`)) continue;
-      if (!progress.has(log.exerciseId)) progress.set(log.exerciseId, exerciseProgress(state, log.exerciseId).sessions);
-      if (progress.get(log.exerciseId).some((session) => session.dateKey === dateKey && session.routineId === log.routineId && session.isBest)) bests.add(log.exerciseId);
-    }
-  }
-  return bests.size;
 }
 
 // What a round left undone: the names when they can still be told (a closed round only
@@ -137,27 +120,10 @@ const chooserMarkup = () => `<span class="round-chooser" data-round-chooser>
     <button class="icon-button filled" type="button" data-action="round-number-step" data-step="1" aria-label="One round more" ${chooser.number >= 999 ? "disabled" : ""}>+</button>
   </span>`;
 
-// The top of the tab and of one round's page: what is above the title, "Round N" and
-// the week on one baseline, a bar with a segment per Required workout, two facts.
-function headMarkup({ top, round, week, segments, left, right }) {
-  const { title, suffix } = roundTitle(round);
-  return `<header class="round-head">
-    ${top}
-    <div class="round-title">
-      <h1><span>${escapeHtml(title)}</span>${suffix ? `<small>${escapeHtml(suffix)}</small>` : ""}</h1>
-      <span>${escapeHtml(week)}</span>
-    </div>
-    <div class="round-bar" aria-hidden="true">${segments.map((done) => `<i${done ? ` class="is-done"` : ""}></i>`).join("")}</div>
-    <p class="round-facts"><span>${escapeHtml(left)}</span><span>${escapeHtml(right)}</span></p>
-  </header>`;
-}
-
 const followingMarkup = (program) => `<div class="round-top">
     <p class="truncate">${program ? `Following <strong>${escapeHtml(program.name)}</strong>` : "No program"}</p>
     <button class="icon-button" type="button" data-view="settings" aria-label="Settings">${gearIcon}</button>
   </div>`;
-
-const backMarkup = (to, name) => `<button class="link-button" type="button" data-action="round-page" data-page="${to}" aria-label="Back to ${name}">${chevronIcon("left")}${name}</button>`;
 
 // ---------- Home: the round page ----------
 //
@@ -211,14 +177,6 @@ function isBegun(summary, hasWork) {
   }
   return Boolean(memory);
 }
-
-// A workout that was done: ticked, muted, its date at the end; it opens its day (a round's page).
-const doneRow = (name, dateKey, tag = "") => `<button class="row compact round-row is-done" type="button" data-action="open-day" data-date="${dateKey}" aria-label="${escapeHtml(name)}${tag ? `, ${escapeHtml(tag)}` : ""}, done ${escapeHtml(shortDate(dateKey))}. Open that day.">
-    <span class="tickbox is-ticked" aria-hidden="true">${tickIcon}</span>
-    <span class="row-main"><span class="row-title">${escapeHtml(name)}</span></span>
-    ${tag ? `<span class="label tag">${escapeHtml(tag)}</span>` : ""}
-    <span class="row-meta">${escapeHtml(shortDate(dateKey))}</span>
-  </button>`;
 
 // What a workout that didn't count is tagged with: its program's name, or "Optional".
 const workoutTag = (item) => (item.guest ? item.program || "Another program" : item.optional ? "Optional" : "");
@@ -597,7 +555,10 @@ function footMarkup(state, view) {
   const rows = [];
   const earlier = (state.settings.roundLog || []).length;
   if (!running && otherPrograms(state).some((program) => program.routineIds.length)) rows.push(moreRow("A workout from another program", `data-action="round-guest-open"`));
-  if (summary.counting) rows.push(moreRow("Rounds and blocks", `data-action="round-page" data-page="all"`, earlier ? `${earlier} earlier` : ""));
+  if (summary.counting) {
+    rows.push(moreRow("All rounds", `data-action="round-page" data-page="all"`, earlier ? `${earlier} earlier` : ""));
+    rows.push(moreRow("Blocks", `data-action="round-page" data-page="blocks"`, String(allBlocks(state).length)));
+  }
   if (!running && !earlier && !summary.workouts.length) rows.push(moreRow("Already on a later round?", `data-action="round-number-open" aria-label="Already on a later round? Set it"`, "Set it"));
   return rows.length ? `<section class="round-foot">${rows.join("")}</section>` : "";
 }
@@ -678,7 +639,11 @@ function dockMarkup(state) {
   return `<button class="button primary" type="button" data-action="round-start" data-id="${escapeHtml(view.picked.id)}"><span>Start ${escapeHtml(view.picked.name)}</span></button>`;
 }
 
-// ---------- Rounds and blocks ----------
+// ---------- Rounds (all rounds), one block, one round ----------
+//
+// Built like the result page and Home: a header with its back link, then cards with their
+// label inside; every row is a grid (a name over a muted line at the left, a value over a
+// muted line at the right, a chevron when it opens something).
 
 // A break of three weeks or more, between two rounds or two blocks: one quiet line.
 const gapMarkup = (days) => (days >= 21 ? `<p class="hint round-gap">${Math.floor(days / 7)} weeks off</p>` : "");
@@ -691,27 +656,32 @@ function blockDates(fromKey, toKey) {
   return fromKey === toKey ? dayMonth(fromKey) : `${plain(fromKey)} – ${plain(toKey)} ${year}`;
 }
 
-// One round in a list: its number (outlined while open), the program with its dates and
-// weeks, "X of Y" with how it ended. `from` says which page it was opened from.
-function roundRow(record, from) {
-  const to = record.open ? localDateKey() : record.to;
-  const dates = !record.workouts.length ? (record.open ? "Not started yet" : "No workouts left") : record.open ? `from ${dayMonth(record.from)}` : datesShort(record.from, record.to);
-  const weeks = record.workouts.length ? weeksShort(record.from, to) : "";
-  const count = `${record.done} of ${record.required}`;
-  return `<button class="row round-cols" type="button" data-action="round-page" data-page="one" data-number="${record.number}" data-block="${record.block}" data-from="${from}"
-      aria-label="${escapeHtml(roundName(record))}, ${escapeHtml(record.program)}, ${escapeHtml([dates, weeks].filter(Boolean).join(", "))}. ${count} workouts, ${ENDED[record.ended]}. Open the round.">
-      <span class="tickbox ${record.open ? "is-open" : ""}" aria-hidden="true">${record.number}</span>
-      <span class="row-main">
-        <span class="row-title truncate">${escapeHtml(record.program || "Deleted program")}</span>
-        <span class="row-meta">${escapeHtml(dates)}</span>
-        ${weeks ? `<span class="row-meta">${escapeHtml(weeks)}</span>` : ""}
-      </span>
-      <span class="row-main">
-        <span class="row-title">${count}</span>
-        <span class="row-meta">${ENDED_SHORT[record.ended]}</span>
-      </span>
-      <span class="chev" aria-hidden="true">${chevronIcon("right")}</span>
-    </button>`;
+// When a round or a block ran: "Oct 27 – Nov 4", "from Oct 27" while open, or "not started yet".
+const ranText = (item) => (!item.workouts.length ? (item.open ? "not started yet" : "no workouts left") : item.open ? `from ${dayMonth(item.from)}` : blockDates(item.from, item.to));
+
+// A row of a card: a name over its muted line, a value over its muted line, a chevron when it opens something.
+const gridRow = ({ name, under = "", tag = "", value = "", valueUnder = "", attributes = "", label = "" }) => {
+  const inner = `<span class="result-name"><span class="result-title"><span class="truncate">${name}</span>${tag}</span><small class="truncate">${under || "&nbsp;"}</small></span>${value ? `<span class="result-sets"><strong>${value}</strong>${valueUnder ? `<small>${valueUnder}</small>` : ""}</span>` : ""}`;
+  return attributes
+    ? `<button class="result-line" type="button" ${attributes}${label ? ` aria-label="${escapeHtml(label)}"` : ""}>${inner}${chevron()}</button>`
+    : `<div class="result-line">${inner}</div>`;
+};
+
+// One round in a list: "Round 3" (tagged while open), its program and dates (and its block,
+// when there is more than one); how many of its workouts were done, and how it ended.
+// `from` says which page it was opened from.
+function roundRow(record, from, withBlock = false) {
+  const title = escapeHtml(roundName({ number: record.number, block: 1 }));
+  const program = record.program || "Deleted program";
+  return gridRow({
+    name: title,
+    tag: record.open ? `<span class="label tag accent">Open</span>` : "",
+    under: `${escapeHtml(program)} · ${escapeHtml(ranText(record))}${withBlock ? ` · block ${record.block}` : ""}`,
+    value: `${record.done} of ${record.required}`,
+    valueUnder: ENDED_SHORT[record.ended],
+    attributes: `data-action="round-page" data-page="one" data-number="${record.number}" data-block="${record.block}" data-from="${from}"`,
+    label: `${roundName(record)}, ${program}, ${ranText(record)}. ${record.done} of ${record.required} workouts, ${ENDED[record.ended]}. Open the round.`,
+  });
 }
 
 // A block's rounds, newest first, with a line where a break of three weeks or more falls.
@@ -720,88 +690,86 @@ const roundRows = (block, from) => block.rounds.map((record, index) => {
   return `${newer?.workouts.length && record.to ? gapMarkup(daysBetween(record.to, newer.from)) : ""}${roundRow(record, from)}`;
 }).join("");
 
-// When a block ran: "since Mon 2 Nov" while open, its dates once closed.
-const blockWhen = (block) => (!block.workouts.length ? (block.open ? "not started yet" : "no workouts left") : block.open ? `since ${shortDate(block.from)}` : blockDates(block.from, block.to));
+// The page's back link.
+const backTo = (to, name, extra = "") => `<button class="link-button" type="button" data-action="round-page" data-page="${to}" ${extra} aria-label="Back to ${escapeHtml(name)}">${chevronIcon("left")}${escapeHtml(name)}</button>`;
 
+// Rounds: every round, newest first, in one card (from block 2 on, each names its block),
+// with a line where a break of three weeks or more falls; then the two rare round actions.
 function allMarkup(state) {
-  const blocks = allBlocks(state);
+  const rounds = allRounds(state);
   const summary = roundSummary(state);
-  // The two rare round actions, while nothing runs; "End round" once something is done in it.
-  const actions = summary.counting && !activeWorkout(state) ? `<p class="round-actions">
-      ${summary.workouts.length ? `<button class="link-button" type="button" data-action="round-end">End round ${summary.number} now</button>` : ""}
-      <button class="link-button" type="button" data-action="round-number-open">Change round number</button>
-    </p>` : "";
-  const groups = blocks.map((block, index) => {
-    const when = blockWhen(block);
-    return `${index ? gapMarkup(blocks[index - 1].gapBefore) : ""}
-    <section>
-      <button class="row compact round-block" type="button" data-action="round-page" data-page="block" data-block="${block.block}" aria-label="Block ${block.block}, ${escapeHtml(when)}, ${plural(block.rounds.length, "round")}. Open the block.">
-        <span class="row-title">Block ${block.block}</span>
-        <span class="row-meta">${escapeHtml(when)} · ${plural(block.rounds.length, "round")}</span>
-        <span class="chev" aria-hidden="true">${chevronIcon("right")}</span>
-      </button>
-      ${roundRows(block, "all")}
-    </section>`;
-  });
-  return `<section class="page round-page">
-    <header class="page-back">${backMarkup("home", "Round")}<h1 class="title">Rounds and blocks</h1>${actions}</header>
-    ${blocks.length ? groups.join("") : `<p class="hint round-note">No rounds yet.</p>`}
-  </section>`;
+  const head = `<header class="page-back">${backTo("home", "Home")}<h1 class="title">Rounds</h1></header>`;
+  if (!rounds.length) return `<section class="page round-page">${head}<p class="hint round-note">No rounds yet. The count starts with your first workout.</p></section>`;
+  const blocks = new Set(rounds.map((record) => record.block)).size > 1;
+  const rows = rounds.map((record, index) => {
+    const newer = rounds[index - 1];
+    return `${newer?.workouts.length && record.to ? gapMarkup(daysBetween(record.to, newer.from)) : ""}${roundRow(record, "all", blocks)}`;
+  }).join("");
+  // While nothing runs; "End round" once something is done in it.
+  const actions = summary.counting && !activeWorkout(state) ? card("More", "", `${summary.workouts.length ? `<button class="result-line" type="button" data-action="round-end"><span class="result-label is-link">End round ${summary.number} now</span>${chevron()}</button>` : ""}
+      <button class="result-line" type="button" data-action="round-number-open"><span class="result-label is-link">Change round number</span>${chevron()}</button>`) : "";
+  return `<section class="page round-page">${head}<div class="result-cards">${card("Rounds", String(rounds.length), rows)}${actions}</div></section>`;
 }
+
+// Blocks: a row per block, newest first, with a line where a break of three weeks or more
+// falls between two; each opens its block's page.
+function blocksMarkup(state) {
+  const blocks = allBlocks(state);
+  const head = `<header class="page-back">${backTo("home", "Home")}<h1 class="title">Blocks</h1></header>`;
+  if (!blocks.length) return `<section class="page round-page">${head}<p class="hint round-note">No blocks yet. The count starts with your first workout.</p></section>`;
+  const rows = blocks.map((block, index) => {
+    const when = block.open && block.workouts.length ? `since ${shortDate(block.from)}` : ranText(block);
+    const workouts = block.workouts.filter((item) => !item.guest && !item.optional).length;
+    return `${index ? gapMarkup(blocks[index - 1].gapBefore) : ""}${gridRow({
+      name: `Block ${block.block}`,
+      tag: block.open ? `<span class="label tag accent">Open</span>` : "",
+      under: escapeHtml([when, block.programs.join(", then ")].filter(Boolean).join(" · ")),
+      value: plural(block.rounds.length, "round"),
+      valueUnder: plural(workouts, "workout"),
+      attributes: `data-action="round-page" data-page="block" data-block="${block.block}"`,
+      label: `Block ${block.block}${block.open ? ", open" : ""}, ${when}. ${plural(block.rounds.length, "round")}, ${plural(workouts, "workout")}. Open the block.`,
+    })}`;
+  }).join("");
+  return `<section class="page round-page">${head}<div class="result-cards">${card("Blocks", String(blocks.length), rows)}</div></section>`;
+}
+
+// The cells of a summary under a bar; a cell with nothing to say is left out.
+const summaryCard = (segments, cells, right = "") => `<section class="result-card result-summary" data-home="card" aria-label="Summary">
+    <h2 class="label result-card-label"><span>Summary</span>${right ? `<span>${right}</span>` : ""}</h2>
+    ${segments.length ? `<div class="round-bar" aria-hidden="true">${segments.map((name) => `<i${name ? ` class="${name}"` : ""}></i>`).join("")}</div>` : ""}
+    <div class="result-cells">${cells.filter(Boolean).map(([value, name]) => `<p><strong>${value}</strong><small>${name}</small></p>`).join("")}</div>
+  </section>`;
+
+// "weeks 44–45", "week 47".
+const weeksCell = (fromKey, toKey) => {
+  const from = calendarWeek(fromKey).week;
+  const to = calendarWeek(toKey).week;
+  return from === to ? [String(from), "week"] : [`${from}–${to}`, "weeks"];
+};
 
 // ---------- one block ----------
 
-const ordinal = (number) => `${number}${[11, 12, 13].includes(number % 100) ? "th" : ["th", "st", "nd", "rd"][number % 10] || "th"}`;
-const ENDING_ORDER = ["complete", "early", "break", "switch"];
-
-// `before`: the block before it, if any.
-function blockMarkup(state, block, before) {
+function blockMarkup(state, block) {
   const todayKey = localDateKey();
   const started = block.workouts.length > 0;
   const to = block.open ? todayKey : block.to;
-  const days = started ? daysBetween(block.from, to) + 1 : 0;
-  const open = block.rounds.find((record) => record.open);
   const counted = block.workouts.filter((item) => !item.guest && !item.optional).length;
-  const extras = block.workouts.length - counted;
-  const bests = newBests(state, block.workouts);
-  // A value of several parts wraps only between them.
-  const parts = (items, joint) => items.filter(Boolean).map((item, index, all) => `<span class="nowrap">${escapeHtml(item)}${index < all.length - 1 ? joint : ""}</span>`).join(" ");
-  // How its rounds ended: "3 · 1 complete, 1 ended early, 1 open".
-  const endings = ENDING_ORDER.filter((ended) => block.endings[ended]).map((ended) => `${block.endings[ended]} ${ENDED_SHORT[ended]}`);
-  if (open) endings.push("1 open");
-  const roundsText = block.rounds.length === 1 ? `1, ${open ? "open" : ENDED_SHORT[block.rounds[0].ended]}` : `${block.rounds.length} · ${parts(endings, ",")}`;
-  // How it started, when that can be told: after a break, with another program.
-  const startedHow = parts([
-    block.gapBefore >= 21 ? `after ${Math.floor(block.gapBefore / 7)} weeks off` : "",
-    before && before.programs.at(-1) !== block.programs[0] ? "with a new program" : "",
-  ], ",");
-  const dates = !started ? "" : block.from === to ? (block.open ? "today" : shortDate(block.from)) : parts([shortDate(block.from), block.open ? "today" : shortDate(block.to)], " –");
   const segments = [...block.rounds].reverse().map((record) => (record.open ? "" : record.ended === "complete" ? "is-done" : "is-short"));
+  const cells = [
+    [String(block.rounds.length), block.rounds.length === 1 ? "round" : "rounds"],
+    started ? [String(counted), counted === 1 ? "workout" : "workouts"] : null,
+    started ? weeksCell(block.from, to) : null,
+    block.minutes ? [hoursText(block.minutes), "trained"] : null,
+  ];
   return `<section class="page round-page">
     <header class="round-head">
-      <div class="round-top">${backMarkup("all", "Rounds and blocks")}</div>
-      <div class="round-title">
-        <h1>Block ${block.block}</h1>
-        <span>${escapeHtml(weekTitle(started ? block.from : todayKey, started ? to : todayKey))}</span>
-      </div>
-      <div class="round-bar" aria-hidden="true">${segments.map((name) => `<i${name ? ` class="${name}"` : ""}></i>`).join("")}</div>
-      <p class="round-facts"><span>${plural(block.rounds.length, "round")}${open ? ` · round ${open.number} open` : ""}</span><span>${escapeHtml(block.open || !started ? blockWhen(block) : `ended ${shortDate(block.to)}`)}</span></p>
+      <div class="round-top">${backTo("blocks", "Blocks")}</div>
+      <div class="round-title"><h1>Block ${block.block}</h1><span>${escapeHtml(ranText(block))}</span></div>
     </header>
-    <div class="round-lines round-about">
-      ${line("Programs", escapeHtml(block.programs.join(", then ")))}
-      ${line("Rounds", roundsText)}
-      ${line("Workouts", started ? `${counted} done${extras ? `, plus ${plural(extras, "extra")}` : ""}` : "")}
-      ${line("Dates", dates)}
-      ${started ? line("Lasted", `${plural(days, "day")}${block.open ? ` so far, ${ordinal(Math.floor((days - 1) / 7) + 1)} week` : ""}`) : ""}
-      ${started ? line("Calendar weeks", escapeHtml(weeksText(block.from, to))) : ""}
-      ${line("Training time", block.minutes ? durationText(block.minutes) : "")}
-      ${line("New bests", bests ? String(bests) : "")}
-      ${line("Started", startedHow)}
+    <div class="result-cards">
+      ${summaryCard(segments, cells, escapeHtml(block.programs.join(", then ")))}
+      ${card("Rounds", String(block.rounds.length), roundRows(block, "block"))}
     </div>
-    <section>
-      <div class="label section-label"><span>Rounds</span></div>
-      ${roundRows(block, "block")}
-    </section>
   </section>`;
 }
 
@@ -812,45 +780,51 @@ function oneMarkup(state, record) {
   const summary = record.open ? roundSummary(state) : null;
   const to = record.open ? todayKey : record.to;
   const started = record.workouts.length > 0; // an open round with nothing done has no dates yet
-  const days = started ? daysBetween(record.from, to) + 1 : 0;
   const left = notDone(state, record);
-  const bests = newBests(state, record.workouts);
-  return `<section class="page round-page">
-    ${headMarkup({
-    // Back to where it was opened from: its block's page, the round page, or Rounds and blocks.
-    top: `<div class="round-top">${page.from === "home" ? backMarkup("home", "Round") : page.from === "block"
-      ? `<button class="link-button" type="button" data-action="round-page" data-page="block" data-block="${record.block}" aria-label="Back to Block ${record.block}">${chevronIcon("left")}Block ${record.block}</button>`
-      : backMarkup("all", "Rounds and blocks")}</div>`,
-    round: record,
-    week: started ? weekTitle(record.from, to) : weekTitle(todayKey),
-    segments: summary ? summary.required.map((routine) => summary.done.has(routine.id)) : Array.from({ length: record.required }, (_, index) => index < record.done),
-    left: workoutsDone(record.done, record.required),
-    right: record.open ? (started ? `started ${shortDate(record.from)}` : "not started yet") : ENDED[record.ended],
-  })}
-    <div class="round-lines round-about">
-      ${line("Program", escapeHtml(record.program))}
-      ${line("Workouts", `${record.done} of ${record.required} done`)}
-      ${started ? line("Dates", escapeHtml(record.open ? `from ${shortDate(record.from)}` : record.from === record.to ? shortDate(record.from) : `${shortDate(record.from)} – ${shortDate(record.to)}`)) : ""}
-      ${started ? line("Took", `${plural(days, "day")}${record.open ? " so far" : ""}`) : ""}
-      ${started ? line("Calendar weeks", escapeHtml(weeksText(record.from, to))) : ""}
-      ${line("Training time", record.minutes ? durationText(record.minutes) : "")}
-      ${line("New bests", bests ? String(bests) : "")}
-    </div>
-    ${record.workouts.length ? `<section>
-      <div class="label section-label"><span>Workouts</span></div>
-      ${record.workouts.map((item) => doneRow(item.name, item.dateKey, workoutTag(item))).join("")}
-    </section>` : ""}
-    ${left.count ? `<section>
-      <div class="label section-label"><span>Not done</span></div>
-      ${left.names.length
-    ? left.names.map((name) => `<div class="row compact round-row is-quiet"><span class="tickbox" aria-hidden="true"></span><span class="row-main"><span class="row-title truncate">${escapeHtml(name)}</span></span></div>`).join("")
-    : `<p class="hint round-note">${plural(left.count, "workout")} ${left.count === 1 ? "was" : "were"} not done.</p>`}
-    </section>` : ""}
-    ${activeWorkout(state) ? "" : `<div class="result-cards round-more"><section class="result-card" aria-label="More">
-      <h2 class="label result-card-label"><span>More</span></h2>
-      <button class="result-line" type="button" data-action="round-delete" aria-label="Delete ${escapeHtml(roundName(record))}"><span class="result-label is-danger">Delete this round</span><span class="chev" aria-hidden="true">${chevronIcon("right")}</span></button>
-    </section></div>`}
-  </section>`;
+  const { title, suffix } = roundTitle(record);
+  // Back to where it was opened from: its block's page, Home, or Rounds.
+  const back = page.from === "home" ? backTo("home", "Home") : page.from === "block" ? backTo("block", `Block ${record.block}`, `data-block="${record.block}"`) : backTo("all", "Rounds");
+  const head = `<header class="round-head">
+    <div class="round-top">${back}</div>
+    <div class="round-title"><h1><span>${escapeHtml(title)}</span>${suffix ? `<small>${escapeHtml(suffix)}</small>` : ""}</h1><span>${escapeHtml(started ? weekTitle(record.from, to) : weekTitle(todayKey))}</span></div>
+  </header>`;
+  const end = record.open && started ? `<button class="result-line" type="button" data-action="round-end" aria-label="End ${escapeHtml(roundName(record))} now"><span class="result-label is-link">End this round now</span>${chevron()}</button>` : "";
+  const more = activeWorkout(state) ? "" : card("More", "", `${end}<button class="result-line" type="button" data-action="round-delete" aria-label="Delete ${escapeHtml(roundName(record))}"><span class="result-label is-danger">Delete this round</span>${chevron()}</button>`);
+  if (!started && record.open) {
+    return `<section class="page round-page">${head}<div class="result-cards">
+      ${card(escapeHtml(roundName({ number: record.number, block: 1 })), "not started yet", `<p class="hint home-first">Nothing is done in it yet. It begins on Home with its first workout.</p>`)}
+      ${more}
+    </div></section>`;
+  }
+  const segments = summary ? summary.required.map((routine) => (summary.done.has(routine.id) ? "is-done" : "")) : Array.from({ length: record.required }, (_, index) => (index < record.done ? "is-done" : ""));
+  const cells = [
+    [`${record.done} of ${record.required}`, record.open ? "done" : ENDED_SHORT[record.ended]],
+    started ? [daysText(daysBetween(record.from, to) + 1), record.open ? "so far" : "took"] : null,
+    started ? weeksCell(record.from, to) : null,
+    record.minutes ? [hoursText(record.minutes), "trained"] : null,
+  ];
+  const workouts = record.workouts.map((item) => {
+    const tally = workoutTally(state, item.routineId, item.dateKey);
+    const tag = workoutTag(item);
+    return gridRow({
+      name: escapeHtml(item.name),
+      tag: tag ? `<span class="label tag">${escapeHtml(tag)}</span>` : "",
+      under: escapeHtml(shortDate(item.dateKey)),
+      value: item.minutes ? `${item.minutes} min` : "–",
+      valueUnder: tally ? tallyMarkup(tally) : "",
+      attributes: `data-action="open-result" data-id="${escapeHtml(item.routineId)}" data-date="${item.dateKey}"`,
+      label: `${item.name}${tag ? `, ${tag}` : ""}, ${shortDate(item.dateKey)}. How it went`,
+    });
+  }).join("");
+  const notDoneCard = left.count ? card("Not done", String(left.count), left.names.length
+    ? left.names.map((name) => `<div class="result-line result-left"><span class="truncate">${escapeHtml(name)}</span></div>`).join("")
+    : `<p class="hint home-first">${plural(left.count, "workout")} ${left.count === 1 ? "was" : "were"} not done.</p>`) : "";
+  return `<section class="page round-page">${head}<div class="result-cards">
+    ${summaryCard(segments, cells, escapeHtml(record.program || "Deleted program"))}
+    ${card("Workouts", String(record.workouts.length), workouts)}
+    ${notDoneCard}
+    ${more}
+  </div></section>`;
 }
 
 function markup(state) {
@@ -862,10 +836,10 @@ function markup(state) {
   if (page.name === "block") {
     const blocks = allBlocks(state);
     const index = blocks.findIndex((item) => item.block === page.block);
-    if (index >= 0) return blockMarkup(state, blocks[index], blocks[index + 1]);
-    page.name = "all"; // the block is gone (another backup was imported)
+    if (index >= 0) return blockMarkup(state, blocks[index]);
+    page.name = "blocks"; // the block is gone (another backup was imported)
   }
-  return page.name === "all" ? allMarkup(state) : homeMarkup(state);
+  return page.name === "all" ? allMarkup(state) : page.name === "blocks" ? blocksMarkup(state) : homeMarkup(state);
 }
 
 // Another page of the tab. Going deeper starts at the top; coming back returns to
@@ -1009,7 +983,7 @@ async function deleteRoundNow() {
   const after = record.open ? `${name} is laid out again, with nothing in it. ` : "Other rounds keep their numbers. ";
   const confirmed = await confirmAction({
     title: `Delete ${name}?`,
-    message: `It leaves the round count and Rounds and blocks. ${workouts}${after}This can't be undone.`,
+    message: `It leaves the round count and Rounds. ${workouts}${after}This can't be undone.`,
     confirmLabel: "Delete round",
     cancelLabel: "Keep it",
     variant: "round-delete",
@@ -1062,12 +1036,12 @@ registerView("round", {
     if (page.name === "home") moveHome(main);
   },
   // Going back (a drag from the left edge): one round returns to where it was opened from
-  // (its block, the round page or Rounds and blocks), a block to Rounds and blocks, that to
-  // the tab's first page, each to where it was left.
+  // (its block, Home or Rounds), a block to Blocks, Rounds and Blocks to Home, each to
+  // where it was left.
   back() {
     if (page.name === "home") return null;
     const from = { name: page.name, number: page.number, block: page.block, from: page.from };
-    const to = page.name === "one" ? (page.from === "block" ? "block" : page.from === "home" ? "home" : "all") : page.name === "block" ? "all" : "home";
+    const to = page.name === "one" ? (page.from === "block" ? "block" : page.from === "home" ? "home" : "all") : page.name === "block" ? "blocks" : "home";
     return {
       apply() {
         Object.assign(page, { name: to, number: 0, block: to === "block" ? page.block : 0, from: "" });

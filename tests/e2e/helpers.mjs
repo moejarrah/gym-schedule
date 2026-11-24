@@ -137,7 +137,7 @@ export async function openSettings(page) {
 
 /** Leaves Settings by its back link, which returns to the round page. */
 export async function closeSettings(page) {
-  await main(page).getByRole("button", { name: "Back to Round", exact: true }).click();
+  await main(page).getByRole("button", { name: "Back to Home", exact: true }).click();
   await expect(settingsScope(page)).toBeHidden();
 }
 

@@ -23,7 +23,7 @@ A personal workout app for one person, used on an iPhone 15 Pro as an installed 
 | `js/seed.js` | Starting data (first launch and "Restore starting data"), one exercise or slot per line |
 | `js/library-update.js` | What the upgrades from version 14 to 19 apply to saved data: Library renames, links and added exercises, machine kinds, moving the version out of the name into the setup fields, and the coach's edits to PPL 9 |
 | `js/dom.js` | DOM helpers: escaping, toasts, `redraw`, dialogs, confirmations, hold-to-drag |
-| `js/views/round.js` | Home, the first tab: the round on the calendar, the workouts left as tiles to pick, the lifts to beat, the cards for a running or finished workout, a round laid out and begun; the pages Rounds and blocks, one block and one round; and the sheets for an extra workout, following another program and changing the round number |
+| `js/views/round.js` | Home, the first tab: the round on the calendar, the workouts left as tiles to pick, the lifts to beat, the cards for a running or finished workout, a round laid out and begun; the pages Rounds, Blocks, one block and one round; and the sheets for an extra workout, following another program and changing the round number |
 | `js/views/result.js` | A finished workout's result page (after Finish, from a day square or "Full result" on Home): the summary, every exercise with its sets and change, not done, continue / do again / delete |
 | `js/views/workout.js` | The workout in progress (a page of the Home tab), its bottom button, the running bar every other page shows, the result after Finish, the choices sheet, keeping the screen on |
 | `js/views/*.js` | One file per screen or sheet, each with its markup and actions |

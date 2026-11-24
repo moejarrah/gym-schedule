@@ -706,7 +706,7 @@ export function beginRound(state, todayKey = localDateKey()) {
   round.since = todayKey;
 }
 
-// Deletes a round from the count: it leaves Rounds and blocks, and its workouts stay in Log
+// Deletes a round from the count: it leaves Rounds (and a block left empty leaves Blocks), and its workouts stay in Log
 // with their sets but belong to no round any more (their round tags go). Other rounds keep
 // their numbers. A closed round leaves the round log; the open round stays open, with the
 // same number and the day it opened, now empty (Home lays it out again). Once no round is

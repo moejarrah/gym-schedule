@@ -236,15 +236,15 @@ async function openRoundSheet(page, row, title = row) {
 }
 
 async function openAllRounds(page) {
-  await tapOnRound(page, button(main(page), startsWith("Rounds and blocks")));
-  await shown(main(page).getByRole("heading", { name: "Rounds and blocks" }));
+  await tapOnRound(page, button(main(page), startsWith("All rounds")));
+  await shown(main(page).getByRole("heading", { name: "Rounds", exact: true }));
 }
 
 // One round's page, from All rounds: openRound(page, "Round 5").
 async function openRound(page, name) {
   await openAllRounds(page);
   await button(main(page), startsWith(`${name},`)).click();
-  await shown(button(main(page), "Back to Rounds and blocks"));
+  await shown(button(main(page), "Back to Rounds"));
 }
 
 // Opens a row of the round page in place.
@@ -372,7 +372,27 @@ const SHOTS = [
     await shown(main(page).getByRole("heading", { level: 1, name: "Round 1 · block 2" }));
   }, "break"],
   ["home-no-program", async () => {}, "empty"],
+  // Two blocks: a card each, newest first.
   ["round-all", async (page) => { await openAllRounds(page); }, "round"],
+  // One block: one card of rounds.
+  ["round-all-one-block", async (page) => { await openAllRounds(page); }, "break"],
+  // Blocks from Home: two blocks, then one.
+  ["round-blocks", async (page) => {
+    await tapOnRound(page, button(main(page), startsWith("Blocks")));
+    await shown(main(page).getByRole("heading", { name: "Blocks", exact: true }));
+  }, "round"],
+  ["round-blocks-one", async (page) => {
+    await tapOnRound(page, button(main(page), startsWith("Blocks")));
+    await shown(main(page).getByRole("heading", { name: "Blocks", exact: true }));
+  }, "break"],
+  ["round-block", async (page) => {
+    await tapOnRound(page, button(main(page), startsWith("Blocks")));
+    await tapOnRound(page, button(main(page), startsWith("Block 2,")));
+  }, "round"],
+  // The open round's page: End this round now and Delete this round.
+  ["round-one-open", async (page) => { await openRound(page, "Round 3 · block 2"); }, "round"],
+  // An open round with nothing in it yet.
+  ["round-one-empty", async (page) => { await openRound(page, "Round 4 · block 2"); }, "complete"],
   // A complete round with an extra workout; then one that ended early, with what was not done.
   ["round-one", async (page) => { await openRound(page, "Round 2 · block 2"); }, "round"],
   ["round-one-ended-early", async (page) => { await openRound(page, "Round 5"); }, "round"],
@@ -836,7 +856,7 @@ async function captureCombo(browser, server, { width, height }, theme, tempDir) 
         await resetTo(page, states[state]);
         await run(page, { backupPath });
         await settle(page);
-        const whole = name.startsWith("result") || name.startsWith("home");
+        const whole = name.startsWith("result") || name.startsWith("home") || name.startsWith("round-");
         if (whole) await page.addStyleTag({ content: "html, body, .app-shell { height: auto !important; overflow: visible !important; } #appMain { overflow: visible !important; padding-bottom: 8px !important; } .dock, .bottom-nav { position: relative !important; inset: auto !important; }" });
         await page.screenshot({ path: path.join(outDir, file), animations: "disabled", caret: "hide", scale: "css", fullPage: whole });
         results.push({ file, ok: true });

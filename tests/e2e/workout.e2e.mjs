@@ -539,12 +539,12 @@ appTest("Rounds: set the round you're on, a round takes every workout once and t
   saved = await readState(page);
   assert.deepEqual([saved.sessions[TODAY].routineIds, saved.sessions[TODAY].workouts["day-b"].round, saved.settings.round.number], [["day-a", "day-b"], 3, 4]);
 
-  // Rounds and blocks lists the closed round with its program and what was done in it.
-  await tapOnRound(page, main(page).getByRole("button", { name: /^Rounds and blocks/ }));
+  // Rounds lists the closed round with its program and what was done in it.
+  await tapOnRound(page, main(page).getByRole("button", { name: /^All rounds/ }));
   const closed = main(page).getByRole("button", { name: /^Round 3, Sample program, .*\. 2 of 2 workouts, complete\. Open the round\.$/ });
   await expect(closed).toContainText("2 of 2");
   await expect(main(page).getByRole("button", { name: /^Round 4, Sample program, .*\. 0 of 2 workouts, in progress\. Open the round\.$/ })).toBeVisible();
-  await tapOnRound(page, main(page).getByRole("button", { name: "Back to Round" }));
+  await tapOnRound(page, main(page).getByRole("button", { name: "Back to Home" }));
   await expect(roundTitle(page, "Round 4")).toBeVisible();
 
   // The next day, round 4 is laid out, and begun it starts with Day A.
@@ -616,11 +616,11 @@ appTest("A workout from another program is listed in the round as an extra and c
 });
 
 appTest("Delete this round: after a confirmation the round leaves the count, its workouts stay in Log", { saved: twoPrograms() }, async ({ page }) => {
-  await tapOnRound(page, main(page).getByRole("button", { name: /^Rounds and blocks/ }));
+  await tapOnRound(page, main(page).getByRole("button", { name: /^All rounds/ }));
   await tapOnRound(page, main(page).getByRole("button", { name: /^Round 5, Sample program/ }));
   await main(page).getByRole("button", { name: "Delete Round 5" }).click();
   const confirm = dialog(page, "Delete Round 5?");
-  await expect(confirm).toContainText("It leaves the round count and Rounds and blocks. Its 1 workout stays in Log with its sets, but no longer belongs to a round.");
+  await expect(confirm).toContainText("It leaves the round count and Rounds. Its 1 workout stays in Log with its sets, but no longer belongs to a round.");
   await tapOnRound(page, confirm.getByRole("button", { name: "Delete round" }));
   await expect(page.getByText("Round deleted.")).toBeVisible();
   // It was the only round: counting is as before it began, and Home lays round 1 out.

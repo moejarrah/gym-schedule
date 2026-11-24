@@ -1344,10 +1344,6 @@ details.form-section > summary + * {
   border-top: 0;
 }
 
-.round-about {
-  padding-inline: var(--gutter);
-}
-
 /* The round number between − and +. The number keeps its width, so + never moves. */
 .round-number-line {
   align-items: center;
@@ -1370,52 +1366,8 @@ details.form-section > summary + * {
   text-align: center;
 }
 
-/* A workout of a round: its box, its name on one line, and at the end a tag, its date
-   or an arrow. Done ones are muted, and so are the ones that can't be opened now. */
-.round-row > .row-meta,
-.round-row > .label {
-  flex: none;
-  white-space: nowrap;
-}
-
-.round-row > .tag {
-  max-width: 40%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.round-row:is(.is-done, .is-quiet) .row-title {
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-/* Not open for a tap now: its box fades, its name stays readable. */
-.round-row.is-quiet > .tickbox {
-  opacity: 0.5;
-}
-
 .round-note {
   padding: var(--space-2) var(--gutter) 0;
-}
-
-/* All rounds: three columns under a small header row (the number, the program with its
-   dates and weeks, the workouts with how it ended) and an arrow. */
-.round-cols {
-  padding-inline: var(--gutter);
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 104px 18px;
-  align-items: center;
-  column-gap: 10px;
-}
-
-.label.round-cols {
-  min-height: 34px;
-  border-bottom: 1px solid var(--line);
-}
-
-/* Under the program: its dates, then its weeks, a line each. */
-.round-cols .row-meta {
-  white-space: nowrap;
 }
 
 /* One round's page ends with its More card (Delete this round). */
@@ -1454,26 +1406,6 @@ details.form-section > summary + * {
 /* Under the list: another program's workout, Rounds and blocks, setting the round. */
 .round-foot {
   margin-top: var(--space-4);
-}
-
-/* The open round's number is outlined in the accent colour; a fill means done. */
-.round-cols > .tickbox.is-open {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-/* Rounds and blocks: the two rare round actions under the title, one at each end. */
-.round-actions {
-  margin-inline: -2px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  column-gap: var(--space-3);
-}
-
-/* A block's heading row: its name, then when it ran and its rounds, and an arrow. */
-.round-block > .row-title {
-  flex: 1;
 }
 
 /* A block's bar: a round that ended before it was complete is filled faintly. */
