@@ -518,7 +518,7 @@ textarea.control {
   color: var(--faint);
 }
 
-/* The text of a row: a title over a meta line (.row-line puts them on one line). */
+/* The text of a row: a title over a meta line. */
 .row-main {
   min-width: 0;
   flex: 1;
@@ -526,17 +526,6 @@ textarea.control {
   align-content: center;
   gap: 2px;
   text-align: left;
-}
-
-.row-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 1px var(--space-2);
-}
-
-.row-line ~ * {
-  margin-top: 2px;
 }
 
 .row-title {

@@ -8,7 +8,6 @@ import {
   allBlocks,
   allRounds,
   answerBreak,
-  blockRecord,
   calendarWeek,
   cancelWorkout,
   createProgram,
@@ -372,7 +371,6 @@ test("block 1 alone: its rounds newest first, the open one included", () => {
   assert.deepEqual(allBlocks(store.getState()).map(blockShape), [
     { block: 1, open: true, rounds: [5, 4], programs: ["Sample program"], workouts: 3, from: "2026-11-09", to: "2026-11-12", minutes: 90, endings: { complete: 1 }, gapBefore: 0 },
   ]);
-  assert.equal(blockRecord(store.getState(), 2), null);
 });
 
 test("a block that changed program lists both programs in order and how its rounds ended", () => {
@@ -383,7 +381,7 @@ test("a block that changed program lists both programs in order and how its roun
   save(store, (draft) => followProgram(draft, other.programId)); // round 1 ends with the change
   train(store, other.ids[0], "2026-11-11");
   train(store, other.ids[1], "2026-11-12"); // round 2 complete, round 3 open
-  assert.deepEqual(blockShape(blockRecord(store.getState(), 1)), { block: 1, open: true, rounds: [3, 2, 1], programs: ["Sample program", "Full body"], workouts: 3, from: "2026-11-09", to: "2026-11-12", minutes: 90, endings: { switch: 1, complete: 1 }, gapBefore: 0 });
+  assert.deepEqual(blockShape(allBlocks(store.getState()).find((item) => item.block === 1)), { block: 1, open: true, rounds: [3, 2, 1], programs: ["Sample program", "Full body"], workouts: 3, from: "2026-11-09", to: "2026-11-12", minutes: 90, endings: { switch: 1, complete: 1 }, gapBefore: 0 });
 });
 
 test("a block started after a break: the one before is closed, and the new one says how long the gap was", () => {

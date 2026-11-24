@@ -71,12 +71,6 @@ export function programRoutines(state, program = activeProgram(state)) {
   return program.routineIds.map((id) => routineById(state, id)).filter(Boolean);
 }
 
-export function activeRoutine(state) {
-  const program = activeProgram(state);
-  if (!program?.routineIds.includes(state.settings.activeRoutineId)) return null;
-  return routineById(state, state.settings.activeRoutineId);
-}
-
 export function routineProgram(state, routineId) {
   return state.programs.find((program) => program.routineIds.includes(routineId)) || null;
 }
@@ -289,7 +283,7 @@ export function finishWorkout(state, { now = Date.now(), timed = true } = {}) {
   writeSession(state, workout.dateKey, session);
   state.settings.activeWorkout = null;
   if (!reopenedTag.round) closeRoundIfComplete(state, workout.backdated ? localDateKey() : workout.dateKey);
-  // The Workout tab moves on to the round's next workout.
+  // The selected routine (settings.activeRoutineId) moves on to the round's next workout.
   const next = openRound(state) && !workout.backdated ? roundSummary(state).remaining[0] : null;
   if (next) state.settings.activeRoutineId = next.id;
 }
@@ -531,8 +525,6 @@ export function allBlocks(state) {
   });
   return blocks;
 }
-
-export const blockRecord = (state, block) => allBlocks(state).find((item) => item.block === block) || null;
 
 // The program a round follows or followed (its id), for deciding what counts in it.
 const programOfRound = (state, tag) => (sameRound({ round: tag.round, block: tag.block }, openRound(state) || {}) ? openRound(state).programId : (state.settings.roundLog || []).find((item) => item.number === tag.round && item.block === tag.block)?.programId) || "";
@@ -848,14 +840,6 @@ export function setActiveProgram(state, programId) {
 }
 
 // ---------- routines ----------
-
-// Selects the workout the Workout tab shows: a routine of the followed program.
-// Selecting never changes which program is followed.
-export function setActiveRoutine(state, routineId) {
-  const owner = routineProgram(state, routineId) || fail("That workout no longer exists.");
-  if (owner.id !== state.settings.activeProgramId) fail("That workout belongs to another program.");
-  state.settings.activeRoutineId = routineId;
-}
 
 export function addRoutine(state, programId, { name, group, status, note, blocks }) {
   const program = state.programs.find((item) => item.id === programId) || fail("Choose a program first.");

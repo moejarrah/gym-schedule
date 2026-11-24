@@ -1324,35 +1324,6 @@ details.form-section > summary + * {
   font-size: var(--fs-meta);
 }
 
-/* The one card: a small label, what it is about, its facts as labelled lines, its button. */
-.round-card {
-  margin-inline: var(--space-4);
-}
-
-.round-card > h2 {
-  margin-block: 2px var(--space-2);
-  font-size: var(--fs-sheet);
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-  overflow-wrap: anywhere;
-}
-
-.round-card > p:not(.label) {
-  margin-bottom: var(--space-3);
-  color: var(--text-muted);
-  font-size: var(--fs-small);
-  line-height: 1.5;
-}
-
-.round-card > .actions {
-  margin-top: var(--space-2);
-}
-
-.round-card > .actions > .link-button {
-  align-self: center;
-}
-
 /* Labelled lines with longer labels than a slot's ("Calendar weeks", "As a new block"). */
 .round-lines .slot-line {
   grid-template-columns: 112px minmax(0, 1fr);
