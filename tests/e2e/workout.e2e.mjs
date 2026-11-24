@@ -224,8 +224,10 @@ appTest("A workout: Done and Not done on slots, an exercise added for today, and
   assert.deepEqual((await todaySaved(page)).routineIds, []);
   await main(page).getByRole("button", { name: "Finish Day A" }).click();
   const question = finishQuestion(page, "Day A");
-  await expect(question).toContainText("2 of 3 exercises done · 1 set logged.");
-  await expect(question).toContainText("Not done: Incline dumbbell press (dumbbell).");
+  // In the header's own numbers: Push-up has a set but isn't marked done.
+  await expect(main(page)).toContainText("1 of 3 exercises done");
+  await expect(question).toContainText("1 of 3 exercises done · 1 set logged.");
+  await expect(question).toContainText("Not started: Incline dumbbell press (dumbbell).");
   await question.getByRole("button", { name: "Keep going" }).click();
   await expect(question).toBeHidden();
   assert.equal((await readState(page)).settings.activeWorkout.routineId, "day-a");

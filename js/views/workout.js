@@ -381,13 +381,15 @@ function namesText(names) {
   return shown.length < 2 ? shown.join("") : `${shown.slice(0, -1).join(", ")} and ${shown.at(-1)}`;
 }
 
-// Where the workout stands, for the Finish question: "5 of 8 exercises done · 14 sets
-// logged." and, when main exercises are left, "Not done: Chest fly, Lateral raise and 2 more."
+// Where the workout stands, for the Finish question, in the header's own numbers and words
+// (done = marked done): "5 of 8 exercises done · 14 sets logged." and, when main exercises
+// have nothing at all (no done mark, no sets), "Not started: Chest fly, Lateral raise and 2 more."
 function standingText(state, workout) {
-  const { counted, done, isDone, sets } = workoutStanding(state, workout.routineId, workout.dateKey);
-  const left = counted.filter((slot) => !isDone(slot)).map((slot) => fullName(shownChoice(state, slot, workout.dateKey).exercise));
+  const { counted, done } = workoutProgress(state, workout);
+  const { isDone, sets } = workoutStanding(state, workout.routineId, workout.dateKey);
+  const untouched = counted.filter((slot) => !isDone(slot)).map((slot) => fullName(shownChoice(state, slot, workout.dateKey).exercise));
   const first = `${done} of ${plural(counted.length, "exercise")} done · ${sets ? plural(sets, "set") : "no sets"} logged.`;
-  return left.length ? `${first}\nNot done: ${namesText(left)}.` : first;
+  return untouched.length ? `${first}\nNot started: ${namesText(untouched)}.` : first;
 }
 
 // Finish always asks first. Its answers: keep going, or finish, which files the workout as
