@@ -195,6 +195,9 @@ export function stateProblem(state) {
   const counted = (round) => isRecord(round) && Number.isInteger(round.number) && round.number >= 1 && Number.isInteger(round.block) && round.block >= 1;
   if (settings.round !== undefined && !(counted(settings.round) && programs.some((program) => program.id === settings.round.programId))) return "round";
   if (settings.roundLog !== undefined && !(Array.isArray(settings.roundLog) && settings.roundLog.every((round) => counted(round) && isText(round.program) && Number.isInteger(round.required) && [undefined, ...Array(round.required + 1).keys()].includes(round.done)))) return "round history";
+  // What cancelling the workout puts back after its start answered a break (js/model.js).
+  const undo = workout?.breakUndo;
+  if (undo !== undefined && !(isRecord(undo) && counted(undo.round) && Number.isInteger(undo.logged) && undo.logged >= 0)) return "workout in progress: break";
 
   // History outlives what it points at: the routine, slot and exercise IDs in a
   // day may belong to things deleted since.

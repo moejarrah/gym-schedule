@@ -69,7 +69,7 @@ Words: a **workout** is one routine done on a day. "3 of 6 workouts done" is alw
 
 ### Coming back after a break
 
-- After three weeks or more with no workout, the round page shows a short "Welcome back" block above the list: how long it has been and how the last round was left ("8 weeks since Tue 22 Sep. Round 6 ended there, with 2 of 6 workouts done."), then a two-way switch, "This is [Round 7] / Round 1 · block 2". The header already shows the round the switch picks. Nothing waits on it: Start applies the answer in the same save as the start (carrying on closes a round left unfinished, "ended by the break"; the other answer opens a new block). Starting an extra, or "Log a workout for this day" for today, carries on. The break is recorded once, only by a start, never by opening the app or by logging a past day.
+- After three weeks or more with no workout, the round page shows a short "Welcome back" block above the list: how long it has been and how the last round was left ("8 weeks since Tue 22 Sep. Round 6 ended there, with 2 of 6 workouts done."), then a two-way switch, "This is [Round 7] / Round 1 · block 2". The header already shows the round the switch picks. Nothing waits on it: Start applies the answer in the same save as the start (carrying on closes a round left unfinished, "ended by the break"; the other answer opens a new block). Starting an extra applies the switch the same way; "Log a workout for this day" for today carries on. The break is recorded only by a start, never by opening the app or by logging a past day, and cancelling that workout takes the answer back (the Welcome back block returns).
 
 ### The tabs
 

@@ -284,21 +284,25 @@ test("Start after a long break answers it in the same save, once; an extra carri
   assert.deepEqual(closed(store).map((round) => [round.number, round.ended]), [[6, "break"]]);
   assert.deepEqual([number(store), store.getState().settings.activeWorkout.routineId, store.getState().settings.activeRoutineId], [7, "day-b", "day-b"]);
   assert.equal(longBreak(store.getState()), null, "answered");
-  // Cancelled and started again: the break isn't recorded a second time.
+  // Cancelled: the answer goes with it, so starting again answers afresh, recorded once.
   save(store, (draft) => cancelWorkout(draft));
   save(store, (draft) => startTodaysWorkout(draft, "day-b", { restart: true }));
-  assert.deepEqual([closed(store).length, number(store), openRound(store.getState()).block], [1, 7, 1]);
+  assert.deepEqual([closed(store).map((round) => [round.number, round.ended]), number(store), openRound(store.getState()).block], [[[6, "break"]], 1, 2]);
 
   // Start again: a new block.
   store = setup();
   save(store, (draft) => startTodaysWorkout(draft, "day-a", { restart: true }));
   assert.deepEqual([closed(store).map((round) => round.ended), number(store), openRound(store.getState()).block], [["break"], 1, 2]);
 
-  // An extra from another program carries on.
+  // An extra from another program answers it the same way.
   store = setup();
   const { ids } = secondProgram(store);
   save(store, (draft) => startTodaysWorkout(draft, ids[0], { guest: true }));
   assert.deepEqual([closed(store).length, number(store), store.getState().settings.activeWorkout.guest], [1, 7, true]);
+  store = setup();
+  const other = secondProgram(store);
+  save(store, (draft) => startTodaysWorkout(draft, other.ids[0], { guest: true, restart: true }));
+  assert.deepEqual([number(store), openRound(store.getState()).block, store.getState().settings.activeWorkout.guest], [1, 2, true]);
 
   // A workout logged for a past day leaves the question for the next Start.
   store = setup();
@@ -309,6 +313,42 @@ test("Start after a long break answers it in the same save, once; an extra carri
   const fresh = freshStore().store;
   save(fresh, (draft) => startTodaysWorkout(draft, "day-a"));
   assert.deepEqual([number(fresh), fresh.getState().settings.activeWorkout.routineId], [1, "day-a"]);
+});
+
+test("cancelling a workout whose start answered a break puts everything back as it was; finishing keeps the answer", () => {
+  const away = new Date();
+  away.setDate(away.getDate() - 40);
+  const setup = (withOpenRound) => {
+    const { store } = freshStore();
+    save(store, (draft) => setRoundNumber(draft, 6));
+    if (!withOpenRound) train(store, "day-b", localDateKey(new Date(away.getTime() - 86400000)));
+    train(store, "day-a", localDateKey(away));
+    return store;
+  };
+  // Round 6 left unfinished (carrying on closes it) or completed (nothing to close); each answer.
+  for (const withOpenRound of [true, false]) {
+    for (const restart of [false, true]) {
+      const store = setup(withOpenRound);
+      const before = structuredClone(store.getState());
+      before.settings.activeRoutineId = "day-b"; // Start selects the routine; that stays
+      save(store, (draft) => startTodaysWorkout(draft, "day-b", { restart }));
+      assert.ok(store.getState().settings.activeWorkout.breakUndo);
+      save(store, (draft) => cancelWorkout(draft));
+      assert.deepEqual(store.getState(), before, `cancelled (${withOpenRound ? "open" : "complete"} round, ${restart ? "new block" : "carry on"})`);
+      assert.ok(longBreak(store.getState()), "the round page asks again");
+    }
+  }
+  // An extra's start is undone the same way.
+  const store = setup(true);
+  const { ids } = secondProgram(store);
+  const before = structuredClone(store.getState());
+  save(store, (draft) => startTodaysWorkout(draft, ids[0], { guest: true, restart: true }));
+  save(store, (draft) => cancelWorkout(draft));
+  assert.deepEqual(store.getState(), before);
+  // Finished: the answer stands and the workout keeps nothing of it.
+  save(store, (draft) => startTodaysWorkout(draft, "day-b", { restart: true }));
+  save(store, (draft) => finishWorkout(draft));
+  assert.deepEqual([number(store), openRound(store.getState()).block, longBreak(store.getState()), store.getState().settings.activeWorkout], [1, 2, null, null]);
 });
 
 test("a day marked for before the round opened doesn't count toward it", () => {

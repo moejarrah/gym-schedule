@@ -283,7 +283,7 @@ test("the round, its history and the workouts' round tags are saved, loaded and 
   const state = sampleState();
   state.settings.round = { number: 6, block: 2, programId: "sample", since: "2026-11-01", breakAnswered: "2026-10-12" };
   state.settings.roundLog = [{ number: 5, block: 2, program: "Sample program", programId: "sample", required: 2, done: 2, ended: "complete" }];
-  state.settings.activeWorkout = { routineId: "day-a", dateKey: "2026-11-04", startedAt: 1, guest: true };
+  state.settings.activeWorkout = { routineId: "day-a", dateKey: "2026-11-04", startedAt: 1, guest: true, breakUndo: { round: { number: 4, block: 2, programId: "sample", since: "2026-09-01" }, logged: 0 } };
   Object.assign(state.sessions[Object.keys(state.sessions)[0]].workouts["day-a"], { round: 5, block: 2, guest: true });
   assert.equal(stateProblem(state), "");
   const { store } = freshStore(state);
@@ -295,6 +295,7 @@ test("the round, its history and the workouts' round tags are saved, loaded and 
     assert.equal(stateProblem({ ...state, settings: { ...state.settings, round } }), "round");
   }
   assert.equal(stateProblem({ ...state, settings: { ...state.settings, roundLog: [{ number: 1, block: 1 }] } }), "round history");
+  assert.equal(stateProblem({ ...state, settings: { ...state.settings, activeWorkout: { ...state.settings.activeWorkout, breakUndo: { round: null, logged: 0 } } } }), "workout in progress: break");
 });
 
 test("upgrading from one round count per program: the followed program's count carries on, other programs' round tags go", () => {
