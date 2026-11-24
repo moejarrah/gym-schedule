@@ -211,14 +211,14 @@ async function openRoundSheet(page, row, title = row) {
 
 async function openAllRounds(page) {
   await tapOnRound(page, button(main(page), startsWith("Rounds and blocks")));
-  await shown(main(page).getByRole("heading", { name: /^(All rounds|Rounds and blocks)$/ }));
+  await shown(main(page).getByRole("heading", { name: "Rounds and blocks" }));
 }
 
 // One round's page, from All rounds: openRound(page, "Round 5").
 async function openRound(page, name) {
   await openAllRounds(page);
   await button(main(page), startsWith(`${name},`)).click();
-  await shown(button(main(page), "Back to All rounds"));
+  await shown(button(main(page), "Back to Rounds and blocks"));
 }
 
 // Opens a row of the round page in place.

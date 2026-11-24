@@ -1496,7 +1496,26 @@ details.form-section > summary + * {
   color: var(--accent);
 }
 
-/* A break, or a new block, between two rounds: one quiet line. */
+/* Rounds and blocks: the two rare round actions under the title, one at each end. */
+.round-actions {
+  margin-inline: -2px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  column-gap: var(--space-3);
+}
+
+/* A block's heading row: its name, then when it ran and its rounds, and an arrow. */
+.round-block > .row-title {
+  flex: 1;
+}
+
+/* A block's bar: a round that ended before it was complete is filled faintly. */
+.round-bar > .is-short {
+  background: color-mix(in srgb, var(--accent-fill) 35%, var(--press));
+}
+
+/* A break between two rounds or two blocks: one quiet line. */
 .round-gap {
   margin-inline: var(--gutter);
   padding-block: var(--space-2);

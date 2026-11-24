@@ -2,7 +2,7 @@
 // round stands (header and bar), then the round's workouts as one list with one row open
 // and the bottom button acting on it (Start, Do it again, Reopen), what is news today
 // (back after a break, a round completed), and the rows under it. Two pages open inside
-// the tab, each with a back link: Rounds and blocks (All rounds), and one round. One
+// the tab, each with a back link: Rounds and blocks, one block, and one round. One
 // sheet (#roundSheet): a workout from another program, following a different program
 // (opened from Program with "follow-program"), and changing the round number. What a
 // round is: js/model.js, "rounds and calendar weeks".
@@ -11,7 +11,7 @@ import { dockElement, mainElement, navigate, registerActions, registerView, rend
 import { $, chevronIcon, clearError, closeDialog, confirmAction, escapeHtml, formatDate, fresh, openDialog, plural, redraw, report, toast } from "../dom.js";
 import {
   activeWorkout,
-  allRounds,
+  allBlocks,
   calendarWeek,
   dateFromKey,
   endRound,
@@ -38,10 +38,12 @@ import {
 import { exerciseProgress } from "../progress.js";
 import { roundName, shortDate, slotLinkLine, slotMotion, weeksText } from "./shared.js";
 
-// Which page of the tab shows: "home", "all" (All rounds) or "one" (the round `number`
-// of `block`). `scroll` remembers where a page was left, for coming back to it.
-const page = { name: "home", number: 0, block: 0, scroll: {} };
-const DEPTH = { home: 0, all: 1, one: 2 };
+// Which page of the tab shows: "home", "all" (Rounds and blocks), "block" (the block
+// `block`) or "one" (the round `number` of `block`; `from` "block" when it was opened from
+// its block's page, which is where it goes back to). `scroll` remembers where a page was
+// left, for coming back to it.
+const page = { name: "home", number: 0, block: 0, from: "", scroll: {} };
+const DEPTH = { home: 0, all: 1, block: 2, one: 3 };
 // The round number being picked with − and + in the sheet.
 const chooser = { number: 1 };
 // What the sheet shows: "guest", "follow" (for programId) or "number".
@@ -52,9 +54,9 @@ const gearIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 15.5a
 
 // ---------- words ----------
 
-// How a round ended, as All rounds and the round's own page say it.
+// How a round ended, as Rounds and blocks and the round's own page say it.
 const ENDED = { "": "in progress", complete: "complete", early: "ended early", break: "ended by the break", switch: "ended by a change of program" };
-// The same in the narrow last column of All rounds.
+// The same in the narrow last column of Rounds and blocks.
 const ENDED_SHORT = { ...ENDED, break: "ended by break", switch: "program changed" };
 const LATER = "9999-12-31"; // "before this day" that leaves no day out
 
@@ -405,30 +407,27 @@ function dockMarkup(state) {
   return `<button class="button primary" type="button" data-action="round-start" data-id="${id}"><span>Start ${name}</span></button>`;
 }
 
-// ---------- All rounds ----------
+// ---------- Rounds and blocks ----------
 
-// Between two rounds, newer above older: a break of three weeks or more, and where a
-// new block starts.
-function gapMarkup(newer, older) {
-  const days = newer.from && older.to ? daysBetween(older.to, newer.from) : 0;
-  const parts = [];
-  if (days >= 21) parts.push(`${Math.floor(days / 7)} weeks off`);
-  if (newer.block > older.block) parts.push(newer.from ? `block ${newer.block} started ${shortDate(newer.from)}` : `block ${newer.block} starts here`);
-  if (!parts.length) return "";
-  const text = parts.join(" · ");
-  return `<p class="hint round-gap">${escapeHtml(text.charAt(0).toUpperCase() + text.slice(1))}</p>`;
+// A break of three weeks or more, between two rounds or two blocks: one quiet line.
+const gapMarkup = (days) => (days >= 21 ? `<p class="hint round-gap">${Math.floor(days / 7)} weeks off</p>` : "");
+
+// "17 Aug – 30 Sep", with the year once at the end when it isn't this one.
+function blockDates(fromKey, toKey) {
+  const year = fromKey.slice(0, 4);
+  if (year !== toKey.slice(0, 4) || year === String(new Date().getFullYear())) return datesShort(fromKey, toKey);
+  const plain = (dateKey) => formatDate(dateFromKey(dateKey), { day: "numeric", month: "short" });
+  return fromKey === toKey ? dayMonth(fromKey) : `${plain(fromKey)} – ${plain(toKey)} ${year}`;
 }
 
-function allMarkup(state) {
-  const rounds = allRounds(state);
-  const todayKey = localDateKey();
-  const rows = rounds.map((record, index) => {
-    const to = record.open ? todayKey : record.to;
-    const dates = !record.workouts.length ? (record.open ? "Not started yet" : "No workouts left") : record.open ? `from ${dayMonth(record.from)}` : datesShort(record.from, record.to);
-    const weeks = record.workouts.length ? weeksShort(record.from, to) : "";
-    const count = `${record.done} of ${record.required}`;
-    return `${index ? gapMarkup(rounds[index - 1], record) : ""}
-    <button class="row round-cols" type="button" data-action="round-page" data-page="one" data-number="${record.number}" data-block="${record.block}"
+// One round in a list: its number (outlined while open), the program with its dates and
+// weeks, "X of Y" with how it ended. `from` says which page it was opened from.
+function roundRow(record, from) {
+  const to = record.open ? localDateKey() : record.to;
+  const dates = !record.workouts.length ? (record.open ? "Not started yet" : "No workouts left") : record.open ? `from ${dayMonth(record.from)}` : datesShort(record.from, record.to);
+  const weeks = record.workouts.length ? weeksShort(record.from, to) : "";
+  const count = `${record.done} of ${record.required}`;
+  return `<button class="row round-cols" type="button" data-action="round-page" data-page="one" data-number="${record.number}" data-block="${record.block}" data-from="${from}"
       aria-label="${escapeHtml(roundName(record))}, ${escapeHtml(record.program)}, ${escapeHtml([dates, weeks].filter(Boolean).join(", "))}. ${count} workouts, ${ENDED[record.ended]}. Open the round.">
       <span class="tickbox ${record.open ? "is-open" : ""}" aria-hidden="true">${record.number}</span>
       <span class="row-main">
@@ -442,11 +441,96 @@ function allMarkup(state) {
       </span>
       <span class="chev" aria-hidden="true">${chevronIcon("right")}</span>
     </button>`;
+}
+
+// A block's rounds, newest first, with a line where a break of three weeks or more falls.
+const roundRows = (block, from) => block.rounds.map((record, index) => {
+  const newer = block.rounds[index - 1];
+  return `${newer?.workouts.length && record.to ? gapMarkup(daysBetween(record.to, newer.from)) : ""}${roundRow(record, from)}`;
+}).join("");
+
+// When a block ran: "since Mon 2 Nov" while open, its dates once closed.
+const blockWhen = (block) => (!block.workouts.length ? (block.open ? "not started yet" : "no workouts left") : block.open ? `since ${shortDate(block.from)}` : blockDates(block.from, block.to));
+
+function allMarkup(state) {
+  const blocks = allBlocks(state);
+  const summary = roundSummary(state);
+  // The two rare round actions, while nothing runs; "End round" once something is done in it.
+  const actions = summary.counting && !activeWorkout(state) ? `<p class="round-actions">
+      ${summary.workouts.length ? `<button class="link-button" type="button" data-action="round-end">End round ${summary.number} now</button>` : ""}
+      <button class="link-button" type="button" data-action="round-number-open">Change round number</button>
+    </p>` : "";
+  const groups = blocks.map((block, index) => {
+    const when = blockWhen(block);
+    return `${index ? gapMarkup(blocks[index - 1].gapBefore) : ""}
+    <section>
+      <button class="row compact round-block" type="button" data-action="round-page" data-page="block" data-block="${block.block}" aria-label="Block ${block.block}, ${escapeHtml(when)}, ${plural(block.rounds.length, "round")}. Open the block.">
+        <span class="row-title">Block ${block.block}</span>
+        <span class="row-meta">${escapeHtml(when)} · ${plural(block.rounds.length, "round")}</span>
+        <span class="chev" aria-hidden="true">${chevronIcon("right")}</span>
+      </button>
+      ${roundRows(block, "all")}
+    </section>`;
   });
   return `<section class="page round-page">
-    <header class="page-back">${backMarkup("home", "Round")}<h1 class="title">All rounds</h1></header>
-    ${rounds.length ? `<div class="label round-cols" aria-hidden="true"><span>Round</span><span>Program</span><span>Workouts</span></div>
-    ${rows.join("")}` : `<p class="hint round-note">No rounds yet.</p>`}
+    <header class="page-back">${backMarkup("home", "Round")}<h1 class="title">Rounds and blocks</h1>${actions}</header>
+    ${blocks.length ? groups.join("") : `<p class="hint round-note">No rounds yet.</p>`}
+  </section>`;
+}
+
+// ---------- one block ----------
+
+const ordinal = (number) => `${number}${[11, 12, 13].includes(number % 100) ? "th" : ["th", "st", "nd", "rd"][number % 10] || "th"}`;
+const ENDING_ORDER = ["complete", "early", "break", "switch"];
+
+// `before`: the block before it, if any.
+function blockMarkup(state, block, before) {
+  const todayKey = localDateKey();
+  const started = block.workouts.length > 0;
+  const to = block.open ? todayKey : block.to;
+  const days = started ? daysBetween(block.from, to) + 1 : 0;
+  const open = block.rounds.find((record) => record.open);
+  const counted = block.workouts.filter((item) => !item.guest && !item.optional).length;
+  const extras = block.workouts.length - counted;
+  const bests = newBests(state, block.workouts);
+  // A value of several parts wraps only between them.
+  const parts = (items, joint) => items.filter(Boolean).map((item, index, all) => `<span class="nowrap">${escapeHtml(item)}${index < all.length - 1 ? joint : ""}</span>`).join(" ");
+  // How its rounds ended: "3 · 1 complete, 1 ended early, 1 open".
+  const endings = ENDING_ORDER.filter((ended) => block.endings[ended]).map((ended) => `${block.endings[ended]} ${ENDED_SHORT[ended]}`);
+  if (open) endings.push("1 open");
+  const roundsText = block.rounds.length === 1 ? `1, ${open ? "open" : ENDED_SHORT[block.rounds[0].ended]}` : `${block.rounds.length} · ${parts(endings, ",")}`;
+  // How it started, when that can be told: after a break, with another program.
+  const startedHow = parts([
+    block.gapBefore >= 21 ? `after ${Math.floor(block.gapBefore / 7)} weeks off` : "",
+    before && before.programs.at(-1) !== block.programs[0] ? "with a new program" : "",
+  ], ",");
+  const dates = !started ? "" : block.from === to ? (block.open ? "today" : shortDate(block.from)) : parts([shortDate(block.from), block.open ? "today" : shortDate(block.to)], " –");
+  const segments = [...block.rounds].reverse().map((record) => (record.open ? "" : record.ended === "complete" ? "is-done" : "is-short"));
+  return `<section class="page round-page">
+    <header class="round-head">
+      <div class="round-top">${backMarkup("all", "Rounds and blocks")}</div>
+      <div class="round-title">
+        <h1>Block ${block.block}</h1>
+        <span>${escapeHtml(weekTitle(started ? block.from : todayKey, started ? to : todayKey))}</span>
+      </div>
+      <div class="round-bar" aria-hidden="true">${segments.map((name) => `<i${name ? ` class="${name}"` : ""}></i>`).join("")}</div>
+      <p class="round-facts"><span>${plural(block.rounds.length, "round")}${open ? ` · round ${open.number} open` : ""}</span><span>${escapeHtml(block.open || !started ? blockWhen(block) : `ended ${shortDate(block.to)}`)}</span></p>
+    </header>
+    <div class="round-lines round-about">
+      ${line("Programs", escapeHtml(block.programs.join(", then ")))}
+      ${line("Rounds", roundsText)}
+      ${line("Workouts", started ? `${counted} done${extras ? `, plus ${plural(extras, "extra")}` : ""}` : "")}
+      ${line("Dates", dates)}
+      ${started ? line("Lasted", `${plural(days, "day")}${block.open ? ` so far, ${ordinal(Math.floor((days - 1) / 7) + 1)} week` : ""}`) : ""}
+      ${started ? line("Calendar weeks", escapeHtml(weeksText(block.from, to))) : ""}
+      ${line("Training time", block.minutes ? durationText(block.minutes) : "")}
+      ${line("New bests", bests ? String(bests) : "")}
+      ${line("Started", startedHow)}
+    </div>
+    <section>
+      <div class="label section-label"><span>Rounds</span></div>
+      ${roundRows(block, "block")}
+    </section>
   </section>`;
 }
 
@@ -462,7 +546,10 @@ function oneMarkup(state, record) {
   const bests = newBests(state, record.workouts);
   return `<section class="page round-page">
     ${headMarkup({
-    top: `<div class="round-top">${backMarkup("all", "All rounds")}</div>`,
+    // Back to where it was opened from: its block's page, or Rounds and blocks.
+    top: `<div class="round-top">${page.from === "block"
+      ? `<button class="link-button" type="button" data-action="round-page" data-page="block" data-block="${record.block}" aria-label="Back to Block ${record.block}">${chevronIcon("left")}Block ${record.block}</button>`
+      : backMarkup("all", "Rounds and blocks")}</div>`,
     round: record,
     week: started ? weekTitle(record.from, to) : weekTitle(todayKey),
     segments: summary ? summary.required.map((routine) => summary.done.has(routine.id)) : Array.from({ length: record.required }, (_, index) => index < record.done),
@@ -497,6 +584,12 @@ function markup(state) {
     if (record) return oneMarkup(state, record);
     page.name = "all"; // the round is gone (another backup was imported)
   }
+  if (page.name === "block") {
+    const blocks = allBlocks(state);
+    const index = blocks.findIndex((item) => item.block === page.block);
+    if (index >= 0) return blockMarkup(state, blocks[index], blocks[index + 1]);
+    page.name = "all"; // the block is gone (another backup was imported)
+  }
   return page.name === "all" ? allMarkup(state) : homeMarkup(state);
 }
 
@@ -515,12 +608,12 @@ for (const area of [mainElement(), dockElement()]) {
 
 // Another page of the tab. Going deeper starts at the top; coming back returns to
 // where the page was left. What is swapped in fades in.
-function showPage(name, { number = 0, block = 0 } = {}) {
+function showPage(name, { number = 0, block = 0, from = "" } = {}) {
   if (name === page.name && number === page.number && block === page.block) return;
   const main = mainElement();
   page.scroll[page.name] = main.scrollTop;
   const back = DEPTH[name] < DEPTH[page.name];
-  Object.assign(page, { name, number, block });
+  Object.assign(page, { name, number, block, from });
   // A deeper page comes in from the right; going back, the page returns from the left.
   withMotion(back ? "pop" : "push", () => {
     render();
@@ -676,21 +769,22 @@ registerView("round", {
   // Back from the workout (or after finishing it): the round page, at its first page.
   arrive(from) {
     if (from !== "workout") return;
-    Object.assign(page, { name: "home", number: 0, block: 0 });
+    Object.assign(page, { name: "home", number: 0, block: 0, from: "" });
     forgetOpenRow();
   },
   afterDraw() {
     if (page.name === "home") motion.unfold(`home ${home.arrivals}`);
   },
-  // Going back (a drag from the left edge): one round returns to All rounds, All rounds
-  // to the tab's first page, each to where it was left.
+  // Going back (a drag from the left edge): one round returns to where it was opened from
+  // (its block or Rounds and blocks), a block to Rounds and blocks, that to the tab's first
+  // page, each to where it was left.
   back() {
     if (page.name === "home") return null;
-    const from = { name: page.name, number: page.number, block: page.block };
-    const to = page.name === "one" ? "all" : "home";
+    const from = { name: page.name, number: page.number, block: page.block, from: page.from };
+    const to = page.name === "one" ? (page.from === "block" ? "block" : "all") : page.name === "block" ? "all" : "home";
     return {
       apply() {
-        Object.assign(page, { name: to, number: 0, block: 0 });
+        Object.assign(page, { name: to, number: 0, block: to === "block" ? page.block : 0, from: "" });
         return page.scroll[to] || 0;
       },
       revert() {
@@ -707,7 +801,7 @@ registerView("round", {
 });
 
 registerActions({
-  "round-page": (button) => showPage(button.dataset.page, { number: Number(button.dataset.number) || 0, block: Number(button.dataset.block) || 0 }),
+  "round-page": (button) => showPage(button.dataset.page, { number: Number(button.dataset.number) || 0, block: Number(button.dataset.block) || 0, from: button.dataset.from || "" }),
   // − and +: only the number and the buttons' state change.
   "round-number-step": (button) => {
     chooser.number = Math.min(999, Math.max(1, chooser.number + Number(button.dataset.step)));

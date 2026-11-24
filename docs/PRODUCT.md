@@ -35,7 +35,7 @@ Program
 
 ## Rounds, blocks and calendar weeks
 
-Words: a **workout** is one routine done on a day. "3 of 6 workouts done" is always written with its unit; a bare "3 of 6" appears only under a column headed "Workouts".
+Words: a **workout** is one routine done on a day. "3 of 6 workouts done" is always written with its unit; a bare "3 of 6" appears only in the rows of Rounds and blocks, where the row is about a round's workouts.
 
 ### The counts
 
@@ -90,8 +90,9 @@ Bottom navigation: **Workout · Program · Library · Log**. The Workout tab is 
 - While a workout runs its row is open, tagged "In progress", with "Started: 10:42, 34 min ago" and "Exercises: 3 of 8 done"; the other rows are quiet and can't be tapped; the running bar is at the bottom. An extra or a workout for a past day has a row of its own under the list while it runs.
 - Under the list: "A workout from another program ›" (when another program has workouts; not while one runs), "Rounds and blocks · N earlier ›" (once counting has started), and before anything was done "Already on a later round? Set it ›".
 - With no program, or a program with no Required workouts, the page says so, with "Import a backup ›" and "Restore the starting program ›" (as in Settings), and the bottom button is "Go to Program".
-- **Rounds and blocks** (All rounds): every round, newest first, in three columns under a header: the round number (outlined in the accent colour for the open round); the program with its dates and its calendar weeks, a line each; "X of Y" workouts with how it ended (in progress, complete, ended early, ended by break, program changed). A break of three weeks or more is one line between rows, and it says where a new block starts.
-- **One round**: the same header as the round page, then labelled lines in this order: Program, Workouts, Dates, Took, Calendar weeks, Training time, New bests; then its workouts (extras and optional ones tagged), each opening its day; then what was not done.
+- **Rounds and blocks**: under the title, "End round N now" (when something is done in the open round) and "Change round number"; neither shows while a workout runs. Then every round grouped by block, newest first. Each block starts with a heading row, shown for block 1 too: "Block N", then "since <date>" while it is open or its dates once closed, and how many rounds it has; it opens the block's page. Under it its rounds, one row each: the round number (outlined in the accent colour for the open round); the program with its dates and its calendar weeks, a line each; "X of Y" workouts with how it ended (in progress, complete, ended early, ended by break, program changed). A break of three weeks or more is one quiet line ("7 weeks off") between two rounds or two blocks.
+- **One block**: back to Rounds and blocks; "Block N" with its calendar weeks; a bar with one segment per round (filled when complete, faintly filled when it ended another way, empty while open); how many rounds (and which is open) and since when, or when it ended. Then labelled lines, each only when it has something to say: Programs (in the order followed), Rounds (how many and how they ended), Workouts (done, plus extras), Dates, Lasted (days, and while open "so far" and which week of the block), Calendar weeks, Training time, New bests, Started (after a break of three weeks or more, with a new program). Then its rounds as in the list. Nothing about a block is saved apart from its number on the rounds and workouts; all of this is worked out from them.
+- **One round**: the same header as the round page, its back link returning to where it was opened from (the block's page or Rounds and blocks), then labelled lines in this order: Program, Workouts, Dates, Took, Calendar weeks, Training time, New bests; then its workouts (extras and optional ones tagged), each opening its day; then what was not done.
 
 **The workout in progress**
 - A page of the Workout tab: "‹ Round N" at its top left goes back to the round page (the workout keeps running; there is no drag from the left edge here, where the number boxes are), and **Finish** is always at its top right. Then the workout's name with its stopwatch ("34 min"; "for <date>" for a past day; nothing for a reopened one), for an extra a line naming its program, a bar with one segment per main exercise, and "3 of 8 exercises done" with "3 optional".
@@ -192,7 +193,7 @@ Bottom navigation: **Workout · Program · Library · Log**. The Workout tab is 
 How the app looks (colours, type, shapes, components) is in `docs/DESIGN.md`.
 
 - A sheet closes with its ×, or by pulling it down from its top (or from anywhere once its content is scrolled to the top). Pulling down does what × does.
-- A page with a back link at its top (All rounds, one round, Settings) also goes back by dragging from the left edge of the screen. The workout in progress doesn't: its number boxes sit where that drag starts.
+- A page with a back link at its top (Rounds and blocks, a block, one round, Settings) also goes back by dragging from the left edge of the screen. The workout in progress doesn't: its number boxes sit where that drag starts.
 - Current workout and the next useful action first; one-handed use on a narrow screen; the next action is the bottom button, in the same place on every page that has one. Lean: nothing on screen that doesn't help during a workout.
 - Weights are always written with their unit: "37.5 kg × 10, 9, 8".
 - History is preserved and predictable; editing and recovery are easy to trust. Editors keep their drafts until you save or close them (tapping outside doesn't discard them; Enter saves).
