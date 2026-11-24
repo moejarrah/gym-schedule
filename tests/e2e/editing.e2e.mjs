@@ -4,7 +4,7 @@
 
 import assert from "node:assert/strict";
 import { PAST_DAY, sampleState } from "../sample.mjs";
-import { dialog, expect, goToView, main, programPicker, readState, routineTab, suite } from "./helpers.mjs";
+import { dialog, expect, goToView, main, programPicker, readState, routineTab, suite, tapOnRound } from "./helpers.mjs";
 
 const { appTest } = suite({ saved: sampleState() });
 
@@ -51,7 +51,7 @@ appTest("Program: look first, then Edit: add a workout, add an exercise from the
 
   await slot.click();
   await slotEditor.getByRole("button", { name: "Remove from Day C" }).click();
-  await dialog(page, "Remove Squat (barbell)?").getByRole("button", { name: "Remove entry" }).click();
+  await tapOnRound(page, dialog(page, "Remove Squat (barbell)?").getByRole("button", { name: "Remove entry" })); // taps rest after an answer
   await expect(slot).toHaveCount(0);
   let saved = await readState(page);
   assert.deepEqual(dayC(saved).entries, []);
@@ -59,7 +59,7 @@ appTest("Program: look first, then Edit: add a workout, add an exercise from the
 
   await main(page).getByRole("button", { name: "Edit Day C: rename, notes, blocks" }).click();
   await dialog(page, "Edit Day C").getByRole("button", { name: "Delete workout" }).click();
-  await dialog(page, "Delete Day C?").getByRole("button", { name: "Delete workout" }).click();
+  await tapOnRound(page, dialog(page, "Delete Day C?").getByRole("button", { name: "Delete workout" })); // taps rest after an answer
   await expect(routineTab(page, "Day C")).toHaveCount(0);
   await expect(routineTab(page, "Day A")).toHaveAttribute("aria-pressed", "true");
   await doneEditing(page).click();
@@ -112,7 +112,7 @@ appTest("Programs: create one, look at the other again, duplicate, delete; the p
   await programPicker(page, "Sample program copy").click();
   await programs.getByRole("button", { name: "Edit Sample program copy", exact: true }).click();
   await programEditor.getByRole("button", { name: "Delete program" }).click();
-  await dialog(page, "Delete Sample program copy?").getByRole("button", { name: "Delete program" }).click();
+  await tapOnRound(page, dialog(page, "Delete Sample program copy?").getByRole("button", { name: "Delete program" })); // taps rest after an answer
   await expect(programPicker(page, "Sample program")).toBeVisible();
   saved = await readState(page);
   assert.deepEqual(saved.programs.map((program) => program.name), ["Sample program", "Block 2"]);
@@ -171,7 +171,7 @@ appTest("Library: search and browse, add an exercise, edit it, and delete one th
   await expect(confirmation).toContainText("Programmed use: 1 slot.");
   await expect(confirmation).toContainText("1 slot deleted with any saved checks.");
   await expect(confirmation).toContainText("Related links removed: 1.");
-  await confirmation.getByRole("button", { name: "Delete exercise" }).click();
+  await tapOnRound(page, confirmation.getByRole("button", { name: "Delete exercise" })); // taps rest after an answer
   await expect(rowOf("Push-up")).toHaveCount(0);
   const saved = await readState(page);
   assert.deepEqual(saved.routines[0].entries.map((entry) => entry.id), ["a1", "a2", "a3"]);

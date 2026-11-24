@@ -70,12 +70,12 @@ appTest("Backup: an exported file brings everything back, and a file that isn't 
   await programPicker(page, "Sample program").click();
   await dialog(page, "Programs").getByRole("button", { name: "Edit Sample program", exact: true }).click();
   await dialog(page, "Edit program").getByRole("button", { name: "Delete program" }).click();
-  await dialog(page, "Delete Sample program?").getByRole("button", { name: "Delete program" }).click();
+  await tapOnRound(page, dialog(page, "Delete Sample program?").getByRole("button", { name: "Delete program" })); // taps rest after an answer
   await expect(main(page)).toContainText("No programs yet");
   assert.deepEqual((await readState(page)).routines, []);
 
   await importFile(page, backup.name, backup.text);
-  await dialog(page, "Import app data").getByRole("button", { name: "Import data" }).click();
+  await tapOnRound(page, dialog(page, "Import app data").getByRole("button", { name: "Import data" })); // taps rest after an answer
   await expect(page.getByRole("status")).toHaveText("App data imported.");
   assert.deepEqual(await readState(page), sampleState());
   await closeSettings(page);
@@ -100,7 +100,7 @@ appTest("Settings: the theme is kept across a reload, and Restore starting data 
   assert.equal((await readState(page)).settings.theme, "light");
 
   await settings.getByRole("button", { name: "Restore starting data" }).click();
-  await dialog(page, "Restore starting data").getByRole("button", { name: "Restore data" }).click();
+  await tapOnRound(page, dialog(page, "Restore starting data").getByRole("button", { name: "Restore data" })); // taps rest after an answer
   await expect(page.getByRole("status")).toHaveText("Starting data restored.");
   // Everything is the starting data again, except the theme and the training rules.
   const { theme, trainingRules } = { ...sampleState().settings, theme: "light" };

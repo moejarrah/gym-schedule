@@ -136,7 +136,7 @@ export async function closeSettings(page) {
 /**
  * A tap that changes what the bottom button does, or swaps what the round page shows: a
  * row of the round's list, "Start <workout>", All rounds and back, a choice in its sheet,
- * an exercise marked done. The app then ignores taps on the screen (and on the bottom
+ * an exercise marked done, any answer to a confirmation. The app then ignores taps on the screen (and on the bottom
  * button) for 400 ms, so that a double tap can't land on a button the owner never saw.
  * This taps and waits that out.
  */
