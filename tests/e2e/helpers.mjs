@@ -214,6 +214,7 @@ async function openApp(browser, server, { saved, serviceWorker = false, allowCon
  *   serviceWorker  true to let the offline cache install (off by default: faster)
  *   ownServer      true for a server of the test's own, which it may stop
  *   allowConsole   RegExp[] of console errors the test expects
+ *   skip           a reason to skip the test (shown as skipped), e.g. it needs Chromium
  */
 export function suite(defaults = {}) {
   let server;
@@ -228,8 +229,8 @@ export function suite(defaults = {}) {
 
   function appTest(title, optionsOrFn, maybeFn) {
     const [options, fn] = typeof optionsOrFn === "function" ? [{}, optionsOrFn] : [optionsOrFn, maybeFn];
-    const { ownServer = false, ...appOptions } = { ...defaults, ...options };
-    test(title, { timeout: 30_000 }, async () => {
+    const { ownServer = false, skip = false, ...appOptions } = { ...defaults, ...options };
+    test(title, { timeout: 30_000, skip }, async () => {
       const testServer = ownServer ? await startServer() : server;
       let context;
       try {

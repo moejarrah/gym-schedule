@@ -110,7 +110,8 @@ appTest("Settings: the theme is kept across a reload, and Restore starting data 
   await expect(startButton(page, firstRoutine.name)).toBeVisible();
 });
 
-appTest("Going back from Settings by a drag from the left edge settles even when the touch is cancelled half-way", async ({ page, context }) => {
+// Real touch events are sent through CDP, which only Chromium has: skipped in WebKit.
+appTest("Going back from Settings by a drag from the left edge settles even when the touch is cancelled half-way", { skip: (process.env.E2E_BROWSER || "chromium") !== "chromium" && "needs CDP touch events (Chromium only)" }, async ({ page, context }) => {
   const settings = await openSettings(page);
   // Real touches, as the phone sends them: from the left edge to half the screen, then the
   // touch is cancelled (iOS does that when it takes a gesture over).
