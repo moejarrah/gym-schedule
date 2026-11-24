@@ -537,7 +537,7 @@ const SHOTS = [
     await button(main(page), "Delete this workout").click();
     await shown(dialog(page, "Delete Push B from Wed, Nov 4?"));
   }, "running"],
-  // Opened again from the round page's "How it went".
+  // Opened again from Home's "Full result".
   ["result-again", async (page) => {
     await button(main(page), "Full result of Push B").click();
     await shown(main(page).getByRole("heading", { name: "Push B done" }));
