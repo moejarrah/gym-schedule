@@ -71,12 +71,6 @@ export function programRoutines(state, program = activeProgram(state)) {
   return program.routineIds.map((id) => routineById(state, id)).filter(Boolean);
 }
 
-export function activeRoutine(state) {
-  const program = activeProgram(state);
-  if (!program?.routineIds.includes(state.settings.activeRoutineId)) return null;
-  return routineById(state, state.settings.activeRoutineId);
-}
-
 export function routineProgram(state, routineId) {
   return state.programs.find((program) => program.routineIds.includes(routineId)) || null;
 }
@@ -289,12 +283,13 @@ export function finishWorkout(state, { now = Date.now(), timed = true } = {}) {
   writeSession(state, workout.dateKey, session);
   state.settings.activeWorkout = null;
   if (!reopenedTag.round) closeRoundIfComplete(state, workout.backdated ? localDateKey() : workout.dateKey);
-  // The Workout tab moves on to the round's next workout.
+  // The selected routine (settings.activeRoutineId) moves on to the round's next workout.
   const next = openRound(state) && !workout.backdated ? roundSummary(state).remaining[0] : null;
   if (next) state.settings.activeRoutineId = next.id;
 }
 
-// Cancel: the workout never happened. Its sets, done marks and added exercises go.
+// Cancel: the workout never happened. Its sets, done marks and added exercises go, and
+// a break its start answered is unanswered again (the round page asks once more).
 // Cancelling a reopened workout only closes it again, as finished.
 export function cancelWorkout(state) {
   const workout = state.settings.activeWorkout;
@@ -310,6 +305,12 @@ export function cancelWorkout(state) {
   for (const [slotId, log] of Object.entries(session.logs)) if (log.routineId === routineId) delete session.logs[slotId];
   writeSession(state, dateKey, session);
   state.settings.activeWorkout = null;
+  const undo = workout.breakUndo;
+  if (undo && state.programs.some((program) => program.id === undo.round.programId)) {
+    state.settings.round = undo.round;
+    state.settings.roundLog?.splice(undo.logged);
+    if (state.settings.roundLog?.length === 0) delete state.settings.roundLog;
+  }
 }
 
 // A workout left open from an earlier day (and started over 12 hours ago, so a
@@ -326,17 +327,20 @@ export function finishStaleWorkout(state, todayKey = localDateKey(), now = Date.
 // Starts a workout for today from the round page (or today's Log): counting begins at
 // round 1 if it hasn't yet, and a break of three weeks or more is answered in the same
 // save (`restart`: as a new block; otherwise the round left open ends at the break).
-// Starting is the only thing that answers a break; opening the app never does.
+// Starting is the only thing that answers a break; opening the app never does. The
+// running workout keeps what the answer changed (`breakUndo`: the open round as it was
+// and how many rounds were closed), so that cancelling it undoes the answer too.
 // `guest`: a routine of another program, done for the day.
 export function startTodaysWorkout(state, routineId, { restart = false, guest = false } = {}) {
   if (!openRound(state)) setRoundNumber(state, 1);
+  const breakUndo = longBreak(state) ? { round: { ...state.settings.round }, logged: (state.settings.roundLog || []).length } : null;
   answerBreak(state, restart);
-  if (guest) {
-    startGuestWorkout(state, routineId);
-    return;
+  if (guest) startGuestWorkout(state, routineId);
+  else {
+    if (routineProgram(state, routineId)?.id === state.settings.activeProgramId) state.settings.activeRoutineId = routineId;
+    startWorkout(state, routineId);
   }
-  if (routineProgram(state, routineId)?.id === state.settings.activeProgramId) state.settings.activeRoutineId = routineId;
-  startWorkout(state, routineId);
+  if (breakUndo) state.settings.activeWorkout.breakUndo = breakUndo;
 }
 
 // A routine's Main and Optional slots, counted.
@@ -521,8 +525,6 @@ export function allBlocks(state) {
   });
   return blocks;
 }
-
-export const blockRecord = (state, block) => allBlocks(state).find((item) => item.block === block) || null;
 
 // The program a round follows or followed (its id), for deciding what counts in it.
 const programOfRound = (state, tag) => (sameRound({ round: tag.round, block: tag.block }, openRound(state) || {}) ? openRound(state).programId : (state.settings.roundLog || []).find((item) => item.number === tag.round && item.block === tag.block)?.programId) || "";
@@ -838,14 +840,6 @@ export function setActiveProgram(state, programId) {
 }
 
 // ---------- routines ----------
-
-// Selects the workout the Workout tab shows: a routine of the followed program.
-// Selecting never changes which program is followed.
-export function setActiveRoutine(state, routineId) {
-  const owner = routineProgram(state, routineId) || fail("That workout no longer exists.");
-  if (owner.id !== state.settings.activeProgramId) fail("That workout belongs to another program.");
-  state.settings.activeRoutineId = routineId;
-}
 
 export function addRoutine(state, programId, { name, group, status, note, blocks }) {
   const program = state.programs.find((item) => item.id === programId) || fail("Choose a program first.");

@@ -375,6 +375,12 @@ appTest("A two-choice slot swaps to its alternative for today, logs it, and the 
   await expect(main(page).getByRole("button", { name: "Swap to Incline dumbbell press (dumbbell) for today" })).toBeVisible();
   await expect(bottomButton(page, "Log sets for Cable fly (cable)")).toBeVisible();
   assert.equal((await todaySaved(page)), undefined);
+  // A reload (iOS reloads an app left in the background) keeps the swap and the open slot.
+  await page.reload();
+  await expect(backToRound(page)).toBeVisible();
+  await expect(rowOf(page, TWO_CHOICES)).toHaveAttribute("aria-expanded", "true");
+  await expect(main(page).getByRole("button", { name: "Swap to Incline dumbbell press (dumbbell) for today" })).toBeVisible();
+  await expect(bottomButton(page, "Log sets for Cable fly (cable)")).toBeVisible();
 
   await tapOnRound(page, bottomButton(page, "Log sets for Cable fly (cable)"));
   const sheet = logSheet(page);
@@ -445,7 +451,7 @@ appTest("Rounds: set the round you're on, a round takes every workout once and t
   await expect(main(page)).toContainText("Round 3");
   await roundSettles(page);
   await tapOnRound(page, bottomButton(page, "Reopen Day B"));
-  await main(page).getByRole("button", { name: "Close again" }).click();
+  await tapOnRound(page, main(page).getByRole("button", { name: "Close again" }));
   await expect(bottomButton(page, "Reopen Day B")).toBeVisible();
   saved = await readState(page);
   assert.deepEqual([saved.sessions[TODAY].routineIds, saved.sessions[TODAY].workouts["day-b"].round, saved.settings.round.number], [["day-a", "day-b"], 3, 4]);

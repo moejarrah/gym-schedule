@@ -1,13 +1,13 @@
 // The round page, the first page of the Workout tab and the app's home: where the open
 // round stands (header and bar), then the round's workouts as one list with one row open
 // and the bottom button acting on it (Start, Do it again, Reopen), what is news today
-// (back after a break, a round completed), and the rows under it. Two pages open inside
+// (back after a break, a round completed), and the rows under it. Three pages open inside
 // the tab, each with a back link: Rounds and blocks, one block, and one round. One
 // sheet (#roundSheet): a workout from another program, following a different program
 // (opened from Program with "follow-program"), and changing the round number. What a
 // round is: js/model.js, "rounds and calendar weeks".
 
-import { dockElement, mainElement, navigate, registerActions, registerView, render, store, withMotion } from "../context.js";
+import { mainElement, navigate, pauseTaps, registerActions, registerView, render, store, withMotion } from "../context.js";
 import { $, chevronIcon, clearError, closeDialog, confirmAction, escapeHtml, formatDate, fresh, openDialog, plural, redraw, report, toast } from "../dom.js";
 import {
   activeWorkout,
@@ -40,9 +40,9 @@ import { workoutTally } from "./result.js";
 import { daysBetween, durationText, roundName, shortDate, slotLinkLine, slotMotion, weeksText, workoutsDone } from "./shared.js";
 
 // Which page of the tab shows: "home", "all" (Rounds and blocks), "block" (the block
-// `block`) or "one" (the round `number` of `block`; `from` "block" when it was opened from
-// its block's page, which is where it goes back to). `scroll` remembers where a page was
-// left, for coming back to it.
+// `block`) or "one" (the round `number` of `block`; `from` "block" or "home" when it was opened
+// from its block's page or the round page, which is where it goes back to). `scroll`
+// remembers where a page was left, for coming back to it.
 const page = { name: "home", number: 0, block: 0, from: "", scroll: {} };
 const DEPTH = { home: 0, all: 1, block: 2, one: 3 };
 // The round number being picked with − and + in the sheet.
@@ -205,7 +205,7 @@ function roundView(state) {
   const todayIds = today?.routineIds || [];
   const next = running ? null : nextWorkout(state, todayKey);
   const ordered = [...summary.required, ...programRoutines(state, program).filter((routine) => routine.status === "optional")];
-  const inList = (workout) => !workout.guest && !workout.backdated && workout.dateKey === todayKey && ordered.some((routine) => routine.id === workout.routineId);
+  const inList = (workout) => !workout.guest && !workout.backdated && ordered.some((routine) => routine.id === workout.routineId);
   const rows = ordered.map((routine, index) => {
     const optional = routine.status === "optional";
     const kind = running && inList(running) && running.routineId === routine.id ? "running"
@@ -257,7 +257,7 @@ function rowLines(state, view, row) {
 
 function runningLines(state, running) {
   const progress = workoutProgress(state, running);
-  const past = running.backdated || running.dateKey !== localDateKey();
+  const past = running.backdated;
   return `${running.guest ? line("Program", escapeHtml(routineProgram(state, running.routineId)?.name || "")) : ""}
     ${past ? line("For", escapeHtml(shortDate(running.dateKey))) : ""}
     ${running.reopened ? line("Reopened", escapeHtml(clockTime(running.startedAt))) : past ? "" : line("Started", `${escapeHtml(clockTime(running.startedAt))}, <span data-round-elapsed>${agoText(running.startedAt).toLowerCase()}</span>`)}
@@ -337,7 +337,7 @@ function newsMarkup(state, view) {
   const completed = justCompleted(state, summary);
   if (completed?.to === view.todayKey) {
     const days = daysBetween(completed.from, completed.to) + 1;
-    return `<button class="row round-row round-complete is-done" type="button" data-action="round-page" data-page="one" data-number="${completed.number}" data-block="${completed.block}" aria-label="${escapeHtml(roundName(completed))} complete, ${completed.done} of ${completed.required} in ${plural(days, "day")}. Open the round.">
+    return `<button class="row round-row round-complete is-done" type="button" data-action="round-page" data-page="one" data-number="${completed.number}" data-block="${completed.block}" data-from="home" aria-label="${escapeHtml(roundName(completed))} complete, ${completed.done} of ${completed.required} in ${plural(days, "day")}. Open the round.">
       <span class="tickbox is-ticked" aria-hidden="true">${tickIcon}</span>
       <span class="row-main"><span class="row-title">${escapeHtml(roundName(completed))} complete</span><span class="row-meta">${workoutsDone(completed.done, completed.required)} · ${plural(days, "day")}</span></span>
       <span class="chev" aria-hidden="true">${chevronIcon("right")}</span>
@@ -543,8 +543,8 @@ function oneMarkup(state, record) {
   const bests = newBests(state, record.workouts);
   return `<section class="page round-page">
     ${headMarkup({
-    // Back to where it was opened from: its block's page, or Rounds and blocks.
-    top: `<div class="round-top">${page.from === "block"
+    // Back to where it was opened from: its block's page, the round page, or Rounds and blocks.
+    top: `<div class="round-top">${page.from === "home" ? backMarkup("home", "Round") : page.from === "block"
       ? `<button class="link-button" type="button" data-action="round-page" data-page="block" data-block="${record.block}" aria-label="Back to Block ${record.block}">${chevronIcon("left")}Block ${record.block}</button>`
       : backMarkup("all", "Rounds and blocks")}</div>`,
     round: record,
@@ -588,19 +588,6 @@ function markup(state) {
     page.name = "all"; // the block is gone (another backup was imported)
   }
   return page.name === "all" ? allMarkup(state) : homeMarkup(state);
-}
-
-// What was just tapped has been replaced by something else in the same place, so the
-// second tap of a double tap would land on a control the owner never saw: the screen
-// ignores taps for a moment (it still scrolls).
-let quietUntil = 0;
-const pauseTaps = () => { quietUntil = performance.now() + 400; };
-for (const area of [mainElement(), dockElement()]) {
-  area.addEventListener("click", (event) => {
-    if (performance.now() >= quietUntil) return;
-    event.preventDefault();
-    event.stopPropagation();
-  }, true);
 }
 
 // Another page of the tab. Going deeper starts at the top; coming back returns to
@@ -773,12 +760,12 @@ registerView("round", {
     if (page.name === "home") motion.unfold(`home ${home.arrivals}`);
   },
   // Going back (a drag from the left edge): one round returns to where it was opened from
-  // (its block or Rounds and blocks), a block to Rounds and blocks, that to the tab's first
-  // page, each to where it was left.
+  // (its block, the round page or Rounds and blocks), a block to Rounds and blocks, that to
+  // the tab's first page, each to where it was left.
   back() {
     if (page.name === "home") return null;
     const from = { name: page.name, number: page.number, block: page.block, from: page.from };
-    const to = page.name === "one" ? (page.from === "block" ? "block" : "all") : page.name === "block" ? "all" : "home";
+    const to = page.name === "one" ? (page.from === "block" ? "block" : page.from === "home" ? "home" : "all") : page.name === "block" ? "all" : "home";
     return {
       apply() {
         Object.assign(page, { name: to, number: 0, block: to === "block" ? page.block : 0, from: "" });
@@ -840,9 +827,9 @@ registerActions({
   "round-guest-open": () => {
     if (nothingRunning()) showSheet("guest");
   },
-  // An extra carries on after a long break (the default answer).
+  // After a long break an extra answers it as the switch says, as Start does.
   "round-guest-start": (button) => {
-    const result = store.update((draft) => startTodaysWorkout(draft, button.dataset.id, { guest: true }));
+    const result = store.update((draft) => startTodaysWorkout(draft, button.dataset.id, { guest: true, restart: home.restart }));
     if (!report(result)) return;
     closeDialog("#roundSheet");
     navigate("workout");

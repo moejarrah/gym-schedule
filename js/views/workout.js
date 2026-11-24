@@ -8,7 +8,7 @@
 // Also here: the bar of the workout in progress that every other page shows, the
 // exercise-choices sheet, swapping a slot to another of its choices for today, and keeping the screen on.
 
-import { afterRender, navigate, registerActions, registerView, render, store } from "../context.js";
+import { afterRender, navigate, pauseTaps, registerActions, registerView, render, store } from "../context.js";
 import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, fresh, openDialog, playIcon, plural, redraw, report } from "../dom.js";
 import { activeWorkout, addExtra, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, localDateKey, orderedEntries, roundSummary, routineById, routineProgram, usualExtras, workoutHasWork, workoutProgress } from "../model.js";
 import { openPicker } from "./entry-editor.js";
@@ -26,12 +26,35 @@ const plusIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M
 // `chosen`, the owner's own choice of open slot ({ slotId ("" = none open), wasDone,
 // doneIds }); `swaps`, the choice a slot was swapped to for today (slot id → exercise
 // id) until a set of it is saved (the saved log then records which choice was done).
+// It is kept on the phone under its own key, outside the saved data, so that a reload
+// (iOS reloads an app left in the background) doesn't lose it; anything stale or
+// unreadable there is ignored.
 const memory = { key: "", chosen: null, swaps: {} };
+const MEMORY_KEY = "gymAppWorkoutScreenV1";
+function storedMemory(key) {
+  try {
+    const { key: savedKey, chosen, swaps } = JSON.parse(localStorage.getItem(MEMORY_KEY)) || {};
+    const isChosen = chosen === null || (typeof chosen?.slotId === "string" && typeof chosen.wasDone === "boolean" && Array.isArray(chosen.doneIds));
+    const isSwaps = swaps && typeof swaps === "object" && !Array.isArray(swaps) && Object.values(swaps).every((id) => typeof id === "string");
+    if (savedKey === key && isChosen && isSwaps) return { chosen, swaps };
+  } catch (_) { /* unreadable: start afresh */ }
+  return {};
+}
+function keepMemory() {
+  try {
+    if (memory.key) localStorage.setItem(MEMORY_KEY, JSON.stringify(memory));
+    else localStorage.removeItem(MEMORY_KEY);
+  } catch (_) { /* storage full or blocked: it lasts until a reload */ }
+}
 function remember(workout) {
   const key = workout ? `${workout.routineId} ${workout.dateKey} ${workout.startedAt}` : "";
-  if (key !== memory.key) Object.assign(memory, { key, chosen: null, swaps: {} });
+  if (key === memory.key) return memory;
+  Object.assign(memory, { key, chosen: null, swaps: {} }, key ? storedMemory(key) : {});
+  if (!key) keepMemory();
   return memory;
 }
+// Forgotten once the workout is finished or cancelled.
+afterRender((state) => { if (!activeWorkout(state)) remember(null); });
 
 // The stopwatch: whole minutes since Start ("34 min", "1 h 05 min").
 function elapsedText(startedAt) {
@@ -43,7 +66,7 @@ function elapsedText(startedAt) {
 // a past day; nothing for a reopened one.
 function clockMarkup(workout) {
   if (workout.reopened) return "";
-  if (workout.backdated || workout.dateKey !== localDateKey()) return `<span>for ${escapeHtml(shortDate(workout.dateKey))}</span>`;
+  if (workout.backdated) return `<span>for ${escapeHtml(shortDate(workout.dateKey))}</span>`;
   return `<span data-elapsed>${elapsedText(workout.startedAt)}</span>`;
 }
 
@@ -286,9 +309,9 @@ function bannerMarkup(state) {
   remember(workout);
   const { routine, counted, done, next } = progress;
   const shown = next ? shownChoice(state, next, workout.dateKey) : null;
-  const clock = workout.reopened ? "Reopened" : workout.backdated || workout.dateKey !== localDateKey() ? `for ${shortDate(workout.dateKey)}` : elapsedText(workout.startedAt);
+  const clock = workout.reopened ? "Reopened" : workout.backdated ? `for ${shortDate(workout.dateKey)}` : elapsedText(workout.startedAt);
   return `<button class="dock-bar" type="button" data-action="workout-resume" aria-label="${escapeHtml(routine.name)} in progress, ${done} of ${counted.length} done. Back to the workout">
-    <span><span>${escapeHtml(routine.name)} in progress</span><span${workout.reopened || workout.backdated || workout.dateKey !== localDateKey() ? "" : " data-elapsed"}>${escapeHtml(clock)}</span></span>
+    <span><span>${escapeHtml(routine.name)} in progress</span><span${workout.reopened || workout.backdated ? "" : " data-elapsed"}>${escapeHtml(clock)}</span></span>
     <span><span>${done} of ${counted.length} done${shown ? ` · next: ${movementMarkup(shown.exercise)}` : ""}</span><span>Back →</span></span>
   </button>`;
 }
@@ -345,8 +368,12 @@ function openRowReference(button) {
   openExerciseReference(id, { prescription, routineName: routine.name, routineNote: entry?.note || "" });
 }
 
-// A workout that was cancelled or closed again hands back to the round page.
-const backToRound = () => navigate("round", { motion: "pop" });
+// A workout that was cancelled or closed again hands back to the round page (which
+// ignores taps for a moment: a double tap would land on one of its controls).
+const backToRound = () => {
+  navigate("round", { motion: "pop" });
+  pauseTaps();
+};
 
 // Finish files the workout as it stands and pushes in its result (js/views/result.js).
 // Only a workout with nothing logged or done asks first,
@@ -387,6 +414,7 @@ function swapTo(button) {
     return;
   }
   memory.swaps[entryId] = exerciseId;
+  keepMemory();
   render();
   fresh(`[data-slot="${CSS.escape(entryId)}"]`);
 }
@@ -433,6 +461,7 @@ registerActions({
     if (!progress) return;
     const slotId = button.getAttribute("aria-expanded") === "true" ? "" : button.dataset.entryId;
     memory.chosen = { slotId, wasDone: slotId ? progress.isDone({ id: slotId }) : false, doneIds: progress.slots.filter(progress.isDone).map((slot) => slot.id) };
+    keepMemory();
     motion.fold(() => render());
   },
   "open-entry-choices": openEntryChoices,

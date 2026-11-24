@@ -65,7 +65,6 @@ export const dockElement = () => document.querySelector("#appDock");
 // It is redrawn only when what it says changes, and when it now does something else
 // where the finger just was, it ignores taps for a moment.
 let dockMarkup = "";
-let dockQuietUntil = 0;
 function drawDock(state, view) {
   let markup = "";
   for (const [id, other] of views) {
@@ -74,14 +73,10 @@ function drawDock(state, view) {
   markup ||= view.dock?.(state) || "";
   const dock = dockElement();
   if (markup === dockMarkup) return;
-  if (dockMarkup && markup) dockQuietUntil = performance.now() + 400;
+  if (dockMarkup && markup) pauseTaps(["dock"]);
   dockMarkup = markup;
   dock.innerHTML = markup;
   dock.hidden = !markup;
-}
-
-export function dockIsQuiet() {
-  return performance.now() < dockQuietUntil;
 }
 
 // `entering: "routine"`: another routine was picked, so what's under the routine
@@ -115,12 +110,21 @@ export function render({ entering = "" } = {}) {
   for (const hook of afterRenderHooks) hook(state);
 }
 
-// The second tap of a double tap on the dock never lands on what replaced the first.
-dockElement().addEventListener("click", (event) => {
-  if (!dockIsQuiet()) return;
-  event.preventDefault();
-  event.stopPropagation();
-}, true);
+// What was just tapped has been replaced by something else in the same place, so the
+// second tap of a double tap would land on a control the owner never saw: the page and
+// the dock (or only the dock, when only it changed) ignore taps for a moment. Scrolling
+// still works. Called after a change of page or of what the round page shows.
+const quietUntil = { main: 0, dock: 0 };
+export function pauseTaps(areas = ["main", "dock"]) {
+  for (const area of areas) quietUntil[area] = performance.now() + 400;
+}
+for (const [area, element] of [["main", mainElement()], ["dock", dockElement()]]) {
+  element.addEventListener("click", (event) => {
+    if (performance.now() >= quietUntil[area]) return;
+    event.preventDefault();
+    event.stopPropagation();
+  }, true);
+}
 
 // Scrolls what's on screen back to its top, as tapping the tab you're on does on iPhone.
 export function scrollToTop() {
