@@ -1418,6 +1418,11 @@ details.form-section > summary + * {
   white-space: nowrap;
 }
 
+/* One round's page ends with its More card (Delete this round). */
+.round-more {
+  margin-top: var(--space-4);
+}
+
 /* Back after a long break, a card on Home: its label, what happened, and which round this is. */
 .result-card.round-news {
   padding-bottom: var(--space-3);
@@ -1509,28 +1514,39 @@ details.form-section > summary + * {
 /* The round on the calendar: a row for every calendar week the round touches, the week
    number first (as on the Log calendar), then Monday to Sunday. */
 .home-cal {
+  position: relative;
   padding-bottom: var(--space-2);
   display: grid;
-  grid-template-columns: 24px repeat(7, minmax(0, 1fr));
+  grid-template-columns: 28px repeat(7, minmax(0, 1fr));
   gap: 5px;
 }
 
-/* The week number labels its row: no box, faint, small, set apart from Monday by a
-   hairline, so it never reads as a day. */
+/* The weeks are one tinted band down the first column, "WK" at its top and the week
+   numbers in the accent colour, so it never reads as a day. */
+.home-cal::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: var(--space-2);
+  left: 0;
+  width: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+}
+
 .home-cal > .home-week {
-  margin-right: 1px;
-  padding-right: 5px;
-  border-right: 1px solid var(--line-soft);
-  color: var(--faint);
+  position: relative;
+  color: var(--accent);
   display: grid;
-  place-items: center end;
-  font-size: var(--fs-tag);
-  font-weight: 500;
+  place-items: center;
+  font-size: var(--fs-meta);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
 .home-cal > .label.home-week {
-  border-right-color: transparent;
+  padding-top: 4px;
+  font-size: var(--fs-tag);
 }
 
 .home-cal > .label {
