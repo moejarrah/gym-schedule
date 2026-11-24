@@ -6,22 +6,23 @@
 // Matrix: 393×852 and 320×700, light and dark, deviceScaleFactor 1, isMobile/hasTouch.
 // Determinism: fresh browser context per size/theme, Date fixed at 2026-11-04 10:00 (UTC context
 // time zone, en-US locale), every shot starts from one of the saved states below, freshly
-// reloaded (so on the Round tab), animations disabled, caret hidden.
-// File names are stable: `<width>-<theme>-<name>.png`, e.g. 393-dark-round.png,
+// reloaded (so on the round page, or on the workout in progress), animations disabled, caret
+// hidden. File names are stable: `<width>-<theme>-<name>.png`, e.g. 393-dark-round.png,
 // 320-light-dialog-entry-editor.png. Re-running produces the same names for name-by-name diffing.
-// Navigation, Settings and tapping on the Round tab (which pauses after a swap) come from
+// Navigation, Settings and the wait after a tap that changes the bottom button come from
 // tests/e2e/helpers.mjs.
 //
 // The saved states a shot can start from (its third item; "started" when left out):
 //   first     the starting data: nothing counted yet
-//   started   made by tapping through the app (seedThroughApp): counting started on the Round
-//             tab, Push A running with two exercises logged and done, a Log day with a
-//             completion and a note, a note-only day
-//   break, round, running, done, complete
+//   empty     no program at all
+//   started   made by tapping through the app (seedThroughApp): Push A started from the round
+//             page (counting starts with it) and running with two exercises logged and done,
+//             a Log day with a completion and a note, a note-only day
+//   break, round, running, finishing, done, complete
 //             the same made-up history (historyState, built here with the app's own
-//             js/model.js) stopped at five moments: back after eight weeks away; a round
-//             under way; its next workout running; that workout finished today; the round
-//             completed today
+//             js/model.js) stopped at six moments: back after eight weeks away; a round
+//             under way; its next workout running; the same with every main exercise done;
+//             that workout finished today; the round completed today
 
 import { mkdir, rm } from "node:fs/promises";
 import path from "node:path";
@@ -31,12 +32,15 @@ import * as model from "../js/model.js";
 import { createDefaultState, stateProblem } from "../js/store.js";
 import {
   STORAGE_KEY,
+  backToRound,
+  bottomButton,
   closeSettings,
   escapeRegExp,
   expect,
   goToView,
   launchBrowser,
   openSettings,
+  roundSettles,
   startServer,
   startsWith,
   tapOnRound,
@@ -59,6 +63,7 @@ const TODAY = "2026-11-04";
 const PROGRAM = "PPL 9";
 const OTHER_PROGRAM = "Full body 3×"; // the second program of the made-up history
 const PUSH_A = "Push A";
+const TRICEPS = "Overhead triceps extension (cable) or Skull crusher (cable, behind head) or Skull crusher (EZ bar, behind head)"; // a slot of Push B with three choices
 
 // ---------- saved states ----------
 
@@ -150,9 +155,10 @@ function historyState(theme, stage) {
       model.setDay(state, "2026-11-02", state.sessions["2026-11-02"].routineIds, "Hotel gym, lighter than usual");
       model.setDay(state, "2026-11-03", [], "Mobility only");
     }
-    if (stage === "running") {
+    if (stage === "running" || stage === "finishing") {
       model.startWorkout(state, "push-b", TODAY, FIXED_TIME - 34 * 60000);
-      lift(TODAY, "push-b", 2);
+      const main = model.orderedEntries(model.routineById(state, "push-b")).filter((entry) => entry.role === "main").length;
+      lift(TODAY, "push-b", stage === "running" ? 2 : main);
     }
     if (stage === "done") did([TODAY, "push-b", 62]);
     if (stage === "complete") did(["2026-11-01", "push-b", 59], ["2026-11-03", "pull-b", 63], [TODAY, "legs-b", 66]);
@@ -163,10 +169,20 @@ function historyState(theme, stage) {
   });
 }
 
+// No program at all (the round page says so and offers the ways in).
+function emptyState(theme) {
+  const state = createDefaultState();
+  Object.assign(state, { programs: [], routines: [], sessions: {} });
+  Object.assign(state.settings, { theme, activeProgramId: "", activeRoutineId: "", activeWorkout: null });
+  const problem = stateProblem(state);
+  if (problem) throw new Error(`The "empty" state is not a valid saved state: ${problem}`);
+  return state;
+}
+
 function builtStates(theme) {
-  const states = { first: createDefaultState() };
+  const states = { first: createDefaultState(), empty: emptyState(theme) };
   states.first.settings.theme = theme;
-  for (const stage of ["break", "round", "running", "done", "complete"]) states[stage] = historyState(theme, stage);
+  for (const stage of ["break", "round", "running", "finishing", "done", "complete"]) states[stage] = historyState(theme, stage);
   return Object.fromEntries(Object.entries(states).map(([name, state]) => [name, JSON.stringify(state)]));
 }
 
@@ -187,15 +203,15 @@ async function shown(locator) {
 // Scrolls the page so that this is at the top of the screen.
 const toTop = (locator) => locator.evaluate((element) => element.scrollIntoView({ block: "start" }));
 
-// One of the Round tab's sheets or confirmations, opened from its "More" row.
+// One of the round page's sheets, opened from a row under its list.
 async function openRoundSheet(page, row, title = row) {
   await button(main(page), startsWith(row)).click();
   return shown(dialog(page, title));
 }
 
 async function openAllRounds(page) {
-  await tapOnRound(page, button(main(page), startsWith("All rounds")));
-  await shown(main(page).getByRole("heading", { name: "All rounds" }));
+  await tapOnRound(page, button(main(page), startsWith("Rounds and blocks")));
+  await shown(main(page).getByRole("heading", { name: /^(All rounds|Rounds and blocks)$/ }));
 }
 
 // One round's page, from All rounds: openRound(page, "Round 5").
@@ -205,24 +221,33 @@ async function openRound(page, name) {
   await shown(button(main(page), "Back to All rounds"));
 }
 
-// The Workout tab showing a workout the round still asks for, from its row on the Round tab.
-async function previewWorkout(page, routine) {
-  await tapOnRound(page, button(main(page), startsWith(`${routine}, not done`)));
-  await shown(button(main(page), `Start ${routine}`));
+// Opens a row of the round page in place.
+async function openRoundRow(page, routine) {
+  await tapOnRound(page, button(main(page), startsWith(`${routine}, `)));
 }
 
-// Opens a Workout slot in place, unless it is open already.
+// From the workout in progress (where the app opens) back to the round page.
+async function roundPage(page) {
+  await tapOnRound(page, backToRound(page));
+  await shown(button(main(page), "Settings"));
+}
+
+// Starts a workout from the round page's bottom button.
+async function startFromRound(page, routine) {
+  await roundSettles(page);
+  await tapOnRound(page, bottomButton(page, `Start ${routine}`));
+  await shown(backToRound(page));
+}
+
+// Opens a slot of the workout in place, unless it is open already (a name or a RegExp).
 async function openSlot(page, name) {
-  const row = button(main(page), `View ${name} details`);
+  const row = button(main(page), typeof name === "string" ? `View ${name} details` : name);
   if ((await row.getAttribute("aria-expanded")) !== "true") await row.click();
   await expect(row).toHaveAttribute("aria-expanded", "true");
 }
 
-async function finishWorkout(page) {
-  await goToView(page, "Workout");
-  await button(main(page), "Finish workout").click();
-  return shown(dialog(page, /^Finish .+\?$/));
-}
+// Scrolls the workout's list to its end.
+const toEnd = (page) => button(main(page), /^(Cancel workout|Close again)$/).scrollIntoViewIfNeeded();
 
 // Program in edit mode ("Edit" … "Done").
 async function editProgram(page) {
@@ -268,80 +293,80 @@ async function chooseImportFile(page, files) {
 
 // ---------- the shots ----------
 
-// [name, steps, saved state]. Every shot starts from its saved state, freshly reloaded on
-// the Round tab.
+// [name, steps, saved state]. Every shot starts from its saved state, freshly reloaded: on
+// the round page, or on the workout when one is in progress.
 const SHOTS = [
-  // ---- Round tab ----
+  // ---- The round page (the Workout tab's first page) ----
   ["round-first-time", async () => {}, "first"],
-  // Counting just started, with one program: the "More" rows that can't be used say why.
-  ["round-more-one-program", async (page) => {
-    await tapOnRound(page, button(main(page), "Start counting"));
-    await button(main(page), "Change round number").scrollIntoViewIfNeeded();
-  }, "first"],
+  // Another row opened: the bottom button follows it.
+  ["round-other-open", async (page) => { await openRoundRow(page, "Pull A"); }, "first"],
   ["round", async () => {}, "round"],
-  ["round-more", async (page) => { await button(main(page), "Change round number").scrollIntoViewIfNeeded(); }, "round"],
-  ["round-running", async () => {}, "running"],
+  // A workout done earlier in the round, opened: "Do Push A again today".
+  ["round-done-earlier-open", async (page) => { await openRoundRow(page, "Push A"); }, "round"],
+  ["round-running", async (page) => { await roundPage(page); }, "running"],
   ["round-done-today", async () => {}, "done"],
   ["round-complete", async () => {}, "complete"],
   ["round-welcome-back", async () => {}, "break"],
+  ["round-welcome-back-restart", async (page) => {
+    await main(page).getByRole("button", { name: "Round 1 · block 2" }).click();
+    await shown(main(page).getByRole("heading", { level: 1, name: "Round 1 · block 2" }));
+  }, "break"],
+  ["round-no-program", async () => {}, "empty"],
   ["round-all", async (page) => { await openAllRounds(page); }, "round"],
   // A complete round with an extra workout; then one that ended early, with what was not done.
   ["round-one", async (page) => { await openRound(page, "Round 2 · block 2"); }, "round"],
   ["round-one-ended-early", async (page) => { await openRound(page, "Round 5"); }, "round"],
   ["dialog-round-guest", async (page) => { await openRoundSheet(page, "A workout from another program"); }, "round"],
-  ["dialog-round-follow", async (page) => { await openRoundSheet(page, "Follow a different program"); }, "round"],
+  // Following another program: from Program, "Follow <name>".
   ["dialog-round-follow-confirm", async (page) => {
-    const programs = await openRoundSheet(page, "Follow a different program");
+    const programs = await openPrograms(page);
     await button(programs, startsWith(OTHER_PROGRAM)).click();
+    await button(main(page), `Follow ${OTHER_PROGRAM}`).click();
     await shown(dialog(page, `Follow ${OTHER_PROGRAM}?`));
   }, "round"],
-  ["dialog-round-number", async (page) => { await openRoundSheet(page, "Change round number"); }, "round"],
-  ["dialog-confirm-end-round", async (page) => { await openRoundSheet(page, "End round 3 now", "End round 3 now?"); }, "round"],
-  ["dialog-confirm-new-block", async (page) => {
-    const sheet = await openRoundSheet(page, "Change round number");
-    await button(sheet, "Start a new block at round 1").click();
-    await shown(dialog(page, "Start block 3?"));
-  }, "round"],
+  // Before counting: "Already on a later round? Set it".
+  ["dialog-round-number", async (page) => { await openRoundSheet(page, "Already on a later round?", "Change round number"); }, "first"],
 
-  // ---- Workout ----
-  ["workout-preview", async (page) => { await goToView(page, "Workout"); }, "round"],
-  ["workout-preview-slot-open", async (page) => {
-    await goToView(page, "Workout");
-    await openSlot(page, "Chest fly (cable, high to low) or Decline chest press (machine)");
-  }, "round"],
-  // Pull A: two named Optional blocks. A workout the round hasn't reached yet, before counting.
-  ["workout-preview-pull-a", async (page) => { await previewWorkout(page, "Pull A"); }, "first"],
-  ["workout-running", async (page) => { await goToView(page, "Workout"); }],
+  // ---- The workout in progress ----
+  ["workout-running", async () => {}],
   // A done slot opened: its sets of today.
-  ["workout-running-slot-open", async (page) => {
-    await goToView(page, "Workout");
-    await openSlot(page, "Low-incline press (dumbbell)");
+  ["workout-running-slot-open", async (page) => { await openSlot(page, "Low-incline press (dumbbell)"); }],
+  // With history: "Last time" in the open slot, kg on every weight.
+  ["workout-running-history", async () => {}, "running"],
+  // The end of the list: Add exercise, You sometimes add, Cancel workout.
+  ["workout-running-end", async (page) => { await toEnd(page); }, "running"],
+  // Every main exercise done: the bottom button finishes.
+  ["workout-finishing", async (page) => { await toEnd(page); }, "finishing"],
+  // A slot with one alternative, swapped to it for today.
+  ["workout-swapped", async (page) => {
+    await openSlot(page, "Pec deck (machine) or Chest fly (cable)");
+    await tapOnRound(page, button(main(page), /^Swap to .+ for today$/));
   }],
-  // With history: "Last time" in the open slot.
-  ["workout-running-history", async (page) => { await goToView(page, "Workout"); }, "running"],
   ["workout-running-extra", async (page) => {
     const sheet = await openRoundSheet(page, "A workout from another program");
     await button(sheet, `Start Full body A from ${OTHER_PROGRAM}`).click();
-    await shown(button(main(page), "Finish workout"));
+    await shown(backToRound(page));
   }, "round"],
+  // The bar of the workout in progress on other pages.
+  ["running-bar-program", async (page) => { await goToView(page, "Program"); }, "running"],
+  ["running-bar-library", async (page) => { await goToView(page, "Library"); }, "running"],
 
   // ---- Workout sheets ----
   ["dialog-exercise-reference", async (page) => {
-    // A Pull A row, so the reference shows its "For this routine" note.
-    await previewWorkout(page, "Pull A");
-    await openSlot(page, "Lat pulldown (machine, overhand)");
+    // A Pull A slot, so the reference shows its "For this routine" note.
+    await goToView(page, "Program");
+    await routineTab(page, "Pull A").click();
+    await button(main(page), "Show Lat pulldown (machine, overhand) details").click();
     await button(main(page), "Open exercise page for Lat pulldown (machine, overhand)").click();
     await shown(dialog(page, "Lat pulldown (machine, overhand)"));
   }, "first"],
   ["dialog-exercise-reference-related", async (page) => {
-    await goToView(page, "Workout");
     await openSlot(page, "Low-incline press (dumbbell)");
     await button(main(page), "Open exercise page for Low-incline press (dumbbell)").click();
     await button(dialog(page, "Low-incline press (dumbbell)"), /^Alternative Chest press/).click();
     await shown(dialog(page, "Chest press (machine)"));
   }],
   ["dialog-log", async (page) => {
-    await goToView(page, "Workout");
     await button(main(page), "Log sets for Chest press (plate-loaded) or Chest press (machine)").click();
     await page.locator("#logDialog").getByLabel("Weight for set 1, kg").fill("50");
     await page.locator("#logDialog").getByLabel("Reps for set 1").fill("10");
@@ -349,8 +374,12 @@ const SHOTS = [
     await page.locator("#logDialog").getByRole("button", { name: "Drop set" }).click();
     await shown(page.locator("#logDialog"));
   }],
+  // With last time's sets in the table.
+  ["dialog-log-last-time", async (page) => {
+    await button(main(page), /^Log sets for Incline chest press \(machine\)/).click();
+    await shown(page.locator("#logDialog"));
+  }, "running"],
   ["dialog-history", async (page) => {
-    await goToView(page, "Workout");
     await openSlot(page, "Chest press (plate-loaded) or Chest press (machine)");
     await button(main(page), "Open exercise page for Chest press (plate-loaded)").click();
     await page.locator("#exerciseDetailDialog").getByRole("button", { name: "History" }).click();
@@ -358,43 +387,43 @@ const SHOTS = [
   }],
   // The open slot's "Last time" line opens the same sheet, here with ten weeks in it.
   ["dialog-history-last-time", async (page) => {
-    await goToView(page, "Workout");
     await button(main(page), /^Last time .*Open history of Incline chest press \(machine\)$/).click();
     await shown(page.locator("#historyDialog"));
   }, "running"],
+  // A slot with several alternatives: "Swap to" opens its choices, where one is used today.
   ["dialog-choice-sheet", async (page) => {
-    await goToView(page, "Workout");
-    await openSlot(page, "Serratus punch (cable) or Push-up plus");
-    await button(main(page), "Open exercise choices for Serratus punch (cable) or Push-up plus").click();
+    await openSlot(page, TRICEPS);
+    await button(main(page), `Open exercise choices for ${TRICEPS}`).click();
     await shown(dialog(page, "Exercise choices"));
-  }],
+  }, "running"],
   ["dialog-choice-reference", async (page) => {
-    await goToView(page, "Workout");
-    await openSlot(page, "Serratus punch (cable) or Push-up plus");
-    await button(main(page), "Open exercise choices for Serratus punch (cable) or Push-up plus").click();
-    await button(dialog(page, "Exercise choices"), "Open reference for Push-up plus").click();
-    await shown(dialog(page, "Push-up plus"));
-  }],
+    await openSlot(page, TRICEPS);
+    await button(main(page), `Open exercise choices for ${TRICEPS}`).click();
+    await button(dialog(page, "Exercise choices"), "Open reference for Skull crusher (EZ bar, behind head)").click();
+    await shown(dialog(page, "Skull crusher (EZ bar, behind head)"));
+  }, "running"],
   ["dialog-video-search", async (page) => {
-    await goToView(page, "Workout");
     await openSlot(page, "Low-incline press (dumbbell)");
     await button(main(page), "Find a video for preferred choice Low-incline press (dumbbell)").click();
     await shown(dialog(page, "Low-incline press (dumbbell)"));
   }],
   ["dialog-picker-extra", async (page) => {
-    await goToView(page, "Workout");
     await button(main(page), "Add exercise for today").click();
     await shown(dialog(page, "Add exercise"));
   }],
-  ["dialog-finish", async (page) => { await finishWorkout(page); }, "running"],
+  // Finish with nothing logged asks once whether to cancel instead.
+  ["dialog-finish-nothing-logged", async (page) => {
+    await openRoundRow(page, "Push B");
+    await startFromRound(page, "Push B");
+    await button(main(page), "Finish Push B").click();
+    await shown(dialog(page, "Nothing was logged"));
+  }, "round"],
   ["dialog-finish-result", async (page) => {
-    const summary = await finishWorkout(page);
-    await button(summary, "Finish").click();
+    await button(main(page), "Finish Push B").click();
     await shown(dialog(page, "Push B finished"));
   }, "running"],
   ["dialog-confirm-cancel-workout", async (page) => {
-    await goToView(page, "Workout");
-    await button(main(page), "Cancel").click();
+    await button(main(page), "Cancel workout").click();
     await shown(dialog(page, `Cancel ${PUSH_A}?`));
   }],
 
@@ -529,7 +558,7 @@ const SHOTS = [
     await shown(dialog(page, "Monday, November 2"));
   }, "round"],
 
-  // ---- Settings (the gear on the Round tab) ----
+  // ---- Settings (the gear on the round page) ----
   ["settings", async (page) => { await openSettings(page); }],
   ["settings-rules", async (page) => {
     const settings = await openSettings(page);
@@ -560,11 +589,8 @@ const SHOTS = [
 async function seedThroughApp(page, theme, tempDir) {
   await page.goto(page.__appUrl);
   await waitForApp(page);
-  // Counting starts on the Round tab's first-time card; its next card starts Push A,
-  // which opens on Workout.
-  await tapOnRound(page, button(main(page), "Start counting"));
-  await tapOnRound(page, button(main(page), `Start ${PUSH_A}`));
-  await shown(button(main(page), "Finish workout"));
+  // The round page's bottom button starts Push A (and the count with it).
+  await startFromRound(page, PUSH_A);
   // Two exercises logged and done.
   for (const [title, sets] of [["Low-incline press (dumbbell)", [["22.5", "10"], ["22.5", "9"], ["22.5", "8"]]], ["Overhead press (machine)", [["35", "12"], ["35", "10"]]]]) {
     await button(main(page), `Log sets for ${title}`).click();
