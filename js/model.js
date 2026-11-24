@@ -313,6 +313,50 @@ export function cancelWorkout(state) {
   }
 }
 
+// Deletes a finished workout from its day, as if it had never been done: the routine
+// leaves the day's finished list with its record, its logged sets, its done marks and the
+// exercises added to it for that day (a day left with nothing goes). It leaves the round
+// it was filed in; a closed round keeps its recorded numbers, except the one case
+// `roundReopenedBy` describes, where that round opens again. Refused while that workout
+// is the one in progress.
+export function deleteWorkout(state, dateKey, routineId) {
+  const running = state.settings.activeWorkout;
+  if (running?.dateKey === dateKey && running.routineId === routineId) fail("Finish or cancel the workout in progress first.");
+  const session = sessionFor(state, dateKey);
+  if (!session.routineIds.includes(routineId)) fail("That workout is no longer in the Log.");
+  const reopen = roundReopenedBy(state, dateKey, routineId);
+  session.routineIds = session.routineIds.filter((id) => id !== routineId);
+  delete session.workouts[routineId];
+  delete session.checkedEntryIdsByRoutine[routineId];
+  delete session.extras[routineId];
+  for (const [slotId, log] of Object.entries(session.logs)) if (log.routineId === routineId) delete session.logs[slotId];
+  writeSession(state, dateKey, session);
+  if (!reopen) return;
+  state.settings.roundLog.pop();
+  if (!state.settings.roundLog.length) delete state.settings.roundLog;
+  Object.assign(state.settings.round, { number: reopen.number, block: reopen.block, programId: reopen.programId, since: reopen.since });
+}
+
+// The round that deleting this finished workout opens again, or null: the most recently
+// closed round, when it was complete, this workout counted in it and nothing else there
+// does the same job (so without it the round isn't complete any more), and nothing has
+// been done in the round opened after it (same block, same program). Then a workout
+// finished by mistake and deleted leaves no completed round behind. { number, block,
+// programId, since (the day of its first workout left) }.
+export function roundReopenedBy(state, dateKey, routineId) {
+  const record = state.sessions[dateKey]?.workouts?.[routineId];
+  const round = openRound(state);
+  const last = state.settings.roundLog?.at(-1);
+  if (!record?.round || record.guest || record.optional || !round || last?.ended !== "complete" || !sameRound(record, last)) return null;
+  if (round.block !== last.block || round.programId !== last.programId || roundWorkouts(state, round).length || state.settings.activeWorkout?.breakUndo) return null;
+  const program = state.programs.find((item) => item.id === last.programId);
+  if (!requiredRoutines(state, program).some((routine) => routine.id === routineId)) return null;
+  const others = roundWorkouts(state, last).filter((item) => item.dateKey !== dateKey || item.routineId !== routineId);
+  if (others.some((item) => item.routineId === routineId && !item.guest && !item.optional)) return null;
+  const since = others[0] && others[0].dateKey < dateKey ? others[0].dateKey : dateKey;
+  return { number: last.number, block: last.block, programId: last.programId, since };
+}
+
 // A workout left open from an earlier day (and started over 12 hours ago, so a
 // session running past midnight isn't cut off) is finished as it stands.
 // Returns the routine's name when it did that.

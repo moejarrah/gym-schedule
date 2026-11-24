@@ -4,6 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  addExtra,
   addRoutine,
   allBlocks,
   allRounds,
@@ -11,6 +12,7 @@ import {
   calendarWeek,
   cancelWorkout,
   createProgram,
+  deleteWorkout,
   endRound,
   finishWorkout,
   followProgram,
@@ -19,9 +21,12 @@ import {
   nextWorkout,
   openRound,
   removeProgram,
+  removeRoutine,
   roundRecord,
   roundSummary,
+  saveEntrySets,
   setDay,
+  setEntryChecked,
   setRoundNumber,
   startGuestWorkout,
   startNewBlock,
@@ -30,6 +35,7 @@ import {
   updateProgram,
   updateRoutine,
 } from "../js/model.js";
+import { stateProblem } from "../js/store.js";
 import { freshStore, save } from "./support.mjs";
 
 // Does one whole workout of a routine on a day.
@@ -398,4 +404,137 @@ test("a block started after a break: the one before is closed, and the new one s
   train(store, "day-a", "2026-12-23");
   blocks = allBlocks(store.getState());
   assert.deepEqual([blocks[0].from, blocks[0].to, blocks[0].gapBefore, blocks[1].endings], ["2026-12-23", "2026-12-23", 43, { complete: 1 }]);
+});
+
+// ---------- deleting a finished workout ----------
+
+test("deleting a finished workout takes it off its day with its sets, done marks and added exercises", () => {
+  const { store } = freshStore();
+  save(store, (draft) => {
+    setRoundNumber(draft, 2);
+    startWorkout(draft, "day-a", "2026-11-16", 0);
+    addExtra(draft, "ab-wheel");
+    saveEntrySets(draft, { routineId: "day-a", entryId: "a2", exerciseId: "bench-press", sets: [{ kg: "60", reps: "8" }], dateKey: "2026-11-16" });
+    setEntryChecked(draft, "day-a", "a2", true, "2026-11-16");
+    finishWorkout(draft, { now: 30 * 60000 });
+    startWorkout(draft, "day-b", "2026-11-16", 0); // another workout the same day stays
+    saveEntrySets(draft, { routineId: "day-b", entryId: "b1", exerciseId: "squat", sets: [{ kg: "100", reps: "5" }], dateKey: "2026-11-16" });
+    finishWorkout(draft, { now: 30 * 60000 });
+  });
+  assert.equal(number(store), 3, "both done: round 2 complete");
+  // Nothing is done in round 3 yet, so without Day A round 2 isn't complete: it opens again.
+  save(store, (draft) => deleteWorkout(draft, "2026-11-16", "day-a"));
+  const day = store.getState().sessions["2026-11-16"];
+  assert.deepEqual([day.routineIds, Object.keys(day.workouts), Object.keys(day.logs), day.checkedEntryIdsByRoutine, day.extras], [["day-b"], ["day-b"], ["b1"], {}, {}]);
+  assert.deepEqual([number(store), names(roundSummary(store.getState())), store.getState().settings.roundLog], [2, ["11-16 Day B"], undefined]);
+  assert.equal(stateProblem(store.getState()), "");
+
+  // In an open round it simply leaves: one fewer done. A day left with nothing goes.
+  save(store, (draft) => deleteWorkout(draft, "2026-11-16", "day-b"));
+  const summary = roundSummary(store.getState());
+  assert.deepEqual([store.getState().sessions["2026-11-16"], summary.number, summary.workouts.length, summary.counting], [undefined, 2, 0, true], "counting stays started");
+  // A day with a note keeps the note.
+  train(store, "day-a", "2026-11-17");
+  save(store, (draft) => setDay(draft, "2026-11-17", ["day-a"], "Felt good"));
+  save(store, (draft) => deleteWorkout(draft, "2026-11-17", "day-a"));
+  assert.deepEqual(store.getState().sessions["2026-11-17"], { routineIds: [], checkedEntryIdsByRoutine: {}, note: "Felt good", logs: {}, extras: {}, workouts: {} });
+  assert.deepEqual(store.update((draft) => deleteWorkout(draft, "2026-11-17", "day-a")), { ok: false, error: "That workout is no longer in the Log." });
+});
+
+test("a workout in progress can't be deleted, a reopened one included; closed again it can", () => {
+  const { store } = freshStore();
+  save(store, (draft) => setRoundNumber(draft, 1));
+  train(store, "day-a", "2026-11-16");
+  save(store, (draft) => startWorkout(draft, "day-a", "2026-11-16", 0)); // reopened
+  assert.deepEqual(store.update((draft) => deleteWorkout(draft, "2026-11-16", "day-a")), { ok: false, error: "Finish or cancel the workout in progress first." });
+  save(store, (draft) => cancelWorkout(draft)); // Close again
+  assert.equal(filed(store, "2026-11-16", "day-a").round, 1);
+  save(store, (draft) => deleteWorkout(draft, "2026-11-16", "day-a"));
+  assert.deepEqual([store.getState().sessions["2026-11-16"], number(store)], [undefined, 1]);
+  // Another workout may run meanwhile.
+  train(store, "day-a", "2026-11-17");
+  save(store, (draft) => startWorkout(draft, "day-b", "2026-11-18", 0));
+  save(store, (draft) => deleteWorkout(draft, "2026-11-17", "day-a"));
+  assert.equal(store.getState().settings.activeWorkout.routineId, "day-b");
+});
+
+test("deleting the workout that completed the last round, before anything else is done, opens that round again", () => {
+  const { store } = freshStore();
+  save(store, (draft) => setRoundNumber(draft, 3));
+  train(store, "day-a", "2026-11-16");
+  const before = structuredClone(store.getState());
+  train(store, "day-b", "2026-11-18"); // completes round 3; round 4 opens
+  assert.equal(number(store), 4);
+  save(store, (draft) => deleteWorkout(draft, "2026-11-18", "day-b"));
+  const state = store.getState();
+  assert.deepEqual(state.settings.round, { ...before.settings.round, since: "2026-11-16" }, "round 3 again, from the day of its first workout");
+  assert.deepEqual([state.settings.roundLog, names(roundSummary(state)), roundSummary(state).remaining.map((routine) => routine.id)], [undefined, ["11-16 Day A"], ["day-b"]]);
+  assert.deepEqual(state.sessions, before.sessions);
+
+  // Logged again for that past day it completes round 3 once more; deleted, round 3 opens again.
+  save(store, (draft) => {
+    startWorkout(draft, "day-b", "2026-11-18", 0, true);
+    finishWorkout(draft);
+  });
+  assert.deepEqual([filed(store, "2026-11-18", "day-b").round, number(store)], [3, 4]);
+  save(store, (draft) => deleteWorkout(draft, "2026-11-18", "day-b"));
+  assert.equal(number(store), 3);
+});
+
+test("a closed round keeps its numbers when one of its workouts is deleted after something was done in the next, or when it ended another way", () => {
+  const { store } = freshStore();
+  save(store, (draft) => setRoundNumber(draft, 3));
+  train(store, "day-a", "2026-11-16");
+  train(store, "day-b", "2026-11-17"); // round 3 complete
+  train(store, "day-a", "2026-11-18"); // round 4 has a workout
+  const log = structuredClone(store.getState().settings.roundLog);
+  save(store, (draft) => deleteWorkout(draft, "2026-11-17", "day-b"));
+  const closed = roundRecord(store.getState(), { number: 3, block: 1 });
+  assert.deepEqual([store.getState().settings.roundLog, closed.done, closed.required, names(closed), number(store)], [log, 2, 2, ["11-16 Day A"], 4], "its numbers stay; only its list changes");
+
+  save(store, (draft) => endRound(draft)); // round 4 ends early, round 5 opens
+  save(store, (draft) => deleteWorkout(draft, "2026-11-18", "day-a"));
+  assert.deepEqual([number(store), store.getState().settings.roundLog.map((item) => [item.number, item.ended, item.done])], [5, [[3, "complete", 2], [4, "early", 1]]]);
+});
+
+test("an extra or an Optional workout counts toward nothing, so deleting it changes no number", () => {
+  const { store } = freshStore();
+  const other = secondProgram(store);
+  save(store, (draft) => {
+    setRoundNumber(draft, 1);
+    updateRoutine(draft, "day-b", { status: "optional" });
+  });
+  train(store, "day-b", "2026-11-15"); // Optional
+  save(store, (draft) => {
+    startGuestWorkout(draft, other.ids[0], "2026-11-16", 0);
+    finishWorkout(draft, { now: 30 * 60000 });
+  });
+  train(store, "day-a", "2026-11-17"); // completes round 1
+  save(store, (draft) => {
+    startGuestWorkout(draft, other.ids[1], "2026-11-17", 0); // an extra in round 2
+    finishWorkout(draft, { now: 30 * 60000 });
+  });
+  for (const [dateKey, routineId] of [["2026-11-15", "day-b"], ["2026-11-16", other.ids[0]]]) {
+    save(store, (draft) => deleteWorkout(draft, dateKey, routineId));
+    assert.deepEqual([number(store), store.getState().settings.roundLog.length], [2, 1], `${routineId} deleted`);
+  }
+  assert.deepEqual(names(roundRecord(store.getState(), { number: 1, block: 1 })), ["11-17 Day A"]);
+  // Round 2 holds an extra, so something was done after round 1: deleting Day A reopens nothing.
+  save(store, (draft) => deleteWorkout(draft, "2026-11-17", "day-a"));
+  assert.deepEqual([number(store), store.getState().settings.roundLog.length], [2, 1]);
+});
+
+test("a workout whose routine or program was deleted since can still be deleted, and reopens nothing", () => {
+  const { store } = freshStore();
+  const other = secondProgram(store);
+  save(store, (draft) => setRoundNumber(draft, 1));
+  train(store, "day-a", "2026-11-16");
+  train(store, "day-b", "2026-11-17"); // round 1 complete
+  save(store, (draft) => removeRoutine(draft, "day-b"));
+  save(store, (draft) => deleteWorkout(draft, "2026-11-17", "day-b"));
+  assert.deepEqual([store.getState().sessions["2026-11-17"], number(store)], [undefined, 2]);
+  save(store, (draft) => removeProgram(draft, "sample")); // round 2 now follows the other program
+  save(store, (draft) => deleteWorkout(draft, "2026-11-16", "day-a"));
+  assert.deepEqual([store.getState().sessions["2026-11-16"], number(store), openRound(store.getState()).programId], [undefined, 2, other.programId]);
+  assert.equal(stateProblem(store.getState()), "");
 });
