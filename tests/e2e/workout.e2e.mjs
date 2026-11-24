@@ -199,7 +199,7 @@ appTest("A workout: Done and Not done on slots, an exercise added for today, and
   await done(logSheet(page)).click();
   const confirm = dialog(page, "No sets logged");
   await expect(confirm).toContainText("Mark Bench press (barbell) done anyway?");
-  await confirm.getByRole("button", { name: "Mark done anyway" }).click();
+  await tapOnRound(page, confirm.getByRole("button", { name: "Mark done anyway" })); // taps rest after an answer
   await expect(numberOf(page, "Bench press (barbell)")).toHaveAccessibleName("Log sets for Bench press (barbell), done");
 
   await numberOf(page, "Push-up").click();
@@ -286,7 +286,7 @@ appTest("The result: the tally against last time, a new best with what it beat, 
   await expect(card(page, "Round 1")).toContainText("NextDay B");
   // Not done: the main exercise skipped, then the optional one under its own label.
   const notDone = card(page, "Not done");
-  await expect(notDone.getByRole("heading", { level: 2 })).toHaveText("Not done2");
+  await expect(notDone.getByRole("heading", { level: 2 })).toHaveText("Not done1");
   await expect(notDone).toContainText("Incline dumbbell press");
   await expect(notDone.getByRole("heading", { level: 3 })).toHaveText("Optional1");
   await expect(notDone).toContainText("Plank");
@@ -301,7 +301,7 @@ appTest("The result: the tally against last time, a new best with what it beat, 
   // Done: the round page, where "How it went" says the tally and opens the result again.
   await closeResult(page);
   const again = main(page).getByRole("button", { name: "How Day A went" });
-  await expect(again).toContainText("1 up · 1 same · 0 down");
+  await expect(again).toContainText("▲ 1 · = 1 · ▼ 0");
   await tapOnRound(page, again);
   await expect(resultTitle(page, "Day A")).toBeVisible();
   await expect(best).toBeVisible();
@@ -344,13 +344,13 @@ appTest("A finished workout is deleted from its result page after a confirmation
   const confirm = dialog(page, "Delete Day A from Wed, Nov 4?");
   await deleteButton.click();
   await expect(confirm).toContainText("Its 1 set and done marks are deleted. This can't be undone.");
-  await confirm.getByRole("button", { name: "Keep it" }).click();
+  await tapOnRound(page, confirm.getByRole("button", { name: "Keep it" }));
   await expect(confirm).toBeHidden();
   await expect(resultTitle(page, "Day A")).toBeVisible();
   assert.deepEqual((await todaySaved(page)).routineIds, ["day-a"], "kept");
 
   await deleteButton.click();
-  await confirm.getByRole("button", { name: "Delete workout" }).click();
+  await tapOnRound(page, confirm.getByRole("button", { name: "Delete workout" }));
   await expect(page.getByText("Workout deleted.")).toBeVisible();
   // Back on the round page, as if it had never been done; counting stays started.
   await expect(row(page, "Day A, not done, next")).toBeVisible();
@@ -480,7 +480,7 @@ appTest("A two-choice slot swaps to its alternative for today, logs it, and the 
   // Swapping back once sets are saved asks before moving them.
   await rowOf(page, TWO_CHOICES).click();
   await main(page).getByRole("button", { name: "Swap to Incline dumbbell press (dumbbell) for today" }).click();
-  await dialog(page, "Switch to Incline dumbbell press (dumbbell)?").getByRole("button", { name: "Keep as it is" }).click();
+  await tapOnRound(page, dialog(page, "Switch to Incline dumbbell press (dumbbell)?").getByRole("button", { name: "Keep as it is" }));
   await logSheet(page).getByRole("button", { name: "Close", exact: true }).first().click();
 
   const saved = await readState(page);

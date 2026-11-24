@@ -11,7 +11,7 @@
 
 import { navigate, pauseTaps, registerActions, registerView, store } from "../context.js";
 import { chevronIcon, confirmAction, escapeHtml, plural, report, toast } from "../dom.js";
-import { activeWorkout, backupAge, dayExtras, deleteWorkout, exerciseById, findSlot, localDateKey, nextWorkout, orderedEntries, roundRecord, roundReopenedBy, roundSummary, routineById, workoutName, workoutStanding } from "../model.js";
+import { activeWorkout, backupAge, dayExtras, deleteWorkout, exerciseById, localDateKey, nextWorkout, roundRecord, roundReopenedBy, roundSummary, routineById, workoutName, workoutStanding } from "../model.js";
 import { workoutComparison } from "../progress.js";
 import { daysBetween, durationText, movementMarkup, roundName, setupText, shortDate } from "./shared.js";
 
@@ -23,16 +23,10 @@ const isPastDay = () => shown.dateKey !== localDateKey();
 
 // ---------- reading the workout ----------
 
-// Its slots in the order the workout shows them: the routine's, then the day's extras.
-function slotsOf(state, routineId, dateKey) {
-  const routine = routineById(state, routineId);
-  if (!routine) return [];
-  return [...orderedEntries(routine), ...dayExtras(state, dateKey, routineId).map((extra) => findSlot(state, routineId, extra.id, dateKey))];
-}
-
-// Each exercise logged in it against its session before, in the order of its slots.
+// Each exercise logged in it against its session before, in the order of its slots
+// (the routine's, then the day's extras).
 function compared(state, routineId, dateKey) {
-  const slots = slotsOf(state, routineId, dateKey);
+  const { slots } = workoutStanding(state, routineId, dateKey);
   const prescriptionOf = (slotId, exerciseId) => slots.find((slot) => slot.id === slotId)?.choices.find((choice) => choice.exerciseId === exerciseId)?.prescription || "";
   const order = (item) => {
     const index = slots.findIndex((slot) => slot.id === item.slotId);
@@ -43,16 +37,18 @@ function compared(state, routineId, dateKey) {
     .sort((a, b) => order(a) - order(b));
 }
 
-// The tally: [count, word] for up, same and down (and how many were done for the first
-// time), or [] when nothing could be compared.
-function tallyParts(items) {
+// The tally: how many exercises went up, stayed the same and went down against their
+// last session, or null when nothing could be compared (nothing logged, or all first time).
+function tally(items) {
   const count = (kind) => items.filter((item) => item.kind === kind).length;
-  if (!items.some((item) => item.kind !== "first")) return [];
-  return [[count("up"), "up"], [count("same"), "same"], [count("down"), "down"], [count("first"), "first time"]].filter(([number, word]) => number || word !== "first time");
+  return items.some((item) => item.kind !== "first") ? { up: count("up"), same: count("same"), down: count("down") } : null;
 }
 
-// "4 up · 3 same · 1 down", or "" when nothing could be compared.
-export const tallyText = (items) => tallyParts(items).map((part) => part.join(" ")).join(" · ");
+// "▲ 4 · = 3 · ▼ 1", the result's counters as one line, or "" when nothing could be compared.
+export const tallyText = (items) => {
+  const counts = tally(items);
+  return counts ? `▲ ${counts.up} · = ${counts.same} · ▼ ${counts.down}` : "";
+};
 
 // The tally of a finished workout, for the round page's "How it went" line.
 export const workoutTally = (state, routineId, dateKey) => tallyText(compared(state, routineId, dateKey));
@@ -65,7 +61,6 @@ function setText(set, unit) {
   return set.kg === null ? amount : `${set.kg} kg × ${amount}`;
 }
 
-const nameOf = (item) => item.name;
 // "A", "A and B", "A, B and C".
 const listText = (names) => (names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`);
 
@@ -98,7 +93,7 @@ const line = (inner, attributes = "") => (attributes
 const pair = (label, value, extra = "") => line(`<span class="result-label">${label}</span>${valueCell(value, "", extra)}`);
 
 // A row opening an exercise's history.
-const historyLine = (item, value, spoken) => line(`${exerciseCell(item.exercise, item.name)}${value}`, `data-action="view-history" data-id="${escapeHtml(item.exerciseId)}" aria-label="${escapeHtml(`${nameOf(item)}, ${spoken}. Open its history`)}"`);
+const historyLine = (item, value, spoken) => line(`${exerciseCell(item.exercise, item.name)}${value}`, `data-action="view-history" data-id="${escapeHtml(item.exerciseId)}" aria-label="${escapeHtml(`${item.name}, ${spoken}. Open its history`)}"`);
 
 // Lines that fold away behind one more line ("Same · 3 exercises", "Show 3 more").
 const folded = (key, summary, body) => `<details class="result-fold" data-keep-open="result-${key}">
@@ -126,16 +121,15 @@ function summaryMarkup(state, record, items, routineId, dateKey) {
     [String(standing.sets), standing.sets === 1 ? "set" : "sets"],
     exercises,
   ];
-  const parts = tallyParts(items);
+  const counts = tally(items);
   const days = new Set(items.filter((item) => item.previous).map((item) => item.previous));
   const against = days.size === 1 ? shortDate([...days][0]) : "last time";
-  const count = (word) => parts.find((part) => part[1] === word)?.[0] || 0;
   const counter = (sign, number, kind = "") => `<span class="${number ? kind : "is-zero"}">${sign} ${number}</span>`;
   const compare = !items.length ? valueCell("No sets logged", "", "is-quiet")
-    : !parts.length ? valueCell("First time for all", "", "is-quiet")
-      : `<span class="result-counts" role="img" aria-label="${count("up")} up, ${count("same")} same, ${count("down")} down">${counter("▲", count("up"), "up")}${counter("=", count("same"))}${counter("▼", count("down"), "down")}</span>`;
+    : !counts ? valueCell("First time for all", "", "is-quiet")
+      : `<span class="result-counts" role="img" aria-label="${counts.up} up, ${counts.same} same, ${counts.down} down">${counter("▲", counts.up, "up")}${counter("=", counts.same)}${counter("▼", counts.down, "down")}</span>`;
   return card("Summary", `<div class="result-cells">${cells.map(([value, label]) => `<p><strong>${escapeHtml(value)}</strong><small>${escapeHtml(label)}</small></p>`).join("")}</div>
-    ${line(`<span class="result-name"><span class="result-label">Progress</span>${parts.length ? `<small>against ${escapeHtml(against)}</small>` : ""}</span>${compare}`)}`);
+    ${line(`<span class="result-name"><span class="result-label">Progress</span>${counts ? `<small>against ${escapeHtml(against)}</small>` : ""}</span>${compare}`)}`);
 }
 
 function bestsMarkup(items) {
@@ -185,17 +179,23 @@ function changesMarkup(items) {
   return body ? card("Against last time", body) : "";
 }
 
-// What wasn't done: the main exercises neither marked done nor logged, then the optional
-// ones under a small label of their own. More than five lines: four, and "Show N more".
-// Not told for a workout whose routine has been deleted since.
+// What wasn't done, in three groups: the main exercises neither marked done nor logged,
+// then the Optional ones, then the ones added for the day. The card is labelled for its
+// first group ("Not done", counting main exercises only; "Optional, not done" or "Added
+// today, not done" when no main one is left) and each later group has a small label of
+// its own. More than five rows: four, and "Show N more". Not told for a workout whose
+// routine has been deleted since.
 function notDoneMarkup(state, routineId, dateKey) {
   const { slots, isDone } = workoutStanding(state, routineId, dateKey);
   const left = slots.filter((slot) => !isDone(slot));
-  if (!left.length) return "";
+  const groups = [
+    ["Not done", "Not done", left.filter((slot) => slot.role === "main")],
+    ["Optional", "Optional, not done", left.filter((slot) => slot.role !== "main" && !slot.extra)],
+    ["Added today", "Added today, not done", left.filter((slot) => slot.extra)],
+  ].filter(([, , list]) => list.length);
+  if (!groups.length) return "";
   const row = (slot) => line(exerciseCell(exerciseById(state, slot.choices[0]?.exerciseId), "Missing exercise"));
-  const main = left.filter((slot) => slot.role === "main");
-  const optional = left.filter((slot) => slot.role !== "main");
-  const pieces = [...main.map(row), ...(optional.length ? [`<h3 class="label result-sublabel"><span>Optional</span><span>${optional.length}</span></h3>`, ...optional.map(row)] : [])];
+  const pieces = groups.flatMap(([label, , list], index) => [...(index ? [`<h3 class="label result-sublabel"><span>${label}</span><span>${list.length}</span></h3>`] : []), ...list.map(row)]);
   const rows = (list) => list.filter((piece) => !piece.startsWith("<h3")).length;
   let body = pieces.join("");
   if (left.length > 5) {
@@ -204,7 +204,8 @@ function notDoneMarkup(state, routineId, dateKey) {
     const more = left.length - 4;
     body = `${pieces.slice(0, cut).join("")}${folded("not-done", `<span class="result-label result-link"><span>Show ${more} more</span><span>Show fewer</span></span>`, pieces.slice(cut).join(""))}`;
   }
-  return card("Not done", body, left.length);
+  const [, title, first] = groups[0];
+  return card(title, body, first.length);
 }
 
 // Next time: add weight where every set reached the top of the rep range today.
@@ -256,7 +257,8 @@ async function deleteShown() {
   const { routineId, dateKey } = shown;
   if (!isFinished(state)) return;
   const name = workoutName(state, dateKey, routineId);
-  const { sets } = workoutStanding(state, routineId, dateKey);
+  // Every set goes, warm-ups too.
+  const sets = Object.values(state.sessions[dateKey].logs).filter((log) => log.routineId === routineId).reduce((count, log) => count + log.sets.length, 0);
   const what = [
     sets ? plural(sets, "set") : "",
     state.sessions[dateKey].checkedEntryIdsByRoutine?.[routineId]?.length ? "done marks" : "",

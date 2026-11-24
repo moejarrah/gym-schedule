@@ -445,6 +445,14 @@ const SHOTS = [
     await button(main(page), "Finish Push B").click();
     await shown(dialog(page, "Finish Push B?"));
   }, "running"],
+  // Sets logged but nothing marked done: the question counts as the header does.
+  ["dialog-finish-sets-not-done", async (page) => {
+    await openRoundRow(page, "Push B");
+    await startFromRound(page, "Push B");
+    await logOneSet(page, "Overhead press (machine)", "30", "10");
+    await button(main(page), "Finish Push B").click();
+    await shown(dialog(page, "Finish Push B?"));
+  }, "round"],
   // With nothing logged: back to the workout, finish anyway, or cancel it.
   ["dialog-finish-nothing-logged", async (page) => {
     await openRoundRow(page, "Push B");
@@ -481,7 +489,15 @@ const SHOTS = [
     await logOneSet(page, "Overhead press (machine)", "30", "10");
     await finishTo(page, "Push B");
   }, "round"],
-  // Every main exercise done, several new bests.
+  // An exercise added for today and not done: listed under "Added today".
+  ["result-added-today", async (page) => {
+    await button(main(page), "Add exercise for today").click();
+    await button(dialog(page, "Add exercise"), /^Add .+ for today$/).first().click();
+    await expect(dialog(page, "Add exercise")).toBeHidden();
+    await finishTo(page, "Push B");
+    await button(main(page), "Delete this workout").scrollIntoViewIfNeeded();
+  }, "finishing"],
+  // Every main exercise done (only optional ones left), several new bests.
   ["result-all-done", async (page) => { await finishTo(page, "Push B"); }, "finishing"],
   ["dialog-confirm-delete-workout", async (page) => {
     await finishTo(page, "Push B");
