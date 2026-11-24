@@ -327,12 +327,7 @@ export function deleteWorkout(state, dateKey, routineId) {
   const session = sessionFor(state, dateKey);
   if (!session.routineIds.includes(routineId)) fail("That workout is no longer in the Log.");
   const reopen = roundReopenedBy(state, dateKey, routineId);
-  session.routineIds = session.routineIds.filter((id) => id !== routineId);
-  delete session.workouts[routineId];
-  delete session.checkedEntryIdsByRoutine[routineId];
-  delete session.extras[routineId];
-  for (const [slotId, log] of Object.entries(session.logs)) if (log.routineId === routineId) delete session.logs[slotId];
-  writeSession(state, dateKey, session);
+  removeFinished(state, dateKey, routineId);
   if (!reopen) {
     forgetEmptyFirstRound(state);
     return;
@@ -340,6 +335,19 @@ export function deleteWorkout(state, dateKey, routineId) {
   state.settings.roundLog.pop();
   if (!state.settings.roundLog.length) delete state.settings.roundLog;
   Object.assign(state.settings.round, { number: reopen.number, block: reopen.block, programId: reopen.programId, since: reopen.since });
+}
+
+// Takes a finished workout off its day: out of the finished list with its record, its
+// logged sets, its done marks and the exercises added to it for the day (a day left with
+// nothing goes; its note stays).
+function removeFinished(state, dateKey, routineId) {
+  const session = sessionFor(state, dateKey);
+  session.routineIds = session.routineIds.filter((id) => id !== routineId);
+  delete session.workouts[routineId];
+  delete session.checkedEntryIdsByRoutine[routineId];
+  delete session.extras[routineId];
+  for (const [slotId, log] of Object.entries(session.logs)) if (log.routineId === routineId) delete session.logs[slotId];
+  writeSession(state, dateKey, session);
 }
 
 // The round that deleting this finished workout opens again, or null: the most recently
@@ -706,18 +714,21 @@ export function beginRound(state, todayKey = localDateKey()) {
   round.since = todayKey;
 }
 
-// Deletes a round from the count: it leaves Rounds (and a block left empty leaves Blocks), and its workouts stay in Log
-// with their sets but belong to no round any more (their round tags go). Other rounds keep
-// their numbers. A closed round leaves the round log; the open round stays open, with the
-// same number and the day it opened, now empty (Home lays it out again). Once no round is
-// left at all, counting is as it was before it began. Refused while a workout runs.
-export function deleteRound(state, { number, block }) {
+// Deletes a round from the count: it leaves Rounds (and a block left empty leaves Blocks).
+// Its workouts either stay in Log with their sets but belong to no round any more (their
+// round tags go), or, with `withWorkouts`, go too, each as "Delete this workout" takes one
+// off its day. Other rounds keep their numbers. A closed round leaves the round log; the
+// open round stays open, with the same number and the day it opened, now empty (Home lays
+// it out again). Once no round is left at all, counting is as it was before it began.
+// Refused while a workout runs.
+export function deleteRound(state, { number, block }, { withWorkouts = false } = {}) {
   if (state.settings.activeWorkout) fail("Finish or cancel the workout in progress first.");
   const round = openRound(state);
   const isOpen = Boolean(round) && round.number === number && round.block === block;
   const log = state.settings.roundLog || [];
   const index = log.findIndex((item) => item.number === number && item.block === block);
   if (!isOpen && index < 0) fail("That round is no longer in your history.");
+  if (withWorkouts) for (const item of roundWorkouts(state, { number, block })) removeFinished(state, item.dateKey, item.routineId);
   for (const session of Object.values(state.sessions)) {
     for (const record of Object.values(session.workouts || {})) {
       if (!sameRound(record, { number, block })) continue;
