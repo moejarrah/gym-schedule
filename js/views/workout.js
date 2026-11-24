@@ -11,7 +11,7 @@
 
 import { afterRender, navigate, registerActions, registerView, render, store } from "../context.js";
 import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, fresh, openDialog, playIcon, plural, redraw, report, toast } from "../dom.js";
-import { activeWorkout, addExtra, backupAge, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseById, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, localDateKey, orderedEntries, roundSummary, routineById, routineProgram, usualExtras, workoutHasWork, workoutProgress } from "../model.js";
+import { activeWorkout, addExtra, backupAge, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseById, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, orderedEntries, roundSummary, routineById, routineProgram, usualExtras, workoutHasWork, workoutProgress } from "../model.js";
 import { compareSets, exerciseMode, exerciseProgress } from "../progress.js";
 import { openPicker } from "./entry-editor.js";
 import { openLogger } from "./logger.js";
@@ -44,7 +44,7 @@ function elapsedText(startedAt) {
 // a past day; nothing for a reopened one.
 function clockMarkup(workout) {
   if (workout.reopened) return "";
-  if (workout.backdated || workout.dateKey !== localDateKey()) return `<span>for ${escapeHtml(shortDate(workout.dateKey))}</span>`;
+  if (workout.backdated) return `<span>for ${escapeHtml(shortDate(workout.dateKey))}</span>`;
   return `<span data-elapsed>${elapsedText(workout.startedAt)}</span>`;
 }
 
@@ -337,9 +337,9 @@ function bannerMarkup(state) {
   remember(workout);
   const { routine, counted, done, next } = progress;
   const shown = next ? shownChoice(state, next, workout.dateKey) : null;
-  const clock = workout.reopened ? "Reopened" : workout.backdated || workout.dateKey !== localDateKey() ? `for ${shortDate(workout.dateKey)}` : elapsedText(workout.startedAt);
+  const clock = workout.reopened ? "Reopened" : workout.backdated ? `for ${shortDate(workout.dateKey)}` : elapsedText(workout.startedAt);
   return `<button class="dock-bar" type="button" data-action="workout-resume" aria-label="${escapeHtml(routine.name)} in progress, ${done} of ${counted.length} done. Back to the workout">
-    <span><span>${escapeHtml(routine.name)} in progress</span><span${workout.reopened || workout.backdated || workout.dateKey !== localDateKey() ? "" : " data-elapsed"}>${escapeHtml(clock)}</span></span>
+    <span><span>${escapeHtml(routine.name)} in progress</span><span${workout.reopened || workout.backdated ? "" : " data-elapsed"}>${escapeHtml(clock)}</span></span>
     <span><span>${done} of ${counted.length} done${shown ? ` · next: ${movementMarkup(shown.exercise)}` : ""}</span><span>Back →</span></span>
   </button>`;
 }

@@ -208,7 +208,7 @@ function roundView(state) {
   const todayIds = today?.routineIds || [];
   const next = running ? null : nextWorkout(state, todayKey);
   const ordered = [...summary.required, ...programRoutines(state, program).filter((routine) => routine.status === "optional")];
-  const inList = (workout) => !workout.guest && !workout.backdated && workout.dateKey === todayKey && ordered.some((routine) => routine.id === workout.routineId);
+  const inList = (workout) => !workout.guest && !workout.backdated && ordered.some((routine) => routine.id === workout.routineId);
   const rows = ordered.map((routine, index) => {
     const optional = routine.status === "optional";
     const kind = running && inList(running) && running.routineId === routine.id ? "running"
@@ -260,7 +260,7 @@ function rowLines(state, view, row) {
 
 function runningLines(state, running) {
   const progress = workoutProgress(state, running);
-  const past = running.backdated || running.dateKey !== localDateKey();
+  const past = running.backdated;
   return `${running.guest ? line("Program", escapeHtml(routineProgram(state, running.routineId)?.name || "")) : ""}
     ${past ? line("For", escapeHtml(shortDate(running.dateKey))) : ""}
     ${running.reopened ? line("Reopened", escapeHtml(clockTime(running.startedAt))) : past ? "" : line("Started", `${escapeHtml(clockTime(running.startedAt))}, <span data-round-elapsed>${agoText(running.startedAt).toLowerCase()}</span>`)}
