@@ -1,7 +1,7 @@
 // Exercise search and Library filters (pure functions, shared by Library,
 // the add-exercise picker and the related-exercise editor).
 
-import { byFullName, fullName, normalizedName } from "./model.js";
+import { fullName, normalizedName, sortByFullName } from "./model.js";
 import { BROWSE_GROUPS, label } from "./vocab.js";
 
 export function createLibraryFilters() {
@@ -53,7 +53,7 @@ function matchesSearch(exercise, query) {
 }
 
 export function searchExercises(exercises, query) {
-  return exercises.filter((exercise) => matchesSearch(exercise, query)).sort(byFullName);
+  return sortByFullName(exercises.filter((exercise) => matchesSearch(exercise, query)));
 }
 
 function targetsForScope(exercise, targetScope) {

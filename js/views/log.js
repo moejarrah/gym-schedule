@@ -18,6 +18,11 @@ import { openLogger } from "./logger.js";
 import { exerciseMarkup, locationLabel, roundName, setChipsMarkup, shortDate } from "./shared.js";
 
 const LONG_DATE = { weekday: "long", month: "long", day: "numeric", year: "numeric" };
+// The first date formatted in a style is slow (the browser loads its calendar data): the
+// Log's styles are made while the app is idle, so the first tap on Log doesn't wait.
+(window.requestIdleCallback || setTimeout)(() => {
+  for (const options of [LONG_DATE, { month: "long", year: "numeric" }, { day: "numeric", month: "short" }]) formatDate(new Date(), options);
+}, { timeout: 2000 });
 const RECENT_LIMIT = 8;
 
 const monthStart = (date, offset = 0) => new Date(date.getFullYear(), date.getMonth() + offset, 1);

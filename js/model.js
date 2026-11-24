@@ -1057,6 +1057,14 @@ export function fullName(exercise) {
 const plain = (exercise) => fullName(exercise).toLowerCase();
 export const byFullName = (a, b) => a.name.localeCompare(b.name) || (plain(a) < plain(b) ? -1 : plain(a) > plain(b) ? 1 : 0);
 
+// The same order for a whole list, each name worked out once (the Library sorts hundreds).
+const collator = new Intl.Collator();
+export function sortByFullName(exercises) {
+  return exercises.map((exercise) => [exercise, exercise.name, plain(exercise)])
+    .sort((a, b) => collator.compare(a[1], b[1]) || (a[2] < b[2] ? -1 : a[2] > b[2] ? 1 : 0))
+    .map(([exercise]) => exercise);
+}
+
 // What stops an exercise being saved because another one already answers to its name
 // and setup, or to one of its aliases, naming that other exercise and the ways forward;
 // "" when nothing does.

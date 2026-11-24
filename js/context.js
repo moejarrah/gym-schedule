@@ -98,7 +98,8 @@ export function render({ entering = "" } = {}) {
   }
   const main = mainElement();
   main.classList.remove("is-switching");
-  redraw(main, view.markup(state));
+  const old = redraw(main, view.markup(state));
+  if (leaving && !leaving.nodes) leaving.nodes = old;
   if (entering) {
     void main.offsetWidth; // restarts the animation
     main.classList.add("is-switching");
@@ -161,20 +162,28 @@ const scrollAreas = (area) => [area, ...area.querySelectorAll(".scroll, .scroll-
 const scrollPlaces = (main) => scrollAreas(main).map((area) => [area.scrollLeft, area.scrollTop]);
 const restorePlaces = (main, places) => scrollAreas(main).forEach((area, index) => area.scrollTo(...(places[index] || [0, 0])));
 
-// Copies the page as it is now. Call the result once the page has changed: it puts the
-// copy on screen, where the page was and scrolled as it was, and returns it. The copy
-// keeps the id so every style of the page applies to it; it comes after the page in the
-// document, so anything looked up by id or selector still finds the real one.
+// The page as it is now, kept for the slide. Call the result once the page has changed:
+// it puts the old page on screen, where it was and scrolled as it was, and returns it. The
+// old page isn't copied (a long page took a moment to copy): the redraw hands its own
+// nodes over (`leaving`, filled by render()), and they go into an empty copy of #appMain.
+// That keeps the id so every style of the page applies to it; it comes after the page in
+// the document, so anything looked up by id or selector still finds the real one.
+let leaving = null;
 function ghostOf(main, kind) {
   const places = scrollPlaces(main);
   const box = main.getBoundingClientRect();
-  const ghost = main.cloneNode(true);
+  const ghost = main.cloneNode(false);
   ghost.dataset.pageGhost = kind;
   ghost.inert = true;
   ghost.setAttribute("aria-hidden", "true");
   ghost.removeAttribute("tabindex");
   Object.assign(ghost.style, { left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px` });
+  const taken = { nodes: null };
+  leaving = taken;
   return () => {
+    if (leaving === taken) leaving = null;
+    // Nothing was redrawn: the page is still the one that leaves, so it is copied.
+    ghost.append(...(taken.nodes || [...main.cloneNode(true).childNodes]));
     main.after(ghost);
     restorePlaces(ghost, places);
     return ghost;

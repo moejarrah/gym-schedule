@@ -15,8 +15,12 @@ export function escapeHtml(value = "") {
 
 export const plural = (count, one, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
 
+// Making a formatter is slow (a month's calendar made dozens): one is kept per set of options.
+const formatters = new Map();
 export function formatDate(date, options) {
-  return new Intl.DateTimeFormat(undefined, options).format(date);
+  const key = JSON.stringify(options || {});
+  if (!formatters.has(key)) formatters.set(key, new Intl.DateTimeFormat(undefined, options));
+  return formatters.get(key).format(date);
 }
 
 // ---------- icons ----------
@@ -92,11 +96,13 @@ export function report(result, successMessage = "") {
 
 // Replaces an element's markup. Scroll areas marked data-keep-scroll="name" stay
 // where they were, and <details data-keep-open="name"> stay open, when the new
-// markup has one of the same name.
+// markup has one of the same name. Returns the nodes it took out, untouched (a page
+// that leaves with a slide shows them as it goes; see ghostOf in js/context.js).
 export function redraw(root, html) {
   root = element(root);
   const positions = new Map($$("[data-keep-scroll]", root).map((area) => [area.dataset.keepScroll, [area.scrollTop, area.scrollLeft]]));
   const open = new Set($$("details[data-keep-open][open]", root).map((item) => item.dataset.keepOpen));
+  const old = [...root.childNodes]; // taken out whole by the next line
   root.innerHTML = html;
   for (const item of $$("details[data-keep-open]", root)) if (open.has(item.dataset.keepOpen)) item.open = true;
   for (const area of $$("[data-keep-scroll]", root)) {
@@ -104,6 +110,7 @@ export function redraw(root, html) {
     area.scrollTop = top;
     area.scrollLeft = left;
   }
+  return old;
 }
 
 // Fades in content that was just swapped in place (another month, another chart,
