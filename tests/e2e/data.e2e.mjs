@@ -110,6 +110,24 @@ appTest("Settings: the theme is kept across a reload, and Restore starting data 
   await expect(startButton(page, firstRoutine.name)).toBeVisible();
 });
 
+appTest("Going back from Settings by a drag from the left edge settles even when the touch is cancelled half-way", async ({ page, context }) => {
+  const settings = await openSettings(page);
+  // Real touches, as the phone sends them: from the left edge to half the screen, then the
+  // touch is cancelled (iOS does that when it takes a gesture over).
+  const cdp = await context.newCDPSession(page);
+  const touch = (type, points) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: points.map(([x, y]) => ({ x, y })) });
+  await touch("touchStart", [[5, 400]]);
+  for (let x = 20; x <= 200; x += 20) await touch("touchMove", [[x, 400]]);
+  await touch("touchCancel", []);
+  await expect(settings).toBeHidden();
+  const gear = main(page).getByRole("button", { name: "Settings", exact: true });
+  await expect(gear).toBeVisible();
+  await expect(main(page)).not.toHaveAttribute("style", /transform/);
+  // Nothing is left over: the page answers a tap at once.
+  await gear.click();
+  await expect(settings).toBeVisible();
+});
+
 appTest("Saved data the app can't read is left exactly as it is", { saved: "{broken", allowConsole: [/Saved data couldn't be read/] }, async ({ page }) => {
   await expect(page.getByRole("status")).toContainText("nothing will be saved");
   await expect(main(page)).toContainText(`Following ${startingProgram.name}`);

@@ -222,15 +222,36 @@ function backStep() {
 // Going back by dragging from the left edge of the screen, as on iPhone: the page
 // follows the finger and uncovers the one before it; let go past a third of the way (or
 // with a flick) and it leaves, otherwise it comes back.
+//
+// It always settles. The drag redraws the page under the finger, which takes the touched
+// element out of the document: the browser keeps sending that touch's moves and its end to
+// the removed element, where they no longer reach the document, so they are listened for
+// on the element too. And whatever happens to the touch (cancelled, taken over by the
+// browser for scrolling, a second finger, the app hidden, no more events at all), the drag
+// settles to the nearer side by the same rule and the ghost goes.
 export function enableBackSwipe() {
   const EDGE = 28;
   const SETTLE_MS = 240;
+  const QUIET_MS = 600; // no move or end for this long while a drag is under way: it settles
   let drag = null;
+  const handled = new WeakSet();
+  const listen = (on) => {
+    for (const target of [document, drag.target]) {
+      if (!target) continue;
+      target[on ? "addEventListener" : "removeEventListener"]("touchmove", onMove, { passive: false });
+      target[on ? "addEventListener" : "removeEventListener"]("touchend", onEnd);
+      target[on ? "addEventListener" : "removeEventListener"]("touchcancel", onEnd);
+    }
+  };
   const stop = () => {
-    document.removeEventListener("touchmove", onMove);
-    document.removeEventListener("touchend", onEnd);
-    document.removeEventListener("touchcancel", onEnd);
+    if (!drag) return;
+    clearTimeout(drag.quiet);
+    listen(false);
     drag = null;
+  };
+  const watch = () => {
+    clearTimeout(drag.quiet);
+    drag.quiet = setTimeout(() => settle(), QUIET_MS);
   };
   const place = (dx) => {
     const progress = Math.min(1, Math.max(0, dx / drag.width));
@@ -251,53 +272,83 @@ export function enableBackSwipe() {
     main.dataset.motion = "under";
     drag.started = true;
   }
+  // The finger that started the drag, among an event's touches.
+  const own = (list) => [...list].find((item) => item.identifier === drag.id);
   function onMove(event) {
-    const touch = event.touches[0];
+    if (handled.has(event) || !drag || drag.settling) return;
+    handled.add(event);
+    const touch = own(event.touches);
+    if (!touch || event.touches.length > 1) return settle(); // a second finger: it settles
     const dx = touch.clientX - drag.x;
     const dy = touch.clientY - drag.y;
-    if (drag.settling) return;
     if (!drag.started) {
       if (Math.abs(dy) > 12 && Math.abs(dy) > dx) return stop(); // scrolling, not going back
-      if (dx < 10) return;
+      if (dx > Math.abs(dy) && event.cancelable) event.preventDefault(); // sideways: claimed before the page can scroll
+      if (dx < 10) return watch();
+      if (!event.cancelable) return stop(); // the browser is already scrolling with it
       begin();
     }
+    // The browser took the touch over (it scrolls now): settle where it is.
+    if (!event.cancelable) return settle();
     event.preventDefault();
     const now = performance.now();
     if (now > drag.at) drag.speed = (touch.clientX - drag.lastX) / (now - drag.at);
     Object.assign(drag, { lastX: touch.clientX, at: now });
+    // The page under the drag was changed by something else (another page came in): give up cleanly.
+    if (!drag.ghost.isConnected) return settle();
     place(dx);
+    watch();
   }
-  function onEnd() {
-    if (!drag.started || drag.settling) {
-      if (!drag.settling) stop();
-      return;
-    }
+  function onEnd(event) {
+    if (handled.has(event) || !drag) return;
+    handled.add(event);
+    // Another finger lifting while the dragging one stays: carry on.
+    if (event.type === "touchend" && own(event.touches) && !own(event.changedTouches)) return;
+    settle();
+  }
+  // Leaves or comes back, by the nearer side (past a third, or a flick, leaves); a drag
+  // that hadn't started just stops. Every way ends with the ghost gone and the page clean.
+  function settle() {
+    if (!drag || drag.settling) return;
+    if (!drag.started) return stop();
+    clearTimeout(drag.quiet);
+    listen(false);
     const { main, ghost, step, places } = drag;
     const leave = drag.progress > 0.35 || drag.speed > 0.45;
     drag.settling = true;
-    for (const item of [ghost, main]) item.style.transition = `transform ${SETTLE_MS}ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity ${SETTLE_MS}ms linear`;
-    ghost.style.transform = leave ? "translateX(100%)" : "translateX(0)";
-    Object.assign(main.style, { transform: leave ? "translateX(0)" : "translateX(-25%)", opacity: leave ? "1" : "0.4" });
-    setTimeout(() => {
+    const finish = () => {
       // Not far enough: the page that was being left is the page again, where it was.
       if (!leave && ghost.isConnected) {
         step.revert();
         render();
         restorePlaces(main, places);
       }
-      if (ghost.isConnected) endMotion();
-      stop();
-    }, SETTLE_MS + 20);
+      endMotion();
+      drag = null;
+    };
+    if (!ghost.isConnected || document.visibilityState === "hidden" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      finish();
+      return;
+    }
+    for (const item of [ghost, main]) item.style.transition = `transform ${SETTLE_MS}ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity ${SETTLE_MS}ms linear`;
+    ghost.style.transform = leave ? "translateX(100%)" : "translateX(0)";
+    Object.assign(main.style, { transform: leave ? "translateX(0)" : "translateX(-25%)", opacity: leave ? "1" : "0.4" });
+    setTimeout(finish, SETTLE_MS + 20);
   }
+  for (const [target, type] of [[document, "visibilitychange"], [window, "pagehide"], [window, "blur"]]) target.addEventListener(type, () => settle());
   document.addEventListener("touchstart", (event) => {
-    if (drag || event.touches.length !== 1 || event.touches[0].clientX > EDGE || document.querySelector("dialog[open]")) return;
+    if (drag) {
+      // One left over (no end ever came): it settles now; a new one starts next time.
+      settle();
+      return;
+    }
+    if (event.touches.length !== 1 || event.touches[0].clientX > EDGE || document.querySelector("dialog[open]")) return;
     const step = backStep();
     if (!step) return;
-    const { clientX, clientY } = event.touches[0];
-    drag = { step, x: clientX, y: clientY, lastX: clientX, at: performance.now(), speed: 0, progress: 0, width: window.innerWidth, started: false, settling: false };
-    document.addEventListener("touchmove", onMove, { passive: false });
-    document.addEventListener("touchend", onEnd);
-    document.addEventListener("touchcancel", onEnd);
+    const { clientX, clientY, identifier } = event.touches[0];
+    drag = { step, id: identifier, target: event.target, x: clientX, y: clientY, lastX: clientX, at: performance.now(), speed: 0, progress: 0, width: window.innerWidth, started: false, settling: false, quiet: 0 };
+    listen(true);
+    watch();
   }, { passive: true });
 }
 
