@@ -70,7 +70,12 @@ One JSON object in `localStorage` under `gymAppStateV1`. The schema version, cur
 - `npm run e2e` — browser tests, one per main flow, in about 15 seconds (one-time setup: `npm install` and `npx playwright install chromium`). They find things by role, name or visible text, never by CSS class, id or `data-*` attribute; `tests/e2e/helpers.mjs` explains how. `E2E_BROWSER=webkit npm run e2e` runs them in Safari's engine, the one the iPhone uses (one-time: `npx playwright install webkit`).
 - The tests protect two things: saved data (load, save, upgrade, backup, unreadable data) and one happy path per main flow. Add a test when a change puts one of those at risk, not for every detail.
 - `npm run preview` — serves the app at `http://127.0.0.1:4173/`. `npm run preview -- --lan` also prints an address a phone on the same Wi-Fi can open. The owner watches changes at `/tools/iphone-preview.html`, which refreshes after every save; keep it working.
-- For UI changes, look at the result at 393 × 852 and 320 × 700 in both themes (`npm run screenshots -- <folder>` captures every screen and dialog; `tools/visual-diff.mjs` compares two runs).
+- For UI changes, look at the result at 393 × 852 and 320 × 700 in both themes (`npm run screenshots -- <folder>` captures every screen and dialog; `SHOTS=<part of a name>` captures only those; `tools/visual-diff.mjs` compares two runs).
+- What to run depends on the size of the change (say which it is first):
+  - **Small** (wording, a button, a dialog, one screen's layout): `npm run check`, the browser test files that cover what changed (Chromium), and screenshots of only the changed screens at 393 dark and 320 light. Docs only if behaviour changed; no new tests unless a main flow or saved data is at risk.
+  - **Medium** (a new page or flow that doesn't touch saved data): the same, plus the whole Chromium suite once at the end.
+  - **Risky** (saved data, rounds, deleting, upgrades, `js/store.js`, the mutators in `js/model.js`): unit tests for every case, the whole Chromium suite, and an independent review before publishing.
+- The Safari-engine suite and the full screenshot sweep run once, just before publishing.
 
 ## Releasing
 
@@ -80,6 +85,8 @@ Pushing to `main` publishes the app on GitHub Pages. Installed apps download the
 
 - **Speed of development matters more than ceremony.** It's a personal app for one person: no accounts, sync, multi-user or online-security features, no building for unlikely edge cases, and no tests, validation or process beyond what protects the owner's saved workouts and the main flows. If a rule, test or guardrail here slows work down without protecting anything real, simplify or remove it.
 - The owner wants a lean, uncluttered app (see `docs/DESIGN.md`). For a bigger UI change, show the design first (mock-ups or screenshots) and build once it's agreed.
+- Looks first: for anything the owner will see, stop as soon as the screen looks right and send him the screenshots, before tests, review or publishing. He judges by eye, and a rejection should cost minutes.
+- One standing builder agent does the changes and is resumed for each new one, not replaced by a fresh agent.
 - They write casually and expect the work to be done, checked and published, not a plan to approve. Reply in plain words, say what changed, and after a release give the site: https://moejarrah.github.io/gym-schedule/.
 - Decisions they've already made are recorded in `docs/TODO.md` (including what was decided against). Don't bring those back unasked.
 
