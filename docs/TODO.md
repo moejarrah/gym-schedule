@@ -21,10 +21,10 @@ Things a desktop browser can't fully confirm:
 ## Decided against (for now)
 
 - A rest timer. The owner doesn't want one.
+- Home's day squares are narrower than the 44 px tap target (about 38 px at 393, 29 px at 320; 54 px tall) by design: the round's calendar needs seven columns in a card. Every square that opens something is a button.
 
 ## Later, when the owner asks
 
-- **A Home tab** in front of Workout (a briefing: what is next, what to watch for today, how the last workout went, guides, a welcome on first launch). The owner wants one, saw three rounds of mock-ups in November 2026 and put it off: "it's ugly, needs a lot of work". Show new full-page designs before building. What it would hold, and the research behind it, is in the strategy notes of that month (not in the repository).
 - **Themes**: the owner liked three of the looks shown in November 2026 ("2 - 3 - 5", most likely Ink, Volt and Sand; not confirmed) and may want them as a choice in Settings. Compactness stays: no size grows.
 - **Logging sheet redesign**: put off by the owner, who didn't like the first sketches. It must keep the chart, drop sets and everything listed in `docs/PRODUCT.md`.
 - **A calmer focus border for text fields, selects and pickers** in forms: today a 3 px accent ring. Two options were mocked in November 2026: the field's own border in the accent colour only, or that plus a faint accent tint of the field. The owner put it off. Buttons keep their keyboard focus rings.
