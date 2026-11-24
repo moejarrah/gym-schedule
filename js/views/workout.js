@@ -27,12 +27,35 @@ const plusIcon = `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M
 // `chosen`, the owner's own choice of open slot ({ slotId ("" = none open), wasDone,
 // doneIds }); `swaps`, the choice a slot was swapped to for today (slot id → exercise
 // id) until a set of it is saved (the saved log then records which choice was done).
+// It is kept on the phone under its own key, outside the saved data, so that a reload
+// (iOS reloads an app left in the background) doesn't lose it; anything stale or
+// unreadable there is ignored.
 const memory = { key: "", chosen: null, swaps: {} };
+const MEMORY_KEY = "gymAppWorkoutScreenV1";
+function storedMemory(key) {
+  try {
+    const { key: savedKey, chosen, swaps } = JSON.parse(localStorage.getItem(MEMORY_KEY)) || {};
+    const isChosen = chosen === null || (typeof chosen?.slotId === "string" && typeof chosen.wasDone === "boolean" && Array.isArray(chosen.doneIds));
+    const isSwaps = swaps && typeof swaps === "object" && !Array.isArray(swaps) && Object.values(swaps).every((id) => typeof id === "string");
+    if (savedKey === key && isChosen && isSwaps) return { chosen, swaps };
+  } catch (_) { /* unreadable: start afresh */ }
+  return {};
+}
+function keepMemory() {
+  try {
+    if (memory.key) localStorage.setItem(MEMORY_KEY, JSON.stringify(memory));
+    else localStorage.removeItem(MEMORY_KEY);
+  } catch (_) { /* storage full or blocked: it lasts until a reload */ }
+}
 function remember(workout) {
   const key = workout ? `${workout.routineId} ${workout.dateKey} ${workout.startedAt}` : "";
-  if (key !== memory.key) Object.assign(memory, { key, chosen: null, swaps: {} });
+  if (key === memory.key) return memory;
+  Object.assign(memory, { key, chosen: null, swaps: {} }, key ? storedMemory(key) : {});
+  if (!key) keepMemory();
   return memory;
 }
+// Forgotten once the workout is finished or cancelled.
+afterRender((state) => { if (!activeWorkout(state)) remember(null); });
 
 // The stopwatch: whole minutes since Start ("34 min", "1 h 05 min").
 function elapsedText(startedAt) {
@@ -438,6 +461,7 @@ function swapTo(button) {
     return;
   }
   memory.swaps[entryId] = exerciseId;
+  keepMemory();
   render();
   fresh(`[data-slot="${CSS.escape(entryId)}"]`);
 }
@@ -485,6 +509,7 @@ registerActions({
     if (!progress) return;
     const slotId = button.getAttribute("aria-expanded") === "true" ? "" : button.dataset.entryId;
     memory.chosen = { slotId, wasDone: slotId ? progress.isDone({ id: slotId }) : false, doneIds: progress.slots.filter(progress.isDone).map((slot) => slot.id) };
+    keepMemory();
     motion.fold(() => render());
   },
   "open-entry-choices": openEntryChoices,
