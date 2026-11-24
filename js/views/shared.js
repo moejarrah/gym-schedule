@@ -157,6 +157,11 @@ export function slotMotion() {
 // "Round 6", or "Round 1 · block 2" once there is more than one block.
 export const roundName = ({ number, block }) => `Round ${number}${block > 1 ? ` · block ${block}` : ""}`;
 
+// Always with its unit: a bare "3 of 6" is never shown.
+export const workoutsDone = (done, required) => `${done} of ${required} ${required === 1 ? "workout" : "workouts"} done`;
+export const durationText = (minutes) => (minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")} min`);
+export const daysBetween = (fromKey, toKey) => Math.round((dateFromKey(toKey) - dateFromKey(fromKey)) / 86400000);
+
 // "2026 · week 47", or "2026 · weeks 47–48" for a stretch of days.
 export function weeksText(fromKey, toKey = fromKey) {
   const from = calendarWeek(fromKey);

@@ -20,8 +20,9 @@ let current = "round"; // the app opens on the round page (app.js: or on the wor
 let enteringTimer;
 
 // registerView("calendar", { markup(state), afterDraw?(main), tab?, reselect?(), back?(),
-//   dock?(state), banner?(state), landing?(state), arrive?(from), unavailable?(state) })
-// Every view draws its own top. `back`: see backStep below.
+//   backTo?(), dock?(state), banner?(state), landing?(state), arrive?(from), unavailable?(state) })
+// Every view draws its own top. `back`: see backStep below. `backTo`: the view going back
+// from a page of a tab leads to, when it isn't the tab's own (a past day's result: Log).
 // `tab`: the bottom tab that stays marked while a view without one of its own shows
 // (Settings and the workout belong to "round", the Workout tab). `reselect`: called when
 // the view's tab is tapped while it is showing; it returns true when it did something
@@ -205,7 +206,8 @@ function backStep() {
   if (view.back) return view.back();
   if (!view.tab) return null;
   const from = current;
-  return { apply() { current = view.tab; return 0; }, revert() { current = from; } };
+  const to = view.backTo?.() || view.tab;
+  return { apply() { current = to; views.get(to).arrive?.(from); return 0; }, revert() { current = from; } };
 }
 
 // Going back by dragging from the left edge of the screen, as on iPhone: the page

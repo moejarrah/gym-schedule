@@ -5,17 +5,16 @@
 // its sets show at the end of its row, one slot at a time is open, and exercises can be
 // added for that day only. The bottom button logs the open exercise, then finishes.
 // Finish is always at the top right and asks nothing once anything is logged.
-// Also here: the bar of the workout in progress that every other page shows, the result
-// sheet after Finish (also opened from the round page), the exercise-choices sheet,
-// swapping a slot to another of its choices for today, and keeping the screen on.
+// Also here: the bar of the workout in progress that every other page shows, the
+// exercise-choices sheet, swapping a slot to another of its choices for today, and keeping the screen on.
 
 import { afterRender, navigate, registerActions, registerView, render, store } from "../context.js";
-import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, fresh, openDialog, playIcon, plural, redraw, report, toast } from "../dom.js";
-import { activeWorkout, addExtra, backupAge, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseById, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, localDateKey, orderedEntries, roundSummary, routineById, routineProgram, usualExtras, workoutHasWork, workoutProgress } from "../model.js";
-import { compareSets, exerciseMode, exerciseProgress } from "../progress.js";
+import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, fresh, openDialog, playIcon, plural, redraw, report } from "../dom.js";
+import { activeWorkout, addExtra, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, localDateKey, orderedEntries, roundSummary, routineById, routineProgram, usualExtras, workoutHasWork, workoutProgress } from "../model.js";
 import { openPicker } from "./entry-editor.js";
 import { openLogger } from "./logger.js";
 import { openExerciseReference, openExerciseVideo } from "./reference.js";
+import { showResult } from "./result.js";
 import { alternativeNames, entryPresentation, exerciseFactLines, exerciseMarkup, movementMarkup, saysOptional, setChipsMarkup, setsSummary, shortDate, slotLine, slotLinkLine, slotMotion, videoUrl } from "./shared.js";
 
 // The routine slot shown in the open choices sheet.
@@ -255,56 +254,6 @@ function entryChoicesMarkup(state, routine, entry) {
   </div>`;
 }
 
-// The result: duration, what was done, and each logged exercise against its session
-// before this one. Shown after Finish, and again from the round page ("How it went").
-function resultMarkup(state, routineId, dateKey) {
-  const session = state.sessions[dateKey];
-  const record = session.workouts[routineId];
-  const logs = Object.values(session.logs).filter((log) => log.routineId === routineId);
-  const sets = logs.reduce((count, log) => count + log.sets.filter((set) => !set.warmup).length, 0);
-  let bests = 0;
-  const rows = logs.map((log) => {
-    const progress = exerciseProgress(state, log.exerciseId);
-    if (progress.sessions.find((item) => item.dateKey === dateKey)?.isBest) bests += 1;
-    const before = exerciseHistory(state, log.exerciseId, { beforeDateKey: dateKey, limit: 1 })[0];
-    const change = before ? compareSets(log.sets, before.sets, exerciseMode(progress.sessions), log.unit) : { kind: "same", text: "First time" };
-    return `<div class="row"><span class="row-title">${exerciseMarkup(exerciseById(state, log.exerciseId), log.exerciseName)}</span><em class="history-change ${change.kind}">${escapeHtml(change.text)}</em></div>`;
-  }).join("");
-  const facts = [record?.minutes ? `${record.minutes} min` : "", plural(logs.length, "exercise"), plural(sets, "set"), bests ? plural(bests, "new best", "new bests") : ""].filter(Boolean).join(" · ");
-  const age = backupAge(state);
-  return `<div class="sheet-panel">
-    <header class="sheet-head">
-      <div><h2 id="finishTitle">${escapeHtml(record?.name || "Workout")} finished</h2><p>${escapeHtml(facts)}</p></div>
-      <button class="icon-button" type="button" data-close-dialog="finishDialog" aria-label="Close summary">×</button>
-    </header>
-    <div class="sheet-body">
-      ${rows ? `<p class="label">Against last time</p>${rows}` : `<p class="hint">No sets were logged.</p>`}
-      ${age === null || age > 14 ? `<p class="hint">${age === null ? "No backup yet." : `Last backup was ${age} days ago.`} Export one in Settings.</p>` : ""}
-    </div>
-    <footer class="actions"><button class="button" type="button" data-close-dialog="finishDialog">Close</button></footer>
-  </div>`;
-}
-
-// The result sheet ignores taps for a moment after it opens: the second tap of a double
-// tap on Finish would otherwise land on its Close.
-let resultOpenedAt = -Infinity;
-$("#finishDialog").addEventListener("click", (event) => {
-  if (performance.now() - resultOpenedAt >= 400) return;
-  event.preventDefault();
-  event.stopPropagation();
-}, true);
-
-function showResult(routineId, dateKey, options = {}) {
-  const state = store.getState();
-  if (!state.sessions[dateKey]?.routineIds.includes(routineId)) {
-    toast("That workout is no longer in the Log.");
-    return;
-  }
-  redraw("#finishContent", resultMarkup(state, routineId, dateKey));
-  resultOpenedAt = performance.now();
-  openDialog("#finishDialog", options);
-}
-
 // ---------- the bottom button and the bar ----------
 
 // What the bottom button does: log the open exercise (or the next one, when none is
@@ -399,8 +348,8 @@ function openRowReference(button) {
 // A workout that was cancelled or closed again hands back to the round page.
 const backToRound = () => navigate("round", { motion: "pop" });
 
-// Finish files the workout as it stands and shows the result; closing the result
-// returns to the round page. Only a workout with nothing logged or done asks first,
+// Finish files the workout as it stands and pushes in its result (js/views/result.js).
+// Only a workout with nothing logged or done asks first,
 // whether to cancel it instead.
 async function finish() {
   const workout = activeWorkout(store.getState());
@@ -423,7 +372,7 @@ async function finish() {
     if (answer !== "confirm" || activeWorkout(store.getState())?.startedAt !== workout.startedAt) return;
   }
   if (!report(store.update((draft) => finishWorkout(draft)))) return;
-  showResult(routineId, dateKey, { onClose: () => navigate("round", { motion: "pop" }) });
+  showResult(routineId, dateKey);
 }
 
 // Today, the slot shows another of its choices. Once sets are saved the swap moves them,
@@ -463,7 +412,6 @@ registerActions({
     if (report(store.update(cancelWorkout), workout.reopened ? "" : "Workout cancelled.")) backToRound();
   },
   "finish-workout": finish,
-  "open-result": (button) => showResult(button.dataset.id, button.dataset.date),
   "pick-extra": () => {
     if (activeWorkout(store.getState())) openPicker({ mode: "extra" });
   },

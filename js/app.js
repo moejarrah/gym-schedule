@@ -3,6 +3,7 @@
 
 import "./views/round.js";
 import "./views/workout.js";
+import "./views/result.js";
 import "./views/reference.js";
 import "./views/program.js";
 import "./views/entry-editor.js";

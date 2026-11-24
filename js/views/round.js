@@ -36,7 +36,8 @@ import {
   workoutProgress,
 } from "../model.js";
 import { exerciseProgress } from "../progress.js";
-import { roundName, shortDate, slotLinkLine, slotMotion, weeksText } from "./shared.js";
+import { workoutTally } from "./result.js";
+import { daysBetween, durationText, roundName, shortDate, slotLinkLine, slotMotion, weeksText, workoutsDone } from "./shared.js";
 
 // Which page of the tab shows: "home", "all" (Rounds and blocks), "block" (the block
 // `block`) or "one" (the round `number` of `block`; `from` "block" when it was opened from
@@ -60,11 +61,7 @@ const ENDED = { "": "in progress", complete: "complete", early: "ended early", b
 const ENDED_SHORT = { ...ENDED, break: "ended by break", switch: "program changed" };
 const LATER = "9999-12-31"; // "before this day" that leaves no day out
 
-// Always with its unit: a bare "3 of 6" is never shown.
-const workoutsDone = (done, required) => `${done} of ${required} ${required === 1 ? "workout" : "workouts"} done`;
-const durationText = (minutes) => (minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")} min`);
 const listText = (names) => (names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`);
-const daysBetween = (fromKey, toKey) => Math.round((dateFromKey(toKey) - dateFromKey(fromKey)) / 86400000);
 const sameWeek = (fromKey, toKey) => calendarWeek(fromKey).year === calendarWeek(toKey).year && calendarWeek(fromKey).week === calendarWeek(toKey).week;
 // "Week 47", or "Weeks 47–48" for a stretch of days.
 const weekTitle = (fromKey, toKey = fromKey) => (sameWeek(fromKey, toKey) ? `Week ${calendarWeek(fromKey).week}` : `Weeks ${calendarWeek(fromKey).week}–${calendarWeek(toKey).week}`);
@@ -242,7 +239,7 @@ function rowLines(state, view, row) {
       ${line("Time", record?.minutes ? durationText(record.minutes) : "")}
       ${line("Logged", logs.length ? `${plural(sets, "set")}, ${plural(logs.length, "exercise")}` : "No sets")}
       ${line("New bests", bests ? String(bests) : "")}
-      ${slotLinkLine("How it went", "Against last time", `data-action="open-result" data-id="${id}" data-date="${view.todayKey}" aria-label="How ${escapeHtml(routine.name)} went: against last time"`)}`;
+      ${slotLinkLine("How it went", escapeHtml(workoutTally(state, routine.id, view.todayKey) || "See the result"), `data-action="open-result" data-id="${id}" data-date="${view.todayKey}" aria-label="How ${escapeHtml(routine.name)} went"`)}`;
   }
   if (kind === "done") {
     return `${slotLinkLine("Done", escapeHtml([shortDate(item.dateKey), item.minutes ? durationText(item.minutes) : ""].filter(Boolean).join(" · ")), `data-action="open-day" data-date="${item.dateKey}" aria-label="Done ${escapeHtml(shortDate(item.dateKey))}. Open that day."`)}
@@ -766,9 +763,9 @@ registerView("round", {
   dock: dockMarkup,
   // The Workout tab opens the workout in progress, when there is one.
   landing: (state) => (activeWorkout(state) ? "workout" : ""),
-  // Back from the workout (or after finishing it): the round page, at its first page.
+  // Back from the workout or from a result: the round page, at its first page.
   arrive(from) {
-    if (from !== "workout") return;
+    if (from !== "workout" && from !== "result") return;
     Object.assign(page, { name: "home", number: 0, block: 0, from: "" });
     forgetOpenRow();
   },

@@ -1532,3 +1532,70 @@ details.form-section > summary + * {
 #roundSheet .actions.stacked > .link-button {
   align-self: center;
 }
+
+/* ---------- Result ---------- */
+
+/* The result of a finished workout: the round page's header (the name with its minutes,
+   then the day), the tally in larger type, then its parts, each under a small label. */
+.result-head {
+  padding-top: var(--space-4);
+  padding-bottom: var(--space-3);
+}
+
+.result-tally {
+  padding-inline: var(--gutter);
+}
+
+.result-score {
+  font-size: var(--fs-head);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+/* A new best: the set that did it, and under it the one it beat. */
+.result-set {
+  flex: none;
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  text-align: right;
+}
+
+.result-set > strong {
+  font-size: var(--fs-body);
+  font-weight: 700;
+}
+
+.result-set > small {
+  color: var(--text-muted);
+  font-size: var(--fs-meta);
+  font-weight: 500;
+}
+
+.result-round {
+  padding: var(--space-1) var(--gutter) 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* Names in one compact paragraph (Same, Not done, Next time); asides muted. */
+.result-text {
+  padding: var(--space-1) var(--gutter) 0;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.result-text em {
+  color: var(--text-muted);
+  font-style: normal;
+  font-weight: 500;
+}
+
+.result-foot {
+  margin-top: var(--space-4);
+}
+
+.result-note {
+  padding: var(--space-3) var(--gutter) 0;
+}
