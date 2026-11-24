@@ -11,7 +11,7 @@
 
 import { navigate, pauseTaps, registerActions, registerView, store } from "../context.js";
 import { chevronIcon, confirmAction, escapeHtml, plural, report, toast } from "../dom.js";
-import { activeWorkout, backupAge, dayExtras, deleteWorkout, exerciseById, localDateKey, roundReopenedBy, routineById, workoutName, workoutStanding } from "../model.js";
+import { activeWorkout, backupAge, dayExtras, deleteWorkout, exerciseById, localDateKey, roundReopenedBy, routineById, routineProgram, workoutName, workoutStanding } from "../model.js";
 import { workoutComparison } from "../progress.js";
 import { label } from "../vocab.js";
 import { durationText, formatKg, movementMarkup, roundName, setupText, shortDate } from "./shared.js";
@@ -58,7 +58,7 @@ const listText = (names) => (names.length < 2 ? names.join("") : `${names.slice(
 // "42.5 kg" ("" without weight; "−20 kg" assisted), the reps "10 · 9 · 8" (seconds for
 // timed work) with "+1 drop" after the sets drops followed. Warm-ups are left out unless
 // they are all there is.
-function setLines(log) {
+export function setLines(log) {
   const working = log.sets.some((set) => !set.warmup) ? log.sets.filter((set) => !set.warmup) : log.sets;
   const groups = [];
   for (const set of working) {
@@ -191,6 +191,9 @@ function actionsMarkup(state, routineId, dateKey) {
       ? line(`<span class="result-label is-link">Continue ${escapeHtml(routine.name)}</span>`, `data-action="round-reopen" data-id="${escapeHtml(routineId)}" aria-label="Not finished? Continue ${escapeHtml(routine.name)}"`) : "",
     age === null || age > 14
       ? line(`<span class="result-label is-link">Back up your data</span><span class="result-value is-quiet"><strong>${age === null ? "none yet" : `last ${age} days ago`}</strong></span>`, `data-view="settings" aria-label="Back up your data: ${age === null ? "no backup yet" : `the last one was ${age} days ago`}. Open Settings"`) : "",
+    // A workout of the followed program from another day can be done again today.
+    routine && dateKey !== localDateKey() && !activeWorkout(state) && routineProgram(state, routineId)?.id === state.settings.activeProgramId
+      ? line(`<span class="result-label is-link">Do ${escapeHtml(routine.name)} again today</span>`, `data-action="round-start" data-id="${escapeHtml(routineId)}"`) : "",
     line(`<span class="result-label is-danger">Delete this workout</span>`, `data-action="result-delete"`),
   ];
   return card("More", lines.join(""));

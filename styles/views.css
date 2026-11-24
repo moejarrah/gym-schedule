@@ -1418,28 +1418,9 @@ details.form-section > summary + * {
   white-space: nowrap;
 }
 
-/* The round page's list: one row open, its number stronger and its lines under it
-   (where the name starts), as an open exercise on the workout. */
-.round-row.is-open:not(.is-done) > .tickbox {
-  border-color: var(--text);
-  color: var(--text);
-}
-
-/* A row that opens a round's own page ("Round 3 complete"): set apart from the list,
-   with what the round came to on a line of its own. */
-.round-complete {
-  margin-bottom: var(--space-2);
-}
-
-
-/* Before anything is counted: what a round is, in one sentence over the list. */
-.round-intro {
-  padding: 0 var(--gutter) var(--space-3);
-}
-
-/* Back after a long break: a small label, what happened, and which round this is. */
-.round-news {
-  padding: 0 var(--gutter) var(--space-4);
+/* Back after a long break, a card on Home: its label, what happened, and which round this is. */
+.result-card.round-news {
+  padding-bottom: var(--space-3);
   display: grid;
   gap: var(--space-2);
   font-size: var(--fs-small);
@@ -1511,6 +1492,236 @@ details.form-section > summary + * {
 
 #roundSheet .actions.stacked > .link-button {
   align-self: center;
+}
+
+/* ---------- Home (the round page) ---------- */
+
+/* Home: the round page's header, then cards (the result page's: .result-card, .result-cells,
+   .result-line), and the rows under them. */
+.home-head {
+  padding-bottom: var(--space-3);
+}
+
+.home-page .round-foot {
+  margin-top: var(--space-2);
+}
+
+/* The round on the calendar: a row for every calendar week the round touches, the week
+   number first (as on the Log calendar), then Monday to Sunday. */
+.home-cal {
+  padding-bottom: var(--space-2);
+  display: grid;
+  grid-template-columns: 22px repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.home-cal > .label {
+  font-size: var(--fs-tag);
+  display: grid;
+  place-items: center;
+}
+
+.home-cal > .label.is-today {
+  color: var(--accent);
+}
+
+/* A day: its date, and the workout finished on it. Filled: a workout of this round;
+   dashed: one of them that doesn't count (an extra, an Optional one); pale: a workout of
+   another round; grey: a day of this round without one; outlined: today; a thin outline:
+   a day to come; no box: a day before the round. */
+.home-day {
+  position: relative;
+  min-width: 0;
+  min-height: 54px;
+  padding: 6px 0 7px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  display: grid;
+  align-content: space-between;
+  justify-items: center;
+  overflow: hidden;
+  text-align: center;
+}
+
+.home-day > small {
+  color: var(--faint);
+  font-size: var(--fs-tag);
+  line-height: 1;
+}
+
+.home-day > b {
+  max-width: 100%;
+  overflow: hidden;
+  font: 600 var(--fs-tag) / 1.12 var(--font-label);
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+}
+
+/* Two workouts finished on one day: "+1" in the corner. */
+.home-day > i {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  font: 600 10px / 1 var(--font-label);
+  font-style: normal;
+}
+
+.home-day.is-done {
+  background: var(--accent-fill);
+  color: var(--on-accent);
+}
+
+.home-day.is-done > small {
+  color: inherit;
+  opacity: 0.72;
+}
+
+.home-day.is-other {
+  background: transparent;
+  box-shadow: none;
+  outline: 1.5px dashed var(--accent);
+  outline-offset: -1.5px;
+  color: var(--accent);
+}
+
+.home-day.is-before {
+  background: var(--accent-soft);
+  color: var(--text-muted);
+}
+
+.home-day.is-future {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.home-day.is-out {
+  background: transparent;
+}
+
+.home-day.is-today {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--accent-fill);
+  color: var(--accent);
+}
+
+.home-day.is-today > small {
+  color: var(--accent);
+}
+
+/* Today, while its workout runs: half filled. */
+.home-day.is-running {
+  background: linear-gradient(to top, var(--accent-soft) 50%, transparent 50%);
+}
+
+.home-day.is-done.is-today {
+  background: var(--accent-fill);
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--accent-fill);
+  color: var(--on-accent);
+}
+
+.home-day.is-done.is-today > small {
+  color: inherit;
+}
+
+button.home-day:active {
+  filter: brightness(0.9);
+}
+
+/* The cells under a picture or a set of tiles, joined to it by a soft rule. */
+.home-cells {
+  margin-top: var(--space-1);
+  padding-block: var(--space-3) var(--space-2);
+  border-top: 1px solid var(--line-soft);
+}
+
+.home-cells.is-flat {
+  margin-top: 0;
+  border-top: 0;
+  padding-top: var(--space-1);
+}
+
+.result-cells.home-cells strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-bar {
+  margin: var(--space-1) 0 var(--space-3);
+}
+
+/* A workout of the round as a tile: its name, how long it usually takes, when it was last
+   done. In a row of three; the picked one is filled, as a chosen segment is. */
+.home-tiles {
+  padding-bottom: var(--space-2);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.home-tile {
+  min-width: 0;
+  min-height: 56px;
+  padding: var(--space-2) 10px;
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+  display: grid;
+  align-content: center;
+  gap: 1px;
+  text-align: left;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.home-tile > strong {
+  overflow: hidden;
+  font-size: var(--fs-body);
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.home-tile > small {
+  color: var(--text-muted);
+  font-size: var(--fs-meta);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-tile[aria-pressed="true"] {
+  background: var(--text);
+  color: var(--bg);
+}
+
+.home-tile[aria-pressed="true"] > small {
+  color: inherit;
+  opacity: 0.72;
+}
+
+/* An Optional workout: outlined, not filled, after the Required ones. */
+.home-tile.is-optional:not([aria-pressed="true"]) {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* One quiet line in a card: the first time for a workout; what a round is. */
+.home-first {
+  padding-block: var(--space-1) var(--space-3);
+}
+
+.home-intro {
+  padding: 0 var(--space-1);
+}
+
+/* At 320 wide a tile gives its lines a little more room. */
+@media (max-width: 359px) {
+  .home-tile {
+    padding-inline: 8px;
+  }
+
+  .home-tile > small {
+    font-size: var(--fs-tag);
+  }
 }
 
 /* ---------- Result ---------- */

@@ -261,6 +261,10 @@ async function roundPage(page) {
 // Starts a workout from the round page's bottom button.
 async function startFromRound(page, routine) {
   await roundSettles(page);
+  // A round not begun yet is begun first (Home's "Begin round N").
+  const begin = bottomButton(page, /^Begin round \d+$/);
+  if (await begin.isVisible()) await tapOnRound(page, begin);
+  if (!(await bottomButton(page, `Start ${routine}`).isVisible())) await tapOnRound(page, button(main(page), startsWith(`${routine}, `)));
   await tapOnRound(page, bottomButton(page, `Start ${routine}`));
   await shown(backToRound(page));
 }
@@ -344,21 +348,24 @@ async function chooseImportFile(page, files) {
 // the round page, or on the workout when one is in progress.
 const SHOTS = [
   // ---- The round page (the Workout tab's first page) ----
-  ["round-first-time", async () => {}, "first"],
-  // Another row opened: the bottom button follows it.
-  ["round-other-open", async (page) => { await openRoundRow(page, "Pull A"); }, "first"],
-  ["round", async () => {}, "round"],
-  // A workout done earlier in the round, opened: "Do Push A again today".
-  ["round-done-earlier-open", async (page) => { await openRoundRow(page, "Push A"); }, "round"],
-  ["round-running", async (page) => { await roundPage(page); }, "running"],
-  ["round-done-today", async () => {}, "done"],
-  ["round-complete", async () => {}, "complete"],
-  ["round-welcome-back", async () => {}, "break"],
-  ["round-welcome-back-restart", async (page) => {
+  // Home before anything is counted: the round laid out, "Begin round 1".
+  ["home-first-time", async () => {}, "first"],
+  // Begun: the training day with nothing done yet.
+  ["home-begun", async (page) => { await tapOnRound(page, bottomButton(page, "Begin round 1")); }, "first"],
+  // A training day, the round across two calendar weeks.
+  ["home", async () => {}, "round"],
+  // Another workout picked: the lifts to beat, today's square and the bottom button follow.
+  ["home-picked", async (page) => { await openRoundRow(page, "Legs B"); }, "round"],
+  ["home-running", async (page) => { await roundPage(page); }, "running"],
+  ["home-done-today", async () => {}, "done"],
+  // The round completed today, whole, and the next one laid out.
+  ["home-complete", async () => {}, "complete"],
+  ["home-welcome-back", async () => {}, "break"],
+  ["home-welcome-back-restart", async (page) => {
     await main(page).getByRole("button", { name: "Round 1 · block 2" }).click();
     await shown(main(page).getByRole("heading", { level: 1, name: "Round 1 · block 2" }));
   }, "break"],
-  ["round-no-program", async () => {}, "empty"],
+  ["home-no-program", async () => {}, "empty"],
   ["round-all", async (page) => { await openAllRounds(page); }, "round"],
   // A complete round with an extra workout; then one that ended early, with what was not done.
   ["round-one", async (page) => { await openRound(page, "Round 2 · block 2"); }, "round"],
@@ -760,6 +767,7 @@ async function seedThroughApp(page, theme, tempDir) {
 async function resetTo(page, saved) {
   await page.evaluate(([key, value]) => {
     sessionStorage.clear();
+    localStorage.clear(); // what the phone remembers besides the saved data goes too
     localStorage.setItem(key, value);
   }, [STORAGE_KEY, saved]);
   await page.goto(page.__appUrl);
@@ -821,7 +829,7 @@ async function captureCombo(browser, server, { width, height }, theme, tempDir) 
         await resetTo(page, states[state]);
         await run(page, { backupPath });
         await settle(page);
-        const whole = name.startsWith("result");
+        const whole = name.startsWith("result") || name.startsWith("home");
         if (whole) await page.addStyleTag({ content: "html, body, .app-shell { height: auto !important; overflow: visible !important; } #appMain { overflow: visible !important; padding-bottom: 8px !important; } .dock, .bottom-nav { position: relative !important; inset: auto !important; }" });
         await page.screenshot({ path: path.join(outDir, file), animations: "disabled", caret: "hide", scale: "css", fullPage: whole });
         results.push({ file, ok: true });

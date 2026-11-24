@@ -15,12 +15,16 @@ import {
   calendarWeek,
   dateFromKey,
   endRound,
+  exerciseById,
+  exerciseHistory,
   followProgram,
+  fullName,
   lastFinished,
   localDateKey,
   longBreak,
   nextWorkout,
   openRound,
+  orderedEntries,
   programRoutines,
   roundProgram,
   roundRecord,
@@ -34,10 +38,11 @@ import {
   startWorkout,
   usualMinutes,
   workoutProgress,
+  workoutStanding,
 } from "../model.js";
-import { exerciseProgress } from "../progress.js";
-import { workoutTally } from "./result.js";
-import { daysBetween, durationText, roundName, shortDate, slotLinkLine, slotMotion, weeksText, workoutsDone } from "./shared.js";
+import { exerciseMode, exerciseProgress, repsToAddWeight } from "../progress.js";
+import { setLines, workoutTally } from "./result.js";
+import { daysBetween, durationText, movementMarkup, roundName, setupText, shortDate, weeksText, workoutsDone } from "./shared.js";
 
 // Which page of the tab shows: "home", "all" (Rounds and blocks), "block" (the block
 // `block`) or "one" (the round `number` of `block`; `from` "block" or "home" when it was opened
@@ -69,11 +74,6 @@ const weekTitle = (fromKey, toKey = fromKey) => (sameWeek(fromKey, toKey) ? `Wee
 const weeksShort = (fromKey, toKey) => weeksText(fromKey, toKey).replace(new RegExp(`^${calendarWeek(localDateKey()).year} · `), "");
 const dayMonth = (dateKey) => formatDate(dateFromKey(dateKey), { day: "numeric", month: "short", ...(dateKey.startsWith(`${new Date().getFullYear()}-`) ? {} : { year: "numeric" }) });
 const datesShort = (fromKey, toKey) => (fromKey === toKey ? dayMonth(fromKey) : `${dayMonth(fromKey)} – ${dayMonth(toKey)}`);
-
-function agoText(startedAt) {
-  const minutes = Math.max(0, Math.floor((Date.now() - startedAt) / 60000));
-  return minutes < 1 ? "Just now" : `${durationText(minutes)} ago`;
-}
 
 // "Round 6" and, from block 2 on, what follows it (" · block 2"), drawn smaller.
 function roundTitle(round) {
@@ -155,18 +155,41 @@ const followingMarkup = (program) => `<div class="round-top">
 
 const backMarkup = (to, name) => `<button class="link-button" type="button" data-action="round-page" data-page="${to}" aria-label="Back to ${name}">${chevronIcon("left")}${name}</button>`;
 
-// ---------- the round page ----------
+// ---------- Home: the round page ----------
 //
-// The round as one list: its workouts as quiet rows with exactly one open, the open one
-// showing its labelled lines; the bottom button acts on the open row. A row opens by
-// itself: the workout in progress, otherwise the one finished today, otherwise the next.
+// The tab's first page. Under the header, the round on the calendar (a row per calendar
+// week it touches, each finished workout a filled square that opens its result) with four
+// facts; then what is left to do in it as tiles to pick from, and for the picked workout
+// the lifts to beat; the bottom button starts it. While a workout runs, a card about that
+// session takes the place of the tiles; once one is finished today, a card about it. A
+// round that has nothing done in it yet is laid out first and begun with "Begin round N"
+// (a step of this phone only: see `begun` below). The round complete today shows whole,
+// with the next one laid out under it.
 
-// The page's own memory: the row the owner opened ("" = the one that opens by itself),
-// the answer picked after a long break (true: start again as a new block), and how many
-// times the page arrived on screen (a row that is open on arrival doesn't unfold).
-const home = { openId: "", restart: false, arrivals: 0 };
+// The page's own memory: the tile the owner picked ("" = the one picked by itself, the
+// next), the answer picked after a long break (true: start again as a new block).
+const home = { pickId: "", restart: false };
 
-// A workout that was done: ticked, muted, its date at the end; it opens its day.
+// "Begin round N" is remembered on this phone only, under its own key, for the round it
+// was tapped for (number, block and the day it opened); anything else there is ignored.
+// A round with a workout in it, or one running, is begun whatever is remembered.
+const BEGUN_KEY = "gymAppHomeV1";
+const roundKey = (summary) => `${summary.number}-${summary.block}-${summary.since}`;
+function begunHere(summary) {
+  try {
+    return JSON.parse(localStorage.getItem(BEGUN_KEY))?.begun === roundKey(summary);
+  } catch (_) {
+    return false;
+  }
+}
+function rememberBegun(summary) {
+  try {
+    localStorage.setItem(BEGUN_KEY, JSON.stringify({ begun: roundKey(summary) }));
+  } catch (_) { /* storage blocked: the round shows begun until the app is reopened */ }
+}
+const begunNow = new Set(); // in case storage is blocked
+
+// A workout that was done: ticked, muted, its date at the end; it opens its day (a round's page).
 const doneRow = (name, dateKey, tag = "") => `<button class="row compact round-row is-done" type="button" data-action="open-day" data-date="${dateKey}" aria-label="${escapeHtml(name)}${tag ? `, ${escapeHtml(tag)}` : ""}, done ${escapeHtml(shortDate(dateKey))}. Open that day.">
     <span class="tickbox is-ticked" aria-hidden="true">${tickIcon}</span>
     <span class="row-main"><span class="row-title">${escapeHtml(name)}</span></span>
@@ -179,6 +202,9 @@ const workoutTag = (item) => (item.guest ? item.program || "Another program" : i
 
 const NUMBER_WORDS = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
 const clockTime = (time) => formatDate(new Date(time), { hour: "numeric", minute: "2-digit" });
+const daysText = (days) => plural(days, "day");
+// "6 h 28", "45 min"; "–" when nothing is known.
+const hoursText = (minutes) => (!minutes ? "–" : minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")}`);
 
 // The number a round carried on after a break takes: the first one its block hasn't used.
 function nextNumber(state, round) {
@@ -187,8 +213,19 @@ function nextNumber(state, round) {
   return number;
 }
 
+// The last closed round as history shows it, or null.
+const lastClosed = (state) => {
+  const last = (state.settings.roundLog || []).at(-1);
+  return last ? roundRecord(state, last) : null;
+};
+// How many days a round's workouts spanned, or 0.
+const roundDays = (record) => (record?.workouts.length ? daysBetween(record.from, record.to) + 1 : 0);
+
 // Everything the page and its bottom button show, worked out from the saved state.
-function roundView(state) {
+// `kind`: "complete" (a round completed today, the next not begun), "laid" (the round has
+// nothing in it and isn't begun), "running", "after" (one finished today and no other
+// picked since), "day" (a training day: pick and start).
+function homeView(state) {
   const program = roundProgram(state);
   const summary = roundSummary(state);
   const todayKey = localDateKey();
@@ -199,106 +236,259 @@ function roundView(state) {
   const round = found ? choices[home.restart ? "restart" : "carry"] : summary;
   const workouts = found ? [] : summary.workouts;
   const done = found ? new Set() : summary.done;
-  const doneOn = new Map();
-  for (const item of workouts) if (!item.guest && !doneOn.has(item.routineId)) doneOn.set(item.routineId, item);
-  const today = state.sessions[todayKey];
-  const todayIds = today?.routineIds || [];
+  const finishedToday = state.sessions[todayKey]?.routineIds || [];
+  const left = (found ? summary.required : summary.remaining).filter((routine) => !finishedToday.includes(routine.id) || !found);
+  const optional = programRoutines(state, program).filter((routine) => routine.status === "optional" && !done.has(routine.id));
   const next = running ? null : nextWorkout(state, todayKey);
-  const ordered = [...summary.required, ...programRoutines(state, program).filter((routine) => routine.status === "optional")];
-  const inList = (workout) => !workout.guest && !workout.backdated && ordered.some((routine) => routine.id === workout.routineId);
-  const rows = ordered.map((routine, index) => {
-    const optional = routine.status === "optional";
-    const kind = running && inList(running) && running.routineId === routine.id ? "running"
-      : todayIds.includes(routine.id) ? "today"
-        : doneOn.has(routine.id) ? "done" : "todo";
-    return { id: routine.id, routine, number: optional ? "" : index + 1, optional, kind, item: doneOn.get(routine.id), record: today?.workouts?.[routine.id] };
-  });
-  // A workout running that has no row of its own: an extra, or one logged for a past day.
-  const runningExtra = running && !inList(running) ? routineById(state, running.routineId) : null;
-  // The row open by itself, unless the owner opened another.
-  const lastToday = [...todayIds].reverse().find((id) => rows.some((row) => row.id === id));
-  const fallback = running ? (runningExtra ? "" : running.routineId) : lastToday || next?.id || rows[0]?.id || "";
-  const openId = !running && rows.some((row) => row.id === home.openId) ? home.openId : fallback;
-  return { program, summary, found, choices, round, workouts, done, rows, next, running, runningExtra, openId, todayKey };
+  const pickable = left.filter((routine) => !finishedToday.includes(routine.id));
+  const picked = [...pickable, ...optional].find((routine) => routine.id === home.pickId) || next || pickable[0] || null;
+  const justDone = justCompleted(state, summary);
+  const completed = justDone?.to === todayKey ? justDone : null;
+  const begun = Boolean(found) || workouts.length > 0 || Boolean(running) || begunNow.has(roundKey(summary)) || begunHere(summary);
+  // The workout of this round finished today last.
+  const lastToday = [...finishedToday].reverse().find((id) => workouts.some((item) => item.dateKey === todayKey && item.routineId === id)) || "";
+  const kind = !begun && completed ? "complete" : !begun ? "laid" : running ? "running" : lastToday && !home.pickId ? "after" : "day";
+  return { program, summary, found, choices, round, workouts, done, left, optional, next, picked, completed, running, todayKey, kind, lastToday };
 }
 
-// ---------- pieces of the page ----------
+// ---------- the round on the calendar ----------
 
-// The lines of the open row, by what the row is.
-function rowLines(state, view, row) {
-  const { routine, kind, item, record } = row;
-  const id = escapeHtml(routine.id);
-  if (kind === "running") return runningLines(state, view.running);
-  if (kind === "today") {
-    const logs = Object.values(state.sessions[view.todayKey].logs || {}).filter((log) => log.routineId === routine.id);
-    const sets = logs.reduce((count, log) => count + log.sets.filter((set) => !set.warmup).length, 0);
-    const bests = newBests(state, [{ dateKey: view.todayKey, routineId: routine.id }]);
-    // Filed in a round that has closed since (it completed that round).
-    const filed = record?.round && !(record.round === view.summary.number && (record.block || 1) === view.summary.block) ? roundName({ number: record.round, block: record.block || 1 }) : "";
-    return `${line("Counted in", escapeHtml(filed))}
-      ${line("Time", record?.minutes ? durationText(record.minutes) : "")}
-      ${line("Logged", logs.length ? `${plural(sets, "set")}, ${plural(logs.length, "exercise")}` : "No sets")}
-      ${line("New bests", bests ? String(bests) : "")}
-      ${slotLinkLine("How it went", escapeHtml(workoutTally(state, routine.id, view.todayKey) || "See the result"), `data-action="open-result" data-id="${id}" data-date="${view.todayKey}" aria-label="How ${escapeHtml(routine.name)} went"`)}`;
+// The Monday of a date's calendar week.
+function mondayOf(dateKey) {
+  const date = dateFromKey(dateKey);
+  date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+  return localDateKey(date);
+}
+const addDays = (dateKey, days) => {
+  const date = dateFromKey(dateKey);
+  date.setDate(date.getDate() + days);
+  return localDateKey(date);
+};
+// "Push A" → "Push<br>A": a square holds a short name on two lines.
+const squareName = (name) => {
+  const words = name.trim().split(/\s+/);
+  return words.length < 2 ? escapeHtml(name) : `${escapeHtml(words.slice(0, -1).join(" "))}<br>${escapeHtml(words.at(-1))}`;
+};
+
+// A square: the day's date, and the workout finished on it. Filled: a workout of the
+// round shown; dashed: one of them that doesn't count (an extra, an Optional one); pale:
+// a workout of another round; empty: a day of the round without one; a thin outline: a
+// day to come; no box: a day before the round. Today is outlined, with the picked
+// workout's name while nothing is done today. A square with a workout opens its result.
+function dayMarkup(state, view, dateKey, { from, round, todayName }) {
+  const day = dateFromKey(dateKey).getDate();
+  const session = state.sessions[dateKey];
+  const finished = (session?.routineIds || []).map((routineId) => ({ routineId, record: session.workouts?.[routineId] || {} }));
+  const inRound = finished.filter(({ record }) => record.round === round.number && (record.block || 1) === round.block);
+  const shown = inRound.at(-1) || finished.at(-1);
+  const isToday = dateKey === view.todayKey;
+  const running = isToday && view.running && view.running.dateKey === dateKey ? routineById(state, view.running.routineId) : null;
+  const classes = ["home-day"];
+  if (isToday) classes.push("is-today");
+  let name = "";
+  if (shown) {
+    const counts = inRound.includes(shown) && !shown.record.guest && !shown.record.optional;
+    classes.push(counts ? "is-done" : inRound.includes(shown) ? "is-other" : "is-before");
+    name = squareName(shown.record.name || routineById(state, shown.routineId)?.name || "Workout");
+  } else if (running) {
+    classes.push("is-running");
+    name = squareName(running.name);
+  } else if (dateKey > view.todayKey) {
+    classes.push("is-future");
+  } else if (dateKey < from) {
+    classes.push("is-out");
+  } else if (isToday && todayName) {
+    name = squareName(todayName);
   }
-  if (kind === "done") {
-    return `${slotLinkLine("Done", escapeHtml([shortDate(item.dateKey), item.minutes ? durationText(item.minutes) : ""].filter(Boolean).join(" · ")), `data-action="open-day" data-date="${item.dateKey}" aria-label="Done ${escapeHtml(shortDate(item.dateKey))}. Open that day."`)}
-      ${line(`In round ${view.round.number}`, row.optional ? "counts toward nothing" : "counts once")}`;
+  const more = finished.length > 1 ? `<i>+${finished.length - 1}</i>` : "";
+  const inner = `<small>${day}</small><b>${name}</b>${more}`;
+  if (!shown) return `<div class="${classes.join(" ")}"${isToday ? ` aria-label="Today${name ? `, ${escapeHtml(running ? `${running.name} in progress` : todayName)}` : ""}"` : ` aria-hidden="true"`}>${inner}</div>`;
+  const label = `${shortDate(dateKey)}: ${finished.map(({ record, routineId }) => record.name || routineById(state, routineId)?.name || "Workout").join(" and ")}. Open how it went`;
+  return `<button class="${classes.join(" ")}" type="button" data-action="open-result" data-id="${escapeHtml(shown.routineId)}" data-date="${dateKey}" aria-label="${escapeHtml(label)}">${inner}</button>`;
+}
+
+// The calendar weeks from `from` to `to`, a row each: the week number, then Monday to Sunday.
+function calendarMarkup(state, view, { from, to, round, todayName = "" }) {
+  const head = `<span class="label">Wk</span>${["M", "T", "W", "T", "F", "S", "S"].map((letter, index) => `<span class="label${index === (dateFromKey(view.todayKey).getDay() + 6) % 7 && to >= view.todayKey ? " is-today" : ""}">${letter}</span>`).join("")}`;
+  const rows = [];
+  for (let monday = mondayOf(from); monday <= to; monday = addDays(monday, 7)) {
+    rows.push(`<span class="label">${calendarWeek(monday).week}</span>${Array.from({ length: 7 }, (_, index) => dayMarkup(state, view, addDays(monday, index), { from, round, todayName })).join("")}`);
+  }
+  return `<div class="home-cal">${head}${rows.join("")}</div>`;
+}
+
+// Small cells under a picture: [value, label] each.
+const cellsMarkup = (cells, extra = "") => `<div class="result-cells home-cells ${extra}">${cells.map(([value, name]) => `<p><strong>${value}</strong><small>${name}</small></p>`).join("")}</div>`;
+
+const card = (label, right, body, extra = "") => `<section class="result-card ${extra}" aria-label="${escapeHtml(label.replace(/<[^>]+>/g, ""))}">
+    <h2 class="label result-card-label"><span>${label}</span>${right ? `<span>${right}</span>` : ""}</h2>
+    ${body}
+  </section>`;
+
+// The round open now on the calendar, from its first day (or this week, before anything
+// is done) to today, with four facts.
+function roundCardMarkup(state, view) {
+  const { summary, round, kind, workouts } = view;
+  const name = roundName({ number: round.number, block: 1 });
+  const begunOn = workouts[0]?.dateKey || (view.found ? view.todayKey : summary.since || view.todayKey);
+  const from = kind === "laid" ? mondayOf(view.todayKey) : begunOn;
+  const todayName = kind === "day" && view.picked && !(state.sessions[view.todayKey]?.routineIds || []).length ? view.picked.name : "";
+  const calendar = calendarMarkup(state, view, { from: kind === "laid" ? view.todayKey : from, to: view.todayKey, round, todayName });
+  const last = lastClosed(state);
+  const { required } = summary;
+  if (kind === "laid") return card("This week", `${escapeHtml(name)} not begun`, calendar);
+  const doneCount = view.found ? 0 : required.length - summary.remaining.length;
+  const left = view.left.map((routine) => usualMinutes(state, routine.id));
+  // Only the cells that have something to say.
+  const cells = [
+    [`Day ${daysBetween(begunOn, view.todayKey) + 1}`, `of ${name.toLowerCase()}`],
+    [`${doneCount} of ${required.length}`, "done"],
+    left.length && left.every((minutes) => minutes) ? [hoursText(left.reduce((sum, minutes) => sum + minutes, 0)), "still to do"] : null,
+    roundDays(last) ? [daysText(roundDays(last)), `round ${last.number}`] : null,
+  ].filter(Boolean);
+  return card(escapeHtml(name), workouts.length ? `since ${escapeHtml(shortDate(begunOn))}` : "", `${calendar}${cellsMarkup(cells)}`);
+}
+
+// The round completed today, whole: its weeks, four facts, and today's workout.
+function completedCardMarkup(state, view) {
+  const record = view.completed;
+  const name = roundName({ number: record.number, block: 1 });
+  const calendar = calendarMarkup(state, view, { from: record.from, to: record.to, round: record });
+  const before = (state.settings.roundLog || []).at(-2);
+  const previous = before ? roundRecord(state, before) : null;
+  const cells = [
+    [`${record.done} of ${record.required}`, "done"],
+    [daysText(roundDays(record)), "took"],
+    [previous ? daysText(roundDays(previous)) : "–", previous ? `round ${previous.number}` : "round before"],
+    [hoursText(record.minutes), "trained"],
+  ];
+  const today = record.workouts.filter((item) => item.dateKey === view.todayKey).at(-1);
+  const sets = today ? Object.values(state.sessions[today.dateKey].logs || {}).filter((log) => log.routineId === today.routineId).reduce((count, log) => count + log.sets.filter((set) => !set.warmup).length, 0) : 0;
+  const todayLine = today ? `<button class="result-line" type="button" data-action="open-result" data-id="${escapeHtml(today.routineId)}" data-date="${today.dateKey}" aria-label="${escapeHtml(today.name)}, today. How it went"><span class="result-name"><span class="result-label is-link">${escapeHtml(today.name)}, today</span><small>${escapeHtml([today.minutes ? `${today.minutes} min` : "", plural(sets, "set")].filter(Boolean).join(" · "))}</small></span>${chevron()}</button>` : "";
+  return card(`${escapeHtml(name)} complete`, escapeHtml(datesShort(record.from, record.to)), `${calendar}${cellsMarkup(cells)}${todayLine}`);
+}
+
+const chevron = (direction = "right") => `<span class="chev" aria-hidden="true">${chevronIcon(direction)}</span>`;
+
+// ---------- what is left, and the picked workout ----------
+
+// "10 days ago", "yesterday", "today", "never".
+function agoDays(state, routineId, todayKey) {
+  const last = lastFinished(state, routineId, LATER);
+  if (!last) return "never";
+  const days = daysBetween(last, todayKey);
+  return days <= 0 ? "today" : days === 1 ? "yesterday" : `${days} days ago`;
+}
+
+// A workout as a tile: its name, how long it usually takes, when it was last done. A tile
+// to pick is a button (the picked one filled); `quiet`: only shown.
+function tileMarkup(state, view, routine, { pickable = true, optional = false } = {}) {
+  const usual = usualMinutes(state, routine.id);
+  const ago = agoDays(state, routine.id, view.todayKey);
+  // Never timed: how many exercises it has instead; never done: no line for it.
+  const size = optional ? "optional" : usual ? `${usual} min` : plural(slotCounts(routine).main, "exercise");
+  const lines = `<strong>${escapeHtml(routine.name)}</strong><small>${size}</small>${ago === "never" ? "" : `<small>${escapeHtml(ago)}</small>`}`;
+  if (!pickable) return `<div class="home-tile${optional ? " is-optional" : ""}">${lines}</div>`;
+  const on = view.picked?.id === routine.id && (view.kind === "day" || view.kind === "after");
+  return `<button class="home-tile${optional ? " is-optional" : ""}" type="button" data-action="home-pick" data-id="${escapeHtml(routine.id)}" aria-pressed="${on}" aria-label="${escapeHtml(`${routine.name}${optional ? ", optional" : ""}, ${usual ? `usually ${usual} min` : "never timed"}, last done ${agoDays(state, routine.id, view.todayKey)}`)}">${lines}</button>`;
+}
+
+function tilesMarkup(state, view, { title, right, pickable = true }) {
+  const finishedToday = state.sessions[view.todayKey]?.routineIds || [];
+  const tiles = [
+    ...view.left.map((routine) => tileMarkup(state, view, routine, { pickable: pickable && !finishedToday.includes(routine.id) })),
+    ...view.optional.map((routine) => tileMarkup(state, view, routine, { pickable: pickable && !finishedToday.includes(routine.id), optional: true })),
+  ];
+  return tiles.length ? card(title, right, `<div class="home-tiles">${tiles.join("")}</div>`) : "";
+}
+
+// The lifts to beat in the picked workout: the main exercises first, each with last
+// time's weight over its reps and what beats it ("+1 rep"; "+2.5 kg" once every set
+// reached the top of the rep range); then the way to all of it on Program.
+function toBeatMarkup(state, view) {
+  const routine = view.picked;
+  if (!routine) return "";
+  const last = lastFinished(state, routine.id, LATER);
+  const entries = [...orderedEntries(routine).filter((entry) => entry.role === "main"), ...orderedEntries(routine).filter((entry) => entry.role !== "main")];
+  const rows = [];
+  for (const entry of entries) {
+    if (rows.length === 3) break;
+    const choice = entry.choices[0];
+    const exercise = exerciseById(state, choice?.exerciseId);
+    const history = exercise ? exerciseHistory(state, exercise.id, { limit: 3 }) : [];
+    const previous = history[0];
+    if (!previous || !previous.sets.some((set) => !set.warmup)) continue;
+    const mode = exerciseMode(history);
+    const lines = setLines(previous);
+    const top = repsToAddWeight(previous.sets, choice.prescription, mode, previous.unit);
+    const target = previous.unit === "sec" ? "+5 sec" : top ? "+2.5 kg" : "+1 rep";
+    const weight = lines.at(-1);
+    rows.push(`<button class="result-line result-exercise" type="button" data-action="view-history" data-id="${escapeHtml(exercise.id)}" aria-label="${escapeHtml(`${fullName(exercise)}: last time ${lines.map(([kg, reps]) => (kg ? `${kg} × ${reps}` : reps)).join(", ")}; to beat it ${target}. Open its history`)}">
+      <span class="result-name"><span class="result-title"><span class="truncate">${movementMarkup(exercise)}</span></span><small class="truncate">${escapeHtml(setupText(exercise)) || "&nbsp;"}</small></span>
+      <span class="result-sets"><strong>${weight[0] || weight[1]}</strong><small>${weight[0] ? weight[1] : previous.unit === "sec" ? "sec" : "reps"}</small></span>
+      <span class="result-change up">${target}</span>${chevron()}
+    </button>`);
   }
   const counts = slotCounts(routine);
-  const exercises = `${counts.main}${counts.optional ? `, plus ${counts.optional} optional` : ""}`;
-  const usual = usualMinutes(state, routine.id);
-  const last = lastFinished(state, routine.id, LATER);
-  return `${slotLinkLine("Exercises", exercises, `data-action="program-show-routine" data-id="${id}" aria-label="Exercises of ${escapeHtml(routine.name)}: ${exercises}. Open it on Program."`)}
-    ${line("Usually", usual ? `about ${usual} min` : "")}
-    ${line("Last done", last ? escapeHtml(shortDate(last)) : "Never")}
-    ${row.optional ? line("In the round", "counts toward nothing") : ""}`;
+  const all = `<button class="result-line" type="button" data-action="program-show-routine" data-id="${escapeHtml(routine.id)}" aria-label="All of ${escapeHtml(routine.name)}: ${counts.main} exercises${counts.optional ? `, plus ${counts.optional} optional` : ""}. Open it on Program"><span class="result-label is-link">All of ${escapeHtml(routine.name)}</span><span class="result-value is-quiet"><strong>${counts.main}${counts.optional ? ` + ${counts.optional} optional` : ""}</strong></span>${chevron()}</button>`;
+  const body = rows.length ? rows.join("") : `<p class="hint home-first">${last ? "Nothing logged in it to beat yet." : `The first time for ${escapeHtml(routine.name)}: nothing to beat yet.`}</p>`;
+  return card(`${escapeHtml(routine.name)} · to beat`, last ? escapeHtml(shortDate(last)) : "", `${body}${all}`);
 }
 
-function runningLines(state, running) {
-  const progress = workoutProgress(state, running);
-  const past = running.backdated;
-  return `${running.guest ? line("Program", escapeHtml(routineProgram(state, running.routineId)?.name || "")) : ""}
-    ${past ? line("For", escapeHtml(shortDate(running.dateKey))) : ""}
-    ${running.reopened ? line("Reopened", escapeHtml(clockTime(running.startedAt))) : past ? "" : line("Started", `${escapeHtml(clockTime(running.startedAt))}, <span data-round-elapsed>${agoText(running.startedAt).toLowerCase()}</span>`)}
-    ${progress ? line("Exercises", `${progress.done} of ${progress.counted.length} done`) : ""}`;
+// While a workout runs: one card about the session, its bar, four facts and what is next.
+function runningMarkup(state, view) {
+  const workout = view.running;
+  const progress = workoutProgress(state, workout);
+  if (!progress) return "";
+  const standing = workoutStanding(state, workout.routineId, workout.dateKey);
+  const tally = workoutTally(state, workout.routineId, workout.dateKey);
+  const minutes = Math.max(0, Math.floor((Date.now() - workout.startedAt) / 60000));
+  const clock = workout.reopened ? ["–", "reopened"] : workout.backdated ? [shortDate(workout.dateKey), "for"] : [`<span data-round-elapsed>${minutes} min</span>`, "so far"];
+  const next = progress.next ? exerciseById(state, progress.next.choices[0]?.exerciseId) : null;
+  const nextLine = `<button class="result-line" type="button" data-action="workout-resume" aria-label="${escapeHtml(next ? `Next: ${fullName(next)}. Back to the workout` : "Back to the workout")}"><span class="result-name"><span class="result-title"><span class="truncate">${next ? movementMarkup(next) : "Every exercise done"}</span></span><small class="truncate">${next ? `Next${setupText(next) ? ` · ${escapeHtml(setupText(next))}` : ""}` : "Finish it from the workout"}</small></span>${chevron()}</button>`;
+  const label = `${escapeHtml(progress.routine.name)} · in progress${workout.guest ? ` · ${escapeHtml(routineProgram(state, workout.routineId)?.name || "")}` : ""}`;
+  return card(label, workout.reopened || workout.backdated ? "" : `started ${escapeHtml(clockTime(workout.startedAt))}`, `<div class="round-bar home-bar" aria-hidden="true">${progress.counted.map((slot) => `<i${progress.isDone(slot) ? ` class="is-done"` : ""}></i>`).join("")}</div>
+    ${cellsMarkup([clock, [String(standing.sets), standing.sets === 1 ? "set" : "sets"], [`${progress.done} of ${progress.counted.length}`, "exercises"], [tally ? tallyMarkup(tally) : "–", "vs last"]], "is-flat")}
+    ${nextLine}`);
 }
 
-// One workout of the round. Rows open in place; while a workout runs the others are quiet.
-function rowMarkup(state, view, row) {
-  const { routine, kind } = row;
-  const open = row.id === view.openId;
-  const ticked = kind === "done" || (kind === "today" && view.done.has(routine.id));
-  const box = `<span class="tickbox ${ticked ? "is-ticked" : ""}" aria-hidden="true">${ticked ? tickIcon : row.number}</span>`;
-  const tag = kind === "running" ? "In progress" : routine.id === view.next?.id ? "Next" : kind === "today" ? "Today" : row.optional ? "Optional" : "";
-  const end = kind === "done" ? `<span class="row-meta">${escapeHtml(shortDate(row.item.dateKey))}</span>` : "";
-  const label = tag ? `<span class="label tag ${kind === "running" || tag === "Next" ? "accent" : ""}">${tag}</span>` : "";
-  const status = kind === "running" ? "in progress" : kind === "today" ? "done today" : kind === "done" ? `done ${shortDate(row.item.dateKey)}` : `not done${tag === "Next" ? ", next" : row.optional ? ", optional" : ""}`;
-  const content = `${box}<span class="row-main"><span class="row-title truncate">${escapeHtml(routine.name)}</span></span>${label}${end}`;
-  const classes = `row compact round-row ${ticked ? "is-done" : ""} ${open ? "is-open" : ""}`;
-  // While a workout runs nothing else can be started: the other rows are quiet.
-  const head = view.running
-    ? `<div class="${classes} ${open || ticked ? "" : "is-quiet"}">${content}</div>`
-    : `<button class="${classes}" type="button" data-action="round-open-row" data-id="${escapeHtml(routine.id)}" aria-expanded="${open}" aria-label="${escapeHtml(routine.name)}, ${escapeHtml(status)}">${content}</button>`;
-  if (!open) return head;
-  return `<div class="round-item" data-open-slot>
-    ${head}
-    <div class="slot-detail round-detail" data-slot="${escapeHtml(routine.id)}">${rowLines(state, view, row)}</div>
-  </div>`;
+// "▲ 3 ▼ 1" in the up and down colours.
+const tallyMarkup = (tally) => escapeHtml(tally).replace(/▲ \d+/, (match) => `<span class="up">${match}</span>`).replace(/▼ \d+/, (match) => `<span class="down">${match}</span>`);
+
+// Once a workout of the round is finished today: a card about it, and its full result.
+function todayMarkup(state, view) {
+  const routineId = view.lastToday;
+  const record = state.sessions[view.todayKey].workouts?.[routineId] || {};
+  const standing = workoutStanding(state, routineId, view.todayKey);
+  const tally = workoutTally(state, routineId, view.todayKey);
+  const cells = [
+    [record.minutes ? `${record.minutes} min` : "–", "time"],
+    [String(standing.sets), standing.sets === 1 ? "set" : "sets"],
+    [standing.counted.length ? `${standing.counted.filter(standing.isDone).length} of ${standing.counted.length}` : String(standing.exercises), "exercises"],
+    [tally ? tallyMarkup(tally) : "–", "vs last"],
+  ];
+  return card(`Today · ${escapeHtml(record.name || "Workout")} done`, escapeHtml(shortDate(view.todayKey)), `${cellsMarkup(cells, "is-flat")}
+    <button class="result-line" type="button" data-action="open-result" data-id="${escapeHtml(routineId)}" data-date="${view.todayKey}" aria-label="Full result of ${escapeHtml(record.name || "the workout")}"><span class="result-label is-link">Full result</span>${chevron()}</button>`);
 }
 
-// A workout running without a row of its own (an extra, or one for a past day): its own
-// open row under the others.
-function runningExtraMarkup(state, view) {
-  return `<div class="round-item" data-open-slot>
-    <div class="row compact round-row is-open">
-      <span class="tickbox" aria-hidden="true"></span>
-      <span class="row-main"><span class="row-title truncate">${escapeHtml(view.runningExtra.name)}</span></span>
-      <span class="label tag accent">In progress</span>
-    </div>
-    <div class="slot-detail round-detail" data-slot="running">${runningLines(state, view.running)}</div>
-  </div>`;
+// The round with nothing in it yet, laid out: all its workouts, what it usually takes.
+function laidOutMarkup(state, view, round) {
+  const required = view.summary.required;
+  const usual = required.map((routine) => usualMinutes(state, routine.id));
+  const last = view.completed || lastClosed(state);
+  const name = roundName({ number: round.number, block: 1 });
+  const tiles = required.map((routine) => tileMarkup(state, view, routine, { pickable: false }));
+  // Only the cells that have something to say.
+  const cells = [
+    [String(required.length), required.length === 1 ? "workout" : "workouts"],
+    usual.every(Boolean) ? [hoursText(usual.reduce((sum, minutes) => sum + minutes, 0)), "usually"] : null,
+    roundDays(last) ? [daysText(roundDays(last)), `round ${last.number} took`] : null,
+    required[0] ? [escapeHtml(required[0].name), "first"] : null,
+  ].filter(Boolean);
+  return card(`In ${escapeHtml(name.toLowerCase())}`, "any order", `<div class="home-tiles">${tiles.join("")}</div>${view.kind === "laid" ? cellsMarkup(cells) : ""}`);
 }
+
+// ---------- the parts under the cards ----------
 
 const moreRow = (name, action, end = "") => `<button class="row compact" type="button" ${action}>
     <span class="row-main"><span class="row-title">${escapeHtml(name)}</span></span>
@@ -306,8 +496,8 @@ const moreRow = (name, action, end = "") => `<button class="row compact" type="b
     <span class="chev" aria-hidden="true">${chevronIcon("right")}</span>
   </button>`;
 
-// Under the list: a workout of another program, the earlier rounds, and before anything
-// has been counted the way to say which round this is.
+// A workout of another program, the earlier rounds, and before anything has been counted
+// the way to say which round this is.
 function footMarkup(state, view) {
   const { summary, running } = view;
   const rows = [];
@@ -318,37 +508,20 @@ function footMarkup(state, view) {
   return rows.length ? `<section class="round-foot">${rows.join("")}</section>` : "";
 }
 
-// Above the list, when there is news: back after a long break, the round completed today,
-// or (before anything was counted) what a round is.
-function newsMarkup(state, view) {
+// Back after a long break: how long it has been, how the last round was left, and which
+// round this is (a two-way switch the next Start applies).
+function welcomeMarkup(state, view) {
   const { summary, found, choices } = view;
-  if (found) {
-    const last = (state.settings.roundLog || []).at(-1);
-    const done = summary.required.length - summary.remaining.length;
-    const then = found.open ? ` Round ${found.lastRound} ended there, with ${workoutsDone(done, summary.required.length)}.`
-      : last ? ` Round ${last.number} ${last.ended === "complete" ? "was complete by then" : "had ended by then"}.` : "";
-    const option = (value, round) => `<button type="button" data-action="round-break-choice" data-value="${value}" aria-pressed="${home.restart === (value === "restart")}">${escapeHtml(roundName(round))}</button>`;
-    return `<section class="round-news" aria-labelledby="roundNewsTitle">
-      <p class="label" id="roundNewsTitle">Welcome back</p>
-      <p>${plural(found.weeks, "week")} since ${escapeHtml(shortDate(found.lastDay))}.${escapeHtml(then)}</p>
-      <div class="round-switch"><span id="roundSwitchLabel">This is</span><div class="segment" role="group" aria-labelledby="roundSwitchLabel">${option("carry", choices.carry)}${option("restart", choices.restart)}</div></div>
-    </section>`;
-  }
-  const completed = justCompleted(state, summary);
-  if (completed?.to === view.todayKey) {
-    const days = daysBetween(completed.from, completed.to) + 1;
-    return `<button class="row round-row round-complete is-done" type="button" data-action="round-page" data-page="one" data-number="${completed.number}" data-block="${completed.block}" data-from="home" aria-label="${escapeHtml(roundName(completed))} complete, ${completed.done} of ${completed.required} in ${plural(days, "day")}. Open the round.">
-      <span class="tickbox is-ticked" aria-hidden="true">${tickIcon}</span>
-      <span class="row-main"><span class="row-title">${escapeHtml(roundName(completed))} complete</span><span class="row-meta">${workoutsDone(completed.done, completed.required)} · ${plural(days, "day")}</span></span>
-      <span class="chev" aria-hidden="true">${chevronIcon("right")}</span>
-    </button>`;
-  }
-  if (!summary.workouts.length && !(state.settings.roundLog || []).length) {
-    const count = summary.required.length;
-    const these = count === 1 ? "this workout" : `these ${NUMBER_WORDS[count] || count} workouts, in any order,`;
-    return `<p class="hint round-intro">A round is one pass through ${these} over as many days as it takes.</p>`;
-  }
-  return "";
+  const last = (state.settings.roundLog || []).at(-1);
+  const done = summary.required.length - summary.remaining.length;
+  const then = found.open ? ` Round ${found.lastRound} ended there, with ${workoutsDone(done, summary.required.length)}.`
+    : last ? ` Round ${last.number} ${last.ended === "complete" ? "was complete by then" : "had ended by then"}.` : "";
+  const option = (value, round) => `<button type="button" data-action="round-break-choice" data-value="${value}" aria-pressed="${home.restart === (value === "restart")}">${escapeHtml(roundName(round))}</button>`;
+  return `<section class="result-card round-news" aria-labelledby="roundNewsTitle">
+    <h2 class="label result-card-label" id="roundNewsTitle"><span>Welcome back</span></h2>
+    <p>${plural(found.weeks, "week")} since ${escapeHtml(shortDate(found.lastDay))}.${escapeHtml(then)}</p>
+    <div class="round-switch"><span id="roundSwitchLabel">This is</span><div class="segment" role="group" aria-labelledby="roundSwitchLabel">${option("carry", choices.carry)}${option("restart", choices.restart)}</div></div>
+  </section>`;
 }
 
 // No program, or nothing in it a round can ask for: say so, and the ways to fix it.
@@ -367,41 +540,48 @@ function emptyMarkup(program) {
 }
 
 function homeMarkup(state) {
-  const view = roundView(state);
-  const { program, summary, found } = view;
+  const view = homeView(state);
+  const { program, summary, kind, round } = view;
   if (!program || !summary.required.length) return emptyMarkup(program);
-  return `<section class="page round-page">
-    ${headMarkup({
-    top: followingMarkup(program),
-    round: view.round,
-    week: weekTitle(view.todayKey),
-    segments: summary.required.map((routine) => view.done.has(routine.id)),
-    left: workoutsDone(summary.required.filter((routine) => view.done.has(routine.id)).length, summary.required.length),
-    right: summary.started && !found ? `started ${shortDate(summary.started)}` : "not started yet",
-  })}
-    ${newsMarkup(state, view)}
-    <section class="round-list" aria-label="Workouts in this round">
-      ${view.rows.map((row) => rowMarkup(state, view, row)).join("")}
-      ${view.runningExtra ? runningExtraMarkup(state, view) : ""}
-      ${view.workouts.filter((item) => item.guest || !view.rows.some((row) => row.id === item.routineId)).map((item) => doneRow(item.name, item.dateKey, workoutTag(item))).join("")}
-    </section>
+  const { title, suffix } = roundTitle(round);
+  const head = `<header class="round-head home-head">
+    ${followingMarkup(program)}
+    <div class="round-title">
+      <h1><span>${escapeHtml(title)}</span>${suffix ? `<small>${escapeHtml(suffix)}</small>` : ""}</h1>
+      <span>${escapeHtml(weekTitle(view.todayKey))}</span>
+    </div>
+  </header>`;
+  const name = roundName({ number: round.number, block: 1 }).toLowerCase();
+  // Before anything was counted: what a round is, in one sentence.
+  const intro = !summary.counting && !(state.settings.roundLog || []).length
+    ? `<p class="hint home-intro">A round is one pass through ${summary.required.length === 1 ? "this workout" : `these ${NUMBER_WORDS[summary.required.length] || summary.required.length} workouts, in any order,`} over as many days as it takes.</p>` : "";
+  const parts = {
+    complete: () => [completedCardMarkup(state, view), laidOutMarkup(state, view, round)],
+    laid: () => [roundCardMarkup(state, view), intro, laidOutMarkup(state, view, round)],
+    running: () => [roundCardMarkup(state, view), runningMarkup(state, view), tilesMarkup(state, view, { title: "After this", right: `left in ${name}`, pickable: false })],
+    after: () => [roundCardMarkup(state, view), todayMarkup(state, view), tilesMarkup(state, view, { title: `Left in ${name}`, right: "pick one" })],
+    day: () => [roundCardMarkup(state, view), view.found ? welcomeMarkup(state, view) : "", tilesMarkup(state, view, { title: `Left in ${name}`, right: "pick one" }), toBeatMarkup(state, view)],
+  }[kind]();
+  return `<section class="page round-page home-page">
+    ${head}
+    <div class="result-cards">${parts.join("")}</div>
     ${footMarkup(state, view)}
   </section>`;
 }
 
-// The bottom button acts on the open row: Start (filled) a workout not done yet; Do it
-// again today, or Reopen today's (quiet). With nothing to start: the way to Program.
+// The bottom button: Begin round N, Start the picked workout, or (once one is finished
+// today and nothing else is picked) Reopen it, quiet. With nothing to start: Program.
 function dockMarkup(state) {
   if (page.name !== "home") return "";
-  const view = roundView(state);
+  const view = homeView(state);
   if (!view.program || !view.summary.required.length) return `<button class="button primary" type="button" data-view="routines"><span>Go to Program</span></button>`;
-  const row = view.rows.find((item) => item.id === view.openId);
-  if (!row) return "";
-  const name = escapeHtml(row.routine.name);
-  const id = escapeHtml(row.routine.id);
-  if (row.kind === "today") return `<button class="button" type="button" data-action="round-reopen" data-id="${id}"><span>Reopen ${name}</span></button>`;
-  if (row.kind === "done") return `<button class="button" type="button" data-action="round-start" data-id="${id}"><span>Do ${name} again today</span></button>`;
-  return `<button class="button primary" type="button" data-action="round-start" data-id="${id}"><span>Start ${name}</span></button>`;
+  if (view.kind === "complete" || view.kind === "laid") return `<button class="button primary" type="button" data-action="home-begin"><span>Begin ${escapeHtml(roundName({ number: view.round.number, block: 1 }).toLowerCase())}</span></button>`;
+  if (view.kind === "after") {
+    const routine = routineById(state, view.lastToday);
+    return routine ? `<button class="button" type="button" data-action="round-reopen" data-id="${escapeHtml(routine.id)}"><span>Reopen ${escapeHtml(routine.name)}</span></button>` : "";
+  }
+  if (view.kind !== "day" || !view.picked) return "";
+  return `<button class="button primary" type="button" data-action="round-start" data-id="${escapeHtml(view.picked.id)}"><span>Start ${escapeHtml(view.picked.name)}</span></button>`;
 }
 
 // ---------- Rounds and blocks ----------
@@ -606,9 +786,6 @@ function showPage(name, { number = 0, block = 0, from = "" } = {}) {
   pauseTaps();
 }
 
-// The row opened on the round page unfolds (once, not when the page arrives on screen).
-const motion = slotMotion();
-
 // ---------- the sheet ----------
 
 const sheetHead = (title, under = "") => `<header class="sheet-head">
@@ -739,10 +916,9 @@ async function newBlock() {
   fresh(...mainElement().children);
 }
 
-// Leaves the page as it was on screen: the row opened by the owner closes, and a row open
-// on arrival doesn't unfold.
-function forgetOpenRow() {
-  Object.assign(home, { openId: "", restart: false, arrivals: home.arrivals + 1 });
+// Leaves Home as it was: the tile picked by the owner and the answer to a break are forgotten.
+function forgetPick() {
+  Object.assign(home, { pickId: "", restart: false });
 }
 
 registerView("round", {
@@ -754,10 +930,7 @@ registerView("round", {
   arrive(from) {
     if (from !== "workout" && from !== "result") return;
     Object.assign(page, { name: "home", number: 0, block: 0, from: "" });
-    forgetOpenRow();
-  },
-  afterDraw() {
-    if (page.name === "home") motion.unfold(`home ${home.arrivals}`);
+    forgetPick();
   },
   // Going back (a drag from the left edge): one round returns to where it was opened from
   // (its block, the round page or Rounds and blocks), a block to Rounds and blocks, that to
@@ -795,12 +968,20 @@ registerActions({
     $("[data-step='-1']", box).disabled = chooser.number <= 1;
     $("[data-step='1']", box).disabled = chooser.number >= 999;
   },
-  // Another row opens in place (the one open folds); the open one stays open.
-  "round-open-row": (button) => {
-    if (button.getAttribute("aria-expanded") === "true") return;
-    home.openId = button.dataset.id;
+  // Another workout picked: the lifts to beat, today's square and the bottom button follow.
+  "home-pick": (button) => {
+    if (button.getAttribute("aria-pressed") === "true" && home.pickId) return;
+    home.pickId = button.dataset.id;
+    render();
+  },
+  // The round laid out is begun: the training day comes (nothing is saved).
+  "home-begin": () => {
+    const summary = roundSummary(store.getState());
+    begunNow.add(roundKey(summary));
+    rememberBegun(summary);
+    render();
     pauseTaps();
-    motion.fold(() => render());
+    fresh(...mainElement().children);
   },
   // After a long break: which round this is. Only the title and the switch change.
   "round-break-choice": (button) => {
@@ -870,9 +1051,9 @@ registerActions({
   "round-new-block": newBlock,
 });
 
-// The row in progress says how long ago the workout started; it keeps up.
+// The card of the workout in progress says how long it has run; it keeps up.
 setInterval(() => {
   const running = activeWorkout(store.getState());
   const label = $("[data-round-elapsed]");
-  if (running && label) label.textContent = agoText(running.startedAt).toLowerCase();
+  if (running && label) label.textContent = `${Math.max(0, Math.floor((Date.now() - running.startedAt) / 60000))} min`;
 }, 20000);

@@ -116,12 +116,12 @@ export const backToRound = (page) => main(page).getByRole("button", { name: /^Ba
 /** Settings opens from the gear at the top of the round page. */
 export async function openSettings(page) {
   if (await settingsScope(page).isVisible()) return settingsScope(page);
-  await goToView(page, "Workout");
+  await goToView(page, "Home");
   // The gear is on the tab's first page. From a workout in progress, its back link goes
   // there; from All rounds or one round, tapping the tab again does.
   const gear = main(page).getByRole("button", { name: "Settings", exact: true });
   if (await backToRound(page).isVisible()) await tapOnRound(page, backToRound(page));
-  else if (!(await gear.isVisible())) await tapOnRound(page, tab(page, "Workout"));
+  else if (!(await gear.isVisible())) await tapOnRound(page, tab(page, "Home"));
   await gear.click();
   await expect(settingsScope(page)).toBeVisible();
   return settingsScope(page);
