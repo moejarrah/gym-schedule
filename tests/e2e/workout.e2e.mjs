@@ -405,7 +405,7 @@ appTest("Rounds: set the round you're on, a round takes every workout once and t
   await expect(main(page)).toContainText("Round 3");
   await roundSettles(page);
   await tapOnRound(page, bottomButton(page, "Reopen Day B"));
-  await main(page).getByRole("button", { name: "Close again" }).click();
+  await tapOnRound(page, main(page).getByRole("button", { name: "Close again" }));
   await expect(bottomButton(page, "Reopen Day B")).toBeVisible();
   saved = await readState(page);
   assert.deepEqual([saved.sessions[TODAY].routineIds, saved.sessions[TODAY].workouts["day-b"].round, saved.settings.round.number], [["day-a", "day-b"], 3, 4]);
