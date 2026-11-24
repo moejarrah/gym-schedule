@@ -1241,10 +1241,12 @@ details.form-section > summary + * {
 }
 
 /* The top of the tab: who is followed and the gear; "Round 6" and the week on one
-   baseline; a bar with one segment per Required workout; two facts, one at each end. */
+   baseline; a bar with one segment per Required workout; two facts, one at each end.
+   Its one column never grows past the screen: a long name truncates. */
 .round-head {
   padding: 6px var(--gutter) var(--space-4);
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
 }
 
