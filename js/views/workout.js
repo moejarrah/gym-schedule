@@ -10,7 +10,7 @@
 
 import { afterRender, navigate, pauseTaps, registerActions, registerView, render, store } from "../context.js";
 import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, fresh, openDialog, playIcon, plural, redraw, report } from "../dom.js";
-import { activeWorkout, addExtra, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, localDateKey, orderedEntries, roundSummary, routineById, routineProgram, usualExtras, workoutHasWork, workoutProgress } from "../model.js";
+import { activeWorkout, addExtra, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, orderedEntries, roundSummary, routineById, routineProgram, usualExtras, workoutHasWork, workoutProgress } from "../model.js";
 import { openPicker } from "./entry-editor.js";
 import { openLogger } from "./logger.js";
 import { openExerciseReference, openExerciseVideo } from "./reference.js";
