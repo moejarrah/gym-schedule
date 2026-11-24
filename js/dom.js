@@ -263,13 +263,18 @@ export const segmentValue = (group) => element(group).dataset.value;
 // ---------- confirmation ----------
 
 // Resolves true when confirmed. `answer: true` resolves which button was tapped instead:
-// "confirm", "cancel", or "" when the question was closed without an answer.
-export function confirmAction({ title, message, confirmLabel, cancelLabel = "Keep it", variant = "", danger = true, answer = false }) {
+// "confirm", "cancel", "extra", or "" when the question was closed without an answer
+// (Escape). `extraLabel`: a third answer, the dangerous one, on a line of its own under
+// the other two. The message may have two lines ("\n"). The first answer (cancel) is the
+// one focused, so Enter, like Escape, changes nothing.
+export function confirmAction({ title, message, confirmLabel, cancelLabel = "Keep it", extraLabel = "", variant = "", danger = true, answer = false }) {
   const dialog = $("#confirmDialog");
   $("#confirmTitle").textContent = title;
   $("#confirmMessage").textContent = message;
   $("#confirmAction").textContent = confirmLabel;
   $("#confirmCancel").textContent = cancelLabel;
+  $("#confirmExtra").textContent = extraLabel;
+  $("#confirmExtra").hidden = !extraLabel;
   $("#confirmAction").classList.toggle("danger", danger);
   $("#confirmAction").classList.toggle("primary", !danger);
   dialog.dataset.variant = variant;
@@ -277,7 +282,8 @@ export function confirmAction({ title, message, confirmLabel, cancelLabel = "Kee
     openDialog(dialog, {
       onClose: (value) => {
         delete dialog.dataset.variant;
-        resolve(answer ? (["confirm", "cancel"].includes(value) ? value : "") : value === "confirm");
+        const answers = ["confirm", "cancel", ...(extraLabel ? ["extra"] : [])];
+        resolve(answer ? (answers.includes(value) ? value : "") : value === "confirm");
       },
     });
   });

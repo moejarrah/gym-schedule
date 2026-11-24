@@ -421,6 +421,28 @@ export function workoutProgress(state, workout = state.settings.activeWorkout) {
   return { routine, slots, counted, done, optional: slots.length - main.length, next: done < counted.length ? slots.find((slot) => !isDone(slot)) || null : null, isDone };
 }
 
+// Where a workout of a day stands, as the Finish question and the result tell it: its
+// slots (the routine's, then the day's extras), the ones that count (Main; every slot
+// when it has none), which are done (marked done, or with sets logged), how many sets were
+// logged (warm-ups left out) and for how many exercises.
+export function workoutStanding(state, routineId, dateKey) {
+  const routine = routineById(state, routineId);
+  const session = state.sessions[dateKey];
+  const slots = routine ? [...orderedEntries(routine), ...dayExtras(state, dateKey, routineId).map((extra) => findSlot(state, routineId, extra.id, dateKey))] : [];
+  const isDone = (slot) => isEntryChecked(state, dateKey, routineId, slot.id) || session?.logs?.[slot.id]?.routineId === routineId;
+  const main = slots.filter((slot) => slot.role === "main");
+  const counted = main.length ? main : slots;
+  const logs = Object.values(session?.logs || {}).filter((log) => log.routineId === routineId);
+  return {
+    slots,
+    counted,
+    done: counted.filter(isDone).length,
+    isDone,
+    sets: logs.reduce((count, log) => count + log.sets.filter((set) => !set.warmup).length, 0),
+    exercises: logs.length,
+  };
+}
+
 // Whether anything was logged or marked done in the workout in progress.
 export function workoutHasWork(state, workout = state.settings.activeWorkout) {
   const session = workout && state.sessions[workout.dateKey];

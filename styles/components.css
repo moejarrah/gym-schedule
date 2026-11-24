@@ -1118,7 +1118,8 @@ textarea.control {
   font-size: var(--fs-head);
 }
 
-/* Its two answers take the room their words need, each on one line. */
+/* Its two answers take the room their words need, each on one line; a third (.full,
+   the dangerous one) takes a line of its own under them. */
 .confirm .actions > .button {
   flex: 1 1 auto;
   white-space: nowrap;
@@ -1128,6 +1129,7 @@ textarea.control {
   margin-bottom: var(--space-5);
   color: var(--text-muted);
   line-height: 1.5;
+  white-space: pre-line;
 }
 
 .toast {

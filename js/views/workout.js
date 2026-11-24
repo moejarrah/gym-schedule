@@ -4,13 +4,13 @@
 // (a bar with one segment per main exercise); a slot's number opens its logging sheet,
 // its sets show at the end of its row, one slot at a time is open, and exercises can be
 // added for that day only. The bottom button logs the open exercise, then finishes.
-// Finish is always at the top right and asks nothing once anything is logged.
+// Finish is always at the top right, and always asks first.
 // Also here: the bar of the workout in progress that every other page shows, the
 // exercise-choices sheet, swapping a slot to another of its choices for today, and keeping the screen on.
 
 import { afterRender, navigate, pauseTaps, registerActions, registerView, render, store } from "../context.js";
 import { $, $$, chevronIcon, closeDialog, confirmAction, escapeHtml, fresh, openDialog, playIcon, plural, redraw, report } from "../dom.js";
-import { activeWorkout, addExtra, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, orderedEntries, roundSummary, routineById, routineProgram, usualExtras, workoutHasWork, workoutProgress } from "../model.js";
+import { activeWorkout, addExtra, cancelWorkout, dayExtras, entryLog, entryNumber, exerciseHistory, findSlot, finishWorkout, fullName, isEntryChecked, orderedEntries, roundSummary, routineById, routineProgram, usualExtras, workoutHasWork, workoutProgress, workoutStanding } from "../model.js";
 import { openPicker } from "./entry-editor.js";
 import { openLogger } from "./logger.js";
 import { openExerciseReference, openExerciseVideo } from "./reference.js";
@@ -375,30 +375,55 @@ const backToRound = () => {
   pauseTaps();
 };
 
-// Finish files the workout as it stands and pushes in its result (js/views/result.js).
-// Only a workout with nothing logged or done asks first,
-// whether to cancel it instead.
+// "A and B", "A, B and C", "A, B and 3 more".
+function namesText(names) {
+  const shown = names.length > 3 ? [...names.slice(0, 2), `${names.length - 2} more`] : names;
+  return shown.length < 2 ? shown.join("") : `${shown.slice(0, -1).join(", ")} and ${shown.at(-1)}`;
+}
+
+// Where the workout stands, for the Finish question: "5 of 8 exercises done · 14 sets
+// logged." and, when main exercises are left, "Not done: Chest fly, Lateral raise and 2 more."
+function standingText(state, workout) {
+  const { counted, done, isDone, sets } = workoutStanding(state, workout.routineId, workout.dateKey);
+  const left = counted.filter((slot) => !isDone(slot)).map((slot) => fullName(shownChoice(state, slot, workout.dateKey).exercise));
+  const first = `${done} of ${plural(counted.length, "exercise")} done · ${sets ? plural(sets, "set") : "no sets"} logged.`;
+  return left.length ? `${first}\nNot done: ${namesText(left)}.` : first;
+}
+
+// Finish always asks first. Its answers: keep going, or finish, which files the workout as
+// it stands and pushes in its result (js/views/result.js). With nothing logged or marked
+// done the question has a third answer, to cancel the workout instead. A second tap right
+// after the answer lands nowhere (pauseTaps).
 async function finish() {
-  const workout = activeWorkout(store.getState());
+  const state = store.getState();
+  const workout = activeWorkout(state);
   if (!workout) return;
   const { routineId, dateKey } = workout;
-  if (!workout.reopened && !workoutHasWork(store.getState(), workout)) {
-    const name = routineById(store.getState(), routineId).name;
-    const answer = await confirmAction({
-      title: "Nothing was logged",
-      message: `Cancel ${name} instead, or finish it as done anyway?`,
-      confirmLabel: "Finish anyway",
-      cancelLabel: "Cancel workout",
-      danger: false,
-      answer: true,
-    });
-    if (answer === "cancel") {
-      if (report(store.update(cancelWorkout), "Workout cancelled.")) backToRound();
-      return;
-    }
-    if (answer !== "confirm" || activeWorkout(store.getState())?.startedAt !== workout.startedAt) return;
+  const name = routineById(state, routineId).name;
+  const empty = !workout.reopened && !workoutHasWork(state, workout);
+  const answer = await confirmAction(empty ? {
+    title: "Nothing is logged",
+    message: `${name} has no sets and nothing marked done. Finish it anyway, or cancel it?`,
+    confirmLabel: "Finish anyway",
+    cancelLabel: "Back to workout",
+    extraLabel: "Cancel workout",
+    danger: false,
+    answer: true,
+  } : {
+    title: `Finish ${name}?`,
+    message: standingText(state, workout),
+    confirmLabel: "Finish",
+    cancelLabel: "Keep going",
+    danger: false,
+    answer: true,
+  });
+  pauseTaps();
+  if (activeWorkout(store.getState())?.startedAt !== workout.startedAt) return;
+  if (answer === "extra") {
+    if (report(store.update(cancelWorkout), "Workout cancelled.")) backToRound();
+    return;
   }
-  if (!report(store.update((draft) => finishWorkout(draft)))) return;
+  if (answer !== "confirm" || !report(store.update((draft) => finishWorkout(draft)))) return;
   showResult(routineId, dateKey);
 }
 
