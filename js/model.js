@@ -719,8 +719,8 @@ export function beginRound(state, todayKey = localDateKey()) {
 // round tags go), or, with `withWorkouts`, go too, each as "Delete this workout" takes one
 // off its day. Other rounds keep their numbers. A closed round leaves the round log; the
 // open round stays open, with the same number and the day it opened, now empty (Home lays
-// it out again). Once no round is left at all, counting is as it was before it began.
-// Refused while a workout runs.
+// it out again); an empty open round steps back to follow the closed rounds left. Once no
+// round is left at all, counting is as it was before it began. Refused while a workout runs.
 export function deleteRound(state, { number, block }, { withWorkouts = false } = {}) {
   if (state.settings.activeWorkout) fail("Finish or cancel the workout in progress first.");
   const round = openRound(state);
@@ -741,6 +741,13 @@ export function deleteRound(state, { number, block }, { withWorkouts = false } =
   if (index >= 0) log.splice(index, 1);
   if (state.settings.roundLog && !log.length) delete state.settings.roundLog;
   if (isOpen && !state.settings.roundLog && !anyFiled(state)) delete state.settings.round;
+  // A closed round deleted while the open one has nothing in it: the open round follows what
+  // is left, one after the highest closed round of its block (1 with none); its block stays.
+  // With a workout in it, it keeps its number.
+  if (!isOpen && round && !roundWorkouts(state, round).length) {
+    round.number = Math.max(0, ...log.filter((item) => item.block === round.block).map((item) => item.number)) + 1;
+    forgetEmptyFirstRound(state);
+  }
 }
 
 // A fresh start of the count: round 1 of the next block. The open round, if anything
